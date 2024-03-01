@@ -126,6 +126,7 @@ typedef struct UIWidget
     bool mEdited = false;
     bool mDeactivated = false;
     bool mDeactivatedAfterEdit = false;
+    bool mSameLine = false;
 
     // Stores the screen space position of the widget
     float2 mDisplayPosition;
@@ -136,7 +137,7 @@ typedef struct CollapsingHeaderWidget
     // array of UIWidget*
     UIWidget** pGroupedWidgets = NULL;
     uint32_t   mWidgetsCount = 0;
-    bool       mCollapsed = true;
+    bool       mCollapsed = false;
     bool       mPreviousCollapsed = false;
     bool       mDefaultOpen = false;
     bool       mHeaderIsVisible = true;
@@ -632,6 +633,9 @@ FORGE_API void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserDa
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is made inactive from an active state and its underlying value has changed
 FORGE_API void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+
+/// Set whether or not a given UI Widget should be on the sameline than the previous one
+FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);
 
 /****************************************************************************/
 // MARK: - Other User Interface Functionality

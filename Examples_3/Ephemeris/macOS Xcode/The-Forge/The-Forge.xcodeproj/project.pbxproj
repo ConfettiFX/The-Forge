@@ -307,8 +307,6 @@
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
 		E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
 		E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
-		E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
-		E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		ED2C4D3028756EF100D3CD40 /* CPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = ED2C4D2F28756EF100D3CD40 /* CPUConfig.h */; };
 		ED2C4D3228756EFF00D3CD40 /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = ED2C4D3128756EFF00D3CD40 /* GPUConfig.h */; };
@@ -560,7 +558,6 @@
 		E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = ParallelPrimitives.cpp; sourceTree = "<group>"; };
 		E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ParallelPrimitives.h; sourceTree = "<group>"; };
-		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = macOSAppDelegate.m; sourceTree = "<group>"; };
@@ -649,17 +646,8 @@
 				B2B33B3A297FD79A00A5D377 /* lz4 */,
 				550F7A9A28007B79007F29D2 /* stb */,
 				550F7A9928007B72007F29D2 /* bstrlib */,
-				5CEE004624A9C3B6003A183A /* basisu */,
 			);
 			name = Dependencies;
-			sourceTree = "<group>";
-		};
-		5CEE004624A9C3B6003A183A /* basisu */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
-			);
-			name = basisu;
 			sourceTree = "<group>";
 		};
 		654D978521E922C800113964 /* Animation */ = {
@@ -1149,8 +1137,6 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
-				95464A652899D721003FE481 /* DependencyTracking.cpp */,
-				B2090A9229FAD95E00E5289F /* ReloadServer */,
 				EDF77C0E287593F1003A3168 /* GPUConfig.cpp */,
 				ED2C4D3528756FA800D3CD40 /* IGraphics.h */,
 				ED2C4D3328756F9D00D3CD40 /* PickRenderingApi.cpp */,
@@ -1488,7 +1474,6 @@
 				550F7AAE28007BC3007F29D2 /* StbDs.c in Sources */,
 				B2B33B93297FD7E500A5D377 /* lz4.c in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
-				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				EDF77C1328759414003A3168 /* CPUConfig.cpp in Sources */,
 				81856F05229D729000F3A92B /* (null) in Sources */,
 				B2B33B70297FD7D400A5D377 /* pool.c in Sources */,
@@ -1632,7 +1617,6 @@
 				DDC281E92B695CDC0044BF7F /* Network.c in Sources */,
 				B2244DF027B855B100F19A33 /* impl_x86_macos.c in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
-				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B26D70832696322E00E24E41 /* lstring.c in Sources */,
 				5C55830B21413D550019960B /* Log.c in Sources */,
 				B2DE356427B1F61C00FB8676 /* WindowSystem.cpp in Sources */,

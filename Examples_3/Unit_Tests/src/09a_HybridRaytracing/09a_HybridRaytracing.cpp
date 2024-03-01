@@ -190,10 +190,8 @@ DescriptorSet* pDescriptorSetVBPass[2] = { NULL };
 
 enum Enum
 {
-    Lighting,
     Composite,
     RaytracedShadows,
-    // RaytractedReflections,
     CopyToBackbuffer,
     RenderPassCount
 };
@@ -211,8 +209,7 @@ DescriptorSet* pDescriptorSetCompFreq;
 
 Pipeline* pPipeline[RenderPassCount];
 
-Buffer* pShadowpassUniformBuffer[gDataBufferCount];
-Buffer* pLightpassUniformBuffer[gDataBufferCount];
+Buffer* pCommonUniformBuffer[gDataBufferCount];
 
 Buffer* pBufferMeshTransforms[MESH_COUNT][gDataBufferCount] = { { NULL } };
 Buffer* pBufferVBConstants[gDataBufferCount] = { NULL };
@@ -226,7 +223,6 @@ RenderTarget* pRenderTargetDepth = NULL;
 
 enum Textures
 {
-    Texture_Lighting,
     Texture_RaytracedShadows,
     Texture_Composite,
     TextureCount
@@ -257,12 +253,6 @@ struct CameraUniform
     vec2         mTwoOverRes;
 };
 
-// Per pass data
-struct DefaultpassUniformBuffer
-{
-    vec4 mRTSize;
-};
-
 struct PerFrameData
 {
     // Stores the camera/eye position in object space for cluster culling
@@ -270,13 +260,7 @@ struct PerFrameData
     uint32_t mDrawCount[gNumGeomSets] = { 0 };
 };
 
-struct ShadowpassUniformBuffer
-{
-    vec4 mRTSize;
-    vec4 mLightDir;
-};
-
-struct LightpassUniformBuffer
+struct CommonUniformBuffer
 {
     vec4 mRTSize;
     vec4 mLightDir;
@@ -325,12 +309,9 @@ SwapChain* pSwapChain = NULL;
 Buffer* BVHBoundingBoxesBuffer;
 
 // The render passes used in the demo
-// RenderPassMap            RenderPasses;
-PerFrameData             gPerFrameData[gDataBufferCount] = {};
-ShadowpassUniformBuffer  gShadowPassUniformData;
-LightpassUniformBuffer   gLightPassUniformData;
-DefaultpassUniformBuffer gDefaultPassUniformData;
-CameraUniform            gCameraUniformData;
+PerFrameData        gPerFrameData[gDataBufferCount] = {};
+CommonUniformBuffer gCommonUniformData;
+CameraUniform       gCameraUniformData;
 
 uint32_t gFrameIndex = 0;
 
@@ -348,8 +329,6 @@ PropData SanMiguelProp;
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
 ProfileToken gGpuProfileToken;
-
-uint gFrameNumber = 0;
 
 // forward declarations
 void subdivide(BVHNode* bvhNode, Triangle* tri, uint* triIdx, uint& nodesUsed, uint nodeIdx);
@@ -639,7 +618,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
@@ -813,32 +791,17 @@ public:
         }
     }
 
-    // Shadow pass per-pass constant buffer
+    // Shadow & Composite pass per-pass constant buffer
     {
         BufferLoadDesc ubDesc = {};
         ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        ubDesc.mDesc.mSize = sizeof(ShadowpassUniformBuffer);
+        ubDesc.mDesc.mSize = sizeof(CommonUniformBuffer);
         ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
         ubDesc.pData = NULL;
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            ubDesc.ppBuffer = &pShadowpassUniformBuffer[i];
-            addResource(&ubDesc, NULL);
-        }
-    }
-
-    // Lighting pass per-pass constant buffer
-    {
-        BufferLoadDesc ubDesc = {};
-        ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        ubDesc.mDesc.mSize = sizeof(LightpassUniformBuffer);
-        ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        ubDesc.pData = NULL;
-        for (uint32_t i = 0; i < gDataBufferCount; ++i)
-        {
-            ubDesc.ppBuffer = &pLightpassUniformBuffer[i];
+            ubDesc.ppBuffer = &pCommonUniformBuffer[i];
             addResource(&ubDesc, NULL);
         }
     }
@@ -1004,9 +967,7 @@ void Exit()
     for (uint32_t i = 0; i < gDataBufferCount; ++i)
     {
         removeResource(pBufferCameraUniform[i]);
-
-        removeResource(pShadowpassUniformBuffer[i]);
-        removeResource(pLightpassUniformBuffer[i]);
+        removeResource(pCommonUniformBuffer[i]);
 
         removeResource(pBufferVBConstants[i]);
 
@@ -1281,24 +1242,6 @@ void addRenderTargets()
             addResource(&textureDesc, NULL);
         }
 
-        // Add Lighting Pass render target
-        {
-            TextureLoadDesc textureDesc = {};
-            TextureDesc     desc = {};
-            desc.mWidth = mSettings.mWidth;
-            desc.mHeight = mSettings.mHeight;
-            desc.mDepth = 1;
-            desc.mArraySize = 1;
-            desc.mMipLevels = 1;
-            desc.mFormat = TinyImageFormat_B10G11R11_UFLOAT;
-            desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-            desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-            desc.mSampleCount = SAMPLE_COUNT_1;
-            textureDesc.pDesc = &desc;
-            textureDesc.ppTexture = &pTextures[Texture_Lighting];
-            addResource(&textureDesc, NULL);
-        }
-
         // Add Composite Pass render target
         {
             TextureLoadDesc textureDesc = {};
@@ -1324,7 +1267,6 @@ void removeRenderTargets()
     removeRenderTarget(pRenderer, pRenderTargetVBPass);
     removeRenderTarget(pRenderer, pRenderTargetDepth);
 
-    removeResource(pTextures[Texture_Lighting]);
     removeResource(pTextures[Texture_Composite]);
     removeResource(pTextures[Texture_RaytracedShadows]);
 }
@@ -1449,32 +1391,16 @@ void Update(float deltaTime)
         gMeshInfoUniformData[i][gFrameIndex].mWorldViewProjMat = gCameraUniformData.mViewProject * SanMiguelProp.mWorldMatrix;
     }
 
-    // update Shadow pass constant buffer
+    // update Common pass constant buffer
     {
-        gShadowPassUniformData.mRTSize =
+        gCommonUniformData.mRTSize =
             vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 1.0f / mSettings.mWidth, 1.0f / mSettings.mHeight);
-
-        gShadowPassUniformData.mLightDir = lightDir;
-    }
-
-    // update Lighting pass constant buffer
-    {
-        gLightPassUniformData.mRTSize =
-            vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 1.0f / mSettings.mWidth, 1.0f / mSettings.mHeight);
-        gLightPassUniformData.mLightDir = lightDir;
-    }
-
-    // update Composite pass constant buffer
-    {
-        gDefaultPassUniformData.mRTSize =
-            vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 1.0f / mSettings.mWidth, 1.0f / mSettings.mHeight);
+        gCommonUniformData.mLightDir = lightDir;
     }
 
     gVBConstants[gFrameIndex].transform[VIEW_CAMERA].mvp = gCameraUniformData.mViewProject.getPrimaryMatrix() * SanMiguelProp.mWorldMatrix;
     gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
     gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].sampleCount = 1;
-
-    gFrameNumber++;
 
     // uiSetComponentActive(pDebugTexturesWindow, gShowDebugTargets);
 }
@@ -1485,14 +1411,13 @@ void drawVisibilityBufferPass(Cmd* cmd)
                                        { pRenderTargetDepth, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE } };
     cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
-    const char*     profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
-    LoadActionsDesc loadActions = {};
-    loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-    loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
-    loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-    loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
+    const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 
-    cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+    BindRenderTargetsDesc bindRenderTargets = {};
+    bindRenderTargets.mRenderTargetCount = 1;
+    bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
+    bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_CLEAR };
+    cmdBindRenderTargets(cmd, &bindRenderTargets);
     cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
     cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
 
@@ -1517,7 +1442,7 @@ void drawVisibilityBufferPass(Cmd* cmd)
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
     }
-    cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+    cmdBindRenderTargets(cmd, NULL);
 }
 
 void Draw()
@@ -1555,20 +1480,15 @@ void Draw()
         endUpdateResource(&viewProjCbv);
     }
 
+    BufferUpdateDesc desc = { pCommonUniformBuffer[gFrameIndex] };
+    beginUpdateResource(&desc);
+    memcpy(desc.pMappedData, &gCommonUniformData, sizeof(gCommonUniformData));
+    endUpdateResource(&desc);
+
     BufferUpdateDesc cameraCbv = { pBufferCameraUniform[gFrameIndex] };
     beginUpdateResource(&cameraCbv);
     memcpy(cameraCbv.pMappedData, &gCameraUniformData, sizeof(CameraUniform));
     endUpdateResource(&cameraCbv);
-
-    BufferUpdateDesc desc = { pShadowpassUniformBuffer[gFrameIndex] };
-    beginUpdateResource(&desc);
-    memcpy(desc.pMappedData, &gShadowPassUniformData, sizeof(gShadowPassUniformData));
-    endUpdateResource(&desc);
-
-    desc = { pLightpassUniformBuffer[gFrameIndex] };
-    beginUpdateResource(&desc);
-    memcpy(desc.pMappedData, &gLightPassUniformData, sizeof(gLightPassUniformData));
-    endUpdateResource(&desc);
 
     BufferUpdateDesc updateVisibilityBufferConstantDesc = { pBufferVBConstants[gFrameIndex] };
     beginUpdateResource(&updateVisibilityBufferConstantDesc);
@@ -1648,40 +1568,19 @@ void Draw()
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
     }
 
-    // Lighting pass *********************************************************************************
-    {
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
-
-        // Transfer shadowbuffer to SRV and lightbuffer to UAV states
-        TextureBarrier barriers[] = { { pTextures[Texture_RaytracedShadows], RESOURCE_STATE_UNORDERED_ACCESS,
-                                        RESOURCE_STATE_SHADER_RESOURCE },
-                                      { pTextures[Texture_Lighting], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
-
-        cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
-
-        cmdBindPipeline(cmd, pPipeline[Lighting]);
-        cmdBindDescriptorSet(cmd, Texture_Lighting, pDescriptorSetCompNonFreq);
-        cmdBindDescriptorSet(cmd, gDataBufferCount * Texture_Lighting + gFrameIndex, pDescriptorSetCompFreq);
-
-        const uint32_t threadGroupSizeX = (mSettings.mWidth + 16 - 1) / 16;
-        const uint32_t threadGroupSizeY = (mSettings.mHeight + 16 - 1) / 16;
-
-        cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
-
-        cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-    }
-
     // Composite pass *********************************************************************************
     {
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Composite Pass");
 
         // Transfer albedo and lighting to SRV State
-        TextureBarrier barriers[] = { { pTextures[Texture_Lighting], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+        TextureBarrier barriers[] = { { pTextures[Texture_RaytracedShadows], RESOURCE_STATE_UNORDERED_ACCESS,
+                                        RESOURCE_STATE_SHADER_RESOURCE },
                                       { pTextures[Texture_Composite], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
-        cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
+        cmdResourceBarrier(cmd, 0, NULL, TF_ARRAY_COUNT(barriers), barriers, 0, NULL);
 
         cmdBindPipeline(cmd, pPipeline[Composite]);
         cmdBindDescriptorSet(cmd, Texture_Composite, pDescriptorSetCompNonFreq);
+        cmdBindDescriptorSet(cmd, gDataBufferCount * Texture_Composite + gFrameIndex, pDescriptorSetCompFreq);
 
         const uint32_t threadGroupSizeX = (mSettings.mWidth + 16 - 1) / 16;
         const uint32_t threadGroupSizeY = (mSettings.mHeight + 16 - 1) / 16;
@@ -1690,16 +1589,18 @@ void Draw()
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-        RenderTargetBarrier rtBarrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         barriers[0] = { pTextures[Texture_Composite], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
 
-        cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, &rtBarrier);
+        RenderTargetBarrier rtBarriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET } };
+        cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
     }
 
     // Copy results to the backbuffer & draw text *****************************************************************
     {
-        LoadActionsDesc loadActions = {};
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_DONTCARE };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -1725,7 +1626,7 @@ void Draw()
         cmdDrawUserInterface(cmd);
         cmdEndDebugMarker(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     {
@@ -1860,40 +1761,6 @@ void prepareDescriptorSets()
     DescriptorDataRange dataRange = { GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, 0, 0) * sizeof(uint32_t),
                                       MAX_DRAWS_INDIRECT_ELEMENTS * NUM_GEOMETRY_SETS * sizeof(uint32_t), sizeof(uint32_t) };
 
-    // Lighting
-    {
-        DescriptorData params[6] = {};
-        params[0].pName = "vbPassTexture";
-        params[0].ppTextures = &pRenderTargetVBPass->pTexture;
-        params[1].pName = "vertexPos";
-        params[1].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
-        params[2].pName = "vertexTexCoord";
-        params[2].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[1];
-        params[3].pName = "vertexNormal";
-        params[3].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[2];
-        params[4].pName = "shadowbuffer";
-        params[4].ppTextures = &pTextures[Texture_RaytracedShadows];
-        params[5].pName = "outputRT";
-        params[5].ppTextures = &pTextures[Texture_Lighting];
-        updateDescriptorSet(pRenderer, Texture_Lighting, pDescriptorSetCompNonFreq, 6, params);
-        for (uint32_t i = 0; i < gDataBufferCount; ++i)
-        {
-            DescriptorData params[5] = {};
-            params[0].pName = "cbPerPass";
-            params[0].ppBuffers = &pLightpassUniformBuffer[i];
-            params[1].pName = "cameraUniformBlock";
-            params[1].ppBuffers = &pBufferCameraUniform[i];
-            params[2].pName = "indirectMaterialBuffer";
-            params[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataIndexBuffer[0];
-            params[3].pName = "filteredIndexBuffer";
-            params[3].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-            params[4].pName = "indirectDrawArgs";
-            params[4].pRanges = &dataRange;
-            params[4].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-            updateDescriptorSet(pRenderer, Texture_Lighting * gDataBufferCount + i, pDescriptorSetCompFreq, 5, params);
-        }
-    }
-
     // Raytraced Shadows
     {
         DescriptorData params[8] = {};
@@ -1919,7 +1786,7 @@ void prepareDescriptorSets()
         {
             DescriptorData params[5] = {};
             params[0].pName = "cbPerPass";
-            params[0].ppBuffers = &pShadowpassUniformBuffer[i];
+            params[0].ppBuffers = &pCommonUniformBuffer[i];
             params[1].pName = "cameraUniformBlock";
             params[1].ppBuffers = &pBufferCameraUniform[i];
             params[2].pName = "indirectMaterialBuffer";
@@ -1935,7 +1802,7 @@ void prepareDescriptorSets()
 
     // Composite
     {
-        DescriptorData params[6] = {};
+        DescriptorData params[7] = {};
         params[0].pName = "vbPassTexture";
         params[0].ppTextures = &pRenderTargetVBPass->pTexture;
         params[1].pName = "diffuseMaps";
@@ -1945,16 +1812,18 @@ void prepareDescriptorSets()
         params[2].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
         params[3].pName = "vertexTexCoord";
         params[3].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[1];
-        params[4].pName = "lightbuffer";
-        params[4].ppTextures = &pTextures[Texture_Lighting];
-        params[5].pName = "outputRT";
-        params[5].ppTextures = &pTextures[Texture_Composite];
-        updateDescriptorSet(pRenderer, Texture_Composite, pDescriptorSetCompNonFreq, 6, params);
+        params[4].pName = "vertexNormal";
+        params[4].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[2];
+        params[5].pName = "shadowbuffer";
+        params[5].ppTextures = &pTextures[Texture_RaytracedShadows];
+        params[6].pName = "outputRT";
+        params[6].ppTextures = &pTextures[Texture_Composite];
+        updateDescriptorSet(pRenderer, Texture_Composite, pDescriptorSetCompNonFreq, 7, params);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData params[5] = {};
             params[0].pName = "cbPerPass";
-            params[0].ppBuffers = &pShadowpassUniformBuffer[i];
+            params[0].ppBuffers = &pCommonUniformBuffer[i];
             params[1].pName = "cameraUniformBlock";
             params[1].ppBuffers = &pBufferCameraUniform[i];
             params[2].pName = "indirectMaterialBuffer";
@@ -2085,10 +1954,10 @@ void addRootSignatures()
 
     Sampler*    compSamplers[] = { pSamplerTrilinearAniso, pSamplerMiplessLinear };
     const char* pStaticCompSamplers[] = { "textureSampler", "clampMiplessLinearSampler" };
-    Shader*     compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
+    Shader*     compShaders[] = { pShader[Composite], pShader[RaytracedShadows] };
 
     RootSignatureDesc rootCompDesc = {};
-    rootCompDesc.mShaderCount = 3;
+    rootCompDesc.mShaderCount = TF_ARRAY_COUNT(compShaders);
     rootCompDesc.ppShaders = compShaders;
     rootCompDesc.mStaticSamplerCount = 2;
     rootCompDesc.ppStaticSamplers = compSamplers;
@@ -2163,11 +2032,6 @@ void addShaders()
     shadowsShader.mStages[0].pFileName = "raytracedShadowsPass.comp";
     addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
 
-    // shader for Lighting pass
-    ShaderLoadDesc lightingShader = {};
-    lightingShader.mStages[0].pFileName = "lightingPass.comp";
-    addShader(pRenderer, &lightingShader, &pShader[Lighting]);
-
     // shader for Composite pass
     ShaderLoadDesc compositeShader = {};
     compositeShader.mStages[0].pFileName = "compositePass.comp";
@@ -2187,7 +2051,6 @@ void removeShaders()
     removeShader(pRenderer, pShaderBatchCompaction);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_OPAQUE]);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_ALPHA_CUTOUT]);
-    removeShader(pRenderer, pShader[Lighting]);
     removeShader(pRenderer, pShader[Composite]);
     removeShader(pRenderer, pShader[RaytracedShadows]);
     removeShader(pRenderer, pShader[CopyToBackbuffer]);
@@ -2306,16 +2169,6 @@ void addPipelines()
         addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadows]);
     }
 
-    // create lighting pipeline
-    {
-        PipelineDesc desc = {};
-        desc.mType = PIPELINE_TYPE_COMPUTE;
-        ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-        pipelineDesc.pRootSignature = pRootSignatureComp;
-        pipelineDesc.pShaderProgram = pShader[Lighting];
-        addPipeline(pRenderer, &desc, &pPipeline[Lighting]);
-    }
-
     // create composite pipeline
     {
         PipelineDesc desc = {};
@@ -2357,7 +2210,6 @@ void removePipelines()
         removePipeline(pRenderer, pPipelineVBBufferPass[i]);
     }
     removePipeline(pRenderer, pPipeline[RaytracedShadows]);
-    removePipeline(pRenderer, pPipeline[Lighting]);
     removePipeline(pRenderer, pPipeline[Composite]);
     removePipeline(pRenderer, pPipeline[CopyToBackbuffer]);
 }

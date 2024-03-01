@@ -30,14 +30,15 @@ NUM_THREADS(CLEAR_THREAD_COUNT, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
 	INIT_MAIN;
-    if (threadID.x >= MAX_DRAWS_INDIRECT - 1)
-        return;
+  // last element should not be cleared since it contains draw counter
+  if (threadID.x >= MAX_DRAWS_INDIRECT - 1)
+      return;
 
 	ClearUncompactedDrawArgsBuffer(threadID.x);
 
-    if (threadID.x == 0)
-    {
-		ClearIndirectDrawArgsBuffer();
-    }
+  if (threadID.x == 0)
+  {
+    ClearIndirectDrawArgsBuffer();
+  }
 	RETURN();
 }

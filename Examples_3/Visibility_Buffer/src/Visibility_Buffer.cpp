@@ -1048,6 +1048,9 @@ public:
         gAppSettings.mEnableAO = false;
 #endif
 
+        gAppSettings.mHoldFilteredResults = false;
+        gAppSettings.mFilterTriangles = true;
+
         CheckboxWidget checkbox;
         checkbox.pData = &gAppSettings.mHoldFilteredResults;
         luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Hold filtered results", &checkbox, WIDGET_TYPE_CHECKBOX));
@@ -1354,7 +1357,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -1491,16 +1494,6 @@ public:
         exitVisibilityBuffer(pVisibilityBuffer);
 
         exitResourceLoaderInterface(pRenderer);
-
-        /*
-         #ifdef _DEBUG
-         ID3D12DebugDevice *pDebugDevice = NULL;
-         pRenderer->pDevice->QueryInterface(&pDebugDevice);
-
-         pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-         pDebugDevice->Release();
-         #endif
-         */
 
         exitRenderer(pRenderer);
         pRenderer = NULL;
@@ -2358,13 +2351,16 @@ public:
 
     void addRenderTargets()
     {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t   width = mSettings.mWidth;
+        const uint32_t   height = mSettings.mHeight;
         /************************************************************************/
         /************************************************************************/
-        ClearValue     optimizedDepthClear = { { 1.0f, 0 } };
-        ClearValue     optimizedColorClearBlack = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        ClearValue     optimizedColorClearWhite = { { 1.0f, 1.0f, 1.0f, 1.0f } };
+        const ClearValue depthStencilClear = { { 0.0f, 0 } };
+        // Used for ESM render target shadow
+        const ClearValue lessEqualDepthStencilClear = { { 1.f, 0 } };
+
+        ClearValue optimizedColorClearBlack = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+        ClearValue optimizedColorClearWhite = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 
         /************************************************************************/
         // Main depth buffer
@@ -2373,7 +2369,7 @@ public:
         BEGINALLOCATION("Depth Buffer", 0u);
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
-        depthRT.mClearValue = optimizedDepthClear;
+        depthRT.mClearValue = depthStencilClear;
         depthRT.mDepth = 1;
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
@@ -2395,7 +2391,7 @@ public:
         /************************************************************************/
         RenderTargetDesc shadowRTDesc = {};
         shadowRTDesc.mArraySize = 1;
-        shadowRTDesc.mClearValue = optimizedDepthClear;
+        shadowRTDesc.mClearValue = lessEqualDepthStencilClear;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
@@ -2849,8 +2845,14 @@ public:
         DepthStateDesc depthStateDesc = {};
         depthStateDesc.mDepthTest = true;
         depthStateDesc.mDepthWrite = true;
-        depthStateDesc.mDepthFunc = CMP_LEQUAL;
+        depthStateDesc.mDepthFunc = CMP_GEQUAL;
         DepthStateDesc depthStateDisableDesc = {};
+
+        // Shadow mapping...
+        DepthStateDesc depthStateLEQUALEnabledDesc = {};
+        depthStateLEQUALEnabledDesc.mDepthFunc = CMP_LEQUAL;
+        depthStateLEQUALEnabledDesc.mDepthWrite = true;
+        depthStateLEQUALEnabledDesc.mDepthTest = true;
 
         RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
 
@@ -2905,7 +2907,7 @@ public:
         GraphicsPipelineDesc& shadowPipelineSettings = pipelineDesc.mGraphicsDesc;
         shadowPipelineSettings = { 0 };
         shadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        shadowPipelineSettings.pDepthState = &depthStateDesc;
+        shadowPipelineSettings.pDepthState = &depthStateLEQUALEnabledDesc;
         shadowPipelineSettings.mDepthStencilFormat = pRenderTargetShadow->mFormat;
         shadowPipelineSettings.mSampleCount = pRenderTargetShadow->mSampleCount;
         shadowPipelineSettings.mSampleQuality = pRenderTargetShadow->mSampleQuality;
@@ -3454,7 +3456,7 @@ public:
         mat4 cameraModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
         // mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
         mat4 cameraView = pCameraController->getViewMatrix();
-        mat4 cameraProj = mat4::perspectiveLH(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
+        mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         // Compute light matrices
         vec3 lightSourcePos(50.0f, 000.0f, 450.0f);
@@ -3695,13 +3697,11 @@ public:
     // Render the shadow mapping pass. This pass updates the shadow map texture
     void drawShadowMapPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
-        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetShadow->mClearValue;
-
         // Start render pass and apply load actions
-        cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadow, &loadActions, NULL, NULL, -1, -1);
+        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mDepthStencil = { pRenderTargetShadow, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadow->mWidth, (float)pRenderTargetShadow->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetShadow->mWidth, pRenderTargetShadow->mHeight);
 
@@ -3752,7 +3752,7 @@ public:
                            pIndirectBuffer, indirectBufferCounterByteOffset);
         cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Render the scene to perform the Visibility Buffer pass. In this pass the (filtered) scene geometry is rendered
@@ -3761,15 +3761,13 @@ public:
     // less memory bandwidth is used.
     void drawVisibilityBufferPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
-        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pDepthBuffer->mClearValue;
-
         // Start render pass and apply load actions
-        cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
 
@@ -3801,7 +3799,7 @@ public:
             cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
         }
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by
@@ -3812,11 +3810,10 @@ public:
         RenderTarget* pDestinationRenderTarget = gAppSettings.mMsaaLevel > 1 ? pRenderTargetMSAA : pScreenRenderTarget;
 
         // Set load actions to clear the screen to black
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pDestinationRenderTarget->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pDestinationRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mWidth, (float)pDestinationRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mWidth, pDestinationRenderTarget->mHeight);
 
@@ -3826,7 +3823,7 @@ public:
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void resolveMSAA(Cmd* cmd, RenderTarget* msaaRT, RenderTarget* destRT)
@@ -3836,16 +3833,15 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
         // Set load actions to clear the screen to black
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = destRT->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &destRT, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { destRT, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdBindPipeline(cmd, pPipelineResolve);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetResolve);
         cmdDraw(cmd, 3, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Executes a compute shader to clear (reset) the the light clusters on the GPU
@@ -3908,11 +3904,10 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Draw Skybox");
 
         // Set load actions to clear the screen to black
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        loadActions.mClearColorValues[0] = pScreenRenderTarget->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -3925,7 +3920,7 @@ public:
 
         cmdDraw(cmd, 36, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
@@ -3941,11 +3936,10 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "God Ray");
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetGodRay[0]->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &pRenderTargetGodRay[0], NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetGodRay[0], LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetGodRay[0]->mWidth, (float)pRenderTargetGodRay[0]->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetGodRay[0]->mWidth, pRenderTargetGodRay[0]->mHeight);
 
@@ -3955,7 +3949,7 @@ public:
         cmdBindPushConstants(cmd, pRootSigGodRayPass, gGodRayConstantIndex, &gGodRayConstant);
         cmdDraw(cmd, 3, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         RenderTargetBarrier barrier2[] = { { pRenderTargetGodRay[0], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier2);
@@ -4015,10 +4009,10 @@ public:
                                                            RESOURCE_STATE_RENDER_TARGET } };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrierCurveConversion);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pCurveConversionRenderTarget->mClearValue;
-        cmdBindRenderTargets(cmd, 1, &pCurveConversionRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pCurveConversionRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         // CurveConversion
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pCurveConversionRenderTarget->mWidth, (float)pCurveConversionRenderTarget->mHeight, 0.0f,
@@ -4028,7 +4022,7 @@ public:
         cmdBindPipeline(cmd, pPipelineCurveConversionPass);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetCurveConversionPass);
         cmdDraw(cmd, 3, 0);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         pScreenRenderTarget = pCurveConversionRenderTarget;
 
@@ -4044,10 +4038,10 @@ public:
 
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrier);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        loadActions.mClearColorValues[0] = pDstCol->mClearValue;
-        cmdBindRenderTargets(cmd, 1, &pDstCol, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pDstCol, LOAD_ACTION_DONTCARE };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstCol->mWidth, (float)pDstCol->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
@@ -4055,7 +4049,7 @@ public:
         cmdBindPushConstants(cmd, pRootSigPresentPass, gSCurveRootConstantIndex, &gSCurveInfomation);
         cmdBindDescriptorSet(cmd, gAppSettings.mEnableGodray ? 1 : 0, pDescriptorSetPresentPass);
         cmdDraw(cmd, 3, 0);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         RenderTargetBarrier barrierPresent = { pDstCol, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrierPresent);
@@ -4068,10 +4062,10 @@ public:
     {
         UNREF_PARAM(frameIdx);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -4099,7 +4093,7 @@ public:
 
         cmdDrawUserInterface(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 };
 

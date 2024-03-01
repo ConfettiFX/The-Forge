@@ -79,9 +79,6 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Examples_3\Unit_Tests\UnitTestResources
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders\"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders\"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data" "$(OutDir)GPUCfg\gpu.data*"
-
 
 
 </Command>

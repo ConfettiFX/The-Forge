@@ -62,7 +62,7 @@ xcopy $(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua $(SolutionDir)$(Platfo
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -99,7 +99,7 @@ xcopy $(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua $(SolutionDir)$(Platfo
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

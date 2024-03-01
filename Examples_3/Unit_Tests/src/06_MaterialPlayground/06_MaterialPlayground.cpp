@@ -825,7 +825,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
@@ -1075,7 +1074,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -1615,13 +1614,9 @@ public:
         //
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Shadow Pass");
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth.depth = 0.0f;
-        loadActions.mClearDepth.stencil = 0;
-
-        cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadowMap, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mDepthStencil = { pRenderTargetShadowMap, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mWidth, (float)pRenderTargetShadowMap->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mWidth, pRenderTargetShadowMap->mHeight);
         cmdBindPipeline(cmd, pPipelineShadowPass);
@@ -1663,11 +1658,11 @@ public:
         // DRAW SKYBOX
         //
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Skybox Pass");
-        loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -1685,16 +1680,16 @@ public:
 
         // DRAW THE OBJECTS W/ MATERIALS
         //
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         RenderTargetBarrier shadowTexBarrier = { pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &shadowTexBarrier);
 
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -1782,7 +1777,7 @@ public:
                 cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // Lighting Pass
             }
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
         }
         // Draw hair
         else // gMaterialType == MATERIAL_HAIR
@@ -1792,7 +1787,7 @@ public:
 
             uint32_t descriptorSetIndex = gFrameIndex * gHairDynamicDescriptorSetCount;
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             // Hair simulation
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair simulation");
@@ -1930,7 +1925,7 @@ public:
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair rendering");
 
             uint32_t            shadowDescriptorSetIndex[2] = { gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
-                                                                gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS };
+                                                     gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS };
             RenderTargetBarrier rtBarriers[2] = {};
             BufferBarrier       bufferBarrier[1] = {};
 
@@ -1947,17 +1942,15 @@ public:
 
                 for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
                 {
-                    cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+                    cmdBindRenderTargets(cmd, NULL);
                     rtBarriers[0].pRenderTarget = pRenderTargetHairShadows[hairType][i];
                     rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
                     rtBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
                     cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
-                    loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-                    loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-                    loadActions.mClearDepth = pRenderTargetHairShadows[hairType][i]->mClearValue;
-
-                    cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetHairShadows[hairType][i], &loadActions, NULL, NULL, -1, -1);
+                    bindRenderTargets = {};
+                    bindRenderTargets.mDepthStencil = { pRenderTargetHairShadows[hairType][i], LOAD_ACTION_CLEAR };
+                    cmdBindRenderTargets(cmd, &bindRenderTargets);
                     cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mWidth,
                                    (float)pRenderTargetHairShadows[hairType][i]->mHeight, 0.0f, 1.0f);
                     cmdSetScissor(cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth, pRenderTargetHairShadows[hairType][i]->mHeight);
@@ -1981,7 +1974,7 @@ public:
             }
 
             // Draw hair - clear hair depths texture
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
@@ -2003,8 +1996,9 @@ public:
             }
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair clear");
 
-            loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
-            cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+            bindRenderTargets = {};
+            bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2012,7 +2006,7 @@ public:
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairClear);
             cmdDraw(cmd, 3, 0);
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
@@ -2037,11 +2031,11 @@ public:
                 cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 1, rtBarriers);
             }
 
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mClearValue;
-            loadActions.mLoadActionDepth = LOAD_ACTION_LOAD; //-V1048
-
-            cmdBindRenderTargets(cmd, 1, &pRenderTargetDepthPeeling, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+            bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pRenderTargetDepthPeeling, LOAD_ACTION_CLEAR };
+            bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDepthPeeling->mWidth, (float)pRenderTargetDepthPeeling->mHeight, 0.0f,
                            1.0f);
             cmdSetScissor(cmd, 0, 0, pRenderTargetDepthPeeling->mWidth, pRenderTargetDepthPeeling->mHeight);
@@ -2071,7 +2065,7 @@ public:
                 }
             }
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
@@ -2093,12 +2087,14 @@ public:
                 cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 0, NULL);
             }
 
-            cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+            bindRenderTargets = {};
+            bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdBindPipeline(cmd, pPipelineHairDepthResolve);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairDepthResolve);
             cmdDraw(cmd, 3, 0);
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
@@ -2124,9 +2120,11 @@ public:
                 cmdResourceBarrier(cmd, 0, NULL, 0, NULL, MAX_NUM_DIRECTIONAL_LIGHTS, rtBarriers);
             }
 
-            loadActions.mClearColorValues[0] = pRenderTargetFillColors->mClearValue;
-
-            cmdBindRenderTargets(cmd, 1, &pRenderTargetFillColors, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+            bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pRenderTargetFillColors, LOAD_ACTION_CLEAR };
+            bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetFillColors->mWidth, (float)pRenderTargetFillColors->mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pRenderTargetFillColors->mWidth, pRenderTargetFillColors->mHeight);
 
@@ -2158,7 +2156,7 @@ public:
                 }
             }
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
@@ -2173,9 +2171,11 @@ public:
             rtBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
             cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarriers);
 
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-
-            cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+            bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+            bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2190,7 +2190,11 @@ public:
 #if HAIR_MAX_CAPSULE_COUNT > 0
             if (gShowCapsules)
             {
-                cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+                BindRenderTargetsDesc bindRenderTargets = {};
+                bindRenderTargets.mRenderTargetCount = 1;
+                bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+                bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+                cmdBindRenderTargets(cmd, &bindRenderTargets);
                 cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
                 cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2210,18 +2214,20 @@ public:
                 }
             }
 #endif
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             gFirstHairSimulationFrame = false;
         }
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         // SET UP DRAW COMMANDS (UI)
         //
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD; //-V1048
-        loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2259,9 +2265,10 @@ public:
             }
         }
 
-        loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         // draw HUD text
         float2 screenCoords = float2(8, 15);
@@ -2285,7 +2292,7 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
 
         cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // UI
 
         // PRESENT THE GFX QUEUE
@@ -2504,7 +2511,7 @@ public:
         Sampler*    pStaticSamplers[] = { pSamplerBilinearRepeat,
                                        gSupportLinearSamplingBRDFTextures ? pSamplerBilinearClampToEdge : pSamplerPointClampToEdge,
                                        gSupportLinearSamplingBRDFTextures ? pSamplerBilinearRepeat : pSamplerPointRepeat,
-                                          pSamplerBilinearRepeat, pSamplerPointClampToBorder };
+                                       pSamplerBilinearRepeat, pSamplerPointClampToBorder };
         uint        numStaticSamplers = sizeof(pStaticSamplerNames) / sizeof(pStaticSamplerNames[0]);
 
         RootSignatureDesc brdfRootDesc = {};
@@ -2695,7 +2702,7 @@ public:
         Sampler*    pStaticSamplers[] = { pSamplerBilinearRepeat,
                                        gSupportLinearSamplingBRDFTextures ? pSamplerBilinearClampToEdge : pSamplerPointClampToEdge,
                                        gSupportLinearSamplingBRDFTextures ? pSamplerBilinearRepeat : pSamplerPointRepeat,
-                                          pSamplerBilinearRepeat, pSamplerPointClampToBorder };
+                                       pSamplerBilinearRepeat, pSamplerPointClampToBorder };
         uint        numStaticSamplers = sizeof(pStaticSamplerNames) / sizeof(pStaticSamplerNames[0]);
 
         RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
@@ -3309,6 +3316,7 @@ public:
         const char* brdfIntegrationShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_NONE
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_OFFICE
+            "BRDFIntegration_SAMPLES_32.comp",  // GPU_PRESET_VERYLOW
             "BRDFIntegration_SAMPLES_64.comp",  // GPU_PRESET_LOW
             "BRDFIntegration_SAMPLES_128.comp", // GPU_PRESET_MEDIUM
             "BRDFIntegration_SAMPLES_256.comp", // GPU_PRESET_HIGH
@@ -3316,8 +3324,9 @@ public:
         };
 
         const char* irradianceShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
-            "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_NONE
-            "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_OFFICE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_NONE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_OFFICE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_VERYLOW
             "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_LOW
             "computeIrradianceMap_SAMPLE_DELTA_0125.comp", // GPU_PRESET_MEDIUM
             "computeIrradianceMap_SAMPLE_DELTA_005.comp",  // GPU_PRESET_HIGH
@@ -3327,6 +3336,7 @@ public:
         const char* specularShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "computeSpecularMap_SAMPLES_0.comp",   // GPU_PRESET_NONE
             "computeSpecularMap_SAMPLES_0.comp",   // GPU_PRESET_OFFICE
+            "computeSpecularMap_SAMPLES_32.comp",  // GPU_PRESET_VERYLOW
             "computeSpecularMap_SAMPLES_64.comp",  // GPU_PRESET_LOW
             "computeSpecularMap_SAMPLES_128.comp", // GPU_PRESET_MEDIUM
             "computeSpecularMap_SAMPLES_256.comp", // GPU_PRESET_HIGH
@@ -3590,7 +3600,7 @@ public:
         headTransform.mAttachedBone = gAnimationRig.FindJoint(gHeadAttachmentJointName);
         gTransforms[0] = headTransform;
 
-        float gpuPresetScore = (float)((uint)gGPUPresetLevel - GPU_PRESET_LOW) / (float)(GPU_PRESET_ULTRA - GPU_PRESET_LOW);
+        float gpuPresetScore = (float)((uint)gGPUPresetLevel - GPU_PRESET_VERYLOW) / (float)(GPU_PRESET_ULTRA - GPU_PRESET_VERYLOW);
 
         // Load all hair meshes
         HairSectionShadingParameters ponytailHairShadingParameters = {};
@@ -4261,11 +4271,6 @@ public:
         depthStateNoWriteDesc.mDepthWrite = false;
         depthStateNoWriteDesc.mDepthFunc = CMP_GEQUAL;
 
-        DepthStateDesc depthStateDepthResolveDesc = {};
-        depthStateDepthResolveDesc.mDepthTest = true;
-        depthStateDepthResolveDesc.mDepthWrite = true;
-        depthStateDepthResolveDesc.mDepthFunc = CMP_GEQUAL;
-
         BlendStateDesc blendStateDesc = {};
         blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
         blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
@@ -4372,7 +4377,7 @@ public:
         pipelineSettings = {};
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 0;
-        pipelineSettings.pDepthState = &depthStateDepthResolveDesc;
+        pipelineSettings.pDepthState = &depthStateDesc;
         pipelineSettings.pColorFormats = NULL;
         pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
         pipelineSettings.mSampleQuality = 0;

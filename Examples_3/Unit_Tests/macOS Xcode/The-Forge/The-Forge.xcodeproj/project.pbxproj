@@ -291,8 +291,6 @@
 		E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C9233B098900B21FD6 /* macOSBase.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
 		E98584E72334397C00692529 /* SystemRun.c in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.c */; };
-		E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
-		E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
 		ED099E38286F2F6B002BD997 /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED099E37286F2F6B002BD997 /* InputSystem.cpp */; };
 		ED099E39286F2FE4002BD997 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED099E18286F289C002BD997 /* libgainputstatic.a */; };
 		ED099E3E286F2FF8002BD997 /* libgainputstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED099E1A286F289C002BD997 /* libgainputstatic_iOS.a */; };
@@ -549,6 +547,7 @@
 		DD3ABA8E2B6956C500DA53AE /* ReloadClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ReloadClient.h; path = Tools/ReloadServer/ReloadClient.h; sourceTree = "<group>"; };
 		DD3ABA922B69576300DA53AE /* Network.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Network.c; path = Tools/Network/Network.c; sourceTree = "<group>"; };
 		DD3ABA932B69576300DA53AE /* Network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Network.h; path = Tools/Network/Network.h; sourceTree = "<group>"; };
+		E6B91E702B71BC730041B100 /* apple_gpu.data */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = apple_gpu.data; path = "../../Examples_3/Unit_Tests/macOS Xcode/apple_gpu.data"; sourceTree = "<group>"; };
 		E967DE38233B0A2C0032E4BA /* DarwinThread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DarwinThread.c; sourceTree = "<group>"; };
 		E967DE39233B0A2C0032E4BA /* DarwinLog.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DarwinLog.c; sourceTree = "<group>"; };
 		E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CocoaFileSystem.mm; sourceTree = "<group>"; };
@@ -559,7 +558,6 @@
 		E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E98584E52334397C00692529 /* SystemRun.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; name = SystemRun.c; path = ../Utilities/FileSystem/SystemRun.c; sourceTree = "<group>"; };
-		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = macOSAppDelegate.m; sourceTree = "<group>"; };
@@ -721,14 +719,6 @@
 				5C32AEDE246453F40066E921 /* ParallelPrimitives.h */,
 			);
 			name = ParallelPrimitives;
-			sourceTree = "<group>";
-		};
-		5CA3338224A9C27100F26BD1 /* basisu */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
-			);
-			name = basisu;
 			sourceTree = "<group>";
 		};
 		654D978521E922C800113964 /* Animation */ = {
@@ -1045,7 +1035,6 @@
 				B274D8BE27DE559A00670028 /* cpu_features */,
 				B23498422693B75600504010 /* imgui */,
 				B23498412693B75000504010 /* LUA */,
-				5CA3338224A9C27100F26BD1 /* basisu */,
 			);
 			name = Dependencies;
 			sourceTree = "<group>";
@@ -1201,6 +1190,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				E6B91E702B71BC730041B100 /* apple_gpu.data */,
 				B2D10F85299A49040089617D /* ShaderUtilities.h.fsl */,
 				EDA02B87291D01570067A459 /* IVisibilityBuffer.h */,
 				ED2B119E2912F96500688D30 /* VibilityBuffer */,
@@ -1556,11 +1546,9 @@
 				B23498BD2693B83600504010 /* lzio.c in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				B23498A12693B83600504010 /* luac.c in Sources */,
-				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				81856F05229D729000F3A92B /* (null) in Sources */,
 				B234984E2693B77E00504010 /* imgui_draw.cpp in Sources */,
 				B26E985427BC52FD005873E3 /* stbtt.cpp in Sources */,
-				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				81856F05229D729000F3A92B /* (null) in Sources */,
 				55E0CF0427FEF32500A60EF1 /* StbDs.c in Sources */,
 				81856F11229D729000F3A92B /* (null) in Sources */,
@@ -1691,7 +1679,6 @@
 				B23498362693B74100504010 /* LuaSystem.cpp in Sources */,
 				B23498C02693B83600504010 /* lauxlib.c in Sources */,
 				E95891EB2341596500B68D6A /* SystemRun.c in Sources */,
-				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				2683449729783D9B00F4F318 /* huf_decompress_amd64.S in Sources */,
 				B274E4BC27DE57FE00670028 /* CPUConfig.cpp in Sources */,
 				B274E48527DE560600670028 /* impl_x86_macos.c in Sources */,

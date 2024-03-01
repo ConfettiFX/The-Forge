@@ -57,6 +57,7 @@
     </FSLShader>
     <PreLinkEvent>
       <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\Animation\*.ozz $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\ /s /y /d
+
 xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
 xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
@@ -64,7 +65,7 @@ xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*"
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y /d
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -103,7 +104,7 @@ xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*"
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y /d
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

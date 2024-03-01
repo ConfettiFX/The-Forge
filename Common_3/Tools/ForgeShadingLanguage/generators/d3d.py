@@ -274,14 +274,14 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                 max_index = index[1]
                 index = index[0]
             nonuniformresourceindex = index
-            if pssl:
+            if Platforms.ORBIS == platform:
                 shader_src += pssl.begin_nonuniformresourceindex(nonuniformresourceindex, max_index)
                 continue
             else:
                 line = '#define {0} NonUniformResourceIndex({0})\n'.format(nonuniformresourceindex)
         if 'EndNonUniformResourceIndex()' in line:
             assert nonuniformresourceindex, 'EndNonUniformResourceIndex: BeginNonUniformResourceIndex not called/found'
-            if pssl:
+            if Platforms.ORBIS == platform:
                 shader_src += pssl.end_nonuniformresourceindex(nonuniformresourceindex)
                 continue
             else:

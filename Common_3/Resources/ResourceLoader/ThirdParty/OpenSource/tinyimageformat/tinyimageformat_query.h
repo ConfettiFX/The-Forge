@@ -611,74 +611,115 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsYCbCr(TinyImageFormat const fmt)
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt) 
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressedDXBC(TinyImageFormat const fmt)
 {
 	switch(fmt) 
 	{
-		case TinyImageFormat_DXBC1_RGB_UNORM: return true;
-		case TinyImageFormat_DXBC1_RGB_SRGB: return true;
-		case TinyImageFormat_DXBC1_RGBA_UNORM: return true;
-		case TinyImageFormat_DXBC1_RGBA_SRGB: return true;
-		case TinyImageFormat_DXBC2_UNORM: return true;
-		case TinyImageFormat_DXBC2_SRGB: return true;
-		case TinyImageFormat_DXBC3_UNORM: return true;
-		case TinyImageFormat_DXBC3_SRGB: return true;
-		case TinyImageFormat_DXBC4_UNORM: return true;
-		case TinyImageFormat_DXBC4_SNORM: return true;
-		case TinyImageFormat_DXBC5_UNORM: return true;
-		case TinyImageFormat_DXBC5_SNORM: return true;
-		case TinyImageFormat_DXBC6H_UFLOAT: return true;
-		case TinyImageFormat_DXBC6H_SFLOAT: return true;
-		case TinyImageFormat_DXBC7_UNORM: return true;
-		case TinyImageFormat_DXBC7_SRGB: return true;
-		case TinyImageFormat_PVRTC1_2BPP_UNORM: return true;
-		case TinyImageFormat_PVRTC1_4BPP_UNORM: return true;
-		case TinyImageFormat_PVRTC2_2BPP_UNORM: return true;
-		case TinyImageFormat_PVRTC2_4BPP_UNORM: return true;
-		case TinyImageFormat_PVRTC1_2BPP_SRGB: return true;
-		case TinyImageFormat_PVRTC1_4BPP_SRGB: return true;
-		case TinyImageFormat_PVRTC2_2BPP_SRGB: return true;
-		case TinyImageFormat_PVRTC2_4BPP_SRGB: return true;
-		case TinyImageFormat_ETC2_R8G8B8_UNORM: return true;
-		case TinyImageFormat_ETC2_R8G8B8_SRGB: return true;
-		case TinyImageFormat_ETC2_R8G8B8A1_UNORM: return true;
-		case TinyImageFormat_ETC2_R8G8B8A1_SRGB: return true;
-		case TinyImageFormat_ETC2_R8G8B8A8_UNORM: return true;
-		case TinyImageFormat_ETC2_R8G8B8A8_SRGB: return true;
-		case TinyImageFormat_ETC2_EAC_R11_UNORM: return true;
-		case TinyImageFormat_ETC2_EAC_R11_SNORM: return true;
-		case TinyImageFormat_ETC2_EAC_R11G11_UNORM: return true;
-		case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return true;
-		case TinyImageFormat_ASTC_4x4_UNORM: return true;
-		case TinyImageFormat_ASTC_4x4_SRGB: return true;
-		case TinyImageFormat_ASTC_5x4_UNORM: return true;
-		case TinyImageFormat_ASTC_5x4_SRGB: return true;
-		case TinyImageFormat_ASTC_5x5_UNORM: return true;
-		case TinyImageFormat_ASTC_5x5_SRGB: return true;
-		case TinyImageFormat_ASTC_6x5_UNORM: return true;
-		case TinyImageFormat_ASTC_6x5_SRGB: return true;
-		case TinyImageFormat_ASTC_6x6_UNORM: return true;
-		case TinyImageFormat_ASTC_6x6_SRGB: return true;
-		case TinyImageFormat_ASTC_8x5_UNORM: return true;
-		case TinyImageFormat_ASTC_8x5_SRGB: return true;
-		case TinyImageFormat_ASTC_8x6_UNORM: return true;
-		case TinyImageFormat_ASTC_8x6_SRGB: return true;
-		case TinyImageFormat_ASTC_8x8_UNORM: return true;
-		case TinyImageFormat_ASTC_8x8_SRGB: return true;
-		case TinyImageFormat_ASTC_10x5_UNORM: return true;
-		case TinyImageFormat_ASTC_10x5_SRGB: return true;
-		case TinyImageFormat_ASTC_10x6_UNORM: return true;
-		case TinyImageFormat_ASTC_10x6_SRGB: return true;
-		case TinyImageFormat_ASTC_10x8_UNORM: return true;
-		case TinyImageFormat_ASTC_10x8_SRGB: return true;
-		case TinyImageFormat_ASTC_10x10_UNORM: return true;
-		case TinyImageFormat_ASTC_10x10_SRGB: return true;
-		case TinyImageFormat_ASTC_12x10_UNORM: return true;
-		case TinyImageFormat_ASTC_12x10_SRGB: return true;
-		case TinyImageFormat_ASTC_12x12_UNORM: return true;
-		case TinyImageFormat_ASTC_12x12_SRGB: return true;
-		default: return false;
+	case TinyImageFormat_DXBC1_RGB_UNORM: return true;
+	case TinyImageFormat_DXBC1_RGB_SRGB: return true;
+	case TinyImageFormat_DXBC1_RGBA_UNORM: return true;
+	case TinyImageFormat_DXBC1_RGBA_SRGB: return true;
+	case TinyImageFormat_DXBC2_UNORM: return true;
+	case TinyImageFormat_DXBC2_SRGB: return true;
+	case TinyImageFormat_DXBC3_UNORM: return true;
+	case TinyImageFormat_DXBC3_SRGB: return true;
+	case TinyImageFormat_DXBC4_UNORM: return true;
+	case TinyImageFormat_DXBC4_SNORM: return true;
+	case TinyImageFormat_DXBC5_UNORM: return true;
+	case TinyImageFormat_DXBC5_SNORM: return true;
+	case TinyImageFormat_DXBC6H_UFLOAT: return true;
+	case TinyImageFormat_DXBC6H_SFLOAT: return true;
+	case TinyImageFormat_DXBC7_UNORM: return true;
+	case TinyImageFormat_DXBC7_SRGB: return true;
+	default: return false;
 	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressedASTC(TinyImageFormat const fmt)
+{
+	switch(fmt) 
+	{
+	case TinyImageFormat_ASTC_4x4_UNORM: return true;
+	case TinyImageFormat_ASTC_4x4_SRGB: return true;
+	case TinyImageFormat_ASTC_5x4_UNORM: return true;
+	case TinyImageFormat_ASTC_5x4_SRGB: return true;
+	case TinyImageFormat_ASTC_5x5_UNORM: return true;
+	case TinyImageFormat_ASTC_5x5_SRGB: return true;
+	case TinyImageFormat_ASTC_6x5_UNORM: return true;
+	case TinyImageFormat_ASTC_6x5_SRGB: return true;
+	case TinyImageFormat_ASTC_6x6_UNORM: return true;
+	case TinyImageFormat_ASTC_6x6_SRGB: return true;
+	case TinyImageFormat_ASTC_8x5_UNORM: return true;
+	case TinyImageFormat_ASTC_8x5_SRGB: return true;
+	case TinyImageFormat_ASTC_8x6_UNORM: return true;
+	case TinyImageFormat_ASTC_8x6_SRGB: return true;
+	case TinyImageFormat_ASTC_8x8_UNORM: return true;
+	case TinyImageFormat_ASTC_8x8_SRGB: return true;
+	case TinyImageFormat_ASTC_10x5_UNORM: return true;
+	case TinyImageFormat_ASTC_10x5_SRGB: return true;
+	case TinyImageFormat_ASTC_10x6_UNORM: return true;
+	case TinyImageFormat_ASTC_10x6_SRGB: return true;
+	case TinyImageFormat_ASTC_10x8_UNORM: return true;
+	case TinyImageFormat_ASTC_10x8_SRGB: return true;
+	case TinyImageFormat_ASTC_10x10_UNORM: return true;
+	case TinyImageFormat_ASTC_10x10_SRGB: return true;
+	case TinyImageFormat_ASTC_12x10_UNORM: return true;
+	case TinyImageFormat_ASTC_12x10_SRGB: return true;
+	case TinyImageFormat_ASTC_12x12_UNORM: return true;
+	case TinyImageFormat_ASTC_12x12_SRGB: return true;
+	default: return false;
+	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressedPVRTC1(TinyImageFormat const fmt)
+{
+	switch(fmt) 
+	{
+	case TinyImageFormat_PVRTC1_2BPP_UNORM: return true;
+	case TinyImageFormat_PVRTC1_4BPP_UNORM: return true;
+	case TinyImageFormat_PVRTC1_2BPP_SRGB: return true;
+	case TinyImageFormat_PVRTC1_4BPP_SRGB: return true;
+	default: return false;
+	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressedPVRTC2(TinyImageFormat const fmt)
+{
+	switch(fmt) 
+	{
+	case TinyImageFormat_PVRTC2_2BPP_UNORM: return true;
+	case TinyImageFormat_PVRTC2_4BPP_UNORM: return true;
+	case TinyImageFormat_PVRTC2_2BPP_SRGB: return true;
+	case TinyImageFormat_PVRTC2_4BPP_SRGB: return true;
+	default: return false;
+	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressedETC2(TinyImageFormat const fmt)
+{
+	switch(fmt) 
+	{
+	case TinyImageFormat_ETC2_R8G8B8_UNORM: return true;
+	case TinyImageFormat_ETC2_R8G8B8_SRGB: return true;
+	case TinyImageFormat_ETC2_R8G8B8A1_UNORM: return true;
+	case TinyImageFormat_ETC2_R8G8B8A1_SRGB: return true;
+	case TinyImageFormat_ETC2_R8G8B8A8_UNORM: return true;
+	case TinyImageFormat_ETC2_R8G8B8A8_SRGB: return true;
+	case TinyImageFormat_ETC2_EAC_R11_UNORM: return true;
+	case TinyImageFormat_ETC2_EAC_R11_SNORM: return true;
+	case TinyImageFormat_ETC2_EAC_R11G11_UNORM: return true;
+	case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return true;
+	default: return false;
+	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt) 
+{
+	return TinyImageFormat_IsCompressedDXBC(fmt) ||
+		TinyImageFormat_IsCompressedASTC(fmt) ||
+		TinyImageFormat_IsCompressedPVRTC1(fmt) ||
+		TinyImageFormat_IsCompressedPVRTC2(fmt) ||
+		TinyImageFormat_IsCompressedETC2(fmt);
 }
 
 TIF_CONSTEXPR inline bool TinyImageFormat_IsPlanar(TinyImageFormat const fmt) 

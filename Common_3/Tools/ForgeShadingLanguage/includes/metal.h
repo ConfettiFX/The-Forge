@@ -320,10 +320,8 @@ void AtomicMin(device uint& DEST, uint VALUE)
 
 #define clip(COND) if( (COND) < 0 )  discard_fragment()
 
-#define NonUniformResourceIndex(X) (X)
-#define BeginNonUniformResourceIndex(X, Y)
-// #define BeginNonUniformResourceIndex(X)
-#define EndNonUniformResourceIndex()
+#define BeginNonUniformResourceIndex(X, Y) { uint __resourceIndex = X; uint X = min(__resourceIndex, Y-1U);
+#define EndNonUniformResourceIndex() }
 
 #define frac fract
 #define lerp mix

@@ -30,8 +30,12 @@ if __name__ == '__main__':
     from fsl import main
 
     assert len(sys.argv) == 13
-    script, windowsSDK, dst, binary_dst, src, lang, compile, verbose, config, platform, tmp_path, shader_server_port, cache_args = sys.argv
+    script, windowsSDK, dst, binary_dst, src, lang, compile, verbose, config, platform, tmp_path, reload_server_port, cache_args = sys.argv
     tmp_path = tmp_path.strip()
+    src = os.path.abspath(src)
+    dst = os.path.abspath(dst)
+    binary_dst = os.path.abspath(binary_dst)
+
 
     windowsSDKPaths = windowsSDK.split(';')
     if windowsSDKPaths:
@@ -51,17 +55,17 @@ if __name__ == '__main__':
     elif not lang and 'XBOX' in platform.upper():
         lang = 'XBOX'
 
-    shader_server_args = []
-    if shader_server_port == '':
-        shader_server_args = ['--shaderServerPort', '6543']
+    reload_server_args = []
+    if reload_server_port == '':
+        reload_server_args = ['--reloadServerPort', '6543']
     else:
         try:
-            shader_server_args = ['--shaderServerPort', str(int(shader_server_port))]
+            reload_server_args = ['--reloadServerPort', str(int(reload_server_port))]
         except ValueError:
-            shader_server_args = []
+            reload_server_args = []
     
     if not (cache_args.lower() == 'no' or cache_args.lower() == 'false' or cache_args.lower() == '0'):
-        shader_server_args.append('--cache-args')
+        reload_server_args.append('--cache-args')
 
     sys.argv = [
         script,
@@ -70,7 +74,7 @@ if __name__ == '__main__':
         '-b', os.path.abspath(binary_dst),
         '-i', os.path.abspath(tmp_path),
         '-l', lang,
-        *shader_server_args,
+        *reload_server_args,
         '--incremental',
     ]
     if 'debug' in config.lower():

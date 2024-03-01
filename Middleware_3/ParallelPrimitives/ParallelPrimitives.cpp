@@ -114,14 +114,14 @@ ParallelPrimitives::PipelineComponents::~PipelineComponents()
 ParallelPrimitives::ParallelPrimitives(Renderer* renderer): pRenderer(renderer)
 {
     const char*         functionNames[] = { "scan_exclusive_int4",
-                                            "scan_exclusive_part_int4",
-                                            "distribute_part_sum_int4",
-                                            "BitHistogram",
-                                            "ScatterKeys",
-                                            "ScatterKeysAndValues",
-                                            "ClearOffsetBuffer",
-                                            "GenerateOffsetBuffer",
-                                            "GenerateIndirectArgumentsFromOffsetBuffer" };
+                                    "scan_exclusive_part_int4",
+                                    "distribute_part_sum_int4",
+                                    "BitHistogram",
+                                    "ScatterKeys",
+                                    "ScatterKeysAndValues",
+                                    "ClearOffsetBuffer",
+                                    "GenerateOffsetBuffer",
+                                    "GenerateIndirectArgumentsFromOffsetBuffer" };
     PipelineComponents* components[] = { &mScanExclusiveInt4, &mScanExclusivePartInt4, &mDistributePartSumInt4,
                                          &mBitHistogram,      &mScatterKeys,           &mScatterKeysAndValues,
                                          &mClearOffsetBuffer, &mGenerateOffsetBuffer,  &mIndirectArgsFromOffsetBuffer };

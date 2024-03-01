@@ -641,7 +641,7 @@ def android_gles(debug, binary: ShaderBinary, dst):
             parsed_entry = True
             continue
 
-        if parsed_entry and re.search('(^|\s+)RETURN', line):
+        if parsed_entry and re.search(r'(^|\s+)RETURN', line):
             ws = get_whitespace(line)
             output_statement = [ws+'{\n']
             if shader.returnType:
@@ -711,7 +711,7 @@ def android_gles(debug, binary: ShaderBinary, dst):
         if shader_src_len != len(shader_src):
             shader_src += [f'#line {line_index} {gles_includes[current_src]} //{current_src}\n']
 
-        shader_src += [re.sub('\d\.?f', replacef, updatedline)]
+        shader_src += [re.sub(r'\d\.?f', replacef, updatedline)]
 
     open(dst, 'w').writelines(shader_src)
     return 0, []

@@ -336,6 +336,9 @@
     <ClInclude Include="..\..\lib\source\gainput\pad\GainputInputDevicePadHID.h">
       <Filter>source\gainput\pad</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinDirectInput.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinMsgHandler.h">
       <Filter>source\gainput\windows</Filter>
     </ClInclude>

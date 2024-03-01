@@ -102,11 +102,11 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\Graphics\gpu.data" "$(OutDir)GPUCfg\gpu.data*"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
+xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
+xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
 </Command>
     </PostBuildEvent>
     <FSLShader>
@@ -160,11 +160,11 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\Graphics\gpu.data" "$(OutDir)GPUCfg\gpu.data*"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
+xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
+xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
 </Command>
     </PostBuildEvent>
     <FSLShader>

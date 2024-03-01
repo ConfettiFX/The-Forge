@@ -239,20 +239,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "35_VariableRateShading.app"
-               BlueprintName = "35_VariableRateShading"
-               ReferencedContainer = "container:35_VariableRateShading/35_VariableRateShading.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "36_AlgorithmsAndContainers.app"
                BlueprintName = "36_AlgorithmsAndContainers"
                ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">

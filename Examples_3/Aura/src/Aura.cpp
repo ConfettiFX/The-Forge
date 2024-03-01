@@ -531,7 +531,6 @@ public:
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_PIPELINE_CACHE, "PipelineCaches");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
@@ -991,7 +990,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -1922,7 +1921,9 @@ public:
         const uint32_t   height = mSettings.mHeight;
         /************************************************************************/
         /************************************************************************/
-        ClearValue       optimizedDepthClear = { { 1.0f, 0 } };
+        const ClearValue depthStencilClear = { { 0.0f, 0 } };
+        const ClearValue lessEqualDepthStencilClear = { { 1.f, 0 } }; // shadow mapping
+
         ClearValue       optimizedColorClearBlack = { { 0.0f, 0.0f, 0.0f, 0.0f } };
         ClearValue       optimizedColorClearWhite = { { 1.0f, 1.0f, 1.0f, 1.0f } };
         /************************************************************************/
@@ -1931,7 +1932,7 @@ public:
         // Add depth buffer
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
-        depthRT.mClearValue = optimizedDepthClear;
+        depthRT.mClearValue = depthStencilClear;
         depthRT.mDepth = 1;
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
@@ -1948,7 +1949,7 @@ public:
         /************************************************************************/
         RenderTargetDesc shadowRTDesc = {};
         shadowRTDesc.mArraySize = 1;
-        shadowRTDesc.mClearValue = optimizedDepthClear;
+        shadowRTDesc.mClearValue = lessEqualDepthStencilClear;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
@@ -2010,7 +2011,7 @@ public:
         addRenderTarget(pRenderer, &rsmRTDesc, &pRenderTargetRSMAlbedo);
         addRenderTarget(pRenderer, &rsmRTDesc, &pRenderTargetRSMNormal);
 
-        rsmRTDesc.mClearValue = optimizedDepthClear;
+        rsmRTDesc.mClearValue = lessEqualDepthStencilClear;
         rsmRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         rsmRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
         addRenderTarget(pRenderer, &rsmRTDesc, &pRenderTargetRSMDepth);
@@ -2342,8 +2343,14 @@ public:
         DepthStateDesc depthStateDesc = {};
         depthStateDesc.mDepthTest = true;
         depthStateDesc.mDepthWrite = true;
-        depthStateDesc.mDepthFunc = CMP_LEQUAL;
+        depthStateDesc.mDepthFunc = CMP_GEQUAL;
         DepthStateDesc depthStateDisableDesc = {};
+
+        // Shadow mapping
+        DepthStateDesc depthStateLEQUALEnabledDesc = {};
+        depthStateLEQUALEnabledDesc.mDepthFunc = CMP_LEQUAL;
+        depthStateLEQUALEnabledDesc.mDepthWrite = true;
+        depthStateLEQUALEnabledDesc.mDepthTest = true;
 
         RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
         RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
@@ -2373,7 +2380,7 @@ public:
         GraphicsPipelineDesc& shadowPipelineSettings = pipelineDesc.mGraphicsDesc;
         shadowPipelineSettings = { 0 };
         shadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        shadowPipelineSettings.pDepthState = &depthStateDesc;
+        shadowPipelineSettings.pDepthState = &depthStateLEQUALEnabledDesc;
         shadowPipelineSettings.mDepthStencilFormat = pRenderTargetShadow->mFormat;
         shadowPipelineSettings.mSampleCount = pRenderTargetShadow->mSampleCount;
         shadowPipelineSettings.mSampleQuality = pRenderTargetShadow->mSampleQuality;
@@ -2530,7 +2537,7 @@ public:
         fillRSMPipelineSettings.mType = PIPELINE_TYPE_GRAPHICS;
         fillRSMPipelineSettings.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         fillRSMPipelineSettings.mGraphicsDesc.mRenderTargetCount = 2;
-        fillRSMPipelineSettings.mGraphicsDesc.pDepthState = &depthStateDesc;
+        fillRSMPipelineSettings.mGraphicsDesc.pDepthState = &depthStateLEQUALEnabledDesc;
 #if TEST_RSM
         fillRSMPipelineSettings.mGraphicsDesc.mDepthStencilFormat = pRenderTargetRSMDepth[0]->mFormat;
         fillRSMPipelineSettings.mGraphicsDesc.mSampleCount = pRenderTargetRSMAlbedo[0]->mSampleCount;
@@ -2866,7 +2873,7 @@ public:
 
         mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
         mat4 cameraView = currentFrame->gCameraView = gCamera.pCameraController->getViewMatrix();
-        mat4 cameraProj = mat4::perspectiveLH(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
+        mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         currentFrame->gCameraModelView = cameraView * cameraModel;
 
@@ -3028,12 +3035,10 @@ public:
     void drawShadowMapPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
         // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetShadow->mClearValue;
-
         // Start render pass and apply load actions
-        cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadow, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mDepthStencil = { pRenderTargetShadow, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadow->mWidth, (float)pRenderTargetShadow->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetShadow->mWidth, pRenderTargetShadow->mHeight);
 
@@ -3083,8 +3088,7 @@ public:
         cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gDrawCount[1], pIndirectBuffer, indirectBufferByteOffset,
                            pIndirectBuffer, indirectBufferCounterByteOffset);
         cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void drawAura(Cmd* cmd, uint32_t frameIdx)
@@ -3103,7 +3107,7 @@ public:
         propagateLight(cmd, pRenderer, pTaskManager, pAura);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileTokens[0]);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void updateAuraCascades(Cmd* cmd, uint32_t frameIdx)
@@ -3189,14 +3193,12 @@ public:
     void drawVisibilityBufferPass(Cmd* cmd, ProfileToken nGpuProfileToken, uint32_t frameIdx)
     {
         // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pDepthBuffer->mClearValue;
-
         // Start render pass and apply load actions
-        cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
 
@@ -3227,7 +3229,7 @@ public:
             cmdEndGpuTimestampQuery(cmd, nGpuProfileToken);
         }
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by
@@ -3248,7 +3250,7 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, pAura->mCascadeCount * NUM_GRIDS_PER_CASCADE, pBarriers);
 
         mat4       invMvp = inverse(mat4::scale(vec3(0.5, -0.5, 1)) * mat4::translation(vec3(1, -1, 0)) *
-                                    gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
+                              gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
         aura::vec3 camPos =
             aura::vec3(gPerFrame[frameIdx].gPerFrameUniformData.camPos.getX(), gPerFrame[frameIdx].gPerFrameUniformData.camPos.getY(),
                        gPerFrame[frameIdx].gPerFrameUniformData.camPos.getZ());
@@ -3261,12 +3263,10 @@ public:
         endUpdateResource(&update);
 
         // Set load actions to clear the screen to black
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pScreenRenderTarget->mClearValue;
-        ;
-
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -3277,7 +3277,7 @@ public:
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         for (uint32_t i = 0; i < pAura->mCascadeCount; ++i)
         {
@@ -3294,31 +3294,23 @@ public:
     {
         uint32_t viewId = VIEW_RSM_CASCADE0 + cascadeIndex;
 
+        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 2;
 #if TEST_RSM
         RenderTarget* pRSMRTs[] = { pRenderTargetRSMAlbedo[cascadeIndex], pRenderTargetRSMNormal[cascadeIndex] };
+        bindRenderTargets.mDepthStencil = { pRenderTargetRSMDepth[cascadeIndex], LOAD_ACTION_CLEAR };
 #else
         RenderTarget* pRSMRTs[] = { pRenderTargetRSMAlbedo, pRenderTargetRSMNormal };
+        bindRenderTargets.mDepthStencil = { pRenderTargetRSMDepth, LOAD_ACTION_CLEAR };
 #endif
-        // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
-        LoadActionsDesc loadActions = {};
         for (uint32_t i = 0; i < 2; ++i)
         {
-            loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[i] = pRSMRTs[i]->mClearValue;
+            bindRenderTargets.mRenderTargets[i] = { pRSMRTs[i], LOAD_ACTION_CLEAR };
         }
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-#if TEST_RSM
-        loadActions.mClearDepth = pRenderTargetRSMDepth[cascadeIndex]->mClearValue;
-#else
-        loadActions.mClearDepth = pRenderTargetRSMDepth->mClearValue;
-#endif
 
         // Start render pass and apply load actions
-#if TEST_RSM
-        cmdBindRenderTargets(cmd, 2, pRSMRTs, pRenderTargetRSMDepth[cascadeIndex], &loadActions, NULL, NULL, -1, -1);
-#else
-        cmdBindRenderTargets(cmd, 2, pRSMRTs, pRenderTargetRSMDepth, &loadActions, NULL, NULL, -1, -1);
-#endif
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRSMRTs[0]->mWidth, (float)pRSMRTs[0]->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRSMRTs[0]->mWidth, pRSMRTs[0]->mHeight);
 
@@ -3354,7 +3346,7 @@ public:
                                pIndirectBuffer, indirectBufferCounterByteOffset);
         }
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Executes a compute shader to clear (reset) the the light clusters on the GPU
@@ -3430,9 +3422,10 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileTokens[0], "Draw Skybox");
 
         // Load RT instead of Don't care
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -3445,7 +3438,7 @@ public:
 
         cmdDraw(cmd, 36, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileTokens[0]);
     }
@@ -3455,9 +3448,10 @@ public:
     {
         UNREF_PARAM(frameIdx);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -3485,7 +3479,7 @@ public:
 
         cmdDrawUserInterface(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void SetupGuiWindows(float2 screenSize)

@@ -511,7 +511,8 @@ typedef struct UISystemInputActions
         UI_ACTION_MOUSE_MOVE,
 
         // Navigation
-        UI_ACTION_NAV_TOGGLE_UI, // toggles the user interface					// e.g. L3, ~ (Keyboard)
+        UI_ACTION_NAV_TOGGLE_UI, // toggles the user interface					// e.g. R3 (PS4), RSB (Xbox), Right stick Press (Switch) F1
+                                 // (Keyboard)
         UI_ACTION_NAV_ACTIVATE, // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
         UI_ACTION_NAV_CANCEL, // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
         UI_ACTION_NAV_INPUT,  // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
@@ -521,11 +522,17 @@ typedef struct UISystemInputActions
         UI_ACTION_NAV_TWEAK_WINDOW_RIGHT,
         UI_ACTION_NAV_TWEAK_WINDOW_UP,
         UI_ACTION_NAV_TWEAK_WINDOW_DOWN,
-        UI_ACTION_NAV_SCROLL_MOVE_WINDOW, // scroll / move window (w/ PadMenu)            // e.g. Left Analog Stick Left/Right/Up/Down
-        UI_ACTION_NAV_FOCUS_PREV, // previous window (w/ PadMenu)                 // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
-        UI_ACTION_NAV_FOCUS_NEXT, // next window (w/ PadMenu)                     // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
-        UI_ACTION_NAV_TWEAK_SLOW, // slower tweaks                                // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
-        UI_ACTION_NAV_TWEAK_FAST, // faster tweaks                                // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
+        UI_ACTION_NAV_SCROLL_MOVE_WINDOW, // scroll / move window (w/ PadMenu)                // e.g. Left Analog Stick Left/Right/Up/Down
+        UI_ACTION_NAV_FOCUS_PREV, // previous window (w/ PadMenu)                             // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or
+                                  // ZL (Switch)
+        UI_ACTION_NAV_FOCUS_NEXT, // next window (w/ PadMenu)                                 // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or
+                                  // ZL (Switch)
+        UI_ACTION_NAV_TWEAK_SLOW, // slower tweaks                                            // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or
+                                  // ZL (Switch)
+        UI_ACTION_NAV_TWEAK_FAST, // faster tweaks                                            // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or
+                                  // ZL (Switch)
+        UI_ACTION_NAV_HIDE_UI_TOGGLE, // Hides / Shows the UI while still processing inputs ..// e.g. L3 (PS4), LSB (Xbox), Left stick Press
+                                      // (Switch) F3 (Keyboard)
     } UISystemInputAction;
 } UISystemInputActions;
 

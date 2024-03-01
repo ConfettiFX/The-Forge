@@ -10,6 +10,8 @@
 		5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C1E6760247BF2D3006F49D1 /* libThe-Forge.a */; };
 		5C1E6792247BF7A5006F49D1 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */; };
 		5C1E6795247BF7B7006F49D1 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */; };
+		644D60932B69426D00E088D3 /* AppSettings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 644D60922B69426D00E088D3 /* AppSettings.cpp */; };
+		644D60952B6947C700E088D3 /* AppSettings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 644D60922B69426D00E088D3 /* AppSettings.cpp */; };
 		6543D8F822932FC20098B17B /* Ephemeris.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F222932FC20098B17B /* Ephemeris.cpp */; };
 		6543D8F922932FC20098B17B /* Sky.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F322932FC20098B17B /* Sky.cpp */; };
 		6543D8FA22932FC20098B17B /* LocalTime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F522932FC20098B17B /* LocalTime.cpp */; };
@@ -89,6 +91,12 @@
 		5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C1E6794247BF7B7006F49D1 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		644D60922B69426D00E088D3 /* AppSettings.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AppSettings.cpp; path = "../../../../Custom-Middleware/Ephemeris/src/AppSettings.cpp"; sourceTree = "<group>"; };
+		644D60942B69428200E088D3 /* AppSettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppSettings.h; path = "../../../../Custom-Middleware/Ephemeris/src/AppSettings.h"; sourceTree = "<group>"; };
+		646A6D8A2B7BC727008FD865 /* RealTimeVolumetricCloudWithDepth.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = RealTimeVolumetricCloudWithDepth.comp.fsl; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/RealTimeVolumetricCloudWithDepth.comp.fsl"; sourceTree = "<group>"; };
+		646A6D8B2B7BC727008FD865 /* RealTimeVolumetricCloudWithDepth.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = RealTimeVolumetricCloudWithDepth.frag.fsl; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/RealTimeVolumetricCloudWithDepth.frag.fsl"; sourceTree = "<group>"; };
+		646A6D8C2B7BC727008FD865 /* RealTimeVolumetricCloud.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = RealTimeVolumetricCloud.frag.fsl; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/RealTimeVolumetricCloud.frag.fsl"; sourceTree = "<group>"; };
+		646A6D8D2B7BC727008FD865 /* RealTimeVolumetricCloud.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = RealTimeVolumetricCloud.comp.fsl; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/RealTimeVolumetricCloud.comp.fsl"; sourceTree = "<group>"; };
 		650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		6543D8F022932FC20098B17B /* SkyCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h"; sourceTree = "<group>"; };
 		6543D8F122932FC20098B17B /* LocalTime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LocalTime.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h"; sourceTree = "<group>"; };
@@ -371,6 +379,10 @@
 		B24C1B9926134676001450D7 /* VolumetricClouds */ = {
 			isa = PBXGroup;
 			children = (
+				646A6D8D2B7BC727008FD865 /* RealTimeVolumetricCloud.comp.fsl */,
+				646A6D8C2B7BC727008FD865 /* RealTimeVolumetricCloud.frag.fsl */,
+				646A6D8A2B7BC727008FD865 /* RealTimeVolumetricCloudWithDepth.comp.fsl */,
+				646A6D8B2B7BC727008FD865 /* RealTimeVolumetricCloudWithDepth.frag.fsl */,
 				B2DF828328224F6D0023CDE0 /* VolumetricClouds_ShaderList.fsl */,
 				B24C1BA6261346C9001450D7 /* BlurHorizontal.comp.fsl */,
 				B24C1BAC261346CA001450D7 /* BlurVertical.comp.fsl */,
@@ -460,6 +472,8 @@
 		B296C8EF26148B590011E416 /* Ephemeris */ = {
 			isa = PBXGroup;
 			children = (
+				644D60942B69428200E088D3 /* AppSettings.h */,
+				644D60922B69426D00E088D3 /* AppSettings.cpp */,
 				B296C90226148E1C0011E416 /* Perlin.cpp */,
 				B296C90326148E1C0011E416 /* Perlin.h */,
 				6543D8ED22932F850098B17B /* Sky */,
@@ -691,7 +705,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/dds/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/dds/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/dds/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/dds/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/dds/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/dds/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/dds/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/dds/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
 			showEnvVarsInLog = 0;
 		};
 		9941813C289A48290030D05E /* Copy Assets */ = {
@@ -710,7 +724,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\n# joystick pad\nrsync -u \"$SRCROOT/../../Unit_Tests/UnitTestResources/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/ktx/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/ktx/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/ktx/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/ktx/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\n# joystick pad\nrsync -u \"$SRCROOT/../../Unit_Tests/UnitTestResources/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/ktx/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/ktx/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/ktx/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/ktx/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
 		};
 		9941813D289A482A0030D05E /* Compile FSL Shaders */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -739,6 +753,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				644D60952B6947C700E088D3 /* AppSettings.cpp in Sources */,
 				99418132289A48160030D05E /* Example.cpp in Sources */,
 				99418133289A48160030D05E /* Perlin.cpp in Sources */,
 				99418134289A48160030D05E /* Icosahedron.cpp in Sources */,
@@ -763,6 +778,7 @@
 				6543D90122932FD90098B17B /* HeightData.cpp in Sources */,
 				6543D8F822932FC20098B17B /* Ephemeris.cpp in Sources */,
 				B296C8FB26148D7C0011E416 /* SpaceObjects.cpp in Sources */,
+				644D60932B69426D00E088D3 /* AppSettings.cpp in Sources */,
 				B296C90E26148E890011E416 /* Example.cpp in Sources */,
 				5C1E6792247BF7A5006F49D1 /* macOSAppDelegate.m in Sources */,
 				B296C90426148E1C0011E416 /* Perlin.cpp in Sources */,

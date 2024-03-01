@@ -1,0 +1,184 @@
+#version: 0.1
+#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+#Sources:
+https://www.notebookcheck.net/Smartphone-Graphics-Cards-Benchmark-List.149363.0.html?type=&sort=&professional=0&showClassDescription=1&deskornote=3&or=1&showBars=1&3dmark13_ice_gpu=1&glbenchmark=1&gfxbench30=1&gfxbench31=1&basemarkx11_med=1&basemarkx11_high=1&gpu_fullname=1&architecture=1&pixelshaders=1&vertexshaders=1&corespeed=1&opengl=1  -> Classifies into Ultra; High; Medium; Low; Office
+#https://github.com/GameTechDev/gpudetect/blob/master/IntelGfx.cfg
+#https://www.techpowerup.com/vgabios
+#https://pci-ids.ucw.cz/
+
+BEGIN_DEFAULT_CONFIGURATION;
+#if the gpu doesn't exist in the GPU_LIST use this instead
+DefaultPresetLevel; Low;
+END_DEFAULT_CONFIGURATION;
+
+BEGIN_VENDOR_LIST;
+Qualcomm; 0x5143;
+Imagination Technologies; 0x1010;
+Samsung; 0x144D;
+ARM; 0x13B5;
+nvidia; 0x10DE; 
+END_VENDOR_LIST;
+
+#VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
+BEGIN_GPU_LIST;
+#Qualcomm
+Qualcomm ; Adreno 750 ; Medium
+Qualcomm ; Adreno 740 ; Medium
+Qualcomm ; Adreno 730 ; Medium
+Qualcomm ; Adreno 725 ; Medium
+Qualcomm ; Adreno 690 ; Medium
+Qualcomm ; Adreno 685 ; Medium
+Qualcomm ; Adreno 680 ; Medium
+Qualcomm ; Adreno 660 ; Medium
+Qualcomm ; Adreno 650 ; Low
+Qualcomm ; Adreno 644 ; Low
+Qualcomm ; Adreno 643 ; Low
+Qualcomm ; Adreno 642 ; Low
+Qualcomm ; Adreno 642L ; Low
+Qualcomm ; Adreno 710 ; Low
+Qualcomm ; Adreno 640 ; Low
+Qualcomm ; Adreno 630 ; Low
+Qualcomm ; Adreno 540 ; Low
+Qualcomm ; Adreno 530 ; Low
+Qualcomm ; Adreno 430 ; Low
+Qualcomm ; Adreno 420 ; Low
+Qualcomm ; Adreno 620 ; Low
+Qualcomm ; Adreno 619 ; VeryLow
+Qualcomm ; Adreno 619L ; VeryLow
+Qualcomm ; Adreno 618 ; VeryLow
+Qualcomm ; Adreno 616 ; VeryLow
+Qualcomm ; Adreno 612 ; VeryLow
+Qualcomm ; Adreno 610 ; VeryLow
+Qualcomm ; Adreno 512 ; VeryLow
+Qualcomm ; Adreno 510 ; VeryLow
+Qualcomm ; Adreno 418 ; VeryLow
+Qualcomm ; Adreno 330 ; Office
+Qualcomm ; Adreno 509 ; Office
+Qualcomm ; Adreno 508 ; Office
+Qualcomm ; Adreno 506 ; Office
+Qualcomm ; Adreno 505 ; Office
+Qualcomm ; Adreno 504 ; Office
+Qualcomm ; Adreno 405 ; Office
+Qualcomm ; Adreno 320 ; Office
+Qualcomm ; Adreno 308 ; Office
+Qualcomm ; Adreno 306 ; Office
+Qualcomm ; Adreno 305 ; Office
+Qualcomm ; Adreno 304 ; Office
+Qualcomm ; Adreno 302 ; Office
+Qualcomm ; Adreno 225 ; Office
+Qualcomm ; Adreno 220 ; Office
+Qualcomm ; Adreno 205 ; Office
+Qualcomm ; Adreno 203 ; Office
+Qualcomm ; Adreno 200 ; Office
+
+#Arm
+ARM ; Immortalis-G715 MP11 ; Medium
+ARM ; Immortalis-G715 ; Medium
+ARM ; Mali-G715 MP7 ; Medium
+ARM ; Mali-G715 ; Medium
+ARM ; Mali-G710 MP10 ; Medium
+ARM ; Mali-G710 MP7 ; Medium
+ARM ; Mali-G710 ; Medium
+ARM ; Mali-G78 MP24 ; Medium
+ARM ; Mali-G78 MP22 ; Medium
+ARM ; Mali-G78 MP20 ; Medium
+ARM ; Mali-G78 MP14 ; Medium
+ARM ; Mali-G78 ; Medium
+ARM ; Mali-G77 MP11 ; Low
+ARM ; Mali-G77 MP9 ; Low
+ARM ; Mali-G77 ; Low
+ARM ; Mali-G610 MP6 ; Low
+ARM ; Mali-G610 MP3 ; Low
+ARM ; Mali-G610 ; Low
+ARM ; Mali-G68 MP5 ; Low
+ARM ; Mali-G68 MP4 ; Low
+ARM ; Mali-G68 MP2 ; Low
+ARM ; Mali-G68 ; Low
+ARM ; Mali-G57 MP6 ; Low
+ARM ; Mali-G57 MP5 ; Low
+ARM ; Mali-G57 MP4 ; Low
+ARM ; Mali-G76 MP16 ; Low
+ARM ; Mali-G76 MP12 ; Low
+ARM ; Mali-G76 MP10 ; VeryLow
+ARM ; Mali-G76 MP4 ; VeryLow
+ARM ; Mali-G76 ; VeryLow
+ARM ; Mali-G72 MP18 ; VeryLow
+ARM ; Mali-G72 MP12 ; VeryLow
+ARM ; Mali-G72 MP3 ; VeryLow
+ARM ; Mali-G72 ; VeryLow
+ARM ; Mali-G71 MP20 ; VeryLow
+ARM ; Mali-G71 MP8 ; VeryLow
+ARM ; Mali-G71 MP2 ; VeryLow
+ARM ; Mali-G71 ; VeryLow
+ARM ; Mali-G57 MP3 ; VeryLow
+ARM ; Mali-G57 MP2 ; VeryLow
+ARM ; Mali-G57 MP1 ; VeryLow
+ARM ; Mali-G57 ; VeryLow
+ARM ; Mali-G52 MP6 ; VeryLow
+ARM ; Mali-G52 MP2 ; VeryLow
+ARM ; Mali-G52 MP1 ; VeryLow
+ARM ; Mali-G52 ; VeryLow
+ARM ; Mali-G51 MP4 ; VeryLow
+ARM ; Mali-G51 ; VeryLow
+ARM ; Mali-T880 MP4 ; VeryLow
+ARM ; Mali-T880 MP2 ; VeryLow
+ARM ; Mali-T880 MP1 ; VeryLow
+ARM ; Mali-T880 ; VeryLow
+ARM ; Mali-T860 MP2 ; VeryLow
+ARM ; Mali-T860 ; VeryLow
+ARM ; Mali-T830 MP3 ; VeryLow
+ARM ; Mali-T830 MP2 ; VeryLow
+ARM ; Mali-T830 MP1 ; VeryLow
+ARM ; Mali-T830 ; VeryLow
+ARM ; Mali-T760 MP8 ; VeryLow
+ARM ; Mali-T760 MP6 ; VeryLow
+ARM ; Mali-T760 MP4 ; VeryLow
+ARM ; Mali-T760 MP2 ; VeryLow
+ARM ; Mali-T760 ; VeryLow
+ARM ; Mali-T628 MP6 ; VeryLow
+ARM ; Mali-T628 MP4 ; VeryLow
+ARM ; Mali-T628 ; VeryLow
+ARM ; Mali-T604 MP4 ; VeryLow
+ARM ; Mali-T604 ; VeryLow
+ARM ; Mali-T720 MP4 ; Office
+ARM ; Mali-T720 MP2 ; Office
+ARM ; Mali-T720 ; Office
+ARM ; Mali-T624 ; Office
+ARM ; Mali-450 MP4 ; Office
+ARM ; Mali-400 MP4 ; Office
+ARM ; Mali-400 MP2 ; Office
+ARM ; Mali-400 ; Office
+
+#Samsung:
+Samsung ; Xclipse 940; Medium
+Samsung ; Xclipse 920; Medium
+
+#NVIDIA GPUs
+nvidia ; Tegra X1 Maxwell GPU ; Low
+
+#Imagination Technologies
+Imagination Technologies ; PowerVR GM9446 ; VeryLow
+Imagination Technologies ; PowerVR GXA6850 ; VeryLow
+Imagination Technologies ; PowerVR GX6450 ; VeryLow
+Imagination Technologies ; PowerVR G6430 ; VeryLow
+Imagination Technologies ; PowerVR G6400 ; VeryLow
+Imagination Technologies ; PowerVR GX6250 ; Office
+Imagination Technologies ; PowerVR SGX554MP4 ; Office
+Imagination Technologies ; PowerVR GE8322  ; Office
+Imagination Technologies ; IMG8322 ; Office
+Imagination Technologies ; PowerVR G6200 ; Office
+Imagination Technologies ; PowerVR SGX543MP4 ; Office
+Imagination Technologies ; PowerVR GE8320 ; Office
+Imagination Technologies ; PowerVR GE8300 ; Office
+Imagination Technologies ; PowerVR GE8100 ; Office
+Imagination Technologies ; PowerVR SGX543MP3 ; Office
+Imagination Technologies ; PowerVR SGX543MP2 ; Office
+Imagination Technologies ; PowerVR SGX545 ; Office
+Imagination Technologies ; PowerVR SGX544MP2 ; Office
+Imagination Technologies ; PowerVR SGX544 ; Office
+Imagination Technologies ; PowerVR SGX540 ; Office
+Imagination Technologies ; PowerVR SGX535 ; Office
+Imagination Technologies ; PowerVR SGX531 ; Office
+Imagination Technologies ; PowerVR SGX530 ; Office
+
+END_GPU_LIST;

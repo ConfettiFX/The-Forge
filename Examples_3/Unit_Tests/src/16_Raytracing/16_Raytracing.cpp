@@ -148,7 +148,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
@@ -502,7 +501,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -908,7 +907,14 @@ public:
             loadActions.mClearDepth = { { 0.f } };
 
             cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Generate Denoiser Inputs");
-            cmdBindRenderTargets(pCmd, 2, denoiserRTs, pDepthRenderTarget, &loadActions, NULL, NULL, 0, 0);
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 2;
+            bindRenderTargets.ppRenderTargets = denoiserRTs;
+            bindRenderTargets.pDepthStencil = pDepthRenderTarget;
+            bindRenderTargets.pLoadActions = &loadActions;
+            bindRenderTargets.mDepthArraySlice = 0;
+            bindRenderTargets.mDepthMipSlice = 0;
+            cmdBindRenderTargets(pCmd, &bindRenderTargets);
             cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pDepthRenderTarget->mWidth, (float)pDepthRenderTarget->mHeight, 0.0f, 1.0f);
             cmdSetScissor(pCmd, 0, 0, pDepthRenderTarget->mWidth, pDepthRenderTarget->mHeight);
 
@@ -921,7 +927,7 @@ public:
             cmdBindIndexBuffer(pCmd, SanMiguelProp.pGeom->pIndexBuffer, 0, (IndexType)SanMiguelProp.pGeom->mIndexType);
             cmdDrawIndexed(pCmd, SanMiguelProp.pGeom->mIndexCount, 0, 0);
 
-            cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, 0, 0);
+            cmdBindRenderTargets(pCmd, NULL);
 
             barriers[0] = { depthNormalTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
             barriers[1] = { pMotionVectorRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
@@ -989,10 +995,10 @@ public:
         /************************************************************************/
         // Present to screen
         /************************************************************************/
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
-        cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 
@@ -1019,7 +1025,7 @@ public:
         cmdDrawGpuProfile(pCmd, float2(8.f, txtSize.y + 75.f), gGpuProfileToken, &frameTimeDraw);
 
         cmdDrawUserInterface(pCmd);
-        cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(pCmd, NULL);
         cmdEndDebugMarker(pCmd);
 
         RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };

@@ -23,12 +23,12 @@
  */
 
 /*
-How ShaderServer works:
+How ReloadServer works:
     1. When shaders for App are first compiled, the args/directories used for `fsl.py` are cached to disk
     2. Shader recompilation is triggered by pressing `Reload Shaders` button or CTRL+S (and shader-reloading is temporarily disabled)
-    3. App connects to ShaderServer daemon on host PC and sends directories to be used for recompilation
-    4. ShaderServer daemon loads the cached `fsl.py` args from the directories sent by App
-    5. ShaderServer daemon recompiles shaders using cached args and uploads modified shaders back to App
+    3. App connects to ReloadServer daemon on host PC and sends directories to be used for recompilation
+    4. ReloadServer daemon loads the cached `fsl.py` args from the directories sent by App
+    5. ReloadServer daemon recompiles shaders using cached args and uploads modified shaders back to App
     6. App caches uploaded shaders and sets `gClient.mDidReload`
     7. On next call to `App.update`, `platformReloadClientShouldQuit` calls `requestReload(ReloadDesc{ RELOAD_TYPE_SHADER })` (and
 shader-reloading is enabled again)
@@ -41,7 +41,7 @@ If an error occurs on the device:
     2. Shader-reloading is re-enabled
 
 If an error occurs on the host:
-    1. ShaderServer daemon sends error message to device via socket
+    1. ReloadServer daemon sends error message to device via socket
     2. Error is printed using LOGF(eError) and recompile process is stopped
     3. Shader-reloading is re-enabled
 */
@@ -60,12 +60,6 @@ If an error occurs on the host:
 #include "../../Utilities/Threading/Atomics.h"
 #include "../Network/Network.h"
 
-#ifdef _MSC_VER
-#define tfrg_byteswap32(x) _byteswap_ulong(x)
-#else
-#define tfrg_byteswap32(x) __builtin_bswap32(x)
-#endif
-
 #if defined(__APPLE__) && !defined(TARGET_IOS) && !defined(TARGET_IOS_SIMULATOR)
 #define TARGET_MACOS
 #endif
@@ -74,13 +68,34 @@ If an error occurs on the host:
 #define TARGET_PC
 #endif
 
-// You can explicitly disable auto-start by defining `SHADER_SERVER_DISABLE_AUTO_START`
-#if defined(TARGET_PC) && !defined(SHADER_SERVER_DISABLE_AUTO_START)
-#define SHADER_SERVER_AUTO_START_ENABLED
+// You can explicitly disable auto-start by defining `RELOAD_SERVER_DISABLE_AUTO_START`
+#if defined(TARGET_PC) && !defined(RELOAD_SERVER_DISABLE_AUTO_START)
+#define RELOAD_SERVER_AUTO_START_ENABLED
 #endif
 
-// NOTE: There is no good cross-platform method of checking endianness at compile time
-static bool isLittleEndian()
+#define USE_COMPILE_TIME_ENDIAN_DETECTION
+
+#define tfrg_align_up(x, a) (((x) + (a)-1) & ~((a)-1))
+
+#ifdef _MSC_VER
+#define tfrg_byteswap32(x) _byteswap_ulong(x)
+#else
+#define tfrg_byteswap32(x) __builtin_bswap32(x)
+#endif
+
+#if defined(__BIG_ENDIAN__)
+|| defined(__BIG_ENDIAN) || defined(_BIG_ENDIAN) || defined(_ARCH_PPC) || defined(__PPC__) || defined(__PPC) || defined(PPC) ||
+    defined(__powerpc__) || defined(__powerpc) || defined(powerpc) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||
+    (defined(__BYTE_ORDER) && __BYTE_ORDER == __ORDER_BIG_ENDIAN)
+
+#define BYTE_ORDER_BIG_ENDIAN
+#else
+#define BYTE_ORDER_LITTLE_ENDIAN
+#endif
+
+#ifndef USE_COMPILE_TIME_ENDIAN_DETECTION
+    // NOTE: There is no good cross-platform method of checking endianness at compile time
+    static bool isLittleEndian()
 {
     int i = 1;
     // to detect, we cast `i` to bytes and read the first one
@@ -89,13 +104,14 @@ static bool isLittleEndian()
     // if big endian   : [ 0, 0, 0, 1]	-> false
     return (int)*((unsigned char*)&i) == 1;
 }
+#endif
 
 #define MSG_SHADER         's'
 #define MSG_RECOMPILE      'r'
 #define MSG_SUCCESS        '\x00'
 #define MSG_ERROR          '\x01'
 
-#define SHADER_SERVER_FILE "shader-server.txt"
+#define RELOAD_SERVER_FILE "reload-server.txt"
 
 #if defined(LINUX) || defined(TARGET_MACOS) || defined(TARGET_IOS) || defined(TARGET_IOS_SIMULATOR)
 #define DAEMON_CMD "Common_3/Tools/ReloadServer/ReloadServer.sh"
@@ -103,12 +119,21 @@ static bool isLittleEndian()
 #define DAEMON_CMD "Common_3\\Tools\\ReloadServer\\ReloadServer.bat"
 #endif
 
+typedef struct UpdatedShader
+{
+    const char*    mPath;
+    uint8_t*       pByteCode;
+    uint32_t       mByteCodeSize;
+    UpdatedShader* pNext;
+} UpdatedShader;
+
 typedef struct ReloadClient
 {
     SocketAddr           mAddr;
     Mutex                mLock;
     ThreadHandle         mThread;
-    uint8_t*             pUpdatedShaders;
+    UpdatedShader*       pUpdatedShaders;
+    UpdatedShader*       pUpdatedShadersEnd;
     UIComponent*         pReloadShaderComponent;
     tfrg_atomic32_t      mDidReload;
     tfrg_atomic32_t      mShouldReenableButton;
@@ -116,65 +141,156 @@ typedef struct ReloadClient
     uint16_t             mPort;
     bool                 mDidInit;
     bstring              mHost;
-    bstring              mProjectDir;
-    bstring              mBinaryDir;
     bstring              mIntermediateDir;
-    // File contains line for each of (host, port, projectDir, binaryDir, intermediateDir)
+    // File contains line for each of (host, port, intermediateDir)
     // Each line can have a max length of FS_MAX_PATH + 2, where 2 is the max number of line terminators '\r\n'.
-    // Therefore max size of the entire file is 5 * (FS_MAX_PATH + 2).
-    static constexpr int ExpectedLineCount = 5;
-    char                 mShaderServerFileBuf[ExpectedLineCount * (FS_MAX_PATH + 2)];
+    // Therefore max size of the entire file is 3 * (FS_MAX_PATH + 2).
+    static constexpr int ExpectedLineCount = 3;
+    char                 mReloadServerFileBuf[ExpectedLineCount * (FS_MAX_PATH + 2)];
 } ReloadClient;
 
 static ReloadClient gClient{};
 
 #if defined(AUTOMATED_TESTING)
-uint32_t gShaderServerRequestRecompileAfter = 0;
+uint32_t gReloadServerRequestRecompileAfter = 0;
 #endif
 
 static uint32_t decodeU32LE(uint8_t** pBuffer)
 {
+#ifdef USE_COMPILE_TIME_ENDIAN_DETECTION
+    uint32_t value = *(const uint32_t*)(*pBuffer);
+#ifdef BYTE_ORDER_BIG_ENDIAN
+    value = tfrg_byteswap32(value);
+#endif
+    *pBuffer += sizeof(uint32_t);
+    return value;
+#else
     uint32_t value;
-    // NOTE: We can just cast and dereference here but I think the memcpy is clearer,
-    // and it should produce identical assembly.
     memcpy(&value, *pBuffer, sizeof(value));
     *pBuffer += sizeof(uint32_t);
     return isLittleEndian() ? value : tfrg_byteswap32(value);
+#endif
 }
 
 static void encodeU32LE(uint8_t** pBuffer, uint32_t value)
 {
+#ifdef USE_COMPILE_TIME_ENDIAN_DETECTION
+#ifdef BYTE_ORDER_BIG_ENDIAN
+    *(uint32_t*)(*pBuffer) = tfrg_byteswap32(value);
+#else
+    *(uint32_t*)(*pBuffer) = value;
+#endif
+    *pBuffer += sizeof(uint32_t);
+#else
     uint32_t toEncode = isLittleEndian() ? value : tfrg_byteswap32(value);
-    // NOTE: We can just cast and dereference here but I the memcpy is clearer,
-    // and it should produce identical assembly.
     memcpy(*pBuffer, &toEncode, sizeof(value));
     *pBuffer += sizeof(uint32_t);
+#endif
 }
 
-static bool readShaderServerFile()
+static void addUpdatedShaders(uint8_t* ptr)
+{
+    uint32_t nShaders = decodeU32LE(&ptr);
+    for (uint32_t i = 0; i < nShaders; ++i)
+    {
+        uint32_t    fileNameSize = decodeU32LE(&ptr);
+        uint32_t    byteCodeSize = decodeU32LE(&ptr);
+        const char* fileName = (const char*)ptr;
+        ptr += fileNameSize;
+        ptr += 1;
+        uint8_t* byteCode = ptr;
+        ptr += byteCodeSize;
+
+        UpdatedShader* pPrevShader = gClient.pUpdatedShaders;
+        UpdatedShader* pExistingShader = nullptr;
+        for (UpdatedShader* cur = gClient.pUpdatedShaders; cur != nullptr; cur = cur->pNext)
+        {
+            if (strncmp(fileName, cur->mPath, FS_MAX_PATH) == 0)
+            {
+                pExistingShader = cur;
+                break;
+            }
+            pPrevShader = cur;
+        }
+
+        // If the shader already exists, we want to update it, so remove from the list.
+        // We cannot re-use the same allocation easily since bytecode can be a different size.
+        if (pExistingShader != nullptr)
+        {
+            if (gClient.pUpdatedShaders == gClient.pUpdatedShadersEnd)
+            {
+                gClient.pUpdatedShaders = nullptr;
+                gClient.pUpdatedShadersEnd = nullptr;
+            }
+            else if (pExistingShader == pPrevShader)
+            {
+                ASSERT(pExistingShader == gClient.pUpdatedShaders);
+                gClient.pUpdatedShaders = gClient.pUpdatedShaders->pNext;
+            }
+            else
+            {
+                pPrevShader->pNext = pExistingShader->pNext;
+                if (pExistingShader == gClient.pUpdatedShadersEnd)
+                {
+                    gClient.pUpdatedShadersEnd = pPrevShader;
+                }
+            }
+            tf_free(pExistingShader);
+        }
+
+        // We want to use the same allocation for `UpdatedShader` and `path` so that when we iterate
+        // the linked list, we can read `UpdatedShader` and compare a large portion of `path` by
+        // only reading a single cache line.
+        const size_t   size = sizeof(UpdatedShader) + fileNameSize + 1 + byteCodeSize;
+        UpdatedShader* pNewShader = (UpdatedShader*)tf_malloc(size);
+        char*          pNewShaderPath = (char*)(pNewShader + 1);
+        uint8_t*       pNewShaderBC = (uint8_t*)(pNewShaderPath + fileNameSize + 1);
+
+        memcpy(pNewShaderPath, fileName, fileNameSize + 1);
+        memcpy(pNewShaderBC, byteCode, byteCodeSize);
+
+        pNewShader->mPath = pNewShaderPath;
+        pNewShader->pByteCode = pNewShaderBC;
+        pNewShader->mByteCodeSize = byteCodeSize;
+        pNewShader->pNext = nullptr;
+
+        if (gClient.pUpdatedShadersEnd)
+        {
+            gClient.pUpdatedShadersEnd->pNext = pNewShader;
+            gClient.pUpdatedShadersEnd = pNewShader;
+        }
+        else
+        {
+            gClient.pUpdatedShaders = pNewShader;
+            gClient.pUpdatedShadersEnd = pNewShader;
+        }
+    }
+}
+
+static bool readReloadServerFile()
 {
     FileStream stream;
-    if (!fsOpenStreamFromPath(RD_SHADER_BINARIES, SHADER_SERVER_FILE, FM_READ, &stream))
+    if (!fsOpenStreamFromPath(RD_SHADER_BINARIES, RELOAD_SERVER_FILE, FM_READ, &stream))
     {
         LOGF(eERROR,
              "Failed to read `%s` from disk in mount point RD_SHADER_BINARIES. "
              "This is likely an internal bug - please check that this file is in the `CompiledShaders` directory.",
-             SHADER_SERVER_FILE);
+             RELOAD_SERVER_FILE);
         return false;
     }
 
-    size_t nRead = fsReadFromStream(&stream, gClient.mShaderServerFileBuf, sizeof(gClient.mShaderServerFileBuf));
-    if (nRead > sizeof(gClient.mShaderServerFileBuf))
+    size_t nRead = fsReadFromStream(&stream, gClient.mReloadServerFileBuf, sizeof(gClient.mReloadServerFileBuf));
+    if (nRead > sizeof(gClient.mReloadServerFileBuf))
     {
         LOGF(eERROR,
              "Read too many bytes from `%s` - this likely means the file was not written correctly."
              "Please check that the contents of this file have not been corrupted.",
-             SHADER_SERVER_FILE);
+             RELOAD_SERVER_FILE);
         return false;
     }
     fsCloseStream(&stream);
 
-    bstring contents = bconstfromblk(gClient.mShaderServerFileBuf, (int)min(nRead, sizeof(gClient.mShaderServerFileBuf)));
+    bstring contents = bconstfromblk(gClient.mReloadServerFileBuf, (int)min(nRead, sizeof(gClient.mReloadServerFileBuf)));
 
     struct SplitData
     {
@@ -210,7 +326,7 @@ static bool readShaderServerFile()
         LOGF(eERROR,
              "`%s` is not in the correct format - this likely means the file was not written correctly."
              "Please check that the contents of this file have not been corrupted.",
-             SHADER_SERVER_FILE);
+             RELOAD_SERVER_FILE);
         return false;
     }
 
@@ -223,9 +339,7 @@ static bool readShaderServerFile()
     gClient.mHost = bconstfromcstr(splitData.lines[0]);
 #endif
     gClient.mPort = atoi(splitData.lines[1]);
-    gClient.mProjectDir = bconstfromcstr(splitData.lines[2]);
-    gClient.mBinaryDir = bconstfromcstr(splitData.lines[3]);
-    gClient.mIntermediateDir = bconstfromcstr(splitData.lines[4]);
+    gClient.mIntermediateDir = bconstfromcstr(splitData.lines[2]);
 
     const char* host = bdata(&gClient.mHost);
     ASSERT(host);
@@ -243,22 +357,18 @@ extern const char* getShaderPlatformName();
 
 static bool sendRecompileRequestToServer(Socket* pSock)
 {
-    uint8_t  buffer[1 + 3 * (FS_MAX_PATH + 5)];
-    uint8_t* ptr = buffer;
-    *(ptr++) = MSG_RECOMPILE;
-    const char* toSend[] = { getShaderPlatformName(), bdata(&gClient.mProjectDir), bdata(&gClient.mBinaryDir),
-                             bdata(&gClient.mIntermediateDir) };
-    uint32_t    toSendLen[] = { (uint32_t)strnlen(toSend[0], FS_MAX_PATH), (uint32_t)blength(&gClient.mProjectDir),
-                                (uint32_t)blength(&gClient.mBinaryDir), (uint32_t)blength(&gClient.mIntermediateDir) };
-    for (int i = 0; i < 4; ++i)
+    uint8_t buffer[FS_MAX_PATH + 64] = {};
+    buffer[0] = MSG_RECOMPILE;
+    uint8_t*    ptr = buffer + 1;
+    const char* toSend[] = { getShaderPlatformName(), bdata(&gClient.mIntermediateDir) };
+    uint32_t    toSendLen[] = { (uint32_t)strnlen(toSend[0], FS_MAX_PATH), (uint32_t)blength(&gClient.mIntermediateDir) };
+    for (int i = 0; i < 2; ++i)
     {
         encodeU32LE(&ptr, toSendLen[i]);
-        if (toSend[i])
-        {
-            memcpy(ptr, toSend[i], toSendLen[i]);
-        }
-        ptr += toSendLen[i];
-        *(ptr++) = 0;
+        ASSERT(toSend[i]);
+        memcpy(ptr, toSend[i], toSendLen[i]);
+        ptr[toSendLen[i]] = 0;
+        ptr += toSendLen[i] + 1;
     }
 
     size_t numBytesSent = 0;
@@ -341,7 +451,7 @@ static void requestRecompileThreadFunc(void* userdata)
     bool   success = false;
     while (!success && tryCount < 5)
     {
-        LOGF(eDEBUG, "Connecting to ShaderServer...");
+        LOGF(eDEBUG, "Connecting to ReloadServer...");
         success = socketCreateClient(&sock, &gClient.mAddr);
         if (!success)
         {
@@ -353,33 +463,33 @@ static void requestRecompileThreadFunc(void* userdata)
     if (!success)
     {
         LOGF(eERROR,
-             "Failed to connect to `ShaderServer` on address `%s:%u`. "
-             "Please ensure `ShaderServer` is running by executing `%s` in a terminal.",
+             "Failed to connect to `ReloadServer` on address `%s:%u`. "
+             "Please ensure `ReloadServer` is running by executing `%s` in a terminal.",
              host, (uint32_t)gClient.mPort, DAEMON_CMD);
         tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 1);
         return;
     }
 
-    LOGF(eDEBUG, "Sending recompile request to ShaderServer");
+    LOGF(eDEBUG, "Sending recompile request to ReloadServer");
     if (!sendRecompileRequestToServer(&sock))
     {
         LOGF(eERROR,
-             "Failed to send recompile request to `ShaderServer` on address `%s:%u`. "
-             "Please ensure `ShaderServer` is running by executing `%s` in a terminal.",
+             "Failed to send recompile request to `ReloadServer` on address `%s:%u`. "
+             "Please ensure `ReloadServer` is running by executing `%s` in a terminal.",
              host, (uint32_t)gClient.mPort, DAEMON_CMD);
         socketDestroy(&sock);
         tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 1);
         return;
     }
 
-    LOGF(eDEBUG, "Waiting for response from ShaderServer");
+    LOGF(eDEBUG, "Waiting for response from ReloadServer");
     bool     serverDidReturnError = false;
     uint8_t* data = waitForServerToUploadShaders(&sock, &serverDidReturnError);
     if (!data)
     {
         LOGF(eERROR,
-             "Shader upload from `ShaderServer` on address `%s:%u` was interrupted. "
-             "Please ensure `ShaderServer` is running by executing `%s` in a terminal.",
+             "Shader upload from `ReloadServer` on address `%s:%u` was interrupted. "
+             "Please ensure `ReloadServer` is running by executing `%s` in a terminal.",
              host, (uint32_t)gClient.mPort, DAEMON_CMD);
         socketDestroy(&sock);
         tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 1);
@@ -389,18 +499,14 @@ static void requestRecompileThreadFunc(void* userdata)
     if (serverDidReturnError)
     {
         LOGF(eERROR, "%s", (const char*)data);
-        tf_free(data);
     }
     else
     {
-        LOGF(eDEBUG, "ShaderServer recompile success!");
-        if (gClient.pUpdatedShaders)
-        {
-            tf_free(gClient.pUpdatedShaders);
-        }
-        gClient.pUpdatedShaders = data;
+        LOGF(eDEBUG, "ReloadServer recompile success!");
+        addUpdatedShaders(data);
         tfrg_atomic32_store_release(&gClient.mDidReload, 1);
     }
+    tf_free(data);
     tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 1);
 
     if (!socketDestroy(&sock))
@@ -412,7 +518,7 @@ static void requestRecompileThreadFunc(void* userdata)
     }
 }
 
-#ifdef SHADER_SERVER_AUTO_START_ENABLED
+#ifdef RELOAD_SERVER_AUTO_START_ENABLED
 
 #include "../../Utilities/Interfaces/IToolFileSystem.h"
 
@@ -422,17 +528,22 @@ static void requestRecompileThreadFunc(void* userdata)
 #define THE_FORGE_ROOT_DIR        __FILE__ "/../../../.."
 
 #define THE_FORGE_PYTHON_PATH     "Tools/python-3.6.0-embed-amd64/python.exe"
-#define SHADER_SERVER_SCRIPT_PATH "Common_3/Tools/ReloadServer/ReloadServer.py"
+#define RELOAD_SERVER_SCRIPT_PATH "Common_3/Tools/ReloadServer/ReloadServer.py"
 
-typedef enum ShaderServerAction
+typedef enum ReloadServerAction
 {
-    SHADER_SERVER_ACTION_START,
-    SHADER_SERVER_ACTION_KILL,
-} ShaderServerAction;
+    RELOAD_SERVER_ACTION_START,
+    RELOAD_SERVER_ACTION_KILL,
+} ReloadServerAction;
 
-void platformStartStopShaderServerOnHost(ShaderServerAction action)
+void platformStartStopReloadServerOnHost(ReloadServerAction action)
 {
-    const bool kill = action == SHADER_SERVER_ACTION_KILL;
+    static bool didStart = false;
+    const bool  kill = action == RELOAD_SERVER_ACTION_KILL;
+    if (kill && !didStart)
+    {
+        return;
+    }
 
     char rootTheForge[FS_MAX_PATH] = {};
     fsNormalizePath(THE_FORGE_ROOT_DIR, '/', rootTheForge);
@@ -445,14 +556,14 @@ void platformStartStopShaderServerOnHost(ShaderServerAction action)
 #endif
 
     char scriptPath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(rootTheForge, SHADER_SERVER_SCRIPT_PATH, scriptPath);
+    fsAppendPathComponent(rootTheForge, RELOAD_SERVER_SCRIPT_PATH, scriptPath);
 
     char port[64] = {};
     snprintf(port, sizeof(port), "%u", gClient.mPort);
 
     const char* args[] = { scriptPath, kill ? "--kill" : "--daemon", "--port", port };
 
-    const char* outputFilename = kill ? "ShaderServerKill.txt" : "ShaderServerStart.txt";
+    const char* outputFilename = kill ? "ReloadServerKill.txt" : "ReloadServerStart.txt";
 
     char outputPath[FS_MAX_PATH] = {};
     fsAppendPathComponent(fsGetResourceDirectory(RD_DEBUG), outputFilename, outputPath);
@@ -470,9 +581,13 @@ void platformStartStopShaderServerOnHost(ShaderServerAction action)
             ASSERT(nRead == (size_t)size);
             output[size] = '\0';
             const char* action = kill ? "killing" : "starting";
-            LOGF(eERROR, "Error %s the ShaderServer process:\n%s\n", action, output);
+            LOGF(eERROR, "Error %s the ReloadServer process:\n%s\n", action, output);
             tf_free(output);
         }
+    }
+    else if (!kill)
+    {
+        didStart = true;
     }
 }
 
@@ -492,9 +607,9 @@ bool platformInitReloadClient(void)
         return false;
     }
 
-    if (!readShaderServerFile())
+    if (!readReloadServerFile())
     {
-        // error messages are printed by `readShaderServerFile`
+        // error messages are printed by `readReloadServerFile`
         return false;
     }
 
@@ -507,12 +622,14 @@ bool platformInitReloadClient(void)
         return false;
     }
     gClient.mDidInit = true;
+    gClient.pUpdatedShaders = nullptr;
+    gClient.pUpdatedShadersEnd = nullptr;
     tfrg_atomic32_store_release(&gClient.mDidReload, 0);
     tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 0);
     tfrg_atomic32_store_release(&gClient.mIsReloading, 0);
 
-#ifdef SHADER_SERVER_AUTO_START_ENABLED
-    platformStartStopShaderServerOnHost(SHADER_SERVER_ACTION_START);
+#ifdef RELOAD_SERVER_AUTO_START_ENABLED
+    platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_START);
 #endif
 
     return true;
@@ -528,15 +645,17 @@ void platformExitReloadClient()
     acquireMutex(&gClient.mLock);
     releaseMutex(&gClient.mLock);
 
-#ifdef SHADER_SERVER_AUTO_START_ENABLED
-    platformStartStopShaderServerOnHost(SHADER_SERVER_ACTION_KILL);
+#ifdef RELOAD_SERVER_AUTO_START_ENABLED
+    platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_KILL);
 #endif
 
     destroyMutex(&gClient.mLock);
 
-    if (gClient.pUpdatedShaders)
+    for (UpdatedShader* cur = gClient.pUpdatedShaders; cur != nullptr;)
     {
-        tf_free(gClient.pUpdatedShaders);
+        UpdatedShader* next = cur->pNext;
+        tf_free(cur);
+        cur = next;
     }
 
     exitNetwork();
@@ -571,35 +690,16 @@ bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uin
 
     MutexLock lock(gClient.mLock);
 
-    uint8_t* ptr = gClient.pUpdatedShaders;
-    if (!ptr)
+    for (UpdatedShader* cur = gClient.pUpdatedShaders; cur != nullptr; cur = cur->pNext)
     {
-        return false;
-    }
-
-    // NOTE: Even for a large number of shaders the loop below is quite fast, so we just search
-    // through all the shaders instead of having to worry about additional memory allocations
-    // to store the parsed data/hashmaps/etc.
-    uint32_t nShaders = decodeU32LE(&ptr);
-    for (uint32_t i = 0; i < nShaders; ++i)
-    {
-        uint32_t    fileNameSize = decodeU32LE(&ptr);
-        uint32_t    byteCodeSize = decodeU32LE(&ptr);
-        const char* fileName = (const char*)ptr;
-        ptr += fileNameSize;
-        ptr += 1;
-        uint8_t* byteCode = ptr;
-        ptr += byteCodeSize;
-
-        if (strncmp(fileName, path, FS_MAX_PATH) == 0)
+        if (strncmp(cur->mPath, path, FS_MAX_PATH) == 0)
         {
-            LOGF(eDEBUG, "Updated shader %s - %u bytes", fileName, byteCodeSize);
-            *pByteCode = (void*)byteCode;
-            *pByteCodeSize = byteCodeSize;
+            LOGF(eDEBUG, "Updated shader %s - %u bytes", cur->mPath, cur->mByteCodeSize);
+            *pByteCode = (void*)cur->pByteCode;
+            *pByteCodeSize = cur->mByteCodeSize;
             return true;
         }
     }
-
     return false;
 }
 
@@ -610,7 +710,7 @@ bool platformReloadClientShouldQuit(void)
 {
 #if defined(AUTOMATED_TESTING)
     static uint32_t nFrames = 0;
-    if (gShaderServerRequestRecompileAfter != 0 && ++nFrames == gShaderServerRequestRecompileAfter)
+    if (gReloadServerRequestRecompileAfter != 0 && ++nFrames == gReloadServerRequestRecompileAfter)
     {
         platformReloadClientRequestShaderRecompile();
     }
@@ -648,7 +748,7 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
     }
 
     ButtonWidget shaderReload;
-    UIWidget*    pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders", &shaderReload, WIDGET_TYPE_BUTTON);
+    UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pShaderReload, nullptr, [](void* pUserData) { platformReloadClientRequestShaderRecompile(); });
     REGISTER_LUA_WIDGET(pShaderReload);
 

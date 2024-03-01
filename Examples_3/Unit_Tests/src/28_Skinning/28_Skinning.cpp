@@ -684,7 +684,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -1047,13 +1047,11 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
         // bind and clear the render target
-        LoadActionsDesc loadActions = {}; // render target clean command
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth.depth = 0.0f;
-        loadActions.mClearDepth.stencil = 0;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -1092,9 +1090,10 @@ public:
 
         //// draw the UI
         cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-        loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         gFrameTimeDraw.mFontColor = 0xff00ffff;
         gFrameTimeDraw.mFontSize = 18.0f;
@@ -1114,7 +1113,7 @@ public:
 
         cmdDrawUserInterface(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
         cmdEndDebugMarker(cmd);
 
         // PRESENT THE GRPAHICS QUEUE

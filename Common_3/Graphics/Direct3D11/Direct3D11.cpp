@@ -215,6 +215,7 @@ void d3d11dll_exit()
 #if defined(FORGE_D3D11_DYNAMIC_LOADING)
     if (gD3D11dll)
     {
+        LOGF(LogLevel::eINFO, "Unloading d3d11.dll");
         gPfnD3D11dllCreateDevice = NULL;
         FreeLibrary(gD3D11dll);
         gD3D11dll = NULL;
@@ -222,6 +223,7 @@ void d3d11dll_exit()
 
     if (gDXGIdll)
     {
+        LOGF(LogLevel::eINFO, "Unloading dxgi.dll");
         gPfnD3D11dllCreateDXGIFactory1 = NULL;
         FreeLibrary(gDXGIdll);
         gDXGIdll = NULL;
@@ -237,12 +239,14 @@ bool d3d11dll_init()
     if (gD3D11dllInited)
         return true;
 
+    LOGF(LogLevel::eINFO, "Loading d3d11.dll");
     gD3D11dll = LoadLibraryExA("d3d11.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gD3D11dll)
     {
         gPfnD3D11dllCreateDevice = (PFN_D3D11_CREATE_DEVICE)(GetProcAddress(gD3D11dll, "D3D11CreateDevice"));
     }
 
+    LOGF(LogLevel::eINFO, "Loading dxgi.dll");
     gDXGIdll = LoadLibraryExA("dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gDXGIdll)
     {
@@ -876,9 +880,9 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
     D3D_FEATURE_LEVEL featureLevel;
     HRESULT           hr = d3d11dll_CreateDevice(pRenderer->pGpu->mDx11.pGpu, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, deviceFlags,
-                                                 &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION, &pRenderer->mDx11.pDevice,
-                                                 &featureLevel, // max feature level
-                                                 &pRenderer->mDx11.pContext);
+                                       &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION, &pRenderer->mDx11.pDevice,
+                                       &featureLevel, // max feature level
+                                       &pRenderer->mDx11.pContext);
 
     if (FAILED(hr))
     {
@@ -900,14 +904,11 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
     if (FAILED(hr))
         LOGF(LogLevel::eERROR, "Failed to create D3D11 device and context.");
 
+    pRenderer->mDx11.pContext1 = NULL;
     hr = pRenderer->mDx11.pContext->QueryInterface(&pRenderer->mDx11.pContext1);
     if (SUCCEEDED(hr))
     {
         LOGF(LogLevel::eINFO, "Device supports ID3D11DeviceContext1.");
-    }
-    else
-    {
-        pRenderer->mDx11.pContext1 = NULL;
     }
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
@@ -928,6 +929,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
+    SAFE_RELEASE(pRenderer->mDx11.pUserDefinedAnnotation);
     SAFE_RELEASE(pRenderer->mDx11.pContext1);
     SAFE_RELEASE(pRenderer->mDx11.pContext);
 #if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
@@ -937,14 +939,13 @@ static void RemoveDevice(Renderer* pRenderer)
 
     if (pDebugDevice)
     {
-#if WINVER > _WIN32_WINNT_WINBLUE
+        LOGF(eWARNING, "Printing live D3D11 objects to the debugger output window...");
         pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
         pDebugDevice->Release();
-#else
-        // Debug device is released first so report live objects don't show its ref as a warning.
-        pDebugDevice->Release();
-        pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-#endif
+    }
+    else
+    {
+        LOGF(eWARNING, "Unable to retrieve the D3D11 debug interface, cannot print live D3D11 objects.");
     }
 #else
     SAFE_RELEASE(pRenderer->mDx11.pDevice);
@@ -1307,14 +1308,14 @@ void d3d11_initRendererContext(const char* appName, const RendererContextDesc* p
                     gpuDesc[gpuCount].mVendorId = desc.VendorId;
                     // convert Revision Id
                     gpuDesc[gpuCount].mRevisionId = desc.Revision;
-
-                    // get preset for current gpu description
-                    gpuDesc[gpuCount].mPreset =
-                        getGPUPresetLevel(gpuDesc[gpuCount].mVendorId, gpuDesc[gpuCount].mDeviceId, gpuDesc[gpuCount].mRevisionId);
-
                     // save gpu name (Some situtations this can show description instead of name)
                     // char sName[MAX_PATH];
                     wcstombs(gpuDesc[gpuCount].mName, desc.Description, FS_MAX_PATH);
+
+                    // get preset for current gpu description
+                    gpuDesc[gpuCount].mPreset = getGPUPresetLevel(getGPUVendorName(gpuDesc[gpuCount].mVendorId), gpuDesc[gpuCount].mName,
+                                                                  gpuDesc[gpuCount].mDeviceId, gpuDesc[gpuCount].mRevisionId);
+
                     ++gpuCount;
                     SAFE_RELEASE(device);
 
@@ -1462,7 +1463,7 @@ void d3d11_initRenderer(const char* appName, const RendererDesc* settings, Rende
         }
 
         // anything below LOW preset is not supported and we will exit
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_VERYLOW)
         {
             // remove device and any memory we allocated in just above as this is the first function called
             // when initializing the forge
@@ -1472,7 +1473,7 @@ void d3d11_initRenderer(const char* appName, const RendererDesc* settings, Rende
             LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
 
             // have the condition in the assert as well so its cleared when the assert message box appears
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW); //-V547
+            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_VERYLOW); //-V547
 
             // return NULL pRenderer so that client can gracefully handle exit
             // This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -3593,17 +3594,23 @@ void set_shader_resources(ID3D11DeviceContext* pContext, ShaderStage used_stages
 }
 
 // Beginning of the rendering pass.
-void d3d11_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
-                                const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices,
-                                uint32_t depthArraySlice, uint32_t depthMipSlice)
+void d3d11_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
 
-    if (!renderTargetCount && !pDepthStencil)
-        return;
-
     Renderer*            pRenderer = pCmd->pRenderer;
     ID3D11DeviceContext* pContext = pRenderer->mDx11.pContext;
+
+    if (!pDesc)
+    {
+        return;
+    }
+
+    if (!pDesc->mRenderTargetCount && !pDesc->mDepthStencil.pDepthStencil)
+    {
+        pContext->OMSetRenderTargets(0, NULL, NULL);
+        return;
+    }
 
     // Reset any shader settings left from previous render passes.
     reset_shader_resources(pContext);
@@ -3615,95 +3622,89 @@ void d3d11_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTar
     ID3D11RenderTargetView* ppTargets[MAX_RENDER_TARGET_ATTACHMENTS] = { 0 };
 
     // Make a list of d3d11 rendertargets to bind.
-    for (uint32_t i = 0; i < renderTargetCount; ++i)
+    for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
-        if (!pColorMipSlices && !pColorArraySlices)
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
-            ppTargets[i] = ppRenderTargets[i]->mDx11.pRtvDescriptor;
+            ppTargets[i] = desc->pRenderTarget->mDx11.pRtvDescriptor;
         }
         else
         {
             uint32_t handle = 0;
-            if (pColorMipSlices)
+            if (desc->mUseMipSlice)
             {
-                if (pColorArraySlices)
+                if (desc->mUseArraySlice)
                 {
-                    handle = pColorMipSlices[i] * ppRenderTargets[i]->mArraySize + pColorArraySlices[i];
+                    handle = desc->mMipSlice * desc->pRenderTarget->mArraySize + desc->mArraySlice;
                 }
                 else
                 {
-                    handle = pColorMipSlices[i];
+                    handle = desc->mMipSlice;
                 }
             }
-            else if (pColorArraySlices)
+            else if (desc->mUseArraySlice)
             {
-                handle = pColorArraySlices[i];
+                handle = desc->mArraySlice;
             }
 
-            ppTargets[i] = ppRenderTargets[i]->mDx11.pRtvSliceDescriptors[handle];
+            ppTargets[i] = desc->pRenderTarget->mDx11.pRtvSliceDescriptors[handle];
+        }
+
+        if (desc->mLoadAction == LOAD_ACTION_CLEAR)
+        {
+            const FLOAT* clear = (FLOAT*)(desc->mOverrideClearValue ? &desc->mClearValue.r : &desc->pRenderTarget->mClearValue.r);
+            pContext->ClearRenderTargetView(ppTargets[i], clear);
         }
     }
 
     // Get the d3d11 depth/stencil target to bind.
     ID3D11DepthStencilView* pDepthStencilTarget = 0;
 
-    if (pDepthStencil)
+    if (pDesc->mDepthStencil.pDepthStencil)
     {
-        if (-1 == depthMipSlice && -1 == depthArraySlice)
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
-            pDepthStencilTarget = pDepthStencil->mDx11.pDsvDescriptor;
+            pDepthStencilTarget = desc->pDepthStencil->mDx11.pDsvDescriptor;
         }
         else
         {
             uint32_t handle = 0;
-            if (depthMipSlice != -1)
+            if (desc->mUseMipSlice)
             {
-                if (depthArraySlice != -1)
-                    handle = depthMipSlice * pDepthStencil->mArraySize + depthArraySlice;
+                if (desc->mUseArraySlice)
+                    handle = desc->mMipSlice * desc->pDepthStencil->mArraySize + desc->mArraySlice;
                 else
-                    handle = depthMipSlice;
+                    handle = desc->mMipSlice;
             }
-            else if (depthArraySlice != -1)
+            else if (desc->mUseArraySlice)
             {
-                handle = depthArraySlice;
+                handle = desc->mArraySlice;
             }
-            pDepthStencilTarget = pDepthStencil->mDx11.pDsvSliceDescriptors[handle];
+            pDepthStencilTarget = desc->pDepthStencil->mDx11.pDsvSliceDescriptors[handle];
+        }
+
+        if (desc->mLoadAction == LOAD_ACTION_CLEAR || desc->mLoadActionStencil == LOAD_ACTION_CLEAR)
+        {
+            uint32_t clearFlag = 0;
+            if (desc->mLoadAction == LOAD_ACTION_CLEAR)
+            {
+                clearFlag |= D3D11_CLEAR_DEPTH;
+            }
+            if (desc->mLoadActionStencil == LOAD_ACTION_CLEAR)
+            {
+                clearFlag |= D3D11_CLEAR_STENCIL;
+                ASSERT(TinyImageFormat_HasStencil(desc->pDepthStencil->mFormat));
+            }
+
+            const ClearValue* clear = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+            pContext->ClearDepthStencilView(pDepthStencilTarget, clearFlag, clear->depth, clear->stencil);
         }
     }
 
     // Bind the render targets and the depth-stencil target.
-    pContext->OMSetRenderTargets(renderTargetCount, ppTargets, pDepthStencilTarget);
-
-    // Clear RTs and Depth-Stencil views bound to the render pass.
-    LoadActionsDesc targetLoadActions = {};
-
-    if (pLoadActions)
-    {
-        targetLoadActions = *pLoadActions;
-    }
-
-    for (uint32_t i = 0; i < renderTargetCount; ++i)
-    {
-        if (targetLoadActions.mLoadActionsColor[i] == LOAD_ACTION_CLEAR)
-        {
-            FLOAT clear[4] = { targetLoadActions.mClearColorValues[i].r, targetLoadActions.mClearColorValues[i].g,
-                               targetLoadActions.mClearColorValues[i].b, targetLoadActions.mClearColorValues[i].a };
-
-            pContext->ClearRenderTargetView(ppTargets[i], clear);
-        }
-    }
-
-    if (pDepthStencilTarget &&
-        (targetLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR || targetLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR))
-    {
-        uint32_t clearFlag = 0;
-        if (targetLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR)
-            clearFlag |= D3D11_CLEAR_DEPTH;
-        if (targetLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR)
-            clearFlag |= D3D11_CLEAR_STENCIL;
-        pContext->ClearDepthStencilView(pDepthStencilTarget, clearFlag, targetLoadActions.mClearDepth.depth,
-                                        targetLoadActions.mClearDepth.stencil);
-    }
+    pContext->OMSetRenderTargets(pDesc->mRenderTargetCount, ppTargets, pDepthStencilTarget);
 }
 
 void d3d11_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)

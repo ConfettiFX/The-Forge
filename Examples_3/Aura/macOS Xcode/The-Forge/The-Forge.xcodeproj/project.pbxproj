@@ -313,8 +313,6 @@
 		E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C9233B098900B21FD6 /* macOSBase.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
 		E98584E72334397C00692529 /* SystemRun.c in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.c */; };
-		E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
-		E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		ED2C4D3D2875743600D3CD40 /* PickRenderingApi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED2C4D3C2875743600D3CD40 /* PickRenderingApi.cpp */; };
 		ED2C4D3E2875743600D3CD40 /* PickRenderingApi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED2C4D3C2875743600D3CD40 /* PickRenderingApi.cpp */; };
@@ -579,7 +577,6 @@
 		E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E98584E52334397C00692529 /* SystemRun.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.c; path = ../Utilities/FileSystem/SystemRun.c; sourceTree = "<group>"; };
-		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = macOSAppDelegate.m; sourceTree = "<group>"; };
@@ -678,14 +675,6 @@
 				5C32AEDE246453F40066E921 /* ParallelPrimitives.h */,
 			);
 			name = ParallelPrimitives;
-			sourceTree = "<group>";
-		};
-		5CA3338224A9C27100F26BD1 /* basisu */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
-			);
-			name = basisu;
 			sourceTree = "<group>";
 		};
 		654D978521E922C800113964 /* Animation */ = {
@@ -1020,7 +1009,6 @@
 				B2B33ACE297FD64000A5D377 /* lz4 */,
 				550F7A6F280077AD007F29D2 /* stb */,
 				550F7A6E280077A7007F29D2 /* bstrlib */,
-				5CA3338224A9C27100F26BD1 /* basisu */,
 			);
 			name = Dependencies;
 			sourceTree = "<group>";
@@ -1555,7 +1543,6 @@
 				B2D8BF4D26963988009EE13D /* loslib.c in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				B2B33B20297FD6E600A5D377 /* xxhash.c in Sources */,
-				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B2B33AE1297FD6C000A5D377 /* zstd_decompress.c in Sources */,
 				B2D8BF3226963988009EE13D /* lmem.c in Sources */,
 				81856F05229D729000F3A92B /* (null) in Sources */,
@@ -1693,7 +1680,6 @@
 				B2D8BF1226963987009EE13D /* ldblib.c in Sources */,
 				B2B33B13297FD6E600A5D377 /* entropy_common.c in Sources */,
 				B2D8BF0526963987009EE13D /* lobject.c in Sources */,
-				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B2D8BF3D26963988009EE13D /* ltm.c in Sources */,
 				B26E99AA27BC6EEA005873E3 /* stbtt.cpp in Sources */,
 				B2B33B28297FD72200A5D377 /* huf_decompress_amd64.S in Sources */,

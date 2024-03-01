@@ -672,7 +672,8 @@ typedef enum ColorSpace
 typedef enum GPUPresetLevel
 {
     GPU_PRESET_NONE = 0,
-    GPU_PRESET_OFFICE, // This means unsupported
+    GPU_PRESET_OFFICE,  // This means unsupported
+    GPU_PRESET_VERYLOW, // Mostly for mobile GPU
     GPU_PRESET_LOW,
     GPU_PRESET_MEDIUM,
     GPU_PRESET_HIGH,
@@ -681,7 +682,7 @@ typedef enum GPUPresetLevel
 } GPUPresetLevel;
 
 // Material Unit test use this enum to index a shader table
-COMPILE_ASSERT(GPU_PRESET_COUNT == 6);
+COMPILE_ASSERT(GPU_PRESET_COUNT == 7);
 
 typedef struct BufferBarrier
 {
@@ -1373,18 +1374,6 @@ typedef struct SampleLocations
     int8_t mY;
 } SampleLocations;
 
-typedef struct LoadActionsDesc
-{
-    LoadActionType  mLoadActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
-    LoadActionType  mLoadActionDepth;
-    LoadActionType  mLoadActionStencil;
-    ClearValue      mClearColorValues[MAX_RENDER_TARGET_ATTACHMENTS];
-    ClearValue      mClearDepth;
-    StoreActionType mStoreActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
-    StoreActionType mStoreActionDepth;
-    StoreActionType mStoreActionStencil;
-} LoadActionsDesc;
-
 typedef struct SamplerDesc
 {
     FilterType  mMinFilter;
@@ -1969,6 +1958,9 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             uint32_t mOffsets[MAX_VERTEX_BINDINGS];
             uint32_t mStrides[MAX_VERTEX_BINDINGS];
             uint32_t mFirstVertex;
+#endif
+#ifdef ENABLE_GRAPHICS_DEBUG
+            char mDebugMarker[MAX_DEBUG_NAME_LENGTH];
 #endif
         };
 #endif
@@ -2864,9 +2856,9 @@ typedef struct RendererDesc
     bool mPreferVulkan;
 #endif
 
-    // Also, if `ShaderServer` code is interfering with debugging (due to threads/networking), then it can be temporarily disabled via this
-    // flag. NOTE: This flag overrides the behaviour specified by the `EnableShaderServer` field.
-    bool mDisableShaderServer;
+    // Also, if `ReloadServer` code is interfering with debugging (due to threads/networking), then it can be temporarily disabled via this
+    // flag. NOTE: This flag overrides the behaviour specified by the `EnableReloadServer` field.
+    bool mDisableReloadServer;
 } RendererDesc;
 
 typedef struct GPUVendorPreset
@@ -2875,6 +2867,7 @@ typedef struct GPUVendorPreset
     uint32_t       mModelId;
     uint32_t       mRevisionId; // Optional as not all gpu's have that. Default is : 0x00
     GPUPresetLevel mPresetLevel;
+    char           mVendorName[MAX_GPU_VENDOR_STRING_LENGTH];
     char           mGpuName[MAX_GPU_VENDOR_STRING_LENGTH]; // If GPU Name is missing then value will be empty string
     char           mGpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
     char           mGpuDriverDate[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -3173,6 +3166,8 @@ typedef struct GpuInfo
             uint32_t                    mDeferredHostOperationsExtension : 1;
             uint32_t                    mDeviceFaultExtension : 1;
             uint32_t                    mDeviceFaultSupported : 1;
+            uint32_t                    mASTCDecodeModeExtension : 1;
+            uint32_t                    mDeviceMemoryReportExtension : 1;
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
             uint32_t mExternalMemoryExtension : 1;
             uint32_t mExternalMemoryWin32Extension : 1;
@@ -3244,6 +3239,12 @@ typedef struct RendererContext
 #if defined(USE_MULTIPLE_RENDER_APIS)
     };
 #endif
+#if defined(METAL)
+    struct
+    {
+        uint32_t mExtendedEncoderDebugReport : 1;
+    } mMtl;
+#endif
     GpuInfo  mGpus[MAX_MULTIPLE_GPUS];
     uint32_t mGpuCount;
 } RendererContext;
@@ -3308,6 +3309,45 @@ typedef struct QueuePresentDesc
     uint8_t     mIndex;
     bool        mSubmitDone;
 } QueuePresentDesc;
+
+typedef struct BindRenderTargetDesc
+{
+    RenderTarget*   pRenderTarget;
+    LoadActionType  mLoadAction;
+    StoreActionType mStoreAction;
+    ClearValue      mClearValue;
+    LoadActionType  mLoadActionStencil;
+    StoreActionType mStoreActionStencil;
+    uint32_t        mArraySlice;
+    uint32_t        mMipSlice : 10;
+    uint32_t        mOverrideClearValue : 1;
+    uint32_t        mUseArraySlice : 1;
+    uint32_t        mUseMipSlice : 1;
+} BindRenderTargetDesc;
+
+typedef struct BindDepthTargetDesc
+{
+    RenderTarget*   pDepthStencil;
+    LoadActionType  mLoadAction;
+    LoadActionType  mLoadActionStencil;
+    StoreActionType mStoreAction;
+    StoreActionType mStoreActionStencil;
+    ClearValue      mClearValue;
+    uint32_t        mArraySlice;
+    uint32_t        mMipSlice : 10;
+    uint32_t        mOverrideClearValue : 1;
+    uint32_t        mUseArraySlice : 1;
+    uint32_t        mUseMipSlice : 1;
+} BindDepthTargetDesc;
+
+typedef struct BindRenderTargetsDesc
+{
+    uint32_t             mRenderTargetCount;
+    BindRenderTargetDesc mRenderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
+    BindDepthTargetDesc  mDepthStencil;
+    // Explicit viewport for empty render pass
+    uint32_t             mExtent[2];
+} BindRenderTargetsDesc;
 
 #ifdef __INTELLISENSE__
 // IntelliSense is the code completion engine in Visual Studio. When it parses the source files, __INTELLISENSE__ macro is defined.
@@ -3398,7 +3438,7 @@ DECLARE_RENDERER_FUNCTION(void, updateDescriptorSet, Renderer* pRenderer, uint32
 DECLARE_RENDERER_FUNCTION(void, resetCmdPool, Renderer* pRenderer, CmdPool* pCmdPool)
 DECLARE_RENDERER_FUNCTION(void, beginCmd, Cmd* pCmd)
 DECLARE_RENDERER_FUNCTION(void, endCmd, Cmd* pCmd)
-DECLARE_RENDERER_FUNCTION(void, cmdBindRenderTargets, Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
+DECLARE_RENDERER_FUNCTION(void, cmdBindRenderTargets, Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 DECLARE_RENDERER_FUNCTION(void, cmdSetSampleLocations, Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY, SampleLocations* plocations);
 DECLARE_RENDERER_FUNCTION(void, cmdSetViewport, Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 DECLARE_RENDERER_FUNCTION(void, cmdSetScissor, Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)

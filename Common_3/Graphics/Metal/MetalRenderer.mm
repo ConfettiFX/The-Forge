@@ -274,6 +274,8 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage
 
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
+void util_set_debug_group(Cmd* pCmd);
+void util_unset_debug_group(Cmd* pCmd);
 
 // GPU frame time accessor for macOS and iOS
 #define GPU_FREQUENCY 1000000.0
@@ -1193,7 +1195,7 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
                             TrackUntrackedResource(pDescriptorSet, index, pDesc->mUsage, as);
                             extern void getMTLAccelerationStructureBottomReferences(
                                 AccelerationStructure * pAccelerationStructure, uint32_t * pOutReferenceCount, NOREFS id * *pOutReferences);
-                            uint32_t   bottomRefCount = 0;
+                            uint32_t bottomRefCount = 0;
                             NOREFS id* bottomRefs = NULL;
                             // Mark primitive acceleration structures as used since only the instance acceleration structure references
                             // them.
@@ -1218,7 +1220,7 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
                         extern void getMTLAccelerationStructureBottomReferences(AccelerationStructure * pAccelerationStructure,
                                                                                 uint32_t * pOutReferenceCount, NOREFS id * *pOutReferences);
                         uint32_t    bottomRefCount = 0;
-                        NOREFS id*  bottomRefs = NULL;
+                        NOREFS id* bottomRefs = NULL;
                         getMTLAccelerationStructureBottomReferences(pParam->ppAccelerationStructures[0], &bottomRefCount, &bottomRefs);
                         for (uint32_t ref = 0; ref < bottomRefCount; ++ref)
                         {
@@ -1529,27 +1531,7 @@ TinyImageFormat mtl_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapC
 
 uint32_t mtl_getRecommendedSwapchainImageCount(Renderer*, const WindowHandle*) { return 3; }
 
-#ifndef TARGET_IOS
-static uint32_t GetEntryProperty(io_registry_entry_t entry, CFStringRef propertyName)
-{
-    uint32_t  value = 0;
-    CFTypeRef cfProp = IORegistryEntrySearchCFProperty(entry, kIOServicePlane, propertyName, kCFAllocatorDefault,
-                                                       kIORegistryIterateRecursively | kIORegistryIterateParents);
-    if (cfProp)
-    {
-        const uint32_t* pValue = (const uint32_t*)(CFDataGetBytePtr((CFDataRef)cfProp));
-        if (pValue)
-        {
-            value = *pValue;
-        }
-        CFRelease(cfProp);
-    }
-
-    return value;
-}
-#endif
-
-void FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
+bool FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
 {
     strncpy(gpuVendor.mGpuName, [gpu.name UTF8String], MAX_GPU_VENDOR_STRING_LENGTH);
 
@@ -1557,33 +1539,34 @@ void FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
     NSString* version = [[NSProcessInfo processInfo] operatingSystemVersionString];
     snprintf(gpuVendor.mGpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "GpuFamily: %d OSVersion: %s", familyTier, version.UTF8String);
 
-#ifdef TARGET_IOS
-    constexpr uint32_t kAppleVendorId = 0x106b;
-    gpuVendor.mVendorId = kAppleVendorId;
-    gpuVendor.mModelId = familyTier;
-#else
-    io_registry_entry_t entry;
-    uint64_t            regID = 0;
-    regID = [gpu registryID];
-    if (regID)
+    // We just need the vendorName and gpuName for apple devices.
+    gpuVendor.mModelId = 0x0;
+
+    if (strstr(gpuVendor.mGpuName, "Apple") != NULL)
     {
-        entry = IOServiceGetMatchingService(kIOMasterPortDefault, IORegistryEntryIDMatching(regID));
-        if (entry)
-        {
-            // That returned the IOGraphicsAccelerator nub. Its parent, then, is the actual PCI device.
-            io_registry_entry_t parent;
-            if (IORegistryEntryGetParentEntry(entry, kIOServicePlane, &parent) == kIOReturnSuccess)
-            {
-                uint32_t vendorID = GetEntryProperty(parent, CFSTR("vendor-id"));
-                uint32_t deviceID = GetEntryProperty(parent, CFSTR("device-id"));
-                gpuVendor.mVendorId = vendorID;
-                gpuVendor.mModelId = deviceID;
-                IOObjectRelease(parent);
-            }
-            IOObjectRelease(entry);
-        }
+        strncpy(gpuVendor.mVendorName, "apple", 5);
     }
-#endif
+    else if (strstr(gpuVendor.mGpuName, "AMD") != NULL)
+    {
+        strncpy(gpuVendor.mVendorName, "amd", 3);
+    }
+    else if (strstr(gpuVendor.mGpuName, "Intel") != NULL)
+    {
+        strncpy(gpuVendor.mVendorName, "intel", 5);
+    }
+    else if (strstr(gpuVendor.mGpuName, "NVIDIA") != NULL)
+    {
+        strncpy(gpuVendor.mVendorName, "nvidia", 6);
+    }
+    else
+    {
+        gpuVendor.mPresetLevel = getDefaultPresetLevel();
+        LOGF(LogLevel::eERROR, "Failed to get the vendor name for gpu: %s", gpuVendor.mGpuName);
+        return false;
+    }
+    gpuVendor.mVendorId = getGPUVendorID(gpuVendor.mVendorName);
+    gpuVendor.mPresetLevel = getGPUPresetLevel(gpuVendor.mVendorName, gpuVendor.mGpuName);
+    return true;
 }
 
 uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
@@ -1603,7 +1586,7 @@ uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
 
     if (error != nil)
     {
-        LOGF(LogLevel::eWARNING, "Could not create library for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+        LOGF(LogLevel::eWARNING, "Could not create library for simple compute shader: %s", [error.description UTF8String]);
         return 0;
     }
 
@@ -1614,8 +1597,7 @@ uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
     id<MTLComputePipelineState> computePipelineState = [gpu newComputePipelineStateWithFunction:kernelFunction error:&error];
     if (error != nil)
     {
-        LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s",
-             [[error localizedDescription] UTF8String]);
+        LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s", [error.description UTF8String]);
         return 0;
     }
 
@@ -1936,7 +1918,7 @@ static uint64_t util_get_free_memory()
 
     if (host_statistics(hostPort, HOST_VM_INFO, (host_info_t)&vmStat, &hostSize) != KERN_SUCCESS)
     {
-        NSLog(@"Failed to fetch vm statistics");
+        LOGF(LogLevel::eERROR, "Failed to fetch vm statistics");
         return UINT64_MAX;
     }
 
@@ -2105,8 +2087,6 @@ static void QueryGPUSettings(id<MTLDevice> gpu, GPUSettings* pOutSettings)
         pOutSettings->mRaytracingSupported = pOutSettings->mRayQuerySupported || pOutSettings->mRayPipelineSupported;
     }
 #endif
-
-    gpuVendor.mPresetLevel = getGPUPresetLevel(gpuVendor.mVendorId, gpuVendor.mModelId, gpuVendor.mRevisionId);
 }
 
 static bool SelectBestGpu(const RendererDesc* settings, Renderer* pRenderer)
@@ -2208,6 +2188,11 @@ void mtl_initRendererContext(const char* appName, const RendererContextDesc* pDe
              pContext->mGpus[i].mSettings.mGpuVendorPreset.mGpuName);
     }
 
+    if (IOS14_RUNTIME)
+    {
+        pContext->mMtl.mExtendedEncoderDebugReport = true;
+    }
+
     *ppContext = pContext;
 }
 
@@ -2254,9 +2239,9 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
         }
 
         // exit app if gpu being used has an office preset.
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_VERYLOW)
         {
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_VERYLOW);
 
             // set device to null
             pRenderer->pDevice = nil;
@@ -2407,9 +2392,9 @@ void mtl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     ASSERT(pQueue);
 
     const char* queueNames[] = {
-        "GRAPHICS",
-        "TRANSFER",
-        "COMPUTE",
+        "GRAPHICS_QUEUE",
+        "TRANSFER_QUEUE",
+        "COMPUTE_QUEUE",
     };
     COMPILE_ASSERT(TF_ARRAY_COUNT(queueNames) == MAX_QUEUE_TYPE);
 
@@ -3692,7 +3677,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const char* pName, const Graph
                                                                                          error:&error];
     if (!pPipeline->pRenderPipelineState)
     {
-        LOGF(LogLevel::eERROR, "Failed to create render pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+        LOGF(LogLevel::eERROR, "Failed to create render pipeline state, error:\n%s", [error.description UTF8String]);
         ASSERT(false);
         return;
     }
@@ -3754,7 +3739,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const char* pName, const Comput
                                                                                            error:&error];
     if (!pPipeline->pComputePipelineState)
     {
-        LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+        LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [error.description UTF8String]);
         SAFE_FREE(pPipeline);
         return;
     }
@@ -3882,7 +3867,27 @@ void mtl_beginCmd(Cmd* pCmd)
         pCmd->pBoundPipeline = NULL;
         pCmd->mBoundIndexBuffer = nil;
         pCmd->pLastFrameQuery = nil;
-        pCmd->pCommandBuffer = [pCmd->pQueue->pCommandQueue commandBuffer];
+#ifdef ENABLE_GRAPHICS_DEBUG
+        pCmd->mDebugMarker[0] = '\0';
+#endif
+
+        // 'mExtendedEncoderDebugReport' should be disabled already if current OS version is < IOS14_RUNTIME.
+        if (pCmd->pRenderer->pContext->mMtl.mExtendedEncoderDebugReport)
+        {
+            // Need this to supress '@available' warnings.
+            if (IOS14_RUNTIME)
+            {
+                // Enable command buffer to save additional info. on GPU runtime error..
+                MTLCommandBufferDescriptor* pDesc = [[MTLCommandBufferDescriptor alloc] init];
+                pDesc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
+                pCmd->pCommandBuffer = [pCmd->pQueue->pCommandQueue commandBufferWithDescriptor:pDesc];
+            }
+        }
+        else
+        {
+            pCmd->pCommandBuffer = [pCmd->pQueue->pCommandQueue commandBuffer];
+        }
+
         [pCmd->pCommandBuffer setLabel:[pCmd->pQueue->pCommandQueue label]];
     }
 
@@ -3905,13 +3910,11 @@ void mtl_endCmd(Cmd* pCmd)
     }
 }
 
-void mtl_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
-                              const LoadActionsDesc* pLoadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices,
-                              uint32_t depthArraySlice, uint32_t depthMipSlice)
+void mtl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
 
-    if (!renderTargetCount && !pDepthStencil)
+    if (!pDesc)
     {
         return;
     }
@@ -3929,123 +3932,127 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarge
         pCmd->mShouldRebindPipeline = 1;
     }
 
+    const bool hasDepth = pDesc->mDepthStencil.pDepthStencil;
+
     @autoreleasepool
     {
         MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
 
         // Flush color attachments
-        for (uint32_t i = 0; i < renderTargetCount; i++)
+        for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
         {
-            Texture* colorAttachment = ppRenderTargets[i]->pTexture;
+            const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+            Texture*                    colorAttachment = desc->pRenderTarget->pTexture;
 
             renderPassDesc.colorAttachments[i].texture = colorAttachment->pTexture;
-            renderPassDesc.colorAttachments[i].level = pColorMipSlices ? pColorMipSlices[i] : 0;
-            if (pColorArraySlices)
+            renderPassDesc.colorAttachments[i].level = desc->mUseMipSlice ? desc->mMipSlice : 0;
+            if (desc->mUseArraySlice)
             {
-                if (ppRenderTargets[i]->mDepth > 1)
+                if (desc->pRenderTarget->mDepth > 1)
                 {
-                    renderPassDesc.colorAttachments[i].depthPlane = pColorArraySlices[i];
+                    renderPassDesc.colorAttachments[i].depthPlane = desc->mArraySlice;
                 }
                 else
                 {
-                    renderPassDesc.colorAttachments[i].slice = pColorArraySlices[i];
+                    renderPassDesc.colorAttachments[i].slice = desc->mArraySlice;
                 }
             }
-            else if (ppRenderTargets[i]->mArraySize > 1)
+            else if (desc->pRenderTarget->mArraySize > 1)
             {
-                renderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mArraySize;
+                renderPassDesc.renderTargetArrayLength = desc->pRenderTarget->mArraySize;
             }
-            else if (ppRenderTargets[i]->mDepth > 1)
+            else if (desc->pRenderTarget->mDepth > 1)
             {
-                renderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mDepth;
+                renderPassDesc.renderTargetArrayLength = desc->pRenderTarget->mDepth;
             }
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-            bool resolveAttachment = pLoadActions && (STORE_ACTION_RESOLVE_STORE == pLoadActions->mStoreActionsColor[i] ||
-                                                      STORE_ACTION_RESOLVE_DONTCARE == pLoadActions->mStoreActionsColor[i]);
+            bool resolveAttachment =
+                STORE_ACTION_RESOLVE_STORE == desc->mStoreAction || STORE_ACTION_RESOLVE_DONTCARE == desc->mStoreAction;
 
             if (resolveAttachment)
             {
-                ASSERT(ppRenderTargets[i]->pResolveAttachment);
+                ASSERT(desc->pRenderTarget->pResolveAttachment);
 
-                id<MTLTexture> resolveAttachment = ppRenderTargets[i]->pResolveAttachment->pTexture->pTexture;
+                id<MTLTexture> resolveAttachment = desc->pRenderTarget->pResolveAttachment->pTexture->pTexture;
                 renderPassDesc.colorAttachments[i].resolveTexture = resolveAttachment;
-                renderPassDesc.colorAttachments[i].resolveLevel = pColorMipSlices ? pColorMipSlices[i] : 0;
-                if (pColorArraySlices)
+                renderPassDesc.colorAttachments[i].resolveLevel = desc->mUseMipSlice ? desc->mMipSlice : 0;
+                if (desc->mUseArraySlice)
                 {
-                    if (ppRenderTargets[i]->mDepth > 1)
+                    if (desc->pRenderTarget->mDepth > 1)
                     {
-                        renderPassDesc.colorAttachments[i].resolveDepthPlane = pColorArraySlices[i];
+                        renderPassDesc.colorAttachments[i].resolveDepthPlane = desc->mArraySlice;
                     }
                     else
                     {
-                        renderPassDesc.colorAttachments[i].resolveSlice = pColorArraySlices[i];
+                        renderPassDesc.colorAttachments[i].resolveSlice = desc->mArraySlice;
                     }
                 }
             }
 #endif
 
-            renderPassDesc.colorAttachments[i].loadAction =
-                (pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
+            renderPassDesc.colorAttachments[i].loadAction = util_to_mtl_load_action(desc->mLoadAction);
 
             // For on-tile (memoryless) textures, we never need to store.
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
             if (resolveAttachment)
             {
-                renderPassDesc.colorAttachments[i].storeAction = colorAttachment->mLazilyAllocated
-                                                                     ? MTLStoreActionMultisampleResolve
-                                                                     : util_to_mtl_store_action(pLoadActions->mStoreActionsColor[i]);
+                renderPassDesc.colorAttachments[i].storeAction =
+                    colorAttachment->mLazilyAllocated ? MTLStoreActionMultisampleResolve : util_to_mtl_store_action(desc->mStoreAction);
             }
             else
 #endif
             {
                 renderPassDesc.colorAttachments[i].storeAction =
-                    colorAttachment->mLazilyAllocated
-                        ? MTLStoreActionDontCare
-                        : (pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionsColor[i]) : MTLStoreActionStore);
+                    colorAttachment->mLazilyAllocated ? MTLStoreActionDontCare : util_to_mtl_store_action(desc->mStoreAction);
             }
 
-            if (pLoadActions != NULL)
-            {
-                const ClearValue& clearValue = pLoadActions->mClearColorValues[i];
-                renderPassDesc.colorAttachments[i].clearColor = MTLClearColorMake(clearValue.r, clearValue.g, clearValue.b, clearValue.a);
-            }
+            const ClearValue& clearValue = desc->mOverrideClearValue ? desc->mClearValue : desc->pRenderTarget->mClearValue;
+            renderPassDesc.colorAttachments[i].clearColor = MTLClearColorMake(clearValue.r, clearValue.g, clearValue.b, clearValue.a);
         }
 
-        if (pDepthStencil)
+        if (hasDepth)
         {
-            renderPassDesc.depthAttachment.texture = pDepthStencil->pTexture->pTexture;
-            renderPassDesc.depthAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
-            renderPassDesc.depthAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
+            const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+            renderPassDesc.depthAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
+            if (desc->mUseMipSlice)
+            {
+                renderPassDesc.depthAttachment.level = desc->mMipSlice;
+            }
+            if (desc->mUseArraySlice)
+            {
+                renderPassDesc.depthAttachment.slice = desc->mArraySlice;
+            }
 #ifndef TARGET_IOS
-            bool isStencilEnabled = pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
+            bool isStencilEnabled = desc->pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
 #else
             bool isStencilEnabled = false;
 #endif
-            isStencilEnabled = isStencilEnabled || pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
+            isStencilEnabled = isStencilEnabled || desc->pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
             if (isStencilEnabled)
             {
-                renderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->pTexture;
-                renderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
-                renderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
+                renderPassDesc.stencilAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
+                if (desc->mUseMipSlice)
+                {
+                    renderPassDesc.stencilAttachment.level = desc->mMipSlice;
+                }
+                if (desc->mUseArraySlice)
+                {
+                    renderPassDesc.stencilAttachment.slice = desc->mArraySlice;
+                }
             }
 
-            renderPassDesc.depthAttachment.loadAction =
-                (pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
+            renderPassDesc.depthAttachment.loadAction = util_to_mtl_load_action(desc->mLoadAction);
             // For on-tile (memoryless) textures, we never need to store.
             renderPassDesc.depthAttachment.storeAction =
-                pDepthStencil->pTexture->mLazilyAllocated
-                    ? MTLStoreActionDontCare
-                    : (pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionDepth) : MTLStoreActionStore);
+                desc->pDepthStencil->pTexture->mLazilyAllocated ? MTLStoreActionDontCare : util_to_mtl_store_action(desc->mStoreAction);
 
             if (isStencilEnabled)
             {
-                renderPassDesc.stencilAttachment.loadAction =
-                    pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
-                renderPassDesc.stencilAttachment.storeAction =
-                    pDepthStencil->pTexture->mLazilyAllocated
-                        ? MTLStoreActionDontCare
-                        : (pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionStencil) : MTLStoreActionStore);
+                renderPassDesc.stencilAttachment.loadAction = util_to_mtl_load_action(desc->mLoadActionStencil);
+                renderPassDesc.stencilAttachment.storeAction = desc->pDepthStencil->pTexture->mLazilyAllocated
+                                                                   ? MTLStoreActionDontCare
+                                                                   : util_to_mtl_store_action(desc->mStoreActionStencil);
             }
             else
             {
@@ -4053,11 +4060,11 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarge
                 renderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
             }
 
-            if (pLoadActions)
+            const ClearValue& clearValue = desc->mOverrideClearValue ? desc->mClearValue : desc->pDepthStencil->mClearValue;
+            renderPassDesc.depthAttachment.clearDepth = clearValue.depth;
+            if (isStencilEnabled)
             {
-                renderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
-                if (isStencilEnabled)
-                    renderPassDesc.stencilAttachment.clearStencil = pLoadActions->mClearDepth.stencil;
+                renderPassDesc.stencilAttachment.clearStencil = clearValue.stencil;
             }
         }
         else
@@ -4068,16 +4075,36 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarge
             renderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
         }
 
-        if (pCmd->mSampleLocationsCount > 0 && renderTargetCount > 0)
+        if (pCmd->mSampleLocationsCount > 0 && pDesc->mRenderTargetCount > 0)
         {
-            if (ppRenderTargets[0]->mSampleCount > SAMPLE_COUNT_1)
+            if (pDesc->mRenderTargets[0].pRenderTarget->mSampleCount > SAMPLE_COUNT_1)
             {
                 [renderPassDesc setSamplePositions:pCmd->mSamplePositions count:pCmd->mSampleLocationsCount];
             }
         }
 
+        if (!pDesc->mRenderTargetCount && !hasDepth)
+        {
+            renderPassDesc.renderTargetWidth = pDesc->mExtent[0];
+            renderPassDesc.renderTargetHeight = pDesc->mExtent[1];
+            renderPassDesc.defaultRasterSampleCount = 1;
+        }
+
         util_end_current_encoders(pCmd, false);
         pCmd->pRenderEncoder = [pCmd->pCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
+
+#ifdef ENABLE_GRAPHICS_DEBUG
+        util_set_debug_group(pCmd);
+        if (pDesc->mRenderTargetCount)
+        {
+            pCmd->pRenderEncoder.label = pDesc->mRenderTargets[0].pRenderTarget->pTexture->pTexture.label;
+        }
+        else if (pDesc->mDepthStencil.pDepthStencil)
+        {
+            pCmd->pRenderEncoder.label = pDesc->mDepthStencil.pDepthStencil->pTexture->pTexture.label;
+        }
+#endif
+
         util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS); // apply the graphics barriers before flushing them
 
         util_set_heaps_graphics(pCmd);
@@ -4191,6 +4218,7 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
             {
                 util_end_current_encoders(pCmd, barrierRequired);
                 pCmd->pComputeEncoder = [pCmd->pCommandBuffer computeCommandEncoder];
+                util_set_debug_group(pCmd);
 
                 util_set_heaps_compute(pCmd);
             }
@@ -4534,6 +4562,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             {
                 util_end_current_encoders(pCmd, false);
                 pCmd->pBlitEncoder = [pCmd->pCommandBuffer blitCommandEncoder];
+                util_set_debug_group(pCmd);
                 util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
             }
 
@@ -4547,6 +4576,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             {
                 util_end_current_encoders(pCmd, false);
                 pCmd->pBlitEncoder = [pCmd->pCommandBuffer blitCommandEncoder];
+                util_set_debug_group(pCmd);
                 util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
             }
             [pCmd->pBlitEncoder resetCommandsInBuffer:pIndirectBuffer->pIndirectCommandBuffer
@@ -4670,6 +4700,7 @@ void mtl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer*
     {
         util_end_current_encoders(pCmd, false);
         pCmd->pBlitEncoder = [pCmd->pCommandBuffer blitCommandEncoder];
+        util_set_debug_group(pCmd);
     }
 
     [pCmd->pBlitEncoder copyFromBuffer:pSrcBuffer->pBuffer
@@ -4715,6 +4746,7 @@ void mtl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediat
     {
         util_end_current_encoders(pCmd, false);
         pCmd->pBlitEncoder = [pCmd->pCommandBuffer blitCommandEncoder];
+        util_set_debug_group(pCmd);
     }
 
     // Copy to the texture's final subresource.
@@ -4740,6 +4772,7 @@ void mtl_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, co
     {
         util_end_current_encoders(pCmd, false);
         pCmd->pBlitEncoder = [pCmd->pCommandBuffer blitCommandEncoder];
+        util_set_debug_group(pCmd);
     }
 
     // Copy to the texture's final subresource.
@@ -4802,7 +4835,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
     {
         // set the queue built-in semaphore to signal when all command lists finished their execution
         __block tfrg_atomic32_t commandsFinished = 0;
-        __block Fence*          completedFence = NULL;
+        __block Fence* completedFence = NULL;
 
         if (pFence)
         {
@@ -4832,6 +4865,12 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
                     {
                         dispatch_semaphore_signal(completedFence->pSemaphore);
                     }
+                }
+
+                // Log any error that occurred while executing commands..
+                if (nil != buffer.error)
+                {
+                    LOGF(LogLevel::eERROR, "Failed to execute commands with error (%s)", [buffer.error.description UTF8String]);
                 }
             }];
         }
@@ -4905,6 +4944,7 @@ void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
         // after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
         pSwapChain->presentCommandBuffer = [pQueue->pCommandQueue commandBuffer];
+        pSwapChain->presentCommandBuffer.label = @"PRESENT";
 
         [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 
@@ -4974,27 +5014,13 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 /************************************************************************/
 void mtl_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-    if (pCmd->pRenderEncoder)
-    {
-        [pCmd->pRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
-    }
-    else
-    {
-        [pCmd->pCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
-    }
+#ifdef ENABLE_GRAPHICS_DEBUG
+    snprintf(pCmd->mDebugMarker, MAX_DEBUG_NAME_LENGTH, "%s", pName);
+    util_set_debug_group(pCmd);
+#endif
 }
 
-void mtl_cmdEndDebugMarker(Cmd* pCmd)
-{
-    if (pCmd->pRenderEncoder)
-    {
-        [pCmd->pRenderEncoder popDebugGroup];
-    }
-    else
-    {
-        [pCmd->pCommandBuffer popDebugGroup];
-    }
-}
+void mtl_cmdEndDebugMarker(Cmd* pCmd) { util_unset_debug_group(pCmd); }
 
 void mtl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
@@ -5470,6 +5496,47 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 
         pCmd->pQueue->mBarrierFlags = 0;
     }
+}
+
+void util_set_debug_group(Cmd* pCmd)
+{
+#ifdef ENABLE_GRAPHICS_DEBUG
+    if (pCmd->mDebugMarker[0] == '\0')
+    {
+        return;
+    }
+    if (nil != pCmd->pRenderEncoder)
+    {
+        [pCmd->pRenderEncoder pushDebugGroup:[NSString stringWithUTF8String:pCmd->mDebugMarker]];
+    }
+    else if (nil != pCmd->pComputeEncoder)
+    {
+        [pCmd->pComputeEncoder pushDebugGroup:[NSString stringWithUTF8String:pCmd->mDebugMarker]];
+    }
+    if (nil != pCmd->pBlitEncoder)
+    {
+        [pCmd->pBlitEncoder pushDebugGroup:[NSString stringWithUTF8String:pCmd->mDebugMarker]];
+    }
+#endif
+}
+
+void util_unset_debug_group(Cmd* pCmd)
+{
+#ifdef ENABLE_GRAPHICS_DEBUG
+    pCmd->mDebugMarker[0] = '\0';
+    if (nil != pCmd->pRenderEncoder)
+    {
+        [pCmd->pRenderEncoder popDebugGroup];
+    }
+    else if (nil != pCmd->pComputeEncoder)
+    {
+        [pCmd->pComputeEncoder popDebugGroup];
+    }
+    if (nil != pCmd->pBlitEncoder)
+    {
+        [pCmd->pBlitEncoder popDebugGroup];
+    }
+#endif
 }
 
 void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, uint32_t pixelFormat,

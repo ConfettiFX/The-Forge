@@ -28,7 +28,7 @@
 
 #define lunamethod(class, name) \
     {                           \
-        #name, &class ::name    \
+#name, &class ::name    \
     }
 
 template<class T>

@@ -317,11 +317,11 @@
 		ED6095CF286F3DF300331537 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ED6095DA286F3DF300331537 /* libozz_animation.a */,
-				ED6095DC286F3DF300331537 /* libozz_base.a */,
-				ED6095DE286F3DF300331537 /* libozz_animation_IOS.a */,
-				ED6095E0286F3DF300331537 /* libozz_base_IOS.a */,
-				ED6095E2286F3DF300331537 /* libozz_animation offline.a */,
+				ED6095DA286F3DF300331537 /* ozz_animation.a */,
+				ED6095DC286F3DF300331537 /* ozz_base.a */,
+				ED6095DE286F3DF300331537 /* ozz_animation_IOS.a */,
+				ED6095E0286F3DF300331537 /* ozz_base_IOS.a */,
+				ED6095E2286F3DF300331537 /* ozz_animation offline.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -432,35 +432,35 @@
 			remoteRef = 5C17303521414E3D0074EE71 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED6095DA286F3DF300331537 /* libozz_animation.a */ = {
+		ED6095DA286F3DF300331537 /* ozz_animation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation.a;
 			remoteRef = ED6095D9286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED6095DC286F3DF300331537 /* libozz_base.a */ = {
+		ED6095DC286F3DF300331537 /* ozz_base.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base.a;
 			remoteRef = ED6095DB286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED6095DE286F3DF300331537 /* libozz_animation_IOS.a */ = {
+		ED6095DE286F3DF300331537 /* ozz_animation_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation_IOS.a;
 			remoteRef = ED6095DD286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED6095E0286F3DF300331537 /* libozz_base_IOS.a */ = {
+		ED6095E0286F3DF300331537 /* ozz_base_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base_IOS.a;
 			remoteRef = ED6095DF286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED6095E2286F3DF300331537 /* libozz_animation offline.a */ = {
+		ED6095E2286F3DF300331537 /* ozz_animation offline.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
@@ -509,7 +509,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09F9CC4A284FD1290064E142 /* ShellScript */ = {
@@ -546,7 +546,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFilesDds/\" \"$DST/ZipFiles\"\n# GPUConfig\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Scripts\nrsync -u -r \"$ASSETS/Scripts/\" \"$DST/Scripts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFilesDds/\" \"$DST/ZipFiles\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
 		};
 		5CC5020124D21F0B003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -563,7 +563,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFilesKtx/\" \"$DST/ZipFiles\"\n# GPUConfig\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Scripts\nrsync -u -r \"$ASSETS/Scripts/\" \"$DST/Scripts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFilesKtx/\" \"$DST/ZipFiles\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

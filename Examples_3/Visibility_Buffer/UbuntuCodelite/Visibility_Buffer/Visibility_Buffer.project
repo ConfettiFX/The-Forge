@@ -101,7 +101,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
@@ -179,7 +179,7 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>

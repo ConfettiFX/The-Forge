@@ -68,6 +68,11 @@
 #define SAMPLE_COUNT 4
 #include "godray.frag.fsl"
 #end
+#frag godray_VRS.frag
+#define SAMPLE_COUNT 4
+#define USE_VRS 1
+#include "godray.frag.fsl"
+#end
 
 #comp godray_blur.comp
 #include "godray_blur.comp.fsl"
@@ -117,8 +122,17 @@
 #include "visibilityBuffer_pass.frag.fsl"
 #end
 
+#vert FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha_vrs.vert
+#include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
 #vert FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.vert
 #include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
+#frag FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha_vrs.frag
+#define USE_VRS 1
+#include "visibilityBuffer_pass_alpha.frag.fsl"
 #end
 
 #frag FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.frag
@@ -170,6 +184,17 @@
 #define USE_AMBIENT_OCCLUSION 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_VRS.frag
+#define SAMPLE_COUNT 4
+#define USE_VRS 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_VRS_AO.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#define USE_VRS 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
 
 #frag resolve_SAMPLE_COUNT_1.frag
 #define SAMPLE_COUNT 1
@@ -182,4 +207,17 @@
 #frag resolve_SAMPLE_COUNT_4.frag
 #define SAMPLE_COUNT 4
 #include "resolve.frag.fsl"
+#end
+
+#frag fillStencil.frag
+#include "fillStencil.frag.fsl"
+#end
+
+#vert fillStencil.vert
+#include "fillStencil.vert.fsl"
+#end
+
+#comp resolveVRS.comp
+#define SAMPLE_COUNT 4
+#include "resolveVRS.comp.fsl"
 #end

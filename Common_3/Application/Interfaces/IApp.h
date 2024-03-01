@@ -146,11 +146,11 @@ public:
 #endif
     } mSettings;
 
-    WindowDesc* pWindow;
-    const char* pCommandLine;
+    WindowDesc* pWindow = NULL;
+    const char* pCommandLine = NULL;
 
-    const char* pUnsupportedReason;
-    bool        mUnsupported;
+    const char* pUnsupportedReason = NULL;
+    bool        mUnsupported = false;
 
     void ShowUnsupportedMessage(const char* reason)
     {

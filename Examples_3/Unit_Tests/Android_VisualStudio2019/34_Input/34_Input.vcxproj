@@ -81,7 +81,10 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
+xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
@@ -111,7 +114,10 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
+xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

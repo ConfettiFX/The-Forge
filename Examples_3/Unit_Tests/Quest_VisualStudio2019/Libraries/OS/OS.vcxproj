@@ -53,7 +53,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Game\Scripting\LuaSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\UI\UI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\hwcaps.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c" />

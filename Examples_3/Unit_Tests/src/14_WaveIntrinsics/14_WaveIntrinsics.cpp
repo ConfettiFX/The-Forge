@@ -148,7 +148,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
@@ -345,7 +344,7 @@ public:
         InputActionDesc actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
                                        [](InputActionContext* ctx)
                                        {
-                                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
+                                           WindowDesc*winDesc = ((IApp*)ctx->pUserData)->pWindow;
                                            if (winDesc->fullScreen)
                                                winDesc->borderlessWindow ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect),
                                                                                          getRectHeight(&winDesc->clientRect))
@@ -559,9 +558,6 @@ public:
         RenderTarget* pScreenRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 
         // simply record the screen cleaning command
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
 
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
@@ -573,7 +569,10 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarrier);
 
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -588,7 +587,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
         cmdEndDebugMarker(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         // magnify
         cmdBeginDebugMarker(cmd, 1, 0, 1, "Magnify");
@@ -598,8 +597,10 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarrier);
 
-        loadActions.mClearColorValues[0] = pScreenRenderTarget->mClearValue;
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         const uint32_t quadStride = sizeof(Vertex2);
         cmdBindPipeline(cmd, pPipelineMagnify);
@@ -621,7 +622,7 @@ public:
         cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.f), gGpuProfileToken, &frameTimeDraw);
 
         cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
         cmdEndDebugMarker(cmd);
 
         RenderTargetBarrier presentBarrier = { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };

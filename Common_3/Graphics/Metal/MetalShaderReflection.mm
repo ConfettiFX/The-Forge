@@ -589,7 +589,7 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage
 
         if (!pipelineState)
         {
-            NSLog(@ "Error generation compute pipeline object: %@", error);
+            LOGF(LogLevel::eERROR, "Error generation compute pipeline object: %s", [error.description UTF8String]);
             ASSERT(!"Compute pipeline object shouldn't fail to be created.");
             freeShaderReflectionInfo(&reflectionInfo);
             return;
@@ -707,7 +707,7 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage
                                                                                                       error:&error];
         if (!pipelineState)
         {
-            NSLog(@ "Error generation render pipeline object: %@", error);
+            LOGF(LogLevel::eERROR, "Error generation render pipeline object: %s", [error.description UTF8String]);
             ASSERT(!"Render pipeline object shouldn't fail to create.");
             freeShaderReflectionInfo(&reflectionInfo);
             return;

@@ -51,7 +51,7 @@ PsOut PS_MAIN( PsIn In, SV_PrimitiveID(uint) primitiveID )
     uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
 
 	float4 texColor = f4(0);
-	BeginNonUniformResourceIndex(materialID);
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
     	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.TexCoord, 0);
 	EndNonUniformResourceIndex();
 

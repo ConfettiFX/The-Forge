@@ -25,7 +25,7 @@
 /************************************************************************/
 // Defines
 /************************************************************************/
-#define AOIT_EMPTY_NODE_DEPTH   (3.40282E38)
+#define AOIT_EMPTY_NODE_DEPTH   (0.0)
 #define AOIT_TRANS_BIT_COUNT    (8)
 #define AOIT_MAX_UNNORM_TRANS   ((1 << AOIT_TRANS_BIT_COUNT) - 1)
 #define AOIT_TRANS_MASK         (0xFFFFFFFF - uint(AOIT_MAX_UNNORM_TRANS))
@@ -361,7 +361,7 @@ void AOITInsertFragment(in(float) fragmentDepth, in(float) fragmentTrans, in(flo
 	float prevTrans = 255;
 	UNROLL for (i = 0; i < AOIT_NODE_COUNT; ++i)
 	{
-		if (fragmentDepth > depth[i])
+		if (fragmentDepth < depth[i])
 		{
 			++index;
 			prevTrans = trans[i];
@@ -660,7 +660,7 @@ void AOITInsertFragment(in(float) fragmentDepth, in(float) fragmentTrans, in(flo
 	float prevTrans = 255;
 	UNROLL for (i = 0; i < AOIT_NODE_COUNT; ++i)
 	{
-		if (fragmentDepth > depth[i])
+		if (fragmentDepth < depth[i])
 		{
 			++index;
 			prevTrans = trans[i];

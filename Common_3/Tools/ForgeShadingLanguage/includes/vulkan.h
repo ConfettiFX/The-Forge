@@ -169,19 +169,6 @@ bool allGreaterThan(const vec4 a, const vec4 b)
 
 #extension GL_ARB_shader_ballot : enable
 
-// uint NonUniformResourceIndex(uint textureIdx)
-// {
-// 	while (true)
-// 	{
-// 		uint currentIdx = readFirstInvocationARB(textureIdx);
-
-// 		if (currentIdx == textureIdx)
-// 			return currentIdx;
-// 	}
-
-// 	return 0; //Execution should never land here
-// }
-
 #define AtomicAdd(DEST, VALUE, ORIGINAL_VALUE) \
     {ORIGINAL_VALUE = atomicAdd(DEST, VALUE);}
 #define AtomicStore(DEST, VALUE) \

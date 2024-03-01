@@ -136,7 +136,7 @@ bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(
 
 			float depth = SampleTex2D(Get(DepthTexture), Get(depthSampler), reflectedPos.xy).r;
 
-			if(depth <= reflectedPos.z)
+			if(depth >= reflectedPos.z)
 				return false;
 			
 			if( reflectedPos.x < 0.0 || reflectedPos.y < 0.0  || reflectedPos.x > 1.0 || reflectedPos.y > 1.0 )
