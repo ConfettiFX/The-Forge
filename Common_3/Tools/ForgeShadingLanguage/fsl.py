@@ -24,7 +24,7 @@
 FSL shader generator tool
 """
 
-import os, sys, argparse, json, hashlib, socket
+import os, sys, argparse
 from inspect import currentframe, getframeinfo
 from multiprocessing import Pool, cpu_count
 
@@ -69,9 +69,9 @@ def get_args():
     parser.add_argument('--rootSignature', default=None)
     parser.add_argument('--incremental', default=False, action='store_true')
     parser.add_argument('--mp', type=int, default=-1)
-    parser.add_argument('--shaderServerPort', type=int, default=6543,
-                        help='Port written to `shader-server.txt` which is used by the device to recompile shaders on a ShaderServer running on this port')
-    parser.add_argument('--cache-args', action='store_true', help='Cache arguments used to invoke `fsl.py` and also generate `shader-server.txt` used by ShaderServer client application') 
+    parser.add_argument('--reloadServerPort', type=int, default=6543,
+                        help='Port written to `reload-server.txt` which is used by the device to recompile shaders on a ReloadServer running on this port')
+    parser.add_argument('--cache-args', action='store_true', help='Cache arguments used to invoke `fsl.py` and also generate `reload-server.txt` used by ReloadServer client application') 
     args = parser.parse_args()
     if args.language:
         args.language = args.language.split()
@@ -129,38 +129,6 @@ def process_binary_declaration(job):
                 return 1
             binary.stage = temp_stage
     return 0
-
-
-def get_host_ip():
-    (_, _, ips) = socket.gethostbyname_ex(socket.gethostname())
-    for ip in sorted(ips):
-        if ip.startswith('192.168'):
-            return ip
-    raise RuntimeError(f'Could not find local network IP in the list of all IP addresses: {ips}')
-
-
-def generate_shader_server_info(fsl_input, binary_dir, intermediate_dir, port):
-    # write info to text file
-    shader_server_file = os.path.join(binary_dir, 'shader-server.txt')
-    with open(shader_server_file, 'w') as f:
-        lines = [
-            get_host_ip(),
-            str(port),
-            os.getcwd(), 
-            binary_dir, 
-            intermediate_dir
-        ]
-        for line in lines:
-            f.write(line)
-            f.write('\n')
-
-    # write arguments to JSON file
-    fsl_cmds = os.path.join(intermediate_dir, 'fsl_cmds')
-    os.makedirs(fsl_cmds, exist_ok=True)
-    file_name = str(hashlib.md5(fsl_input.encode()).hexdigest()) + '.json'
-    with open(os.path.join(fsl_cmds, file_name), 'w') as f:
-        json.dump(sys.argv[1:], f)
-
 
 def main():
     args = get_args()
@@ -242,8 +210,11 @@ def main():
                 if ret != 0: 
                     exit_code = ret
 
-    if args.shaderServerPort and args.cache_args:
-        generate_shader_server_info(args.fsl_input, args.binaryDestination, args.intermediateDestination, args.shaderServerPort)
+    if args.reloadServerPort and args.cache_args and not args.fsl_input.endswith('ShaderList.txt'):        
+        reload_server_dir = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-3] + ['Tools', 'ReloadServer'])
+        sys.path.append(reload_server_dir)
+        from ReloadServer import generate_reload_server_info
+        generate_reload_server_info(args.fsl_input, args.binaryDestination, args.intermediateDestination, args.reloadServerPort, sys.argv[1:])
     
     return exit_code
 

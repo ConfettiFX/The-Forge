@@ -42,6 +42,7 @@ enum RemoteControlMessageType : uint8_t
     REMOTE_MESSAGE_INPUT,
     REMOTE_MESSAGE_TEXTURE,
     REMOTE_MESSAGE_PING,
+    REMOTE_MESSAGE_DISCONNECT,
 };
 
 typedef struct RemoteCommandHeader
@@ -197,14 +198,20 @@ static size_t bufferedSend(Socket* socket, unsigned char* data, size_t size)
     size_t remainingSize = size;
     while (remainingSize > 0)
     {
-        size_t receivedSize = socketSend(socket, data + size - remainingSize, remainingSize);
+        ssize_t receivedSize = socketSend(socket, data + size - remainingSize, remainingSize);
         if (receivedSize > 0)
         {
             remainingSize -= receivedSize;
         }
-        else
+        else if (receivedSize == 0)
         {
             return size - remainingSize;
+        }
+        else
+        {
+            LOGF(eWARNING, "Socket connection was disconnected");
+            socketDestroy(socket);
+            return 0;
         }
     }
 
@@ -216,14 +223,20 @@ static size_t bufferedReceive(Socket* socket, unsigned char* data, size_t size)
     size_t remainingSize = size;
     while (remainingSize > 0)
     {
-        size_t receivedSize = socketRecv(socket, data + size - remainingSize, remainingSize);
+        ssize_t receivedSize = socketRecv(socket, data + size - remainingSize, remainingSize);
         if (receivedSize > 0)
         {
             remainingSize -= receivedSize;
         }
-        else
+        else if (receivedSize == 0)
         {
             return size - remainingSize;
+        }
+        else
+        {
+            LOGF(eWARNING, "Socket connection was disconnected");
+            socketDestroy(socket);
+            return 0;
         }
     }
 
@@ -235,6 +248,15 @@ static bool sendPing(Socket* socket)
     RemoteCommandHeader remoteCommandHeader = {};
     remoteCommandHeader.mSize = sizeof(remoteCommandHeader);
     remoteCommandHeader.mType = REMOTE_MESSAGE_PING;
+
+    return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
+}
+
+static bool sendDisconnect(Socket* socket)
+{
+    RemoteCommandHeader remoteCommandHeader = {};
+    remoteCommandHeader.mSize = sizeof(remoteCommandHeader);
+    remoteCommandHeader.mType = REMOTE_MESSAGE_DISCONNECT;
 
     return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
 }
@@ -275,8 +297,10 @@ struct RemoteControlClient
     bool         mDisconnect = false;
 };
 
-static RemoteAppServer*     pRemoteAppServer = NULL;
+static RemoteAppServer* pRemoteAppServer = NULL;
+#ifdef FORGE_TOOLS
 static RemoteControlClient* pRemoteControlClient = NULL;
+#endif // FORGE_TOOLS
 
 // Timeout in seconds when server does not receive ping
 #define TIMEOUT_SECONDS 10
@@ -324,6 +348,317 @@ static unsigned char* packUserInterfaceDrawData(UserInterfaceDrawData* pDrawData
 
     return packedData;
 }
+
+/****************************************************************************/
+// MARK: - Remote App Server
+/****************************************************************************/
+
+static bool serverSend(Socket* socket)
+{
+    if (pRemoteAppServer->mDisconnect)
+    {
+        sendDisconnect(socket);
+        // Ensure the client receives the disconnect and stop gracefully.
+        threadSleep(100);
+        return false;
+    }
+
+    bool sendSucceed = true;
+
+    unsigned char* drawDataToSend = get_read_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
+    if (drawDataToSend)
+    {
+        sendSucceed &= (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) > 0);
+        mark_buffer_processed(&pRemoteAppServer->mAwaitingSendDrawData);
+    }
+
+    if (!sendSucceed)
+        return false;
+
+    unsigned char* textureDataToSend = get_read_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
+    if (textureDataToSend)
+    {
+        sendSucceed &=
+            (bufferedSend(socket, textureDataToSend, ((RemoteCommandUserInterfaceTexture*)textureDataToSend)->mHeader.mSize) > 0);
+        mark_buffer_processed(&pRemoteAppServer->mAwaitingSendTextureData);
+    }
+
+    if (!sendSucceed)
+        return false;
+
+    sendSucceed = sendPing(socket);
+    return sendSucceed;
+}
+
+static void disconnectFromClient()
+{
+    if (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
+    {
+        socketDestroy(&pRemoteAppServer->mServerConnectionSocket);
+    }
+
+    LOGF(LogLevel::eINFO, "Client disconnected.");
+
+    if (!uiIsRenderingEnabled())
+    {
+        uiToggleRendering(true);
+    }
+}
+
+static void serverReceive(Socket* socket)
+{
+    bool pingReceived = false;
+
+    while (!pingReceived)
+    {
+        RemoteCommandHeader remoteCommandHeader = {};
+        bool                receivedHeader = bufferedReceive(socket, (unsigned char*)&remoteCommandHeader, sizeof(RemoteCommandHeader));
+
+        if (receivedHeader)
+        {
+            switch (remoteCommandHeader.mType)
+            {
+            case REMOTE_MESSAGE_INPUT:
+            {
+                RemoteCommandUserInterfaceInput inputData = {};
+                inputData.mHeader = remoteCommandHeader;
+
+                bool isDataReceived = bufferedReceive(socket, ((unsigned char*)&inputData) + sizeof(RemoteCommandHeader),
+                                                      sizeof(RemoteCommandUserInterfaceInput) - sizeof(RemoteCommandHeader));
+                if (isDataReceived)
+                {
+                    unsigned char* oldInputs = get_write_buffer(&pRemoteAppServer->mReceivedInput);
+                    uint32_t*      oldNumInputs = &((RemoteCommandUserInterfaceInput*)oldInputs)->mNumInputs;
+                    isDataReceived = bufferedReceive(
+                        socket,
+                        oldInputs + sizeof(RemoteCommandUserInterfaceInput) + *oldNumInputs * sizeof(RemoteCommandUserInterfaceInputData),
+                        remoteCommandHeader.mSize - sizeof(RemoteCommandUserInterfaceInput) - sizeof(RemoteCommandHeader));
+                    if (isDataReceived)
+                    {
+                        *oldNumInputs += inputData.mNumInputs;
+                    }
+                    swap_buffers(&pRemoteAppServer->mReceivedInput);
+                }
+            }
+            break;
+            case REMOTE_MESSAGE_PING:
+            {
+                pRemoteAppServer->mLastPingTime = time(0);
+                pingReceived = true;
+            }
+            break;
+            case REMOTE_MESSAGE_DISCONNECT:
+            {
+                disconnectFromClient();
+                pingReceived = true;
+            }
+            break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+static void server(void* pData)
+{
+    while (pRemoteAppServer->mServerListenSocket && !pRemoteAppServer->mDisconnect)
+    {
+        SocketAddr addr = {};
+        socketAccept(&pRemoteAppServer->mServerListenSocket, &pRemoteAppServer->mServerConnectionSocket, &addr);
+        pRemoteAppServer->mLastPingTime = time(0);
+        pRemoteAppServer->mShouldSendFontTexture = true;
+
+        while (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
+        {
+            bool sendSucceed = serverSend(&pRemoteAppServer->mServerConnectionSocket);
+
+            if (sendSucceed)
+            {
+                serverReceive(&pRemoteAppServer->mServerConnectionSocket);
+            }
+
+            // Timeout in TIMEOUT_SECONDS seconds
+            if (time(0) - pRemoteAppServer->mLastPingTime > TIMEOUT_SECONDS || !sendSucceed)
+            {
+                disconnectFromClient();
+                break;
+            }
+
+            threadSleep(10);
+        }
+
+        if (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
+        {
+            disconnectFromClient();
+        }
+
+        threadSleep(10);
+    }
+
+    if (pRemoteAppServer->mServerListenSocket != SOCKET_INVALID)
+    {
+        socketDestroy(&pRemoteAppServer->mServerListenSocket);
+    }
+}
+
+/// Initialize remote control server.
+/// The server application sends the UI draw commands to connected client.
+/// Clients send the input data.
+void initRemoteAppServer(uint16_t port)
+{
+    if (pRemoteAppServer != NULL)
+    {
+        return;
+    }
+
+    pRemoteAppServer = (RemoteAppServer*)tf_malloc(sizeof(RemoteAppServer));
+    *pRemoteAppServer = {};
+
+    init_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData, DrawBufferSize);
+    init_circular_buffer(&pRemoteAppServer->mAwaitingSendTextureData, DrawBufferSize);
+    init_circular_buffer(&pRemoteAppServer->mReceivedInput, InputBufferSize);
+
+    SocketAddr addr = {};
+    socketAddrFromHostPort(&addr, 0, port);
+    socketCreateServer(&pRemoteAppServer->mServerListenSocket, &addr, 0);
+
+    ThreadDesc threadDesc = {};
+    threadDesc.pFunc = server;
+    threadDesc.pData = NULL;
+    strncpy(threadDesc.mThreadName, "RemoteAppServerThread", sizeof(threadDesc.mThreadName));
+    initThread(&threadDesc, &pRemoteAppServer->mServerThread);
+}
+
+void remoteServerDisconnect()
+{
+    if (pRemoteAppServer && !pRemoteAppServer->mDisconnect)
+    {
+        pRemoteAppServer->mDisconnect = true;
+
+        if (pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
+        {
+            // There's no active client connected so we should just destroy the socket here
+            // since we don't have to send a disconnect message anymore
+            socketDestroy(&pRemoteAppServer->mServerListenSocket);
+        }
+        // If there is currently an active client connected we need to send a disconnect message first,
+        // so we leave the serverListenSocket open. It will get destroyed after sending the disconnect message
+
+        if (pRemoteAppServer->mServerThread)
+        {
+            joinThread(pRemoteAppServer->mServerThread);
+        }
+    }
+}
+
+/// Free all the memory allocated for the server.
+/// Disconnect from all connected sockets.
+void exitRemoteAppServer()
+{
+    remoteServerDisconnect();
+
+    ASSERT(pRemoteAppServer->mServerListenSocket == SOCKET_INVALID && "Server Listen Socket is still active");
+
+    // Free all awaiting draw data
+    remove_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
+    remove_circular_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
+
+    // Free all received inputs
+    remove_circular_buffer(&pRemoteAppServer->mReceivedInput);
+    arrfree(pRemoteAppServer->pLastReceivedInputData);
+
+    // Free remote control server
+    tf_free(pRemoteAppServer);
+    pRemoteAppServer = NULL;
+}
+
+/// Process received input data from the client by calling the UI system.
+void remoteAppReceiveInputData()
+{
+    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
+    {
+        return;
+    }
+
+    unsigned char* receivedInput = get_read_buffer(&pRemoteAppServer->mReceivedInput);
+    arrsetlen(pRemoteAppServer->pLastReceivedInputData, 0);
+
+    if (receivedInput)
+    {
+        uint32_t numReceivedInputs = ((RemoteCommandUserInterfaceInput*)receivedInput)->mNumInputs;
+        for (uint32_t i = 0; i < numReceivedInputs; i++)
+        {
+            RemoteCommandUserInterfaceInputData* input =
+                (RemoteCommandUserInterfaceInputData*)(receivedInput + sizeof(RemoteCommandUserInterfaceInput) +
+                                                       sizeof(RemoteCommandUserInterfaceInputData) * i);
+            arrpush(pRemoteAppServer->pLastReceivedInputData, *input);
+        }
+        mark_buffer_processed(&pRemoteAppServer->mReceivedInput);
+    }
+
+    for (uint32_t i = 0; i < arrlen(pRemoteAppServer->pLastReceivedInputData); i++)
+    {
+        RemoteCommandUserInterfaceInputData* input = &pRemoteAppServer->pLastReceivedInputData[i];
+        uiOnInput(input->mActionId, input->mButtonPress, input->mSkipMouse ? NULL : &input->mMousePos, &input->mStick);
+    }
+}
+
+/// Send a given UserInterfaceDrawData to connected client.
+void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData)
+{
+    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
+    {
+        return;
+    }
+
+    packUserInterfaceDrawData(pDrawData, get_write_buffer(&pRemoteAppServer->mAwaitingSendDrawData));
+    swap_buffers(&pRemoteAppServer->mAwaitingSendDrawData);
+}
+
+void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
+                              unsigned char* ptr)
+{
+    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
+    {
+        return;
+    }
+
+    unsigned char*                    data = get_write_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
+    RemoteCommandUserInterfaceTexture textureCommand = {};
+    textureCommand.mHeader = RemoteCommandHeader{ (uint32_t)sizeof(RemoteCommandUserInterfaceTexture) + size, REMOTE_MESSAGE_TEXTURE };
+    textureCommand.mTextureId = textureId;
+    textureCommand.mWidth = width;
+    textureCommand.mHeight = height;
+    textureCommand.mTextureSize = size;
+    textureCommand.mFormat = format;
+
+    memcpy(data, &textureCommand, sizeof(RemoteCommandUserInterfaceTexture));
+    memcpy(data + sizeof(RemoteCommandUserInterfaceTexture), ptr, size);
+    swap_buffers(&pRemoteAppServer->mAwaitingSendTextureData);
+}
+
+bool remoteAppIsConnected() { return pRemoteAppServer && pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID; }
+
+bool remoteAppShouldSendFontTexture()
+{
+    if (pRemoteAppServer && pRemoteAppServer->mShouldSendFontTexture)
+    {
+        pRemoteAppServer->mShouldSendFontTexture = false;
+        return true;
+    }
+    return false;
+}
+
+/****************************************************************************/
+// MARK: - Remote Control Client
+/****************************************************************************/
+
+#ifdef FORGE_TOOLS // Only the UIRemoteControl tool can be the remote control client
 
 /// Unpack the stream of bytes to UserInterfaceDrawData
 static void unpackUserInterfaceDrawData(unsigned char* pData, UserInterfaceDrawData* drawData)
@@ -406,278 +741,30 @@ static void freeUserInterfaceDrawData(UserInterfaceDrawData* data)
     }
 }
 
-/****************************************************************************/
-// MARK: - Remote App Server
-/****************************************************************************/
-
-static bool serverSend(Socket* socket)
+/// Disconnect from a server app. Disconnects from all related sockets, and free memory allocated for the connection.
+void remoteControlDisconnect()
 {
-    bool sendSucceed = true;
-
-    unsigned char* drawDataToSend = get_read_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
-    if (drawDataToSend)
+    if (pRemoteControlClient)
     {
-        sendSucceed &= (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) > 0);
-        mark_buffer_processed(&pRemoteAppServer->mAwaitingSendDrawData);
-    }
+        pRemoteControlClient->mDisconnect = true;
 
-    if (!sendSucceed)
-        return false;
-
-    unsigned char* textureDataToSend = get_read_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
-    if (textureDataToSend)
-    {
-        sendSucceed &=
-            (bufferedSend(socket, textureDataToSend, ((RemoteCommandUserInterfaceTexture*)textureDataToSend)->mHeader.mSize) > 0);
-        mark_buffer_processed(&pRemoteAppServer->mAwaitingSendTextureData);
-    }
-
-    if (!sendSucceed)
-        return false;
-
-    sendSucceed = sendPing(socket);
-    return sendSucceed;
-}
-
-static void serverReceive(Socket* socket)
-{
-    bool pingReceived = false;
-
-    while (!pingReceived)
-    {
-        RemoteCommandHeader remoteCommandHeader = {};
-        bool                receivedHeader = bufferedReceive(socket, (unsigned char*)&remoteCommandHeader, sizeof(RemoteCommandHeader));
-
-        if (receivedHeader)
+        if (pRemoteControlClient->mClientThread)
         {
-            switch (remoteCommandHeader.mType)
-            {
-            case REMOTE_MESSAGE_INPUT:
-            {
-                RemoteCommandUserInterfaceInput inputData = {};
-                inputData.mHeader = remoteCommandHeader;
-
-                bool isDataReceived = bufferedReceive(socket, ((unsigned char*)&inputData) + sizeof(RemoteCommandHeader),
-                                                      sizeof(RemoteCommandUserInterfaceInput) - sizeof(RemoteCommandHeader));
-                if (isDataReceived)
-                {
-                    unsigned char* oldInputs = get_write_buffer(&pRemoteAppServer->mReceivedInput);
-                    uint32_t*      oldNumInputs = &((RemoteCommandUserInterfaceInput*)oldInputs)->mNumInputs;
-                    isDataReceived = bufferedReceive(
-                        socket,
-                        oldInputs + sizeof(RemoteCommandUserInterfaceInput) + *oldNumInputs * sizeof(RemoteCommandUserInterfaceInputData),
-                        remoteCommandHeader.mSize - sizeof(RemoteCommandUserInterfaceInput) - sizeof(RemoteCommandHeader));
-                    if (isDataReceived)
-                    {
-                        *oldNumInputs += inputData.mNumInputs;
-                    }
-                    swap_buffers(&pRemoteAppServer->mReceivedInput);
-                }
-            }
-            break;
-            case REMOTE_MESSAGE_PING:
-            {
-                pRemoteAppServer->mLastPingTime = time(0);
-                pingReceived = true;
-            }
-            break;
-            default:
-                break;
-            }
-        }
-        else
-        {
-            break;
+            joinThread(pRemoteControlClient->mClientThread);
         }
     }
 }
-
-static void server(void* pData)
-{
-    while (pRemoteAppServer->mServerListenSocket && !pRemoteAppServer->mDisconnect)
-    {
-        SocketAddr addr = {};
-        socketAccept(&pRemoteAppServer->mServerListenSocket, &pRemoteAppServer->mServerConnectionSocket, &addr);
-        pRemoteAppServer->mLastPingTime = time(0);
-        pRemoteAppServer->mShouldSendFontTexture = true;
-
-        while (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID && !pRemoteAppServer->mDisconnect)
-        {
-            bool sendSucceed = serverSend(&pRemoteAppServer->mServerConnectionSocket);
-
-            if (sendSucceed)
-            {
-                serverReceive(&pRemoteAppServer->mServerConnectionSocket);
-            }
-
-            // Timeout in TIMEOUT_SECONDS seconds
-            if (time(0) - pRemoteAppServer->mLastPingTime > TIMEOUT_SECONDS || !sendSucceed)
-            {
-                if (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
-                {
-                    socketDestroy(&pRemoteAppServer->mServerConnectionSocket);
-                }
-
-                LOGF(LogLevel::eINFO, "Client disconnected.");
-                break;
-            }
-
-            threadSleep(10);
-        }
-
-        if (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
-        {
-            socketDestroy(&pRemoteAppServer->mServerConnectionSocket);
-        }
-
-        threadSleep(10);
-    }
-
-    if (pRemoteAppServer->mServerListenSocket != SOCKET_INVALID)
-    {
-        socketDestroy(&pRemoteAppServer->mServerListenSocket);
-    }
-}
-
-/// Initialize remote control server.
-/// The server application sends the UI draw commands to connected client.
-/// Clients send the input data.
-void initRemoteAppServer(uint16_t port)
-{
-    if (pRemoteAppServer != NULL)
-    {
-        return;
-    }
-
-    pRemoteAppServer = (RemoteAppServer*)tf_malloc(sizeof(RemoteAppServer));
-    *pRemoteAppServer = {};
-
-    init_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData, DrawBufferSize);
-    init_circular_buffer(&pRemoteAppServer->mAwaitingSendTextureData, DrawBufferSize);
-    init_circular_buffer(&pRemoteAppServer->mReceivedInput, InputBufferSize);
-
-    SocketAddr addr = {};
-    socketAddrFromHostPort(&addr, 0, port);
-    socketCreateServer(&pRemoteAppServer->mServerListenSocket, &addr, 0);
-
-    ThreadDesc threadDesc = {};
-    threadDesc.pFunc = server;
-    threadDesc.pData = NULL;
-    strncpy(threadDesc.mThreadName, "RemoteAppServerThread", sizeof(threadDesc.mThreadName));
-    initThread(&threadDesc, &pRemoteAppServer->mServerThread);
-}
-
-/// Free all the memory allocated for the server.
-/// Disconnect from all connected sockets.
-void exitRemoteAppServer()
-{
-    if (pRemoteAppServer)
-    {
-        pRemoteAppServer->mDisconnect = true;
-
-        socketDestroy(&pRemoteAppServer->mServerListenSocket);
-
-        if (pRemoteAppServer->mServerThread)
-        {
-            joinThread(pRemoteAppServer->mServerThread);
-        }
-
-        // Free all awaiting draw data
-        remove_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
-        remove_circular_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
-
-        // Free all received inputs
-        remove_circular_buffer(&pRemoteAppServer->mReceivedInput);
-        arrfree(pRemoteAppServer->pLastReceivedInputData);
-
-        // Free remote control server
-        tf_free(pRemoteAppServer);
-        pRemoteAppServer = NULL;
-    }
-}
-
-/// Process received input data from the client by calling the UI system.
-void remoteAppReceiveInputData()
-{
-    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
-    {
-        return;
-    }
-
-    unsigned char* receivedInput = get_read_buffer(&pRemoteAppServer->mReceivedInput);
-    if (receivedInput)
-    {
-        arrsetlen(pRemoteAppServer->pLastReceivedInputData, 0);
-        uint32_t numReceivedInputs = ((RemoteCommandUserInterfaceInput*)receivedInput)->mNumInputs;
-        for (uint32_t i = 0; i < numReceivedInputs; i++)
-        {
-            RemoteCommandUserInterfaceInputData* input =
-                (RemoteCommandUserInterfaceInputData*)(receivedInput + sizeof(RemoteCommandUserInterfaceInput) +
-                                                       sizeof(RemoteCommandUserInterfaceInputData) * i);
-            arrpush(pRemoteAppServer->pLastReceivedInputData, *input);
-        }
-        mark_buffer_processed(&pRemoteAppServer->mReceivedInput);
-    }
-
-    for (uint32_t i = 0; i < arrlen(pRemoteAppServer->pLastReceivedInputData); i++)
-    {
-        RemoteCommandUserInterfaceInputData* input = &pRemoteAppServer->pLastReceivedInputData[i];
-        uiOnInput(input->mActionId, input->mButtonPress, input->mSkipMouse ? NULL : &input->mMousePos, &input->mStick);
-    }
-}
-
-/// Send a given UserInterfaceDrawData to connected client.
-void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData)
-{
-    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
-    {
-        return;
-    }
-
-    packUserInterfaceDrawData(pDrawData, get_write_buffer(&pRemoteAppServer->mAwaitingSendDrawData));
-    swap_buffers(&pRemoteAppServer->mAwaitingSendDrawData);
-}
-
-void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
-                              unsigned char* ptr)
-{
-    if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
-    {
-        return;
-    }
-
-    unsigned char*                    data = get_write_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
-    RemoteCommandUserInterfaceTexture textureCommand = {};
-    textureCommand.mHeader = RemoteCommandHeader{ (uint32_t)sizeof(RemoteCommandUserInterfaceTexture) + size, REMOTE_MESSAGE_TEXTURE };
-    textureCommand.mTextureId = textureId;
-    textureCommand.mWidth = width;
-    textureCommand.mHeight = height;
-    textureCommand.mTextureSize = size;
-    textureCommand.mFormat = format;
-
-    memcpy(data, &textureCommand, sizeof(RemoteCommandUserInterfaceTexture));
-    memcpy(data + sizeof(RemoteCommandUserInterfaceTexture), ptr, size);
-    swap_buffers(&pRemoteAppServer->mAwaitingSendTextureData);
-}
-
-bool remoteAppIsConnected() { return pRemoteAppServer && pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID; }
-
-bool remoteAppShouldSendFontTexture()
-{
-    if (pRemoteAppServer && pRemoteAppServer->mShouldSendFontTexture)
-    {
-        pRemoteAppServer->mShouldSendFontTexture = false;
-        return true;
-    }
-    return false;
-}
-
-/****************************************************************************/
-// MARK: - Remote Control Client
-/****************************************************************************/
 
 static bool clientSend(Socket* socket)
 {
+    if (pRemoteControlClient->mDisconnect)
+    {
+        sendDisconnect(socket);
+        // Ensure the server receives the disconnect and stop gracefully.
+        threadSleep(100);
+        return false;
+    }
+
     bool sendSucceed = true;
 
     unsigned char* inputDataToSend = get_read_buffer(&pRemoteControlClient->mAwaitingSendInput);
@@ -688,9 +775,12 @@ static bool clientSend(Socket* socket)
     }
 
     if (!sendSucceed)
+    {
         return false;
+    }
 
     sendSucceed = sendPing(socket);
+
     return sendSucceed;
 }
 
@@ -729,6 +819,11 @@ static void clientReceive(Socket* socket)
                 pingReceived = true;
             }
             break;
+            case REMOTE_MESSAGE_DISCONNECT:
+            {
+                pRemoteControlClient->mDisconnect = true;
+                pingReceived = true;
+            }
             default:
                 break;
             }
@@ -740,11 +835,9 @@ static void clientReceive(Socket* socket)
     }
 }
 
-void remoteControlDisconnect();
-
 static void client(void* pData)
 {
-    while (pRemoteControlClient->mClientConnectionSocket && !pRemoteControlClient->mDisconnect)
+    while (pRemoteControlClient->mClientConnectionSocket)
     {
         bool sendSucceed = clientSend(&pRemoteControlClient->mClientConnectionSocket);
 
@@ -794,7 +887,7 @@ void remoteControlConnect(const char* hostName, uint16_t port)
     *pRemoteControlClient = {};
 
     SocketAddr addr = {};
-    socketAddrFromHostPort(&addr, hostName, port);
+    socketAddrFromHostnamePort(&addr, hostName, port);
     socketCreateClient(&pRemoteControlClient->mClientConnectionSocket, &addr);
 
     if (pRemoteControlClient->mClientConnectionSocket != SOCKET_INVALID)
@@ -813,20 +906,6 @@ void remoteControlConnect(const char* hostName, uint16_t port)
     {
         tf_free(pRemoteControlClient);
         pRemoteControlClient = NULL;
-    }
-}
-
-/// Disconnect from a server app. Disconnects from all related sockets, and free memory allocated for the connection.
-void remoteControlDisconnect()
-{
-    if (pRemoteControlClient)
-    {
-        pRemoteControlClient->mDisconnect = true;
-
-        if (pRemoteControlClient->mClientThread)
-        {
-            joinThread(pRemoteControlClient->mClientThread);
-        }
     }
 }
 
@@ -956,4 +1035,6 @@ void remoteControlSendInputData()
     arrsetlen(pRemoteControlClient->inputs, 0);
     swap_buffers(&pRemoteControlClient->mAwaitingSendInput);
 }
+#endif // FORGE_TOOLS
+
 #endif

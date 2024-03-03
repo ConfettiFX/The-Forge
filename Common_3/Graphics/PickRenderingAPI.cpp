@@ -574,34 +574,36 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     // Update platform properties
     updatePlatformParameters(*ppRenderer);
 
-    // ShaderServer on iOS can cause a network popup to be shown that stops the world until dismissed
+    // ReloadServer on iOS can cause a network popup to be shown that stops the world until dismissed
     // by physically clicking the dismiss button. Until we are using Appium in Jenkins to click the button
-    // for us, we disable ShaderServer for iOS Jenkins.
+    // for us, we disable ReloadServer for iOS Jenkins.
 #if defined(AUTOMATED_TESTING) && defined(TARGET_IOS)
-    const bool disableShaderServer = true;
+    const bool disableReloadServer = true;
 #else
-    const bool disableShaderServer = pSettings->mDisableShaderServer;
+    const bool disableReloadServer = pSettings->mDisableReloadServer;
 #endif
 
 #if defined(ENABLE_FORGE_REMOTE_UI)
     initNetwork();
 #endif
 
-    if (!disableShaderServer)
+    if (!disableReloadServer)
     {
         if (!platformInitReloadClient())
         {
-            LOGF(eERROR, "Failed to initialize ShaderServer");
+            LOGF(eERROR, "Failed to initialize ReloadServer");
+#ifdef AUTOMATED_TESTING
             ASSERT(false);
+#endif
         }
     }
     else
     {
-        LOGF(eWARNING, "ShaderServer is DISABLED. Shaders will not be updated dynamically on the device "
+        LOGF(eWARNING, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
                        "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
-                       "If you want to re-enable ShaderServer you need to set `RendererDesc.mDisableShaderServer = false` when calling "
+                       "If you want to re-enable ReloadServer you need to set `RendererDesc.mDisableReloadServer = false` when calling "
                        "`initRenderer`. "
-                       "This message is here to remind everyone to re-enable ShaderServer if it has been disabled for whatever reason.");
+                       "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
     }
 
     exitGPUSettings();

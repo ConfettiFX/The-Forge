@@ -22,8 +22,6 @@
  * under the License.
  */
 
-#include <wchar.h>
-
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 #include "../ThirdParty/OpenSource/imgui/imgui.h"
 #include "../ThirdParty/OpenSource/imgui/imgui_internal.h"
@@ -34,6 +32,8 @@
 #include "../../Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
+
+#include "../../Utilities/Math/Algorithms.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
@@ -95,7 +95,7 @@ typedef struct UserInterface
         uint32_t  mFontId = 0;
         float     mFontSize = 0.f;
         uintptr_t pFont = 0;
-    }*        pCachedFontsArr = NULL;
+    }* pCachedFontsArr = NULL;
     uintptr_t pDefaultFallbackFont = 0;
     float     dpiScale[2] = { 0.0f };
     uint32_t  frameIdx = 0;
@@ -289,6 +289,157 @@ static void SetDefaultStyle()
     getMonitorDpiScale(monitorIdx, dpiScale);
     style.ScaleAllSizes(min(dpiScale[0], dpiScale[1]));
 }
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+void DrawDriverMemoryTrackingUI(void*)
+{
+    uint64_t totDriverMemory = GetDriverMemoryAmount();
+    uint64_t totDriverAllocs = GetDriverAllocationsCount();
+
+    struct DriverMemoryEntry
+    {
+        const char* mName;
+        uint64_t    mMemAmount;
+        uint64_t    mMemAllocs;
+    };
+
+    if (totDriverMemory == 0)
+    {
+        return;
+    }
+
+    // Add UI components
+    static bool driverMemUsageShowKB = false;
+    ImGui::Checkbox("Driver Memory Show In Kilobytes", &driverMemUsageShowKB);
+    const char* memUnit = driverMemUsageShowKB ? "KB" : "MB";
+    size_t      memDivisor = driverMemUsageShowKB ? TF_KB : TF_MB;
+
+    if (ImGui::TreeNodeEx("DriverMemoryTracking", ImGuiTreeNodeFlags_DefaultOpen, "Total Driver Memory Usage: %zu %s | Alloc Count: %zu",
+                          (size_t)(totDriverMemory / memDivisor), memUnit, (size_t)totDriverAllocs))
+    {
+        // Gather all entries
+        DriverMemoryEntry entries[TRACKED_OBJECT_TYPE_COUNT_MAX] = {};
+
+        for (uint32_t i = 0; i < GetTrackedObjectTypeCount(); ++i)
+        {
+            entries[i].mName = GetTrackedObjectName(i);
+            entries[i].mMemAmount = GetDriverMemoryPerObject(i);
+            entries[i].mMemAllocs = GetDriverAllocationsPerObject(i);
+        }
+
+        // Sort entries by amount of memory
+        qsort(
+            entries, GetTrackedObjectTypeCount(), sizeof(DriverMemoryEntry),
+            +[](const void* lhs, const void* rhs)
+            {
+                DriverMemoryEntry* pLhs = (DriverMemoryEntry*)lhs;
+                DriverMemoryEntry* pRhs = (DriverMemoryEntry*)rhs;
+                if (pLhs->mMemAmount == pRhs->mMemAmount)
+                    return (pLhs->mMemAllocs > pRhs->mMemAllocs) ? -1 : 1;
+
+                return pLhs->mMemAmount > pRhs->mMemAmount ? -1 : 1;
+            });
+
+        const ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
+        if (ImGui::BeginTable("DriverMemoryTrackingTable", 3, tableFlags))
+        {
+            for (uint32_t type = 0; type < GetTrackedObjectTypeCount(); ++type)
+            {
+                float colors[2] = { 0.05f, 0.4f };
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[type % 2]));
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", entries[type].mName);
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("Memory: %zu %s", (size_t)(entries[type].mMemAmount / memDivisor), memUnit);
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("Alloc count: %zu", (size_t)entries[type].mMemAllocs);
+                ImGui::PopStyleColor();
+            }
+            ImGui::EndTable();
+        }
+
+        ImGui::TreePop();
+    }
+}
+#endif // GFX_DRIVER_MEMORY_TRACKING
+
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+void DrawDeviceMemoryReportUI(void*)
+{
+    struct DeviceMemoryEntry
+    {
+        const char* mName;
+        uint64_t    mMemAmount;
+        uint64_t    mMemAllocs;
+    };
+
+    const uint64_t memReportTotalMemory = GetDeviceMemoryAmount();
+    const uint64_t memReportTotalAllocCount = GetDeviceAllocationsCount();
+
+    if (memReportTotalMemory == 0)
+    {
+        return;
+    }
+
+    static bool memReportMemUsageShowKB = false;
+    ImGui::Checkbox("Memory Report EXT Memory Show In Kilobytes", &memReportMemUsageShowKB);
+    const char*  memUnit = memReportMemUsageShowKB ? "KB" : "MB";
+    const size_t memDivisor = memReportMemUsageShowKB ? TF_KB : TF_MB;
+
+    if (ImGui::TreeNodeEx("DeviceMemoryReport", ImGuiTreeNodeFlags_DefaultOpen, "Total GPU Memory: %zu %s | Alloc Count: %zu",
+                          memReportTotalMemory / memDivisor, memUnit, memReportTotalAllocCount))
+    {
+        // Gather all entries
+        DeviceMemoryEntry entries[TRACKED_OBJECT_TYPE_COUNT_MAX] = {};
+
+        for (uint32_t i = 0; i < GetTrackedObjectTypeCount(); ++i)
+        {
+            entries[i].mName = GetTrackedObjectName(i);
+            entries[i].mMemAmount = GetDeviceMemoryPerObject(i);
+            entries[i].mMemAllocs = GetDeviceAllocationsPerObject(i);
+        }
+
+        // Sort entries by amount of memory
+        qsort(
+            entries, GetTrackedObjectTypeCount(), sizeof(DeviceMemoryEntry),
+            +[](const void* lhs, const void* rhs)
+            {
+                DeviceMemoryEntry* pLhs = (DeviceMemoryEntry*)lhs;
+                DeviceMemoryEntry* pRhs = (DeviceMemoryEntry*)rhs;
+                if (pLhs->mMemAmount == pRhs->mMemAmount)
+                    return (pLhs->mMemAllocs > pRhs->mMemAllocs) ? -1 : 1;
+
+                return pLhs->mMemAmount > pRhs->mMemAmount ? -1 : 1;
+            });
+
+        const ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
+        if (ImGui::BeginTable("DeviceMemoryTrackingTable", 3, tableFlags))
+        {
+            for (uint32_t type = 0; type < GetTrackedObjectTypeCount(); ++type)
+            {
+                float colors[2] = { 0.05f, 0.4f };
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[type % 2]));
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", entries[type].mName);
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("Memory: %lu %s", entries[type].mMemAmount / memDivisor, memUnit);
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("Alloc count: %lu", entries[type].mMemAllocs);
+                ImGui::PopStyleColor();
+            }
+            ImGui::EndTable();
+        }
+
+        ImGui::TreePop();
+    }
+}
+#endif // GFX_DEVICE_MEMORY_TRACKING
 
 /****************************************************************************/
 // MARK: - Non-static Function Definitions
@@ -1115,7 +1266,7 @@ static void processCollapsingHeaderWidget(UIWidget* pWidget)
 
     if (pOriginalWidget->mPreviousCollapsed != pOriginalWidget->mCollapsed)
     {
-        ImGui::SetNextItemOpen(!pOriginalWidget->mCollapsed);
+        ImGui::SetNextItemOpen(pOriginalWidget->mCollapsed);
         pOriginalWidget->mPreviousCollapsed = pOriginalWidget->mCollapsed;
     }
 
@@ -1206,6 +1357,11 @@ static void processButtonWidget(UIWidget* pWidget)
     COMPILE_ASSERT(sizeof(pWidget->pOnEdited) == sizeof(void*));
     bformat(&label, "%s##%p", pWidget->mLabel, (void*)pWidget->pOnEdited);
     ASSERT(!bownsdata(&label));
+
+    if (pWidget->mSameLine)
+    {
+        ImGui::SameLine();
+    }
 
     pWidget->mEdited = ImGui::Button((const char*)label.data);
     processWidgetCallbacks(pWidget);
@@ -1963,9 +2119,11 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         }
 
         tf_free(pWidget->pWidget);
+        pWidget->pWidget = NULL;
     }
 
     tf_free(pWidget);
+    pWidget = NULL;
 }
 
 #endif // ENABLE_FORGE_UI
@@ -2282,6 +2440,14 @@ void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserDat
 #endif
 }
 
+/// Set whether or not a given UI Widget should be on the sameline than the previous one
+FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine)
+{
+#ifdef ENABLE_FORGE_UI
+    pGuiComponent->mSameLine = sameLine;
+#endif
+}
+
 void uiNewFrame()
 {
 #if defined(ENABLE_FORGE_REMOTE_UI)
@@ -2375,16 +2541,6 @@ void platformExitUserInterface()
         tf_free(pUserInterface->mComponents[i]);
     }
     arrfree(pUserInterface->mComponents);
-
-    /************************************************************************/
-    // Remote Control
-    /************************************************************************/
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    if (pUserInterface->mEnableRemoteUI)
-    {
-        exitRemoteAppServer();
-    }
-#endif
 
     ImGui::DestroyContext(pUserInterface->context);
 
@@ -2581,6 +2737,7 @@ void platformUpdateUserInterface(float deltaTime)
             ImGui::PopFont();
         }
     }
+
     uiEndFrame();
 
     if (pUserInterface->mActive)
@@ -2854,6 +3011,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
         initRemoteAppServer(8889);
     }
 #endif
+
 #endif
 }
 
@@ -3036,17 +3194,18 @@ void unloadUserInterface(uint32_t unloadType)
 void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 {
 #ifdef ENABLE_FORGE_UI
+
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    bool removeDataAfterRendering = false;
+#else
     // Early return if UI rendering has been disabled
     if (!pUserInterface->mEnableRendering)
     {
         return;
     }
+#endif
 
     UserInterfaceDrawData localDrawData = {};
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    bool removeDataAfterRendering = false;
-#endif
 
     if (!pUIDrawData)
     {
@@ -3066,6 +3225,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
             ImDrawData* pImDrawData = ImGui::GetDrawData();
             fillDrawInformation(&localDrawData, pImDrawData);
             pUIDrawData = &localDrawData;
+        }
+
+        if (!pUserInterface->mEnableRendering)
+        {
+            if (removeDataAfterRendering)
+            {
+                removeUIDrawData(pUIDrawData);
+            }
+            return;
         }
 #else
         ImGui::SetCurrentContext(pUserInterface->context);
@@ -3241,7 +3409,12 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
             pUserInterface->mActive = !pUserInterface->mActive;
         }
         break;
-
+    case UISystemInputActions::UI_ACTION_NAV_HIDE_UI_TOGGLE:
+        if (!press)
+        {
+            pUserInterface->mEnableRendering = !pUserInterface->mEnableRendering;
+        }
+        break;
     case UISystemInputActions::UI_ACTION_NAV_ACTIVATE:
         pUserInterface->mNavInputs[ImGuiNavInput_Activate] = (float)press;
         break;

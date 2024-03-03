@@ -7,5 +7,4 @@
           BeforeTargets="AndroidPreGradle">
       <Exec Command="xcopy $(SolutionDir)..\..\..\Common_3\OS\Android\Packaging $(IntDir) /s /y /d"/>
   </Target>
-
 </Project>

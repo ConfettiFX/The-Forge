@@ -25,9 +25,8 @@
 #if defined(QUEST_VR)
 #include "VrApiHooks.h"
 
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi.h"
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Helpers.h"
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Vulkan.h"
+#include "../../OS/ThirdParty/PrivateOculus/ovr_sdk_mobile/VrApi/Include/VrApi.h"
+#include "../../OS/ThirdParty/PrivateOculus/ovr_sdk_mobile/VrApi/Include/VrApi_Vulkan.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
 #include "../../Utilities/Interfaces/ILog.h"

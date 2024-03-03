@@ -561,7 +561,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
@@ -1400,7 +1399,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -1661,6 +1660,7 @@ public:
         const char* brdfIntegrationShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_NONE
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_OFFICE
+            "BRDFIntegration_SAMPLES_32.comp",  // GPU_PRESET_VERYLOW
             "BRDFIntegration_SAMPLES_64.comp",  // GPU_PRESET_LOW
             "BRDFIntegration_SAMPLES_128.comp", // GPU_PRESET_MEDIUM
             "BRDFIntegration_SAMPLES_256.comp", // GPU_PRESET_HIGH
@@ -1668,8 +1668,9 @@ public:
         };
 
         const char* irradianceShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
-            "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_NONE
-            "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_OFFICE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_NONE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_OFFICE
+            "computeIrradianceMap_SAMPLE_DELTA_05.comp",   // GPU_PRESET_VERYLOW
             "computeIrradianceMap_SAMPLE_DELTA_025.comp",  // GPU_PRESET_LOW
             "computeIrradianceMap_SAMPLE_DELTA_0125.comp", // GPU_PRESET_MEDIUM
             "computeIrradianceMap_SAMPLE_DELTA_005.comp",  // GPU_PRESET_HIGH
@@ -1679,6 +1680,7 @@ public:
         const char* specularShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "computeSpecularMap_SAMPLES_0.comp",   // GPU_PRESET_NONE
             "computeSpecularMap_SAMPLES_0.comp",   // GPU_PRESET_OFFICE
+            "computeSpecularMap_SAMPLES_32.comp",  // GPU_PRESET_VERYLOW
             "computeSpecularMap_SAMPLES_64.comp",  // GPU_PRESET_LOW
             "computeSpecularMap_SAMPLES_128.comp", // GPU_PRESET_MEDIUM
             "computeSpecularMap_SAMPLES_256.comp", // GPU_PRESET_HIGH
@@ -1942,7 +1944,7 @@ public:
         const float horizontalFov = PI / 2.0f;
         const float nearPlane = 0.1f;
         const float farPlane = 1000.f;
-        mat4        projMat = CameraMatrix::perspective(horizontalFov, aspectInverse, nearPlane, farPlane).getPrimaryMatrix();
+        mat4        projMat = mat4::perspectiveLH_ReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane);
         mat4        ViewProjMat = projMat * viewMat;
         mat4        mvp = ViewProjMat * gSanMiguelModelMat;
 
@@ -1958,7 +1960,7 @@ public:
 
         // data uniforms
         gUniformDataExtenedCamera.mCameraWorldPos = vec4(pCameraController->getViewPosition(), 1.0);
-        gUniformDataExtenedCamera.mViewMat = pCameraController->getViewMatrix();
+        gUniformDataExtenedCamera.mViewMat = viewMat;
         gUniformDataExtenedCamera.mInvViewMat = inverse(gUniformDataExtenedCamera.mViewMat);
         gUniformDataExtenedCamera.mProjMat = projMat;
         gUniformDataExtenedCamera.mViewProjMat = ViewProjMat;
@@ -2052,18 +2054,14 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, TF_ARRAY_COUNT(barriers), barriers);
 
-        const char*     profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
-        loadActions.mLoadActionsColor[1] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[1] = pMotionVectorsBuffer->mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pDepthBuffer->mClearValue;
+        const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 
-        RenderTarget* targets[] = { pRenderTargetVBPass, pMotionVectorsBuffer };
-
-        cmdBindRenderTargets(cmd, TF_ARRAY_COUNT(targets), targets, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 2;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mRenderTargets[1] = { pMotionVectorsBuffer, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
 
@@ -2088,7 +2086,7 @@ public:
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Render a fullscreen triangle to evaluate shading for every pixel.This render step uses the render target generated by
@@ -2106,18 +2104,11 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "VB Shade Pass");
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pSceneBuffer->mClearValue;
-        loadActions.mLoadActionsColor[1] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[1] = pNormalRoughnessBuffer->mClearValue;
-
-        RenderTarget* targets[] = {
-            pSceneBuffer,
-            pNormalRoughnessBuffer,
-        };
-
-        cmdBindRenderTargets(cmd, TF_ARRAY_COUNT(targets), targets, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 2;
+        bindRenderTargets.mRenderTargets[0] = { pSceneBuffer, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mRenderTargets[1] = { pNormalRoughnessBuffer, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneBuffer->mWidth, (float)pSceneBuffer->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pSceneBuffer->mWidth, pSceneBuffer->mHeight);
 
@@ -2133,10 +2124,11 @@ public:
         {
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw Skybox");
 
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-            loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
-
-            cmdBindRenderTargets(cmd, 1, &pSceneBuffer, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pSceneBuffer, LOAD_ACTION_LOAD };
+            bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_LOAD };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             // Android Mali G-77 NaN precision workaround
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneBuffer->mWidth, (float)pSceneBuffer->mHeight, 1.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pSceneBuffer->mWidth, pSceneBuffer->mHeight);
@@ -2151,7 +2143,7 @@ public:
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void Draw()
@@ -2272,7 +2264,7 @@ public:
         rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         const uint32_t quadStride = sizeof(float) * 5;
 
@@ -2295,11 +2287,10 @@ public:
             rtBarriers[3] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
             cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 4, rtBarriers);
 
-            LoadActionsDesc loadActions = {};
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = pReflectionBuffer->mClearValue;
-
-            cmdBindRenderTargets(cmd, 1, &pReflectionBuffer, NULL, &loadActions, NULL, NULL, -1, -1);
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pReflectionBuffer, LOAD_ACTION_CLEAR };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pReflectionBuffer->mWidth, (float)pReflectionBuffer->mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pReflectionBuffer->mWidth, pReflectionBuffer->mHeight);
 
@@ -2310,7 +2301,7 @@ public:
             cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
             cmdDraw(cmd, 3, 0);
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             // End ReflectionPass
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2516,11 +2507,10 @@ public:
         rtBarriers[1] = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarriers);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2534,11 +2524,11 @@ public:
         // End Reflections
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-        loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-
         cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         gFrameTimeDraw.mFontColor = 0xff00ffff;
         gFrameTimeDraw.mFontSize = 18.0f;
@@ -2549,7 +2539,7 @@ public:
         cmdDrawUserInterface(cmd);
         cmdEndDebugMarker(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         {
             const uint32_t      numBarriers = NUM_CULLING_VIEWPORTS + 2;
@@ -3507,10 +3497,7 @@ public:
         DepthStateDesc depthStateTestAndWriteDesc = {};
         depthStateTestAndWriteDesc.mDepthTest = true;
         depthStateTestAndWriteDesc.mDepthWrite = true;
-        depthStateTestAndWriteDesc.mDepthFunc = CMP_LEQUAL;
-        DepthStateDesc depthStateTestOnlyDesc = {};
-        depthStateTestOnlyDesc.mDepthTest = true;
-        depthStateTestOnlyDesc.mDepthFunc = CMP_LEQUAL;
+        depthStateTestAndWriteDesc.mDepthFunc = CMP_GEQUAL;
 
         // Create rasteriser state objects
         RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
@@ -3636,6 +3623,16 @@ public:
         }
 
         // layout and pipeline for skybox draw
+        BlendStateDesc blendStateSkyBoxDesc = {};
+        blendStateSkyBoxDesc.mBlendModes[0] = BM_ADD;
+        blendStateSkyBoxDesc.mBlendAlphaModes[0] = BM_ADD;
+        blendStateSkyBoxDesc.mSrcFactors[0] = BC_ONE_MINUS_DST_ALPHA;
+        blendStateSkyBoxDesc.mDstFactors[0] = BC_DST_ALPHA;
+        blendStateSkyBoxDesc.mSrcAlphaFactors[0] = BC_ZERO;
+        blendStateSkyBoxDesc.mDstAlphaFactors[0] = BC_ONE;
+        blendStateSkyBoxDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
+        blendStateSkyBoxDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+
         VertexLayout vertexLayoutSkybox = {};
         vertexLayoutSkybox.mBindingCount = 1;
         vertexLayoutSkybox.mAttribCount = 1;
@@ -3649,8 +3646,8 @@ public:
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& skyboxPipelineDesc = desc.mGraphicsDesc;
         skyboxPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        skyboxPipelineDesc.pDepthState = &depthStateTestOnlyDesc;
-        skyboxPipelineDesc.pBlendState = NULL;
+        skyboxPipelineDesc.pDepthState = NULL;
+        skyboxPipelineDesc.pBlendState = &blendStateSkyBoxDesc;
         skyboxPipelineDesc.mRenderTargetCount = 1;
         skyboxPipelineDesc.pColorFormats = &pSceneBuffer->mFormat;
         skyboxPipelineDesc.mSampleCount = pSceneBuffer->mSampleCount;
@@ -3968,7 +3965,7 @@ public:
         // Add depth buffer
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
-        depthRT.mClearValue = { { 1.0f, 0 } };
+        depthRT.mClearValue = { { 0.0f, 0 } };
         depthRT.mDepth = 1;
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;

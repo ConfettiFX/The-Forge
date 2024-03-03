@@ -20,6 +20,7 @@
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\src\SpaceObjects.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Example.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\src\Perlin.cpp" />
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\src\AppSettings.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\HeightData.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Terrain.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\src\SpaceObjects.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\ExampleCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\Perlin.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\AppSettings.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\TerrainCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\HeightData.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Hemisphere.h" />
@@ -88,6 +90,10 @@
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\HiZdownSamplingPR.comp.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\PostProcess.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\PostProcessWithBlur.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\RealTimeVolumetricCloud.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\RealTimeVolumetricCloud.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\RealTimeVolumetricCloudWithDepth.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\RealTimeVolumetricCloudWithDepth.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Reprojection.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Triangular.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.comp.fsl" />
@@ -177,7 +183,7 @@ xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 :: Copy GPUCfg file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\Graphics\gpu.data" "$(OutDir)GPUCfg\gpu.data*"
+xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 
 :: Copy Script file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Scripts\*.lua" "$(OutDir)Scripts\"</Command>
@@ -240,6 +246,7 @@ xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 :: Copy GPUCfg file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 
 :: Copy Script file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Scripts\*.lua" "$(OutDir)Scripts\"</Command>

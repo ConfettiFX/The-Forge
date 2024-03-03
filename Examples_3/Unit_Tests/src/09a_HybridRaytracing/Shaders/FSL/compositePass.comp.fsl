@@ -28,7 +28,7 @@ NUM_THREADS(16, 16, 1)
 void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupThreadID(uint3) GTid, SV_GroupIndex(uint) GI )
 {
 	INIT_MAIN;
-	float3 albedo = f3(0);
+	float4 outputColor = f4(0);
 	// calculate albedo from the visibility buffer
 	uint drawID = 0;
 	uint alpha1_opaque0 = 0;
@@ -47,20 +47,33 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 		GradientInterpolationResults results;
 		CalcDerivsAndInterpolate(pos0, pos1, pos2, indices, screenPos, interpolatedW, zVal, derivatives, results);
 
+		float3 normal = GetInterpolatedNormal(indices, derivatives);
+
+		float NdotL = saturate(dot(normal, Get(lightDir).xyz));
+
+		float shadowFactor = LoadTex2D(Get(shadowbuffer), NO_SAMPLER, DTid.xy, 0).x;
+
+		//add some fake "up-down" ambient to add some contrast to shadowed areas
+		float ambient = lerp(0.5, 0.2, normal.y * 0.5 + 0.5);
+
+		const float lightIntensity = 5;
+		const float3 lightColour = float3(1, 1, 0.5);
+		float3 diffuse = (lightIntensity * shadowFactor * NdotL) *  lightColour + ambient;
+
 		uint materialID = GetMaterialIdFromIndirectMaterialBuffer(drawID, alpha1_opaque0);
 
 		float2 texCoord = results.interp;
 		float2 texCoordDX = results.dx;
 		float2 texCoordDY = results.dy;
 		
-		albedo = GetAlbedo(materialID, texCoord, texCoordDX, texCoordDY);
+		float3 albedo = GetAlbedo(materialID, texCoord, texCoordDX, texCoordDY);
 
 		//linearise albedo before applying light to it
 		albedo = pow(abs(albedo), f3(2.2));
+
+		outputColor = float4(diffuse*albedo, 0);
 	}
 
-	float3 diffuse = LoadTex2D(Get(lightbuffer), NO_SAMPLER, DTid.xy, 0).xyz;
-
-	Write2D(Get(outputRT), DTid.xy, float4(diffuse*albedo, 0));
+	Write2D(Get(outputRT), DTid.xy, outputColor);
 	RETURN();
 }

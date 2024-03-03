@@ -380,7 +380,7 @@ PerformanceStats getPerformanceStats()
         SysAllocString(L"SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor");
 
     HRESULT hres = gWbemService->lpVtbl->ExecQuery(gWbemService, wql, query, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL,
-                                                         &pEnumerator);
+                                                   &pEnumerator);
     SysFreeString(wql);
     SysFreeString(query);
 

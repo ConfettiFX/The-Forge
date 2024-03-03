@@ -268,8 +268,8 @@ PerformanceStats getPerformanceStats()
         {
             char dummyCpuName[256]; // dummy cpu name, not used.
             int  _ret = fscanf(fh, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
-                               &entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
-                               &entry.times[8], &entry.times[9]);
+                              &entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
+                              &entry.times[8], &entry.times[9]);
             (void)_ret;
         }
         float ACTIVE_TIME = (float)GetActiveTime(&entry);

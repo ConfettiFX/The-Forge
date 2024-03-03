@@ -1,0 +1,123 @@
+#version: 0.1
+#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+#Sources:
+#https://www.notebookcheck.net/Mobile-Graphics-Cards-Benchmark-List.844.0.html  -> Classifies into Ultra; High; Medium; Low; Office
+#https://gist.github.com/adamawolf/3048717
+#https://everymac.com/systems/by_capability/mac-specs-by-machine-model-machine-id.html
+
+BEGIN_DEFAULT_CONFIGURATION;
+#if the gpu doesn't exist in the GPU_LIST use this instead
+DefaultPresetLevel; Low;
+END_DEFAULT_CONFIGURATION;
+
+BEGIN_VENDOR_LIST;
+apple; 0x106b;
+amd; 0x1002, 0x1022;
+intel; 0x163C, 0x8086, 0x8087;
+nvidia; 0x10DE
+END_VENDOR_LIST;
+
+#VendorName ; DeviceName ; Classification ; DeviceID (Can be null) ; Revision ID (Can be null) ; Codename (can be null)
+BEGIN_GPU_LIST;
+#iOS GPUs
+apple ; Apple A8 GPU ; VeryLow
+apple ; Apple A9 GPU ; VeryLow
+apple ; Apple A10 GPU ; VeryLow
+apple ; Apple A11 GPU ; Low
+apple ; Apple A12 GPU ; Low
+apple ; Apple A13 GPU ; Low
+apple ; Apple A14 GPU ; Low
+apple ; Apple A15 GPU ; Low
+apple ; Apple A16 GPU ; Medium
+apple ; Apple A17 Pro GPU ; Medium
+
+#macOS
+
+#iMac
+#apple
+apple ; Apple M1 ; Low
+apple ; Apple M1 Pro ; Low
+apple ; Apple M1 Max ; Low
+apple ; Apple M1 Ultra ; Medium
+apple ; Apple M2 ; Medium
+apple ; Apple M2 Pro ; Medium
+apple ; Apple M2 Max ; High
+apple ; Apple M3 ; High
+apple ; Apple M3 Pro ; Ultra
+apple ; Apple M3 Max ; Ultra
+
+#Amd
+amd ; AMD Radeon Pro 5300 ; Medium
+amd ; AMD Radeon Pro 5500 ; Medium
+amd ; AMD Radeon R9 M380 ; Low
+amd ; AMD Radeon R9 M390 ; Low
+amd ; AMD Radeon R9 M395 ; Low
+amd ; AMD Radeon R9 M395X ; Low
+amd ; AMD Radeon R9 M290 ; Low
+amd ; AMD Radeon R9 M290X ; Low
+amd ; AMD Radeon R9 M295X ; Low
+amd ; AMD Radeon HD 6770M ; Low
+amd ; AMD Radeon HD 6970M ; Low
+amd ; AMD Radeon HD 6750M ; Low
+amd ; AMD Radeon Pro 580 ; Low
+amd ; AMD Radeon Pro 580X ; Medium
+amd ; AMD Radeon Pro W5500X ; Medium
+amd ; AMD Radeon Pro W5700X ; Medium
+amd ; AMD Radeon Pro Vega II ; Low
+amd ; AMD Radeon Pro Vega II Duo ; Low
+amd ; AMD Radeon Pro W6800X ; High
+amd ; AMD Radeon Pro W6900X ; High
+amd ; AMD Radeon Pro W6800X Duo ; High
+amd ; AMD Radeon Pro W6600X ; High
+amd ; Dual AMD FirePro D300 ; Low
+amd ; Dual AMD FirePro D500 ; Low
+amd ; Dual AMD FirePro D700 ; Low
+amd ; AMD Radeon Pro 5300M ; Low
+amd ; AMD Radeon Pro 5500M ; Low
+amd ; AMD Radeon Pro 5600M ; Low
+amd ; AMD Radeon R9 M370X ; Low
+amd ; AMD Radeon HD 6490M ; Low
+
+#intel
+intel ; Intel HD Graphics 3000 ; Office
+intel ; Intel HD Graphics 4000 ; Office
+intel ; Intel HD Graphics 5000 ; Office
+intel ; Intel HD Graphics 6000 ; Office
+intel ; Intel Iris Graphics 6100 ; Low
+intel ; Intel Iris Pro Graphics 6200 ; Low
+intel ; Intel Iris Pro ; Low
+intel ; Intel HD Graphics 615 ; Office
+intel ; Intel HD Graphics 515 ; Office
+intel ; Intel HD Graphics 5300 ; OfficeLow
+intel ; Intel UHD Graphics 617 ; Low
+intel ; Intel Iris Plus Graphics ; Low
+intel ; Intel UHD Graphics 630 ; Low
+intel ; Intel Iris Plus Graphics 645 ; Low
+intel ; Intel Iris Plus Graphics 655 ; Low
+intel ; Intel Iris Plus Graphics 655 ; Low
+intel ; Intel HD Graphics 630 ; Office
+intel ; Intel Iris Plus Graphics 650 ; Low
+intel ; Intel Iris Plus Graphics 640 ; Low
+intel ; Intel HD Graphics 530 ; Office
+intel ; Intel Iris Graphics 550 ; Low
+intel ; Intel Iris Graphics 540 ; Low
+intel ; Intel Iris Pro Graphics ; Low
+intel ; Intel Iris Graphics ; Low
+intel ; Intel HD Graphics ; Office
+
+#nvidia
+nvidia ; NVIDIA GeForce 320M ; Office
+nvidia ; NVIDIA GeForce 9400M ; Office
+nvidia ; NVIDIA GeForce GT 755M ; Low
+nvidia ; NVIDIA GeForce GTX 775M ; Low
+nvidia ; NVIDIA GeForce GTX 780M ; Low
+nvidia ; NVIDIA GeForce GT 750M ; Low
+nvidia ; NVIDIA GeForce GT 640M ; Low
+nvidia ; NVIDIA GeForce GT 650M ; Low
+nvidia ; NVIDIA GeForce GT 120 ; Office
+nvidia ; NVIDIA GeForce GT 130 ; Office
+nvidia ; NVIDIA GeForce GT 330M ; Low
+nvidia ; NVIDIA GeForce 9600M GT ; Office
+nvidia ; NVIDIA GeForce 9600M ; Office
+
+END_GPU_LIST;

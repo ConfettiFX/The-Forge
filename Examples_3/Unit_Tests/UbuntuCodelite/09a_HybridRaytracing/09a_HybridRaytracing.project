@@ -18,7 +18,6 @@
     <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/display.vert.fsl"/>
     <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.frag.fsl"/>
     <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.vert.fsl"/>
-    <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/lightingPass.comp.fsl"/>
     <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/raytracedShadowsPass.comp.fsl"/>
     <File Name="../../src/09a_HybridRaytracing/Shaders/FSL/ShaderList.fsl"/>
   </VirtualDirectory>
@@ -78,7 +77,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="no"># GpuConfig</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
@@ -154,7 +153,7 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="no"># GpuConfig</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>

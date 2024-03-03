@@ -38,7 +38,7 @@ outFilesFilePath = os.path.join(scriptDirPath, "out-files.txt")
 systemName = platform.system()
 clangFormatExe = os.path.join(scriptDirPath, systemName, "clang-format") + (".exe" if systemName == "Windows" else "")
 assert(os.path.isfile(clangFormatExe))
-clangFormatArgs = "-i --style=file --fallback-style=none --files=\"{}\"".format(filesToFormatFilePath)
+clangFormatArgs = "-i --style=file --fallback-style=none"
 
 dirExcludeRegex = re.compile("\.(git|vs|cache|codelite)|^(Art|Documents|Jenkins|Scripts|Tools)|(ForgeShadingLanguage|Shaders|ThirdParty|Debug|Release)$")
 fileExtensions = (".h", ".hpp", ".hxx", ".c", ".cpp", ".cxx", ".inc", ".m", ".mm", ".java")
@@ -170,28 +170,39 @@ if __name__ == "__main__":
 
     command = "{} {}".format(clangFormatExe, clangFormatArgs)
     proc = None
+    exitCode = 0
 
-    if args.dry_run:
-        proc = subprocess.run(command, capture_output=True, text=True, shell=True)
+    with open(filesToFormatFilePath, "r") as inFilesFile:
+        if args.dry_run:
+            with open(outFilesFilePath, "w") as outFilesFile:
 
-        if proc.returncode != 0:
-            outFiles = []
-            
-            for line in proc.stderr.split("\n"):
-                if not line:
-                    continue
+                for fileToFormat in inFilesFile.readlines():
+                    fileToFormat = fileToFormat.strip()
+                    print(f"\tFormatting {fileToFormat}")
 
-                if line.endswith("[-Wclang-format-violations]"):
-                    firstIndex = line.find(":")
-                    secondIndex = line.find(":", firstIndex + 1)
-                    filepath = line[:secondIndex]
-                    relpath = os.path.relpath(filepath, theForgePath)
-                    outFiles.append(relpath)
+                    proc = subprocess.run(f'{command} "{fileToFormat}"', capture_output=True, text=True, shell=True)
 
-            assert(outFiles)
-            with open(outFilesFilePath, "w") as f:
-                f.write("\n".join(outFiles))
-    else:
-        proc = subprocess.run(command, shell=True)
+                    if proc.returncode != 0:
+                        exitCode = proc.returncode
+                        
+                        for line in proc.stderr.split("\n"):
+                            print(f'\t\t{line.strip()}')
+                            if not line:
+                                continue
 
-    exit(proc.returncode)
+                            if line.endswith("[-Wclang-format-violations]"):
+                                firstIndex = line.find(":")
+                                secondIndex = line.find(":", firstIndex + 1)
+                                filepath = line[:secondIndex]
+                                relpath = os.path.relpath(filepath, theForgePath)
+                                outFilesFile.write(f'\n{relpath}')
+        else:
+            for fileToFormat in inFilesFile.readlines():
+                fileToFormat = fileToFormat.strip()
+                print(f"\tFormatting {fileToFormat}")
+
+                proc = subprocess.run(f'{command} "{fileToFormat}"', shell=True)
+                if proc.returncode != 0:
+                    exitCode = proc.returnCode
+
+    exit(exitCode)

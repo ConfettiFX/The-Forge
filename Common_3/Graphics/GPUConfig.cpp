@@ -24,6 +24,8 @@
 
 #include "GPUConfig.h"
 
+#include "../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
+
 #include "../Utilities/Interfaces/IFileSystem.h"
 
 ///////////////////////////////////////////////////////////
@@ -183,6 +185,7 @@ struct DriverRejectionRule
 };
 // ------ Interpreting Helpers ------ //
 bool               isValidGPUVendorId(uint32_t vendorId);
+bool               isValidGPUVendorId(uint32_t vendorId);
 const char*        getGPUVendorName(uint32_t modelId);
 const GPUProperty* propertyNameToGpuProperty(const char* str);
 bool               compare(const char* cmp, uint64_t, uint64_t);
@@ -196,11 +199,12 @@ bool           stringToInteger(char* str, uint32_t* pOutResult, uint32_t base);
 bool           stringToLargeInteger(char* str, uint64_t* pOutResult, uint32_t base);
 bool           contains(char* str, const char* sub_str);
 void           tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, char** pTokens);
-GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId);
-bool           parseConfigLine(const char* pLine, const char* pInVendorId, const char* pInModelId, const char* pInModelName,
-                               char pOutVendorId[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
-                               char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH],
-                               GPUPresetLevel* pOutPresetLevel);
+GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorName, const char* inModelName, const char* inModelId,
+                                    const char* inRevId);
+bool           parseConfigLine(const char* pLine, const char* pInVendorName, const char* pInModelName, const char* pInModelId,
+                               const char* pInRevisionId, char pOutVendorName[MAX_GPU_VENDOR_STRING_LENGTH],
+                               char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
+                               char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], GPUPresetLevel* pOutPresetLevel);
 void           parseGPUDataFile();
 void           parseGPUConfigFile(ExtendedSettings* pExtendedSettings);
 void           parseDefaultDataConfigurationLine(char* currentLine);
@@ -254,6 +258,7 @@ static uint32_t             gUserExtendedSettingsCount = 0;
 
 void initGPUSettings(ExtendedSettings* pExtendedSettings)
 {
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
     parseGPUDataFile();
     parseGPUConfigFile(pExtendedSettings);
 }
@@ -575,6 +580,7 @@ void parseDefaultDataConfigurationLine(char* currentLine)
 
     if (strcmp(ruleName, "DefaultPresetLevel") == 0)
     {
+        stringToLower(assignmentValue);
         GPUPresetLevel defaultLevel = stringToPresetLevel(assignmentValue);
         if (defaultLevel != GPUPresetLevel::GPU_PRESET_NONE)
         {
@@ -901,7 +907,7 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 {
     uint32_t gpuIndex = gpuCount > 0 ? 0 : UINT32_MAX;
 
-    typedef bool (*DeviceBetterFn)(GPUSettings* testSettings, GPUSettings* refSettings, GPUComparisonChoice* choices,
+    typedef bool (*DeviceBetterFn)(GPUSettings * testSettings, GPUSettings * refSettings, GPUComparisonChoice * choices,
                                    uint32_t choicesCount);
     DeviceBetterFn isDeviceBetterThan = [](GPUSettings* testSettings, GPUSettings* refSettings, GPUComparisonChoice* choices,
                                            uint32_t choicesCount) -> bool
@@ -1114,14 +1120,50 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
     return true;
 }
 
-GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, uint32_t revId)
+GPUPresetLevel getDefaultPresetLevel() { return gDefaultPresetLevel; }
+
+GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName) { return getGPUPresetLevel(vendorName, modelName, 0, 0); }
+
+GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName, uint32_t modelId)
 {
-    char vendorIdStr[MAX_GPU_VENDOR_STRING_LENGTH];
-    char modelIdStr[MAX_GPU_VENDOR_STRING_LENGTH];
-    char revIdStr[MAX_GPU_VENDOR_STRING_LENGTH];
-    snprintf(vendorIdStr, MAX_GPU_VENDOR_STRING_LENGTH, "%#x", vendorId);
-    snprintf(modelIdStr, MAX_GPU_VENDOR_STRING_LENGTH, "%#x", modelId);
-    snprintf(revIdStr, MAX_GPU_VENDOR_STRING_LENGTH, "%#x", revId);
+    return getGPUPresetLevel(vendorName, modelName, modelId, 0);
+}
+
+GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName, uint32_t modelId, uint32_t revId)
+{
+    char           modelIdStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char           revIdStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    GPUPresetLevel presetLevel = gDefaultPresetLevel;
+    bool           usingDefault = true;
+
+    const char* pModelIdStr = NULL;
+    if (modelId != 0)
+    {
+        snprintf(modelIdStr, MAX_GPU_VENDOR_STRING_LENGTH, "%#x", modelId);
+        pModelIdStr = modelIdStr;
+    }
+
+    const char* pRevIdStr = NULL;
+    if (revId != 0)
+    {
+        snprintf(revIdStr, MAX_GPU_VENDOR_STRING_LENGTH, "%#x", revId);
+        pRevIdStr = revIdStr;
+    }
+
+    // Some model names have extra trademark symbols in the name, strip it out before comparision
+    bstring  stripped_strings[] = { bconstfromliteral("(TM)"), bconstfromliteral("(R)") };
+    bstring  empty = bempty();
+    uint32_t string_count = TF_ARRAY_COUNT(stripped_strings);
+    bstring  trimmedModelName = bdynfromcstr(modelName);
+    for (uint32_t i = 0; i < string_count; ++i)
+    {
+        bfindreplacecaseless(&trimmedModelName, &stripped_strings[i], &empty, 0);
+    }
+
+    bstring doubleSpace = bconstfromliteral("  ");
+    bstring singleSpace = bconstfromliteral(" ");
+    // Replace double spaces
+    bfindreplacecaseless(&trimmedModelName, &doubleSpace, &singleSpace, 0);
 
     if (gGpuListBeginFileCursor != nullptr)
     {
@@ -1129,25 +1171,30 @@ GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, uint32_t r
         char* gpuFileCursor = gGpuListBeginFileCursor;
         while (bufferedGetLine(gpuDataString, &gpuFileCursor, gGpuListEndFileCursor))
         {
-            GPUPresetLevel level = getSinglePresetLevel(gpuDataString, vendorIdStr, modelIdStr, revIdStr);
+            GPUPresetLevel level = getSinglePresetLevel(gpuDataString, vendorName, bdata(&trimmedModelName), pModelIdStr, pRevIdStr);
             // Do something with the tok
             if (level != GPU_PRESET_NONE)
             {
-                LOGF(eINFO, "Setting preset level %s for gpu vendor:%s model:%s", presetLevelToString(level), getGPUVendorName(vendorId),
-                     modelIdStr);
-                return level;
+                LOGF(eINFO, "Setting preset level %s for gpu vendor:%s model:%s", presetLevelToString(level), vendorName, modelName);
+                presetLevel = level;
+                usingDefault = false;
+                break;
             }
         }
     }
     else
     {
-        LOGF(eINFO, "BEGIN_GPU_LIST; is missing, setting preset to %s as a default.", presetLevelToString(gDefaultPresetLevel));
-        return gDefaultPresetLevel;
+        LOGF(eWARNING, "BEGIN_GPU_LIST; is missing, setting preset to %s as a default.", presetLevelToString(gDefaultPresetLevel));
     }
 
-    LOGF(eINFO, "Couldn't find gpu %s model: %#x in gpu.data. Setting preset to %s as a default.", getGPUVendorName(vendorId), modelId,
-         presetLevelToString(gDefaultPresetLevel));
-    return gDefaultPresetLevel;
+    if (usingDefault)
+    {
+        LOGF(eWARNING, "Couldn't find gpu %s model: %s in gpu.data. Setting preset to %s as a default.", vendorName, modelName,
+             presetLevelToString(gDefaultPresetLevel));
+    }
+
+    bdestroy(&trimmedModelName);
+    return presetLevel;
 }
 
 const char* presetLevelToString(GPUPresetLevel preset)
@@ -1158,6 +1205,8 @@ const char* presetLevelToString(GPUPresetLevel preset)
         return "";
     case GPU_PRESET_OFFICE:
         return "office";
+    case GPU_PRESET_VERYLOW:
+        return "verylow";
     case GPU_PRESET_LOW:
         return "low";
     case GPU_PRESET_MEDIUM:
@@ -1175,6 +1224,8 @@ GPUPresetLevel stringToPresetLevel(const char* presetLevel)
 {
     if (!stricmp(presetLevel, "office"))
         return GPU_PRESET_OFFICE;
+    if (!stricmp(presetLevel, "verylow"))
+        return GPU_PRESET_VERYLOW;
     if (!stricmp(presetLevel, "low"))
         return GPU_PRESET_LOW;
     if (!stricmp(presetLevel, "medium"))
@@ -1230,6 +1281,23 @@ const char* getGPUVendorName(uint32_t vendorId)
             }
     }
     return "UNKNOWN_GPU_VENDOR";
+}
+
+uint32_t getGPUVendorID(const char* vendorName)
+{
+    for (uint32_t i = 0; i < gGPUVendorCount; ++i)
+    {
+        GPUVendorDefinition* currentGPUVendorDefinition = &gGPUVendorDefinitions[i];
+        if (strcmp(vendorName, currentGPUVendorDefinition->vendorName) == 0)
+        {
+            // Return the first vendor found in the vendor list
+            if (currentGPUVendorDefinition->identifierCount > 0)
+            {
+                return currentGPUVendorDefinition->identifierArray[0];
+            }
+        }
+    }
+    return 0;
 }
 
 bool gpuVendorEquals(uint32_t vendorId, const char* vendorName)
@@ -1420,32 +1488,31 @@ void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, c
     }
 }
 
-GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId)
+GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorName, const char* inModelName, const char* inModelId,
+                                    const char* inRevId)
 {
-    char           vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char           vendorName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char           deviceName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char           deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char           gpuName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char           revisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     GPUPresetLevel presetLevel = {};
 
     // check if current vendor line is one of the selected gpu's
-    if (!parseConfigLine(line, inVendorId, inModelId, NULL, vendorId, deviceId, revisionId, gpuName, &presetLevel))
-        return GPU_PRESET_NONE;
-
-    // if we have a revision Id then we want to match it as well
-    if (stricmp(inRevId, "0x00") != 0 && strlen(revisionId) && stricmp(revisionId, "0x00") != 0 && stricmp(inRevId, revisionId) != 0)
+    if (!parseConfigLine(line, inVendorName, inModelName, inModelId, inRevId, vendorName, deviceName, deviceId, revisionId, &presetLevel))
         return GPU_PRESET_NONE;
 
     return presetLevel;
 }
 
-bool parseConfigLine(const char* pLine, const char* pInVendorId, const char* pInModelId, const char* pInModelName,
-                     char pOutVendorId[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
-                     char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH],
-                     GPUPresetLevel* pOutPresetLevel)
+bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* pInModelName, const char* pInModelId,
+                     const char* pInRevisionId, char pOutVendorName[MAX_GPU_VENDOR_STRING_LENGTH],
+                     char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
+                     char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], GPUPresetLevel* pOutPresetLevel)
 {
     const char* pOrigLine = pLine;
     ASSERT(pLine && pOutPresetLevel);
+    ASSERT(pInVendorName);
+    ASSERT(pInModelName);
     *pOutPresetLevel = GPU_PRESET_LOW;
 
     // exclude comments from line
@@ -1462,25 +1529,25 @@ bool parseConfigLine(const char* pLine, const char* pInVendorId, const char* pIn
     char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH];
 
     char* tokens[] = {
-        pOutVendorId, pOutModelId, presetLevel, pOutModelName, pOutRevisionId,
+        pOutVendorName, pOutModelName, presetLevel, pOutModelId, pOutRevisionId,
         // codename is not used
     };
     tokenizeLine(pLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
 
     // validate required fields
-    if (pOutVendorId[0] == '\0' || pOutModelId[0] == '\0' || presetLevel[0] == '\0' || pOutModelName[0] == '\0')
+    if (pOutVendorName[0] == '\0' || pOutModelName[0] == '\0' || presetLevel[0] == '\0')
     {
         LOGF(eWARNING,
-             "GPU config requires VendorId, DeviceId, Classification and Name. "
+             "GPU config requires VendorName, DeviceName and PresetLevel. "
              "Following line has invalid format:\n'%s'",
              pOrigLine);
         return false;
     }
 
     // convert ids to lower case
-    stringToLower(pOutVendorId);
-    stringToLower(pOutModelId);
     stringToLower(presetLevel);
+    stringToLower(pOutModelId);
+    stringToLower(pOutRevisionId); // RevisionID is no longer used for comparision. Just compare name and modelID if provided in gpu.data
 
     // Parsing logic
 
@@ -1488,14 +1555,19 @@ bool parseConfigLine(const char* pLine, const char* pInVendorId, const char* pIn
 
     bool success = true;
 
-    if (pInVendorId)
-        success = success && strcmp(pInVendorId, pOutVendorId) == 0;
+    success = success && strcmp(pInVendorName, pOutVendorName) == 0;
+    success = success && strcmp(pInModelName, pOutModelName) == 0;
 
-    if (pInModelId)
-        success = success && strcmp(pInModelId, pOutModelId) == 0;
-
-    if (pInModelName)
-        success = success && strcmp(pInModelName, pOutModelName) == 0;
+    if (success && pInModelId && pOutModelId[0] != '\0')
+    {
+        if (strcmp(pInModelId, pOutModelId) != 0)
+        {
+            LOGF(LogLevel::eWARNING, "Entry with matching GPUName found in gpu.data, however there was a mismatch in device IDs. \
+                                      Entry has ID: %s | Device has ID: %s",
+                 pInModelId, pInModelName);
+            success = false;
+        }
+    }
 
     return success;
 }

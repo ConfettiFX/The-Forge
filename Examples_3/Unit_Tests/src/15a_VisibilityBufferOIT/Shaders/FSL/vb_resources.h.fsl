@@ -70,8 +70,8 @@ STRUCT(VsInAlphaTested)
 
 STRUCT(PsInAlphaTested)
 {
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
+    DATA(float4, position, SV_Position);
+    DATA(float2, texCoord, TEXCOORD0);
 #if !defined(NO_MATERIALID_ON_PIXEL_SHADER_INPUT)
 	DATA(FLAT(uint), materialID, TEXCOORD1);
 #endif

@@ -167,8 +167,15 @@ bool             gMultiGPUCurrent = true;
 uint32_t         gSelectedGpuIndices[gViewCount] = { 0, 1 };
 float*           pSpherePoints;
 
-const char* gTestScripts[] = { "Test0.lua" };
 uint32_t    gCurrentScriptIndex = 0;
+const char* gTestScripts[] = { "Test0.lua" };
+#ifdef AUTOMATED_TESTING
+// For this UT the test ordering is done manually..
+// It is done based of the number of times we reset the APP..
+const char* gSwapRendererTestScriptFileName = "Test_SwapRenderers_Swap.lua";
+const char* gSwapRendererScreenshotTestScriptFileName = "Test_SwapRenderers_Screenshot.lua";
+int32_t     gNumResetsFromTestScripts = 0; // number of times we have reset the app..
+#endif
 
 void RunScript(void* pUserData)
 {
@@ -196,7 +203,6 @@ public:
 
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
@@ -408,11 +414,36 @@ public:
         uiRenderDesc.mFrameCount = gDataBufferCount;
         initUserInterface(&uiRenderDesc);
 
-        const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
-        LuaScriptDesc  scriptDescs[numScripts] = {};
-        for (uint32_t i = 0; i < numScripts; ++i)
-            scriptDescs[i].pScriptFileName = gTestScripts[i];
-        luaDefineScripts(scriptDescs, numScripts);
+#ifdef AUTOMATED_TESTING
+        const uint32_t numScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0])) + 1;
+#else
+        const uint32_t numScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+#endif
+        uint32_t      numScriptsToDefine = numScripts;
+        LuaScriptDesc scriptDescs[numScripts] = {};
+
+#ifdef AUTOMATED_TESTING
+        if (gNumResetsFromTestScripts == 0)
+        {
+            // add all non swap renderscripts
+            for (uint32_t i = 0; i < numScripts - 1; ++i)
+                scriptDescs[i].pScriptFileName = gTestScripts[i];
+
+            // last slot is for render swapping..
+            scriptDescs[numScripts - 1].pScriptFileName = gSwapRendererTestScriptFileName;
+        }
+        else if (gNumResetsFromTestScripts == 1) // we only want to take a screenshot for swapped renderer
+        {
+            scriptDescs[0].pScriptFileName = gSwapRendererScreenshotTestScriptFileName;
+            scriptDescs[1].pScriptFileName = gSwapRendererTestScriptFileName;
+        }
+        else if (gNumResetsFromTestScripts == 2) // just take a default screenshot again (since first one gets overriden)..
+        {
+            numScriptsToDefine = 0;
+            gNumResetsFromTestScripts = -1;
+        }
+#endif
+        luaDefineScripts(scriptDescs, numScriptsToDefine);
 
         UIComponentDesc guiDesc = {};
         guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
@@ -600,6 +631,23 @@ public:
                 uiSetWidgetOnEditedCallback(pGpuSelect, nullptr, SwitchGpuMode);
                 luaRegisterWidget(pGpuSelect);
             }
+
+#ifdef AUTOMATED_TESTING
+            ButtonWidget btnSwapRenderers;
+            UIWidget*    pSwapRenderers = uiCreateComponentWidget(pGui, "Swap Renderers", &btnSwapRenderers, WIDGET_TYPE_BUTTON);
+            uiSetWidgetOnEditedCallback(pSwapRenderers, this,
+                                        [](void* pUserData)
+                                        {
+                                            uint32_t temporary = gSelectedGpuIndices[0];
+                                            gSelectedGpuIndices[0] = gSelectedGpuIndices[1];
+                                            gSelectedGpuIndices[1] = temporary;
+
+                                            ResetDesc resetDescriptor;
+                                            resetDescriptor.mType = RESET_TYPE_GRAPHIC_CARD_SWITCH;
+                                            requestReset(&resetDescriptor);
+                                        });
+            luaRegisterWidget(pSwapRenderers);
+#endif
         }
         SliderUintWidget frameLatencyWidget;
         frameLatencyWidget.mMin = 0;
@@ -638,7 +686,7 @@ public:
         DropdownWidget ddTestScripts;
         ddTestScripts.pData = &gCurrentScriptIndex;
         ddTestScripts.pNames = gTestScripts;
-        ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+        ddTestScripts.mCount = numScriptsToDefine;
         luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
         ButtonWidget bRunScript;
@@ -703,7 +751,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -761,6 +809,12 @@ public:
 
     void Exit()
     {
+#ifdef AUTOMATED_TESTING
+        // Exit is only called whenever SwapRenderer.lua script gets executed or API gets switched
+        // In case of API switch we can ignore (it will already be -1)
+        // In case if SwapRenderer, this decides what scripts get executed...
+        gNumResetsFromTestScripts++;
+#endif
         const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
 
         exitInputSystem();
@@ -883,6 +937,9 @@ public:
 
         initScreenshotInterface(pRenderer[0], pGraphicsQueue[0]);
 
+        memset(gReadbackSyncTokens, 0, sizeof(gReadbackSyncTokens));
+        gFrameIndex = 0;
+
         return true;
     }
 
@@ -898,6 +955,7 @@ public:
 
         // Must flush resource loader queues as well.
         waitForAllResourceLoads();
+        waitCopyQueueIdle();
 
         if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
         {
@@ -939,7 +997,6 @@ public:
         /************************************************************************/
         // Update GUI
         /************************************************************************/
-
         static uint32_t frameLatencyCurrent = gFrameLatency;
         if (gFrameLatency != frameLatencyCurrent)
         {
@@ -1030,29 +1087,34 @@ public:
             Cmd*           cmd = gGraphicsCmdRing[i].pCmds[gFrameIndex][0];
 
             // simply record the screen cleaning command
-            LoadActionsDesc loadActions = {};
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = gClearColor;
-            loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-            loadActions.mClearDepth = gClearDepth;
-
             beginCmd(cmd);
             cmdBeginGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
 
-            RenderTargetBarrier barriers[] = {
-                { pRenderTarget, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_RENDER_TARGET },
-            };
             if (i == 0 || !gMultiGPUCurrent)
             {
-                barriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
+                RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
             }
             else
             {
-                barriers[0].mAcquire = 1;
+                RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, RESOURCE_STATE_COPY_SOURCE };
+                // Barrier - Acquire from Transfer queue to be used on Graphics queue as RT
+                // Conditional barrier as if the transfer queue never acquired the RT, no need to reacquire
+                if (gReadbackSyncTokens[nextFrameIndex][i - 1] && isTokenCompleted(&gReadbackSyncTokens[nextFrameIndex][i - 1]))
+                {
+                    barrier.mAcquire = true;
+                    barrier.mQueueType = QUEUE_TYPE_TRANSFER;
+                    cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
+                }
+                barrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, RESOURCE_STATE_RENDER_TARGET };
+                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
             }
 
-            cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-            cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+            bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
 
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
@@ -1076,22 +1138,23 @@ public:
             cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
             cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             if (i == 0 || !gMultiGPUCurrent)
             {
-                RenderTargetBarrier srvBarriers[] = {
-                    { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
-                };
-                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarriers);
+                RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
             }
             else
             {
-                RenderTargetBarrier copyBarriers[] = { { pRenderTarget, RESOURCE_STATE_RENDER_TARGET,
-                                                         RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
-                copyBarriers[0].mRelease = 1;
-                copyBarriers[0].mQueueType = QUEUE_TYPE_GRAPHICS;
-                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, copyBarriers);
+                RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_COPY_SOURCE };
+                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
+
+                // Barrier - Release from Graphics queue to be used on Transfer queue as CopySource
+                barrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, RESOURCE_STATE_COPY_SOURCE };
+                barrier.mRelease = true;
+                barrier.mQueueType = QUEUE_TYPE_TRANSFER;
+                cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
             }
 
             cmdEndGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
@@ -1128,8 +1191,10 @@ public:
             copyDesc.pTexture = pRenderTarget->pTexture;
             copyDesc.pBuffer = pTransferBuffer[nextFrameIndex][i];
             copyDesc.pWaitSemaphore = pRenderCompleteSemaphore;
-            copyDesc.mTextureState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            copyDesc.mQueueType = QUEUE_TYPE_TRANSFER;
+            copyDesc.mTextureState = RESOURCE_STATE_COPY_SOURCE;
+            // Barrier - Info to copy engine that the resource was last acquired by Graphics queue
+            // Copy engine will use this as the queue type for acquire and release barrier on Transfer queue
+            copyDesc.mQueueType = QUEUE_TYPE_GRAPHICS;
             copyResource(&copyDesc, &gReadbackSyncTokens[nextFrameIndex][i - 1]);
         }
 
@@ -1175,11 +1240,6 @@ public:
             uint32_t swapchainImageIndex;
             acquireNextImage(pRenderer[0], pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-            LoadActionsDesc loadActions = {};
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = gClearColor;
-            loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-
             Cmd*          cmd = gGraphicsCmdRing[0].pCmds[gFrameIndex][1];
             RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 
@@ -1189,7 +1249,10 @@ public:
             RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET } };
             cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-            cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mRenderTargetCount = 1;
+            bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+            cmdBindRenderTargets(cmd, &bindRenderTargets);
 
             cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[gViewCount], "Panini Projection");
 
@@ -1226,7 +1289,7 @@ public:
 
             cmdDrawUserInterface(cmd);
 
-            cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(cmd, NULL);
 
             barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
             cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
@@ -1579,7 +1642,7 @@ public:
             {
                 if (gMultiGPUCurrent && i > 0)
                 {
-                    colorRT.mStartState = RESOURCE_STATE_COMMON;
+                    colorRT.mStartState = RESOURCE_STATE_COPY_SOURCE;
                     addRenderTarget(pRenderer[i], &colorRT, &pRenderTargets[frameIdx][i]);
 
                     TextureLoadDesc colorTexture = { &pRenderResult[frameIdx][i - 1], &colorResult };

@@ -61,14 +61,27 @@
 #define MAX_TEMP_BUFFER_SIZE     30
 
 // Must be initialized with application's ui before drawing.
-Renderer*    pRendererRef = 0;
-UIComponent* pWidgetUIComponent = 0;
-UIComponent* pMenuUIComponent = 0;
-float        gGuiTransparency = 0.1f;
+Renderer*    pRendererRef = NULL;
+UIComponent* pWidgetUIComponent = NULL;
+UIComponent* pMenuUIComponent = NULL;
 
-bool   gProfilerWidgetUIEnabled = false;
-bool   gProfilerWidgetMenuUIEnabled = false;
-bool   gProfilerDrawingEnabled = true;
+float gGuiTransparency = 0.1f;
+
+bool gProfilerWidgetUIEnabled = false;
+bool gProfilerWidgetMenuUIEnabled = false;
+bool gProfilerDrawingEnabled = true;
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+UIComponent* pDriverMemTrackerUIComponent = NULL;
+bool         gDriverMemoryWidgetUIEnabled = false;
+#endif
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+UIComponent* pDeviceMemTrackerUIComponent = NULL;
+bool         gDeviceMemoryWidgetUIEnabled = false;
+#endif
+
+// UI.cpp
+
 // To re-alloc all dynamic data when screen resize unloads it.
 bool   gUnloaded = true;
 float2 gCurrWindowSize;
@@ -1924,10 +1937,17 @@ void initProfiler(ProfilerDesc* pDesc)
     // store active gpu settings
     ProfileGet()->pGpuSettings = &pDesc->pRenderer->pGpu->mSettings;
 
-    // gpu profiler title text
-    snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s \t\t\t\t Driver: %s",
-             pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName,
-             pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion);
+    // set gpu profiler title text
+    if (pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion[0] != '\0')
+    {
+        snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s \t\t\t\t Driver: %s",
+                 pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName,
+                 pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion);
+    }
+    else
+    {
+        snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s", pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName);
+    }
 #endif
 
     // PROFILER UI
@@ -1974,6 +1994,49 @@ void initProfiler(ProfilerDesc* pDesc)
     CheckboxWidget checkbox;
     checkbox.pData = &gProfilerWidgetUIEnabled;
     REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+    if (GetDriverMemoryAmount())
+    {
+        CheckboxWidget driverMemoryCheckbox;
+        driverMemoryCheckbox.pData = &gDriverMemoryWidgetUIEnabled;
+        UIWidget* widget =
+            uiCreateComponentWidget(pMenuUIComponent, "Toggle Driver Memory tracker", &driverMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
+        uiSetWidgetOnEditedCallback(widget, NULL,
+                                    [](void*) { pDriverMemTrackerUIComponent->mActive = !pDriverMemTrackerUIComponent->mActive; });
+
+        UIComponentDesc guiMenuDesc = {};
+        uiCreateComponent("Driver memory tracking", &guiMenuDesc, &pDriverMemTrackerUIComponent);
+        pDriverMemTrackerUIComponent->mActive = gDriverMemoryWidgetUIEnabled;
+        pDriverMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
+        extern void  DrawDriverMemoryTrackingUI(void*);
+        CustomWidget trackerWidget = {};
+        trackerWidget.pCallback = DrawDriverMemoryTrackingUI;
+        uiCreateComponentWidget(pDriverMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
+    }
+#endif
+
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    if (GetDeviceMemoryAmount())
+    {
+        // Vulkan.cpp
+        CheckboxWidget deviceMemoryCheckbox;
+        deviceMemoryCheckbox.pData = &gDeviceMemoryWidgetUIEnabled;
+        UIWidget* widget =
+            uiCreateComponentWidget(pMenuUIComponent, "Toggle Device Memory tracker", &deviceMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
+        uiSetWidgetOnEditedCallback(widget, NULL,
+                                    [](void*) { pDeviceMemTrackerUIComponent->mActive = !pDeviceMemTrackerUIComponent->mActive; });
+
+        UIComponentDesc guiMenuDesc = {};
+        uiCreateComponent("Device memory tracking", &guiMenuDesc, &pDeviceMemTrackerUIComponent);
+        pDeviceMemTrackerUIComponent->mActive = gDeviceMemoryWidgetUIEnabled;
+        pDeviceMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
+        extern void  DrawDeviceMemoryReportUI(void*);
+        CustomWidget trackerWidget = {};
+        trackerWidget.pCallback = DrawDeviceMemoryReportUI;
+        uiCreateComponentWidget(pDeviceMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
+    }
+#endif
 
     SeparatorWidget separator;
     REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
@@ -4238,7 +4301,34 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 }
 #endif
 
-void ProfileWriteFile(void* Handle, size_t nSize, const char* pData) { fsWriteToStream((FileStream*)Handle, pData, nSize); }
+struct ProfileWriteFileData
+{
+    bstring    mBuffer;
+    FileStream mStream;
+};
+
+static void ProfileWriteFileFlush(ProfileWriteFileData* data)
+{
+    const size_t length = (size_t)blength(&data->mBuffer);
+    if (length > 0)
+    {
+        const char* bufData = bdata(&data->mBuffer);
+        VERIFY(fsWriteToStream(&data->mStream, bufData, length) == length);
+        btrunc(&data->mBuffer, 0); // Clear the buffer
+    }
+}
+
+void ProfileWriteFile(void* Handle, size_t nSize, const char* pData)
+{
+    ProfileWriteFileData* data = (ProfileWriteFileData*)Handle;
+    bcatblk(&data->mBuffer, pData, (int)nSize);
+
+    if (blength(&data->mBuffer) > 4096)
+    {
+        // Buffer is sufficiently big, flush it to disk
+        ProfileWriteFileFlush(data);
+    }
+}
 
 void ProfileDumpToFile(Renderer* pRenderer)
 {
@@ -4248,16 +4338,19 @@ void ProfileDumpToFile(Renderer* pRenderer)
     MutexLock lock(ProfileMutex());
     Profile&  S = g_Profile;
 
-    FileStream fh = {};
-    if (fsOpenStreamFromPath(RD_LOG, S.DumpFile, FM_WRITE, &fh))
+    ProfileWriteFileData data = {};
+    data.mBuffer = bempty();
+    if (fsOpenStreamFromPath(RD_LOG, S.DumpFile, FM_WRITE, &data.mStream))
     {
         if (S.eDumpType == ProfileDumpTypeHtml)
-            ProfileDumpHtml(ProfileWriteFile, &fh, S.nDumpFrames, 0);
+            ProfileDumpHtml(ProfileWriteFile, &data, S.nDumpFrames, 0);
         else if (S.eDumpType == ProfileDumpTypeCsv)
-            ProfileDumpCsv(ProfileWriteFile, &fh, S.nDumpFrames);
+            ProfileDumpCsv(ProfileWriteFile, &data, S.nDumpFrames);
 
-        fsCloseStream(&fh);
+        ProfileWriteFileFlush(&data);
+        fsCloseStream(&data.mStream);
     }
+    bdestroy(&data.mBuffer);
 }
 
 void dumpProfileData(const char* appName, uint32_t nMaxFrames)
@@ -4276,12 +4369,15 @@ void dumpProfileData(const char* appName, uint32_t nMaxFrames)
 
     char name[256] = {};
     snprintf(name, sizeof(name), "%s%s", appName, time);
-    FileStream fh = {};
-    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &fh))
+    ProfileWriteFileData data = {};
+    data.mBuffer = bempty();
+    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &data.mStream))
     {
-        ProfileDumpHtml(ProfileWriteFile, &fh, nMaxFrames, 0);
-        fsCloseStream(&fh);
+        ProfileDumpHtml(ProfileWriteFile, &data, nMaxFrames, 0);
+        ProfileWriteFileFlush(&data);
+        fsCloseStream(&data.mStream);
     }
+    bdestroy(&data.mBuffer);
 }
 
 void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char* appName)
@@ -4370,7 +4466,7 @@ void ProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 #ifdef MSG_NOSIGNAL
     int nFlags = MSG_NOSIGNAL;
 #else
-    int nFlags = 0;
+    int                          nFlags = 0;
 #endif
 
     send(Socket, pData, (int)nSize, nFlags);
@@ -4937,7 +5033,7 @@ void ProfileTraceThread(void*)
     while (!S.bContextSwitchStop)
     {
         FileSystem* fileSystem = fsGetSystemFileSystem();
-        PathHandle  path = fsCreatePath(fileSystem, "/tmp/microprofile-contextswitch");
+        PathHandle path = fsCreatePath(fileSystem, "/tmp/microprofile-contextswitch");
         FileStream* fh = fsOpenStreamFromPath(path, FM_READ);
         if (!fh)
         {
@@ -4947,7 +5043,7 @@ void ProfileTraceThread(void*)
 
         S.bContextSwitchRunning = true;
 
-        char   line[1024] = {};
+        char line[1024] = {};
         size_t cap = 0;
         size_t len = 0;
 
@@ -4958,10 +5054,10 @@ void ProfileTraceThread(void*)
             if (strncmp(line, "MPTD ", 5) != 0)
                 continue;
 
-            char*   pos = line + 4;
-            long    cpu = strtol(pos + 1, &pos, 16);
-            long    pid = strtol(pos + 1, &pos, 16);
-            long    tid = strtol(pos + 1, &pos, 16);
+            char* pos = line + 4;
+            long cpu = strtol(pos + 1, &pos, 16);
+            long pid = strtol(pos + 1, &pos, 16);
+            long tid = strtol(pos + 1, &pos, 16);
             int64_t timestamp = strtoll(pos + 1, &pos, 16);
 
             if (cpu < PROFILE_MAX_CONTEXT_SWITCH_THREADS)

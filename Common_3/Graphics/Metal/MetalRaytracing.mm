@@ -66,8 +66,8 @@ struct IOS17_API AccelerationStructure
         struct
         {
             MTLInstanceAccelerationStructureDescriptor* pTopDesc;
-            NOREFS id*                                  pBottomASReferences;
-            uint32_t                                    mBottomASReferenceCount;
+            NOREFS id* pBottomASReferences;
+            uint32_t   mBottomASReferenceCount;
         };
     };
     uint32_t                  mDescCount;

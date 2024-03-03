@@ -76,20 +76,14 @@
     <Filter Include="Common_3\Utilities\MemoryTracking">
       <UniqueIdentifier>{47e90d64-5f84-48d0-baad-52c176a83376}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder">
-      <UniqueIdentifier>{1b20657d-dc62-41b4-8934-8544ed63e9cf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal">
-      <UniqueIdentifier>{746a84b4-2f6b-464f-879e-79dc8d95bedc}</UniqueIdentifier>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\bstrlib">
+      <UniqueIdentifier>{79bd5f02-7ab9-4e50-bc67-131a6a4d421d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\ThirdParty\OpenSource">
       <UniqueIdentifier>{708a71ec-e88d-4f5c-ac1a-485c82bfcd89}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\ThirdParty">
       <UniqueIdentifier>{de1f8751-95e6-4363-bbad-fe49cb6373e9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\bstrlib">
-      <UniqueIdentifier>{79bd5f02-7ab9-4e50-bc67-131a6a4d421d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\lz4">
       <UniqueIdentifier>{ac5c3008-e639-4a83-abef-0ed9f0da28da}</UniqueIdentifier>
@@ -347,9 +341,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\MemoryTracking.c">
       <Filter>Common_3\Utilities\MemoryTracking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
-      <Filter>Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c">
       <Filter>Common_3\Utilities\ThirdParty\OpenSource\bstrlib</Filter>

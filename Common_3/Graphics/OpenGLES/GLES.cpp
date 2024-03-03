@@ -970,8 +970,6 @@ DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTe
 #if defined(VULKAN) && defined(ANDROID)
 #include "../../../Common_3/Graphics/ThirdParty/OpenSource/volk/volk.h"
 
-extern VkAllocationCallbacks gVkAllocationCallbacks;
-
 // temporarily initializes vulkan to verify that gpu is whitelisted
 static bool verifyGPU()
 {
@@ -983,7 +981,7 @@ static bool verifyGPU()
 	instanceInfo.pApplicationInfo = NULL;
 
 	VkInstance instance;
-	if (vkCreateInstance(&instanceInfo, &gVkAllocationCallbacks, &instance) != VK_SUCCESS)
+	if (vkCreateInstance(&instanceInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_INSTANCE), &instance) != VK_SUCCESS)
 		return false;
 	volkLoadInstanceOnly(instance);
 
@@ -992,11 +990,11 @@ static bool verifyGPU()
 	VkPhysicalDevice device;
 	if (vkEnumeratePhysicalDevices(instance, &deviceCount, &device) != VK_SUCCESS || deviceCount != 1)
 	{
-		vkDestroyInstance(instance, &gVkAllocationCallbacks);
+		vkDestroyInstance(instance, GetAllocationCallbacks(VK_OBJECT_TYPE_INSTANCE));
 		return false;
 	}
 
-	vkDestroyInstance(instance, &gVkAllocationCallbacks);
+	vkDestroyInstance(instance, GetAllocationCallbacks(VK_OBJECT_TYPE_INSTANCE));
 	return true;
 }
 #endif
@@ -1127,12 +1125,11 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	GPUVendorPreset& gpuVendorPresets = gpuSettings.mGpuVendorPreset;
 	gpuVendorPresets.mVendorId = strtol(glVendor, NULL, 16);
+	strncpy(gpuVendorPresets.mVendorName, glVendor, MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(gpuVendorPresets.mGpuName, glRenderer, MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(gpuVendorPresets.mGpuDriverVersion, glVersion, MAX_GPU_VENDOR_STRING_LENGTH);
-	gpuVendorPresets.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW; // Default
-	gpuVendorPresets.mPresetLevel = getGPUPresetLevel(gpuVendorPresets.mVendorId,
-														gpuVendorPresets.mModelId,
-														gpuVendorPresets.mRevisionId);
+	gpuVendorPresets.mPresetLevel = getGPUPresetLevel(gpuVendorPresets.mVendorName,
+														gpuVendorPresets.mGpuName);
 
 	pRenderer->pContext = &context;
 	pRenderer->pGpu = &context.mGpus[0];
@@ -2862,16 +2859,13 @@ void gl_endCmd(Cmd* pCmd)
 	cmdCache->isStarted = false;
 }
 
-void gl_cmdBindRenderTargets(
-	Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
-	const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice,
-	uint32_t depthMipSlice)
+void gl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
 	ASSERT(pCmd);
 	CmdCache* cmdCache = pCmd->mGLES.pCmdPool->pCmdCache;
 	ASSERT(cmdCache->isStarted);
 
-	if (!renderTargetCount && !pDepthStencil)
+	if (!pDesc)
 	{
 		// Reset
 		if (cmdCache->mFramebuffer)
@@ -2885,25 +2879,29 @@ void gl_cmdBindRenderTargets(
 
 	uint32_t clearMask = 0;
 
-	for (uint32_t rtIndex = 0; rtIndex < renderTargetCount; ++rtIndex)
+	for (uint32_t rtIndex = 0; rtIndex < pDesc->mRenderTargetCount; ++rtIndex)
 	{
-		if(rtIndex == 0)
-			pCmd->mGLES.pCmdPool->pCmdCache->mRenderTargetHeight = ppRenderTargets[rtIndex]->mHeight;
-
-		if (ppRenderTargets[rtIndex]->pTexture)
+		const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[rtIndex];
+		if (rtIndex == 0)
 		{
-			// bind new framebuffer for textured rt's
-			if (rtIndex == 0 && cmdCache->mFramebuffer != ppRenderTargets[rtIndex]->mGLES.mFramebuffer)
-			{
-				CHECK_GLRESULT(glBindFramebuffer(GL_FRAMEBUFFER, ppRenderTargets[rtIndex]->mGLES.mFramebuffer));
-				cmdCache->mFramebuffer = ppRenderTargets[rtIndex]->mGLES.mFramebuffer;
-			}
-			CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + rtIndex, GL_TEXTURE_2D, ppRenderTargets[rtIndex]->pTexture->mGLES.mTexture, 0));
+			pCmd->mGLES.pCmdPool->pCmdCache->mRenderTargetHeight = desc->pRenderTarget->mHeight;
 		}
 
-		if (pLoadActions && pLoadActions->mLoadActionsColor[rtIndex] == LOAD_ACTION_CLEAR)
+		if (desc->pRenderTarget->pTexture)
 		{
-			vec4 clearColor = vec4(pLoadActions->mClearColorValues[rtIndex].r, pLoadActions->mClearColorValues[rtIndex].g, pLoadActions->mClearColorValues[rtIndex].b, pLoadActions->mClearColorValues[rtIndex].a);
+			// bind new framebuffer for textured rt's
+			if (rtIndex == 0 && cmdCache->mFramebuffer != desc->pRenderTarget->mGLES.mFramebuffer)
+			{
+				CHECK_GLRESULT(glBindFramebuffer(GL_FRAMEBUFFER, desc->pRenderTarget->mGLES.mFramebuffer));
+				cmdCache->mFramebuffer = desc->pRenderTarget->mGLES.mFramebuffer;
+			}
+			CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + rtIndex, GL_TEXTURE_2D, desc->pRenderTarget->pTexture->mGLES.mTexture, 0));
+		}
+
+		if (desc->mLoadAction == LOAD_ACTION_CLEAR)
+		{
+			const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pRenderTarget->mClearValue;
+			vec4 clearColor = vec4(clearValue->r, clearValue->g, clearValue->b, clearValue->a);
 			if (cmdCache->mClearColor != clearColor)
 			{
 				CHECK_GLRESULT(glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]));
@@ -2913,26 +2911,29 @@ void gl_cmdBindRenderTargets(
 		}
 	}
 
-	if (pDepthStencil && pDepthStencil->mGLES.mType & GL_DEPTH_BUFFER_BIT)
+	const bool hasDeepth = pDesc->mDepthStencil.pDepthStencil;
+	if (hasDeepth && pDesc->mDepthStencil.pDepthStencil->mGLES.mType & GL_DEPTH_BUFFER_BIT)
 	{
+		const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
 		if (cmdCache->mFramebuffer)
 		{
-			if (pDepthStencil->pTexture)
+			if (desc->pDepthStencil->pTexture)
 			{
-				CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pDepthStencil->pTexture->mGLES.mTexture, 0));
+				CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, desc->pDepthStencil->pTexture->mGLES.mTexture, 0));
 			}
 			else
 			{
-				CHECK_GLRESULT(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pDepthStencil->mGLES.mDepthTarget));
+				CHECK_GLRESULT(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, desc->pDepthStencil->mGLES.mDepthTarget));
 			}
 		}
 
-		if (pLoadActions && pLoadActions->mLoadActionDepth == LOAD_ACTION_CLEAR)
+		if (desc->mLoadAction == LOAD_ACTION_CLEAR)
 		{
-			if (cmdCache->mClearDepth != pLoadActions->mClearDepth.depth)
+			const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+			if (cmdCache->mClearDepth != clearValue->depth)
 			{
-				CHECK_GLRESULT(glClearDepthf(pLoadActions->mClearDepth.depth));
-				cmdCache->mClearDepth = pLoadActions->mClearDepth.depth;
+				CHECK_GLRESULT(glClearDepthf(clearValue->depth));
+				cmdCache->mClearDepth = clearValue->depth;
 			}
 			if (!cmdCache->mDepthStencilState.mDepthWrite)
 			{
@@ -2944,26 +2945,28 @@ void gl_cmdBindRenderTargets(
 		}
 	}
 
-	if (pDepthStencil && pDepthStencil->mGLES.mType & GL_STENCIL_BUFFER_BIT)
+	if (hasDeepth && pDesc->mDepthStencil.pDepthStencil->mGLES.mType & GL_STENCIL_BUFFER_BIT)
 	{
+		const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
 		if (cmdCache->mFramebuffer)
 		{
-			if (pDepthStencil->pTexture)
+			if (desc->pDepthStencil->pTexture)
 			{
-				CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, pDepthStencil->pTexture->mGLES.mTexture, 0));
+				CHECK_GLRESULT(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, desc->pDepthStencil->pTexture->mGLES.mTexture, 0));
 			}
 			else
 			{
-				CHECK_GLRESULT(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, pDepthStencil->mGLES.mStencilTarget));
+				CHECK_GLRESULT(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, desc->pDepthStencil->mGLES.mStencilTarget));
 			}
 		}
 
-		if (pLoadActions && pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR)
+		if (desc->mLoadActionStencil == LOAD_ACTION_CLEAR)
 		{
-			if (cmdCache->mClearStencil != pLoadActions->mClearDepth.stencil)
+			const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+			if (cmdCache->mClearStencil != clearValue->stencil)
 			{
-				CHECK_GLRESULT(glClearStencil(pLoadActions->mClearDepth.stencil));
-				cmdCache->mClearStencil = pLoadActions->mClearDepth.stencil;
+				CHECK_GLRESULT(glClearStencil(clearValue->stencil));
+				cmdCache->mClearStencil = clearValue->stencil;
 			}
 			if (cmdCache->mDepthStencilState.mStencilWriteMask != 0b11111111)
 			{

@@ -289,7 +289,8 @@ void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStru
         accelerationStructureCreate_info.buffer = pAS->pASBuffer->mVk.pBuffer;
         accelerationStructureCreate_info.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
         accelerationStructureCreate_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-        CHECK_VKRESULT(vkCreateAccelerationStructureKHR(pRenderer->mVk.pDevice, &accelerationStructureCreate_info, &gVkAllocationCallbacks,
+        CHECK_VKRESULT(vkCreateAccelerationStructureKHR(pRenderer->mVk.pDevice, &accelerationStructureCreate_info,
+                                                        GetAllocationCallbacks(VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR),
                                                         &pAS->mAccelerationStructure));
 
         VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo = {};
@@ -380,7 +381,8 @@ void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStru
         accelerationStructureCreate_info.buffer = pAS->pASBuffer->mVk.pBuffer;
         accelerationStructureCreate_info.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
         accelerationStructureCreate_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-        CHECK_VKRESULT(vkCreateAccelerationStructureKHR(pRenderer->mVk.pDevice, &accelerationStructureCreate_info, &gVkAllocationCallbacks,
+        CHECK_VKRESULT(vkCreateAccelerationStructureKHR(pRenderer->mVk.pDevice, &accelerationStructureCreate_info,
+                                                        GetAllocationCallbacks(VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR),
                                                         &pAS->mAccelerationStructure));
 
         VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo = {};
@@ -463,7 +465,7 @@ void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructu
     }
 
     vkDestroyAccelerationStructureKHR(pRaytracing->pRenderer->mVk.pDevice, pAccelerationStructure->mAccelerationStructure,
-                                      &gVkAllocationCallbacks);
+                                      GetAllocationCallbacks(VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR));
 
     tf_free(pAccelerationStructure);
 }

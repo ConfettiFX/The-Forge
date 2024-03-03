@@ -74,6 +74,7 @@ typedef uint64_t uint64;
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 // For time related functions such as getting localtime
 #include <float.h>

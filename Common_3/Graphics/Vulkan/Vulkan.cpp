@@ -331,6 +331,10 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
 	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
 #endif
+	VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME,
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
+#endif
 	/************************************************************************/
 	/************************************************************************/
 	// Debug marker extension in case debug utils is not supported. Should be last element in the array
@@ -341,54 +345,6 @@ const char* gVkWantedDeviceExtensions[] =
 // #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
 bool gEnableDynamicRenderingExtension = true;
 
-static void* VKAPI_PTR gVkAllocation(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
-{
-    return tf_memalign(alignment, size);
-}
-
-static void* VKAPI_PTR gVkReallocation(void* pUserData, void* pOriginal, size_t size, size_t alignment,
-                                       VkSystemAllocationScope allocationScope)
-{
-    return tf_realloc(pOriginal, size);
-}
-
-static void VKAPI_PTR gVkFree(void* pUserData, void* pMemory) { tf_free(pMemory); }
-
-static void VKAPI_PTR gVkInternalAllocation(void* pUserData, size_t size, VkInternalAllocationType allocationType,
-                                            VkSystemAllocationScope allocationScope)
-{
-}
-
-static void VKAPI_PTR gVkInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType,
-                                      VkSystemAllocationScope allocationScope)
-{
-}
-
-VkAllocationCallbacks gVkAllocationCallbacks = {
-    // pUserData
-    NULL,
-    // pfnAllocation
-    gVkAllocation,
-    // pfnReallocation
-    gVkReallocation,
-    // pfnFree
-    gVkFree,
-    // pfnInternalAllocation
-    gVkInternalAllocation,
-    // pfnInternalFree
-    gVkInternalFree
-};
-
-#if VK_KHR_draw_indirect_count
-PFN_vkCmdDrawIndirectCountKHR        pfnVkCmdDrawIndirectCountKHR = NULL;
-PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
-#else
-PFN_vkCmdDrawIndirectCountAMD        pfnVkCmdDrawIndirectCountKHR = NULL;
-PFN_vkCmdDrawIndexedIndirectCountAMD pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
-#endif
-/************************************************************************/
-// IMPLEMENTATION
-/************************************************************************/
 //-V:SAFE_FREE:779
 #define SAFE_FREE(p_var)       \
     if (p_var)                 \
@@ -400,6 +356,373 @@ PFN_vkCmdDrawIndexedIndirectCountAMD pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 //-V:SAFE_FREE:547 - The TF memory manager might not appreciate having null passed to tf_free.
 // Don't trigger PVS warnings about always-true/false on this macro
 
+#if defined(GFX_DRIVER_MEMORY_TRACKING) || defined(GFX_DEVICE_MEMORY_TRACKING)
+
+typedef enum VkTrackedObjectType
+{
+    VK_TRACKED_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR = VK_OBJECT_TYPE_COMMAND_POOL + 1,
+    VK_TRACKED_OBJECT_TYPE_SURFACE_KHR,
+    VK_TRACKED_OBJECT_TYPE_SWAPCHAIN_KHR,
+    VK_TRACKED_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT,
+    VK_TRACKED_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT,
+    VK_TRACKED_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR,
+    VK_TRACKED_OBJECT_TYPE_COUNT
+} VkTrackedObjectType;
+
+uint32_t GetTrackedObjectTypeCount()
+{
+    COMPILE_ASSERT(VK_TRACKED_OBJECT_TYPE_COUNT <= TRACKED_OBJECT_TYPE_COUNT_MAX);
+    return VK_TRACKED_OBJECT_TYPE_COUNT;
+}
+
+const char* GetTrackedObjectName(uint32_t typeIndex)
+{
+    static constexpr const char* vkTrackedObjectTypeNames[] = { "UNKNOWN",
+                                                                "INSTANCE",
+                                                                "PHYSICAL_DEVICE",
+                                                                "DEVICE",
+                                                                "QUEUE",
+                                                                "SEMAPHORE",
+                                                                "COMMAND_BUFFER",
+                                                                "FENCE",
+                                                                "DEVICE_MEMORY",
+                                                                "BUFFER",
+                                                                "IMAGE",
+                                                                "EVENT",
+                                                                "QUERY_POOL",
+                                                                "BUFFER_VIEW",
+                                                                "IMAGE_VIEW",
+                                                                "SHADER_MODULE",
+                                                                "PIPELINE_CACHE",
+                                                                "PIPELINE_LAYOUT",
+                                                                "RENDER_PASS",
+                                                                "PIPELINE",
+                                                                "DESCRIPTOR_SET_LAYOUT",
+                                                                "SAMPLER",
+                                                                "DESCRIPTOR_POOL",
+                                                                "DESCRIPTOR_SET",
+                                                                "FRAMEBUFFER",
+                                                                "COMMAND_POOL",
+                                                                "DESCRIPTOR_UPDATE_TEMPLATE",
+                                                                "SURFACE_KHR",
+                                                                "SWAPCHAIN_KHR",
+                                                                "DEBUG_UTILS_MESSENGER",
+                                                                "DEBUG_REPORT_CALLBACK",
+                                                                "ACCELERATION_STRUCTURE" };
+
+    COMPILE_ASSERT(TF_ARRAY_COUNT(vkTrackedObjectTypeNames) == VK_TRACKED_OBJECT_TYPE_COUNT);
+    return vkTrackedObjectTypeNames[typeIndex];
+}
+
+VkTrackedObjectType GetTrackedObjectType(VkObjectType type)
+{
+    if (type > VK_OBJECT_TYPE_COMMAND_POOL)
+    {
+        switch (type)
+        {
+        case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR:
+            return VK_TRACKED_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR;
+        case VK_OBJECT_TYPE_SURFACE_KHR:
+            return VK_TRACKED_OBJECT_TYPE_SURFACE_KHR;
+        case VK_OBJECT_TYPE_SWAPCHAIN_KHR:
+            return VK_TRACKED_OBJECT_TYPE_SWAPCHAIN_KHR;
+        case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT:
+            return VK_TRACKED_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT;
+        case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT:
+            return VK_TRACKED_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT;
+        case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
+            return VK_TRACKED_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
+        default:
+            ASSERTMSG(false,
+                      "Unknown VkObjectType enum value %d. Please add it to VkTrackedObjectType, switch statement in "
+                      "util_to_tracked_object_type.",
+                      (int)type);
+            return (VkTrackedObjectType)VK_OBJECT_TYPE_UNKNOWN;
+        }
+    }
+
+    return (VkTrackedObjectType)type;
+}
+
+#endif
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+
+typedef enum VkTrackedSystemAllocationScope
+{
+    VK_TRACKED_SYSTEM_ALLOCATION_SCOPE_COUNT = VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE + 1
+} VkTrackedSystemAllocationScope;
+
+bool gEnableDriverMemoryTracking = true;
+
+struct DriverMemoryStats
+{
+    // Total driver memory and allocation amount
+    tfrg_atomic64_t mMemoryTotal = 0;
+    tfrg_atomic64_t mMemoryAllocCount = 0;
+    // Amount of driver memory for every object type
+    tfrg_atomic64_t mMemoryPerObject[VK_TRACKED_OBJECT_TYPE_COUNT][VK_TRACKED_SYSTEM_ALLOCATION_SCOPE_COUNT] = {};
+    // Amount of allocations for every object type
+    tfrg_atomic64_t mMemoryAllocsPerObject[VK_TRACKED_OBJECT_TYPE_COUNT][VK_TRACKED_SYSTEM_ALLOCATION_SCOPE_COUNT] = {};
+};
+
+struct VkMemoryHeader
+{
+    size_t                  size;
+    VkSystemAllocationScope allocationScope;
+    VkObjectType            type;
+};
+
+static DriverMemoryStats gDriverMemStats = {};
+
+uint64_t GetDriverAllocationsCount() { return gDriverMemStats.mMemoryAllocCount; }
+
+uint64_t GetDriverMemoryAmount() { return gDriverMemStats.mMemoryTotal; }
+
+uint64_t GetDriverAllocationsPerObject(uint32_t obj)
+{
+    uint64_t ret = 0;
+    for (uint32_t i = 0; i < VK_TRACKED_SYSTEM_ALLOCATION_SCOPE_COUNT; i++)
+    {
+        ret += gDriverMemStats.mMemoryAllocsPerObject[obj][i];
+    }
+    return ret;
+}
+
+uint64_t GetDriverMemoryPerObject(uint32_t obj)
+{
+    uint64_t ret = 0;
+    for (uint32_t i = 0; i < VK_TRACKED_SYSTEM_ALLOCATION_SCOPE_COUNT; i++)
+    {
+        ret += gDriverMemStats.mMemoryPerObject[obj][i];
+    }
+    return ret;
+}
+#endif
+
+VkAllocationCallbacks* GetAllocationCallbacks(VkObjectType type)
+{
+    // clang-format off
+    static VkAllocationCallbacks defaultCallbacks = {
+        NULL,
+        [](void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) -> void*
+        {
+            return tf_memalign(alignment, size);
+        },
+        [](void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) -> void*
+        {
+            return tf_realloc(pOriginal, size);
+        },
+        [](void* pUserData, void* pMemory)
+        {
+            SAFE_FREE(pMemory);
+        }
+    };
+    // clang-format on
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+    if (!gEnableDriverMemoryTracking)
+    {
+        return &defaultCallbacks;
+    }
+
+    static VkAllocationCallbacks trackingCallbacks = {
+        NULL,
+        [](void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) -> void*
+        {
+            static constexpr size_t kTrackingDataAlignment = 32;
+            VkObjectType            type = (VkObjectType)(*(uint32_t*)pUserData);
+
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryPerObject[type][allocationScope], size);
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryTotal, size);
+
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryAllocsPerObject[type][allocationScope], 1);
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryAllocCount, 1);
+
+            alignment = max(alignment, kTrackingDataAlignment);
+            uint8_t*        ret = (uint8_t*)tf_memalign(alignment, size + alignment);
+            VkMemoryHeader* header = (VkMemoryHeader*)ret;
+            header->size = size;
+            header->allocationScope = allocationScope;
+            header->type = type;
+
+            *(size_t*)(ret + alignment - sizeof(size_t)) = alignment;
+            return ret + alignment;
+        },
+        [](void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) -> void*
+        {
+            if (!pOriginal)
+            {
+                VkObjectType type = static_cast<VkObjectType>(*reinterpret_cast<uint32_t*>(pUserData));
+                return GetAllocationCallbacks(type)->pfnAllocation(pUserData, size, alignment, allocationScope);
+            }
+            uint8_t* mem = (uint8_t*)pOriginal;
+            alignment = *(size_t*)(mem - sizeof(size_t));
+            VkMemoryHeader* header = (VkMemoryHeader*)(mem - alignment);
+
+            // Subtract previous size
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryPerObject[header->type][header->allocationScope], -(int64_t)header->size);
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryTotal, -(int64_t)header->size);
+
+            // Add new size
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryPerObject[header->type][header->allocationScope], size);
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryTotal, size);
+
+            uint8_t* ret = (uint8_t*)tf_realloc(header, size + alignment);
+            header = (VkMemoryHeader*)ret;
+            header->size = size;
+            return ret + alignment;
+        },
+        [](void* pUserData, void* pMemory)
+        {
+            if (!pMemory)
+            {
+                return;
+            }
+
+            uint8_t*        mem = (uint8_t*)pMemory;
+            size_t          alignment = *(size_t*)(mem - sizeof(size_t));
+            VkMemoryHeader* header = (VkMemoryHeader*)(mem - alignment);
+
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryPerObject[header->type][header->allocationScope], -(int64_t)(header->size));
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryAllocsPerObject[header->type][header->allocationScope], -(int64_t)1);
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryTotal, -(int64_t)(header->size));
+            tfrg_atomic64_add_relaxed(&gDriverMemStats.mMemoryAllocCount, -1);
+
+            tf_free(header);
+        }
+    };
+
+    static VkAllocationCallbacks objectCallbacks[VK_TRACKED_OBJECT_TYPE_COUNT];
+    static uint32_t              objectUserData[VK_TRACKED_OBJECT_TYPE_COUNT] = {};
+
+    // Assign callbacks for each type of object, pass the type as the user data
+    if (!objectCallbacks[0].pfnAllocation)
+    {
+        for (uint32_t c = 0; c < VK_TRACKED_OBJECT_TYPE_COUNT; ++c)
+        {
+            objectCallbacks[c] = trackingCallbacks;
+            objectUserData[c] = c;
+            objectCallbacks[c].pUserData = &objectUserData[c];
+        }
+    }
+
+    uint32_t typeIndex = GetTrackedObjectType(type);
+    return &objectCallbacks[typeIndex];
+#else
+    return &defaultCallbacks;
+#endif
+}
+
+#ifdef GFX_DEVICE_MEMORY_TRACKING
+typedef struct VkObjectMemoryNode
+{
+    uint64_t key;
+    uint64_t value;
+} VkObjectMemoryNode;
+
+bool gEnableDeviceMemoryTracking = true;
+
+struct DeviceMemoryStats
+{
+    // Total device memory and allocation amount
+    tfrg_atomic64_t     mMemoryTotal = 0;
+    tfrg_atomic64_t     mMemoryAllocCount = 0;
+    // Amount of device memory for every object type
+    tfrg_atomic64_t     mMemoryPerObject[VK_TRACKED_OBJECT_TYPE_COUNT] = {};
+    // Amount of device allocations for every object type
+    tfrg_atomic64_t     mMemoryAllocsPerObject[VK_TRACKED_OBJECT_TYPE_COUNT] = {};
+    // Amount of memory per object id (stb hashmap, must be freed on exit)
+    VkObjectMemoryNode* mMemoryMap = NULL;
+};
+
+static DeviceMemoryStats gDeviceMemStats = {};
+
+uint64_t GetDeviceAllocationsCount() { return gDeviceMemStats.mMemoryAllocCount; }
+
+uint64_t GetDeviceMemoryAmount() { return gDeviceMemStats.mMemoryTotal; }
+
+uint64_t GetDeviceAllocationsPerObject(uint32_t obj) { return gDeviceMemStats.mMemoryAllocsPerObject[obj]; }
+
+uint64_t GetDeviceMemoryPerObject(uint32_t obj) { return gDeviceMemStats.mMemoryPerObject[obj]; }
+
+static void MemoryReportCallback(const VkDeviceMemoryReportCallbackDataEXT* pCallbackData, void* pUserData)
+{
+    if (!pCallbackData)
+    {
+        return;
+    }
+
+    // Only process allocations and deallocations
+    switch (pCallbackData->type)
+    {
+    case VK_DEVICE_MEMORY_REPORT_EVENT_TYPE_ALLOCATE_EXT:
+    case VK_DEVICE_MEMORY_REPORT_EVENT_TYPE_FREE_EXT:
+        break;
+    default:
+        return;
+    }
+
+    const VkTrackedObjectType objType = GetTrackedObjectType(pCallbackData->objectType);
+    int                       currObjIndex = (int)hmgeti(gDeviceMemStats.mMemoryMap, pCallbackData->memoryObjectId);
+
+    if (pCallbackData->type == VK_DEVICE_MEMORY_REPORT_EVENT_TYPE_ALLOCATE_EXT)
+    {
+        if (currObjIndex != -1)
+        {
+            // Realloc, subtract previous size, add new size
+            const size_t oldSize = gDeviceMemStats.mMemoryMap[currObjIndex].value;
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryTotal, -(int64_t)oldSize);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryPerObject[objType], -(int64_t)oldSize);
+
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryTotal, pCallbackData->size);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryPerObject[objType], pCallbackData->size);
+
+            gDeviceMemStats.mMemoryMap[currObjIndex].value = pCallbackData->size;
+        }
+        else
+        {
+            // New allocation
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryTotal, pCallbackData->size);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryAllocCount, 1);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryPerObject[objType], pCallbackData->size);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryAllocsPerObject[objType], 1);
+
+            hmput(gDeviceMemStats.mMemoryMap, pCallbackData->memoryObjectId, pCallbackData->size);
+        }
+    }
+
+    // Deallocation
+    if (pCallbackData->type == VK_DEVICE_MEMORY_REPORT_EVENT_TYPE_FREE_EXT)
+    {
+        int currObjIndex = (int)hmgeti(gDeviceMemStats.mMemoryMap, pCallbackData->memoryObjectId);
+
+        if (currObjIndex != -1)
+        {
+            uint64_t size = gDeviceMemStats.mMemoryMap[currObjIndex].value;
+
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryTotal, -(int64_t)size);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryAllocCount, -(int64_t)1);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryPerObject[objType], -(int64_t)size);
+            tfrg_atomic64_add_relaxed(&gDeviceMemStats.mMemoryAllocsPerObject[objType], -(int64_t)1);
+
+            hmdel(gDeviceMemStats.mMemoryMap, pCallbackData->memoryObjectId);
+        }
+    }
+}
+
+#endif
+
+#if VK_KHR_draw_indirect_count
+PFN_vkCmdDrawIndirectCountKHR        pfnVkCmdDrawIndirectCountKHR = NULL;
+PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
+#else
+PFN_vkCmdDrawIndirectCountAMD pfnVkCmdDrawIndirectCountKHR = NULL;
+PFN_vkCmdDrawIndexedIndirectCountAMD pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
+#endif
+/************************************************************************/
+// IMPLEMENTATION
+/************************************************************************/
 #if defined(__cplusplus)
 #define DECLARE_ZERO(type, var) type var = {};
 #else
@@ -514,7 +837,8 @@ static void add_descriptor_pool(Renderer* pRenderer, uint32_t numDescriptorSets,
     poolCreateInfo.pPoolSizes = pPoolSizes;
     poolCreateInfo.flags = flags;
     poolCreateInfo.maxSets = numDescriptorSets;
-    CHECK_VKRESULT(vkCreateDescriptorPool(pRenderer->mVk.pDevice, &poolCreateInfo, &gVkAllocationCallbacks, pPool));
+    CHECK_VKRESULT(
+        vkCreateDescriptorPool(pRenderer->mVk.pDevice, &poolCreateInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_POOL), pPool));
 }
 
 static void consume_descriptor_sets(Renderer* pRenderer, VkDescriptorPool pPool, const VkDescriptorSetLayout* pLayouts,
@@ -597,25 +921,8 @@ typedef struct RenderPassDesc
 
 typedef struct RenderPass
 {
-    VkRenderPass   pRenderPass;
-    RenderPassDesc mDesc;
+    VkRenderPass pRenderPass;
 } RenderPass;
-
-typedef struct FrameBufferDesc
-{
-    RenderPass*    pRenderPass;
-    RenderTarget** ppRenderTargets;
-#if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-    StoreActionType* pRenderTargetResolveActions;
-#endif
-    RenderTarget* pDepthStencil;
-    uint32_t*     pColorArraySlices;
-    uint32_t*     pColorMipSlices;
-    uint32_t      mDepthArraySlice;
-    uint32_t      mDepthMipSlice;
-    uint32_t      mRenderTargetCount;
-    bool          mVRFoveatedRendering;
-} FrameBufferDesc;
 
 typedef struct FrameBuffer
 {
@@ -627,11 +934,10 @@ typedef struct FrameBuffer
 
 #define VK_MAX_ATTACHMENT_ARRAY_COUNT ((MAX_RENDER_TARGET_ATTACHMENTS + 2) * 2)
 
-static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass* pRenderPass)
+static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass* pRenderPass)
 {
     ASSERT(pRenderPass);
     *pRenderPass = {};
-    pRenderPass->mDesc = *pDesc;
     /************************************************************************/
     // Add render pass
     /************************************************************************/
@@ -780,72 +1086,94 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
     }
 #endif
 
-    CHECK_VKRESULT(vkCreateRenderPass(pRenderer->mVk.pDevice, &createInfo, &gVkAllocationCallbacks, &(pRenderPass->pRenderPass)));
+    CHECK_VKRESULT(vkCreateRenderPass(pRenderer->mVk.pDevice, &createInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_RENDER_PASS),
+                                      &(pRenderPass->pRenderPass)));
 }
 
-static void remove_render_pass(Renderer* pRenderer, RenderPass* pRenderPass)
+static void RemoveRenderPass(Renderer* pRenderer, RenderPass* pRenderPass)
 {
-    vkDestroyRenderPass(pRenderer->mVk.pDevice, pRenderPass->pRenderPass, &gVkAllocationCallbacks);
+    vkDestroyRenderPass(pRenderer->mVk.pDevice, pRenderPass->pRenderPass, GetAllocationCallbacks(VK_OBJECT_TYPE_RENDER_PASS));
 }
 
-static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, FrameBuffer* pFrameBuffer)
+static void AddFramebuffer(Renderer* pRenderer, VkRenderPass renderPass, const BindRenderTargetsDesc* pDesc, FrameBuffer* pFrameBuffer)
 {
     ASSERT(pFrameBuffer);
     *pFrameBuffer = {};
 
     uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
-    uint32_t depthAttachmentCount = (pDesc->pDepthStencil) ? 1 : 0;
+    uint32_t depthAttachmentCount = pDesc->mDepthStencil.pDepthStencil ? 1 : 0;
 
     if (colorAttachmentCount)
     {
-        pFrameBuffer->mWidth =
-            pDesc->pColorMipSlices ? (pDesc->ppRenderTargets[0]->mWidth >> pDesc->pColorMipSlices[0]) : pDesc->ppRenderTargets[0]->mWidth;
-        pFrameBuffer->mHeight =
-            pDesc->pColorMipSlices ? (pDesc->ppRenderTargets[0]->mHeight >> pDesc->pColorMipSlices[0]) : pDesc->ppRenderTargets[0]->mHeight;
-        if (pDesc->pColorArraySlices)
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[0];
+        pFrameBuffer->mWidth = desc->mUseMipSlice ? (desc->pRenderTarget->mWidth >> desc->mMipSlice) : desc->pRenderTarget->mWidth;
+        pFrameBuffer->mHeight = desc->mUseMipSlice ? (desc->pRenderTarget->mHeight >> desc->mMipSlice) : desc->pRenderTarget->mHeight;
+        if (desc->mUseArraySlice)
+        {
             pFrameBuffer->mArraySize = 1;
+        }
         else
-            pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mVRMultiview ? 1 : pDesc->ppRenderTargets[0]->mArraySize;
+        {
+            pFrameBuffer->mArraySize = desc->pRenderTarget->mVRMultiview ? 1 : desc->pRenderTarget->mArraySize;
+        }
     }
     else if (depthAttachmentCount)
     {
-        pFrameBuffer->mWidth =
-            (pDesc->mDepthMipSlice != UINT32_MAX) ? (pDesc->pDepthStencil->mWidth >> pDesc->mDepthMipSlice) : pDesc->pDepthStencil->mWidth;
-        pFrameBuffer->mHeight = (pDesc->mDepthMipSlice != UINT32_MAX) ? (pDesc->pDepthStencil->mHeight >> pDesc->mDepthMipSlice)
-                                                                      : pDesc->pDepthStencil->mHeight;
-        if (pDesc->mDepthArraySlice != UINT32_MAX)
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        pFrameBuffer->mWidth = desc->mUseMipSlice ? (desc->pDepthStencil->mWidth >> desc->mMipSlice) : desc->pDepthStencil->mWidth;
+        pFrameBuffer->mHeight = desc->mUseMipSlice ? (desc->pDepthStencil->mHeight >> desc->mMipSlice) : desc->pDepthStencil->mHeight;
+        if (desc->mUseArraySlice)
+        {
             pFrameBuffer->mArraySize = 1;
+        }
         else
-            pFrameBuffer->mArraySize = pDesc->pDepthStencil->mVRMultiview ? 1 : pDesc->pDepthStencil->mArraySize;
+        {
+            pFrameBuffer->mArraySize = desc->pDepthStencil->mVRMultiview ? 1 : desc->pDepthStencil->mArraySize;
+        }
     }
     else
     {
-        ASSERT(0 && "No color or depth attachments");
+        ASSERT(pDesc->mExtent[0] && pDesc->mExtent[1]);
+        pFrameBuffer->mWidth = pDesc->mExtent[0];
+        pFrameBuffer->mHeight = pDesc->mExtent[1];
+        pFrameBuffer->mArraySize = 1;
     }
 
-    if (colorAttachmentCount && pDesc->ppRenderTargets[0]->mDepth > 1)
+    if (pDesc->mRenderTargetCount && pDesc->mRenderTargets[0].pRenderTarget->mDepth > 1)
     {
-        pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mDepth;
+        pFrameBuffer->mArraySize = pDesc->mRenderTargets[0].pRenderTarget->mDepth;
     }
-
+    else if (depthAttachmentCount && pDesc->mDepthStencil.pDepthStencil->mDepth > 1)
+    {
+        pFrameBuffer->mArraySize = pDesc->mDepthStencil.pDepthStencil->mDepth;
+    }
     /************************************************************************/
     // Add frame buffer
     /************************************************************************/
     VkImageView  imageViews[VK_MAX_ATTACHMENT_ARRAY_COUNT] = {};
     VkImageView* iterViews = imageViews;
+    bool         vrFoveatedRendering = false;
+    UNREF_PARAM(vrFoveatedRendering);
 
     // Color
     for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
-        if (!pDesc->pColorMipSlices && !pDesc->pColorArraySlices)
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+        vrFoveatedRendering |= desc->pRenderTarget->mVRFoveatedRendering;
+
+#if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
+        bool resolveAttachment = desc->pRenderTarget->pTexture->mLazilyAllocated && IsStoreActionResolve(desc->mStoreAction);
+#endif
+        if (!desc->mUseArraySlice && !desc->mUseMipSlice)
         {
-            *iterViews = pDesc->ppRenderTargets[i]->mVk.pDescriptor;
+            *iterViews = desc->pRenderTarget->mVk.pDescriptor;
             ++iterViews;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-            if (IsStoreActionResolve(pDesc->pRenderTargetResolveActions[i]))
+            if (resolveAttachment)
             {
-                *iterViews = pDesc->ppRenderTargets[i]->pResolveAttachment->mVk.pDescriptor;
+                ASSERT(desc->pRenderTarget->pResolveAttachment);
+                *iterViews = desc->pRenderTarget->pResolveAttachment->mVk.pDescriptor;
                 ++iterViews;
             }
 #endif
@@ -853,58 +1181,70 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
         else
         {
             uint32_t handle = 0;
-            if (pDesc->pColorMipSlices)
+            if (desc->mUseMipSlice)
             {
-                if (pDesc->pColorArraySlices)
-                    handle = pDesc->pColorMipSlices[i] * pDesc->ppRenderTargets[i]->mArraySize + pDesc->pColorArraySlices[i];
+                if (desc->mUseArraySlice)
+                {
+                    handle = desc->mMipSlice * desc->pRenderTarget->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = pDesc->pColorMipSlices[i];
+                {
+                    handle = desc->mMipSlice;
+                }
             }
-            else if (pDesc->pColorArraySlices)
+            else if (desc->mUseArraySlice)
             {
-                handle = pDesc->pColorArraySlices[i];
+                handle = desc->mArraySlice;
             }
-            *iterViews = pDesc->ppRenderTargets[i]->mVk.pSliceDescriptors[handle];
+            *iterViews = desc->pRenderTarget->mVk.pSliceDescriptors[handle];
             ++iterViews;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-            if (IsStoreActionResolve(pDesc->pRenderTargetResolveActions[i]))
+            if (resolveAttachment)
             {
-                *iterViews = pDesc->ppRenderTargets[i]->pResolveAttachment->mVk.pSliceDescriptors[handle];
+                ASSERT(desc->pRenderTarget->pResolveAttachment);
+                *iterViews = desc->pRenderTarget->pResolveAttachment->mVk.pSliceDescriptors[handle];
                 ++iterViews;
             }
 #endif
         }
     }
     // Depth/stencil
-    if (pDesc->pDepthStencil)
+    if (depthAttachmentCount)
     {
-        if (UINT32_MAX == pDesc->mDepthMipSlice && UINT32_MAX == pDesc->mDepthArraySlice)
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        vrFoveatedRendering |= desc->pDepthStencil->mVRFoveatedRendering;
+
+        if (!desc->mUseArraySlice && !desc->mUseMipSlice)
         {
-            *iterViews = pDesc->pDepthStencil->mVk.pDescriptor;
+            *iterViews = desc->pDepthStencil->mVk.pDescriptor;
             ++iterViews;
         }
         else
         {
             uint32_t handle = 0;
-            if (pDesc->mDepthMipSlice != UINT32_MAX)
+            if (desc->mUseMipSlice)
             {
-                if (pDesc->mDepthArraySlice != UINT32_MAX)
-                    handle = pDesc->mDepthMipSlice * pDesc->pDepthStencil->mArraySize + pDesc->mDepthArraySlice;
+                if (desc->mUseArraySlice)
+                {
+                    handle = desc->mMipSlice * desc->pDepthStencil->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = pDesc->mDepthMipSlice;
+                {
+                    handle = desc->mMipSlice;
+                }
             }
-            else if (pDesc->mDepthArraySlice != UINT32_MAX)
+            else if (desc->mUseArraySlice)
             {
-                handle = pDesc->mDepthArraySlice;
+                handle = desc->mArraySlice;
             }
-            *iterViews = pDesc->pDepthStencil->mVk.pSliceDescriptors[handle];
+            *iterViews = desc->pDepthStencil->mVk.pSliceDescriptors[handle];
             ++iterViews;
         }
     }
 
 #if defined(QUEST_VR)
-    if (pDesc->mVRFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
+    if (vrFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
     {
         *iterViews = pFragmentDensityMask->mVk.pDescriptor;
         ++iterViews;
@@ -915,23 +1255,24 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
     createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     createInfo.pNext = NULL;
     createInfo.flags = 0;
-    createInfo.renderPass = pDesc->pRenderPass->pRenderPass;
+    createInfo.renderPass = renderPass;
     createInfo.attachmentCount = (uint32_t)(iterViews - imageViews);
     createInfo.pAttachments = imageViews;
     createInfo.width = pFrameBuffer->mWidth;
     createInfo.height = pFrameBuffer->mHeight;
     createInfo.layers = pFrameBuffer->mArraySize;
-    CHECK_VKRESULT(vkCreateFramebuffer(pRenderer->mVk.pDevice, &createInfo, &gVkAllocationCallbacks, &(pFrameBuffer->pFramebuffer)));
+    CHECK_VKRESULT(vkCreateFramebuffer(pRenderer->mVk.pDevice, &createInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_FRAMEBUFFER),
+                                       &(pFrameBuffer->pFramebuffer)));
     /************************************************************************/
     /************************************************************************/
 }
 
-static void remove_framebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
+static void RemoveFramebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
 {
     ASSERT(pRenderer);
     ASSERT(pFrameBuffer);
 
-    vkDestroyFramebuffer(pRenderer->mVk.pDevice, pFrameBuffer->pFramebuffer, &gVkAllocationCallbacks);
+    vkDestroyFramebuffer(pRenderer->mVk.pDevice, pFrameBuffer->pFramebuffer, GetAllocationCallbacks(VK_OBJECT_TYPE_FRAMEBUFFER));
 }
 /************************************************************************/
 // Per Thread Render Pass synchronization logic
@@ -2291,6 +2632,12 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
                 {
                     if (strcmp(wantedDeviceExtensions[k], properties[j].extensionName) == 0)
                     {
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+                        if (strcmp(wantedDeviceExtensions[k], VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME) == 0)
+                            pGpu->mVk.mDeviceMemoryReportExtension = gEnableDeviceMemoryTracking;
+#endif
+                        if (strcmp(wantedDeviceExtensions[k], VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME) == 0)
+                            pGpu->mVk.mASTCDecodeModeExtension = true;
                         if (strcmp(wantedDeviceExtensions[k], VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0)
                             pGpu->mVk.mDebugMarkerExtension = true;
                         if (strcmp(wantedDeviceExtensions[k], VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) == 0)
@@ -2406,6 +2753,11 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     VkPhysicalDeviceFaultFeaturesEXT deviceFaultFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT };
     ADD_TO_NEXT_CHAIN(pGpu->mVk.mDeviceFaultExtension, deviceFaultFeatures);
 
+    VkPhysicalDeviceDeviceMemoryReportFeaturesEXT memoryReportFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_MEMORY_REPORT_FEATURES_EXT
+    };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mDeviceMemoryReportExtension, memoryReportFeatures);
+
     vkGetPhysicalDeviceFeatures2KHR(pGpu->mVk.pGpu, &gpuFeatures2);
 
     // Get memory properties
@@ -2417,6 +2769,9 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     VkPhysicalDeviceProperties2KHR     gpuProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR, &subgroupProperties };
     vkGetPhysicalDeviceProperties2KHR(pGpu->mVk.pGpu, &gpuProperties);
 
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    gEnableDeviceMemoryTracking &= pGpu->mVk.mDeviceMemoryReportExtension;
+#endif
     pGpu->mSettings.mDynamicRenderingSupported = dynamicRenderingFeatures.dynamicRendering;
 
     const bool bufferDeviceAddressFeature = bufferDeviceAddressFeatures.bufferDeviceAddress;
@@ -2527,11 +2882,17 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     pGpu->mSettings.mGpuVendorPreset.mVendorId = gpuProperties.properties.vendorID;
     strncpy(pGpu->mSettings.mGpuVendorPreset.mGpuName, gpuProperties.properties.deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
 
+    // Disable memory device report on Xclipse GPUs since it can cause crashes
+    if (gpuVendorEquals(pGpu->mSettings.mGpuVendorPreset.mVendorId, "samsung"))
+    {
+        pGpu->mVk.mDeviceMemoryReportExtension = 0;
+    }
+
     // TODO: Fix once vulkan adds support for revision ID
     pGpu->mSettings.mGpuVendorPreset.mRevisionId = 0;
     pGpu->mSettings.mGpuVendorPreset.mPresetLevel =
-        getGPUPresetLevel(pGpu->mSettings.mGpuVendorPreset.mVendorId, pGpu->mSettings.mGpuVendorPreset.mModelId,
-                          pGpu->mSettings.mGpuVendorPreset.mRevisionId);
+        getGPUPresetLevel(getGPUVendorName(pGpu->mSettings.mGpuVendorPreset.mVendorId), pGpu->mSettings.mGpuVendorPreset.mGpuName,
+                          pGpu->mSettings.mGpuVendorPreset.mModelId, pGpu->mSettings.mGpuVendorPreset.mRevisionId);
 
     // set default driver to be very high to not trigger driver rejection rules if NVAPI or AMDAGS fails
     snprintf(pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "%u.%u", 999999, 99);
@@ -2968,7 +3329,8 @@ void CreateInstance(const char* app_name, const RendererContextDesc* pDesc, uint
         for (int i = 0; i < arrlen(layerTemp); i++)
             LOGF(eINFO, "\tLayer %i: %s", i, layerTemp[i]);
 
-        CHECK_VKRESULT_INSTANCE(vkCreateInstance(&create_info, &gVkAllocationCallbacks, &(pContext->mVk.pInstance)));
+        CHECK_VKRESULT_INSTANCE(
+            vkCreateInstance(&create_info, GetAllocationCallbacks(VK_OBJECT_TYPE_INSTANCE), &(pContext->mVk.pInstance)));
         arrfree(layerTemp);
         arrfree(wantedInstanceExtensions);
     }
@@ -2992,7 +3354,8 @@ void CreateInstance(const char* app_name, const RendererContextDesc* pDesc, uint
             VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
         create_info.flags = 0;
         create_info.pUserData = NULL;
-        debugCallbackRes = vkCreateDebugUtilsMessengerEXT(pContext->mVk.pInstance, &create_info, &gVkAllocationCallbacks,
+        debugCallbackRes = vkCreateDebugUtilsMessengerEXT(pContext->mVk.pInstance, &create_info,
+                                                          GetAllocationCallbacks(VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT),
                                                           &(pContext->mVk.pDebugUtilsMessenger));
         if (VK_SUCCESS != debugCallbackRes)
         {
@@ -3013,7 +3376,8 @@ void CreateInstance(const char* app_name, const RendererContextDesc* pDesc, uint
 #endif
                             VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT /* | VK_DEBUG_REPORT_INFORMATION_BIT_EXT*/;
         VkResult res =
-            vkCreateDebugReportCallbackEXT(pContext->mVk.pInstance, &create_info, &gVkAllocationCallbacks, &(pContext->mVk.pDebugReport));
+            vkCreateDebugReportCallbackEXT(pContext->mVk.pInstance, &create_info,
+                                           GetAllocationCallbacks(VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT), &(pContext->mVk.pDebugReport));
         if (VK_SUCCESS != res)
         {
             internal_log(eERROR, "vkCreateDebugReportCallbackEXT failed - disabling Vulkan debug callbacks", "internal_vk_init_instance");
@@ -3028,16 +3392,18 @@ static void RemoveInstance(RendererContext* pContext)
 
     if (pContext->mVk.pDebugUtilsMessenger)
     {
-        vkDestroyDebugUtilsMessengerEXT(pContext->mVk.pInstance, pContext->mVk.pDebugUtilsMessenger, &gVkAllocationCallbacks);
+        vkDestroyDebugUtilsMessengerEXT(pContext->mVk.pInstance, pContext->mVk.pDebugUtilsMessenger,
+                                        GetAllocationCallbacks(VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT));
         pContext->mVk.pDebugUtilsMessenger = NULL;
     }
     if (pContext->mVk.pDebugReport)
     {
-        vkDestroyDebugReportCallbackEXT(pContext->mVk.pInstance, pContext->mVk.pDebugReport, &gVkAllocationCallbacks);
+        vkDestroyDebugReportCallbackEXT(pContext->mVk.pInstance, pContext->mVk.pDebugReport,
+                                        GetAllocationCallbacks(VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT));
         pContext->mVk.pDebugReport = NULL;
     }
 
-    vkDestroyInstance(pContext->mVk.pInstance, &gVkAllocationCallbacks);
+    vkDestroyInstance(pContext->mVk.pInstance, GetAllocationCallbacks(VK_OBJECT_TYPE_INSTANCE));
 }
 
 static bool SelectBestGpu(Renderer* pRenderer)
@@ -3291,6 +3657,15 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
     vkGetPhysicalDeviceFeatures2KHR(pRenderer->pGpu->mVk.pGpu, &gpuFeatures2);
 
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    VkDeviceDeviceMemoryReportCreateInfoEXT memoryReport = {};
+    memoryReport.flags = 0;
+    memoryReport.pfnUserCallback = MemoryReportCallback;
+    memoryReport.pUserData = (void*)&gDeviceMemStats.mMemoryAllocCount;
+    memoryReport.sType = VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT;
+    ADD_TO_NEXT_CHAIN(gEnableDeviceMemoryTracking, memoryReport);
+#endif
+
     // Get queue family properties
     uint32_t queueFamiliesCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pGpu->mVk.pGpu, &queueFamiliesCount, NULL);
@@ -3380,7 +3755,8 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     // Add Device Group Extension if requested and available
     /************************************************************************/
     ADD_TO_NEXT_CHAIN(pRenderer->mGpuMode == GPU_MODE_LINKED, deviceGroupInfo);
-    CHECK_VKRESULT_INSTANCE(vkCreateDevice(pGpu->mVk.pGpu, &create_info, &gVkAllocationCallbacks, &pRenderer->mVk.pDevice));
+    CHECK_VKRESULT_INSTANCE(
+        vkCreateDevice(pGpu->mVk.pGpu, &create_info, GetAllocationCallbacks(VK_OBJECT_TYPE_DEVICE), &pRenderer->mVk.pDevice));
 
     // Load Vulkan device functions to bypass loader
     if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
@@ -3454,9 +3830,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-    vkDestroyDescriptorSetLayout(pRenderer->mVk.pDevice, pRenderer->mVk.pEmptyDescriptorSetLayout, &gVkAllocationCallbacks);
-    vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pRenderer->mVk.pEmptyDescriptorPool, &gVkAllocationCallbacks);
-    vkDestroyDevice(pRenderer->mVk.pDevice, &gVkAllocationCallbacks);
+    vkDestroyDescriptorSetLayout(pRenderer->mVk.pDevice, pRenderer->mVk.pEmptyDescriptorSetLayout,
+                                 GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT));
+    vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pRenderer->mVk.pEmptyDescriptorPool,
+                            GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_POOL));
+    vkDestroyDevice(pRenderer->mVk.pDevice, GetAllocationCallbacks(VK_OBJECT_TYPE_DEVICE));
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
     if (pRenderer->pGpu->mVk.mAftermathSupport)
@@ -3520,7 +3898,7 @@ void vk_initRendererContext(const char* appName, const RendererContextDesc* pDes
     }
 #else
     const char** instanceLayers = (const char**)alloca((2 + pDesc->mVk.mInstanceLayerCount) * sizeof(char*));
-    uint32_t     instanceLayerCount = 0;
+    uint32_t instanceLayerCount = 0;
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
     // this turns on all validation layers
@@ -3622,6 +4000,14 @@ void vk_exitRendererContext(RendererContext* pContext)
     RemoveInstance(pContext);
 #endif
 
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+    gDriverMemStats = {};
+#endif
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    hmfree(gDeviceMemStats.mMemoryMap);
+    gDeviceMemStats = {};
+#endif
+
     SAFE_FREE(pContext);
 }
 
@@ -3717,7 +4103,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
         }
 
         // anything below LOW preset is not supported and we will exit
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_VERYLOW)
         {
             // remove device and any memory we allocated in just above as this is the first function called
             // when initializing the forge
@@ -3731,7 +4117,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
             LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
 
             // have the condition in the assert as well so its cleared when the assert message box appears
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW); //-V547
+            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_VERYLOW); //-V547
 
             // return NULL pRenderer so that client can gracefully handle exit
             // This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -3798,7 +4184,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 #endif
 
         createInfo.pVulkanFunctions = &vulkanFunctions;
-        createInfo.pAllocationCallbacks = &gVkAllocationCallbacks;
+        createInfo.pAllocationCallbacks = GetAllocationCallbacks(VK_OBJECT_TYPE_DEVICE_MEMORY);
         vmaCreateAllocator(&createInfo, &pRenderer->mVk.pVmaAllocator);
     }
 
@@ -3809,7 +4195,8 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
     VkDescriptorSet*                emptySets[] = { &pRenderer->mVk.pEmptyDescriptorSet };
     layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVk.pDevice, &layoutCreateInfo, &gVkAllocationCallbacks,
+    CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVk.pDevice, &layoutCreateInfo,
+                                               GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT),
                                                &pRenderer->mVk.pEmptyDescriptorSetLayout));
     consume_descriptor_sets(pRenderer, pRenderer->mVk.pEmptyDescriptorPool, &pRenderer->mVk.pEmptyDescriptorSetLayout, 1, emptySets);
 
@@ -3877,7 +4264,9 @@ void vk_exitRenderer(Renderer* pRenderer)
             RenderPassNode** pMap = gRenderPassMap[pRenderer->mUnlinkedRendererIndex][i].value;
             RenderPassNode*  map = *pMap;
             for (ptrdiff_t j = 0; j < hmlen(map); ++j)
-                remove_render_pass(pRenderer, &map[j].value);
+            {
+                RemoveRenderPass(pRenderer, &map[j].value);
+            }
             hmfree(map);
             tf_free(pMap);
         }
@@ -3888,7 +4277,9 @@ void vk_exitRenderer(Renderer* pRenderer)
             FrameBufferNode** pMap = gFrameBufferMap[pRenderer->mUnlinkedRendererIndex][i].value;
             FrameBufferNode*  map = *pMap;
             for (ptrdiff_t j = 0; j < hmlen(map); ++j)
-                remove_framebuffer(pRenderer, &map[j].value);
+            {
+                RemoveFramebuffer(pRenderer, &map[j].value);
+            }
             hmfree(map);
             tf_free(pMap);
         }
@@ -3941,7 +4332,7 @@ void vk_addFence(Renderer* pRenderer, Fence** ppFence)
     add_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     add_info.pNext = NULL;
     add_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    CHECK_VKRESULT(vkCreateFence(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &pFence->mVk.pFence));
+    CHECK_VKRESULT(vkCreateFence(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_FENCE), &pFence->mVk.pFence));
 
     *ppFence = pFence;
 }
@@ -3953,7 +4344,7 @@ void vk_removeFence(Renderer* pRenderer, Fence* pFence)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pFence->mVk.pFence);
 
-    vkDestroyFence(pRenderer->mVk.pDevice, pFence->mVk.pFence, &gVkAllocationCallbacks);
+    vkDestroyFence(pRenderer->mVk.pDevice, pFence->mVk.pFence, GetAllocationCallbacks(VK_OBJECT_TYPE_FENCE));
 
     SAFE_FREE(pFence);
 }
@@ -3971,7 +4362,8 @@ void vk_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
     add_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     add_info.pNext = NULL;
     add_info.flags = 0;
-    CHECK_VKRESULT(vkCreateSemaphore(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &(pSemaphore->mVk.pSemaphore)));
+    CHECK_VKRESULT(vkCreateSemaphore(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_SEMAPHORE),
+                                     &(pSemaphore->mVk.pSemaphore)));
     // Set signal initial state.
     pSemaphore->mVk.mSignaled = false;
 
@@ -3985,7 +4377,7 @@ void vk_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pSemaphore->mVk.pSemaphore);
 
-    vkDestroySemaphore(pRenderer->mVk.pDevice, pSemaphore->mVk.pSemaphore, &gVkAllocationCallbacks);
+    vkDestroySemaphore(pRenderer->mVk.pDevice, pSemaphore->mVk.pSemaphore, GetAllocationCallbacks(VK_OBJECT_TYPE_SEMAPHORE));
 
     SAFE_FREE(pSemaphore);
 }
@@ -4086,7 +4478,8 @@ void vk_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCm
         add_info.flags |= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     }
 
-    CHECK_VKRESULT(vkCreateCommandPool(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &(pCmdPool->pCmdPool)));
+    CHECK_VKRESULT(
+        vkCreateCommandPool(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_COMMAND_POOL), &(pCmdPool->pCmdPool)));
 
     *ppCmdPool = pCmdPool;
 }
@@ -4098,7 +4491,7 @@ void vk_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pCmdPool->pCmdPool);
 
-    vkDestroyCommandPool(pRenderer->mVk.pDevice, pCmdPool->pCmdPool, &gVkAllocationCallbacks);
+    vkDestroyCommandPool(pRenderer->mVk.pDevice, pCmdPool->pCmdPool, GetAllocationCallbacks(VK_OBJECT_TYPE_COMMAND_POOL));
 
     SAFE_FREE(pCmdPool);
 }
@@ -4206,8 +4599,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.flags = 0;
         add_info.hinstance = ::GetModuleHandle(NULL);
         add_info.hwnd = (HWND)hwnd.window;
-        CHECK_VKRESULT_INSTANCE(
-            vkCreateWin32SurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateWin32SurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                        GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4219,7 +4612,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.flags = 0;
         add_info.dpy = hwnd.display;   // TODO
         add_info.window = hwnd.window; // TODO
-        CHECK_VKRESULT_INSTANCE(vkCreateXlibSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateXlibSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                       GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4231,7 +4625,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.flags = 0;
         add_info.connection = hwnd.connection; // TODO
         add_info.window = hwnd.window;         // TODO
-        CHECK_VKRESULT_INSTANCE(vkCreateXcbSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateXcbSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                      GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4243,8 +4638,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.flags = 0;
         add_info.display = hwnd.wl_display;
         add_info.surface = hwnd.wl_surface;
-        CHECK_VKRESULT_INSTANCE(
-            vkCreateWaylandSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateWaylandSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                          GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4255,8 +4650,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.pNext = NULL;
         add_info.flags = 0;
         add_info.window = hwnd.window;
-        CHECK_VKRESULT_INSTANCE(
-            vkCreateAndroidSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateAndroidSurfaceKHR(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                          GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4267,7 +4662,8 @@ static void CreateSurface(Renderer* pRenderer, WindowHandle hwnd, VkSurfaceKHR* 
         add_info.pNext = NULL;
         add_info.flags = 0;
         add_info.window = hwnd.window;
-        CHECK_VKRESULT_INSTANCE(vkCreateViSurfaceNN(pRenderer->pContext->mVk.pInstance, &add_info, &gVkAllocationCallbacks, outSurface));
+        CHECK_VKRESULT_INSTANCE(vkCreateViSurfaceNN(pRenderer->pContext->mVk.pInstance, &add_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR), outSurface));
         break;
     }
 #endif
@@ -4521,7 +4917,8 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
     swapChainCreateInfo.presentMode = presentMode;
     swapChainCreateInfo.clipped = VK_TRUE;
     swapChainCreateInfo.oldSwapchain = 0;
-    CHECK_VKRESULT(vkCreateSwapchainKHR(pRenderer->mVk.pDevice, &swapChainCreateInfo, &gVkAllocationCallbacks, &vkSwapchain));
+    CHECK_VKRESULT(vkCreateSwapchainKHR(pRenderer->mVk.pDevice, &swapChainCreateInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_SWAPCHAIN_KHR),
+                                        &vkSwapchain));
 
     ((SwapChainDesc*)pDesc)->mColorFormat = TinyImageFormat_FromVkFormat((TinyImageFormat_VkFormat)surfaceFormat.format);
 
@@ -4591,8 +4988,8 @@ void vk_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
         removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
     }
 
-    vkDestroySwapchainKHR(pRenderer->mVk.pDevice, pSwapChain->mVk.pSwapChain, &gVkAllocationCallbacks);
-    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, pSwapChain->mVk.pSurface, &gVkAllocationCallbacks);
+    vkDestroySwapchainKHR(pRenderer->mVk.pDevice, pSwapChain->mVk.pSwapChain, GetAllocationCallbacks(VK_OBJECT_TYPE_SWAPCHAIN_KHR));
+    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, pSwapChain->mVk.pSurface, GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR));
 
     SAFE_FREE(pSwapChain);
 }
@@ -4646,12 +5043,12 @@ void vk_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, Resourc
     InitializeBufferCreateInfo(pRenderer, pDesc, &bufferInfo);
 
     VkBuffer buffer = VK_NULL_HANDLE;
-    CHECK_VKRESULT(vkCreateBuffer(pRenderer->mVk.pDevice, &bufferInfo, &gVkAllocationCallbacks, &buffer));
+    CHECK_VKRESULT(vkCreateBuffer(pRenderer->mVk.pDevice, &bufferInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER), &buffer));
 
     VkMemoryRequirements vkMemReq = {};
     vkGetBufferMemoryRequirements(pRenderer->mVk.pDevice, buffer, &vkMemReq);
 
-    vkDestroyBuffer(pRenderer->mVk.pDevice, buffer, &gVkAllocationCallbacks);
+    vkDestroyBuffer(pRenderer->mVk.pDevice, buffer, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER));
 
     pOut->mSize = vkMemReq.size;
     pOut->mAlignment = vkMemReq.alignment;
@@ -4669,12 +5066,12 @@ void vk_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, Resou
     InitializeImageCreateInfo(pRenderer, pDesc, &add_info, &imageCreateInfoExtras);
 
     VkImage image = VK_NULL_HANDLE;
-    vkCreateImage(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &image);
+    vkCreateImage(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE), &image);
 
     VkMemoryRequirements vkMemReq = {};
     vkGetImageMemoryRequirements(pRenderer->mVk.pDevice, image, &vkMemReq);
 
-    vkDestroyImage(pRenderer->mVk.pDevice, image, &gVkAllocationCallbacks);
+    vkDestroyImage(pRenderer->mVk.pDevice, image, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE));
 
     pOut->mSize = vkMemReq.size;
     pOut->mAlignment = vkMemReq.alignment;
@@ -4725,15 +5122,22 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
         const uint64_t placementOffset = pDesc->pPlacement->mOffset;
         ASSERT(pHeap);
 
-        CHECK_VKRESULT(vkCreateBuffer(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &pBuffer->mVk.pBuffer));
+        CHECK_VKRESULT(
+            vkCreateBuffer(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER), &pBuffer->mVk.pBuffer));
         CHECK_VKRESULT(vkBindBufferMemory(pRenderer->mVk.pDevice, pBuffer->mVk.pBuffer, pHeap->mVk.pMemory, placementOffset));
         alloc_info.deviceMemory = pHeap->mVk.pMemory;
         alloc_info.pMappedData = pHeap->mVk.pCpuMappedAddress ? ((uint8_t*)pHeap->mVk.pCpuMappedAddress + placementOffset) : NULL;
     }
     else
     {
-        CHECK_VKRESULT(vmaCreateBuffer(pRenderer->mVk.pVmaAllocator, &add_info, &vma_mem_reqs, &pBuffer->mVk.pBuffer,
-                                       &pBuffer->mVk.pAllocation, &alloc_info));
+        CHECK_VKRESULT(
+            vkCreateBuffer(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER), &pBuffer->mVk.pBuffer));
+        CHECK_VKRESULT(vmaAllocateMemoryForBuffer(pRenderer->mVk.pVmaAllocator, pBuffer->mVk.pBuffer, &vma_mem_reqs,
+                                                  &pBuffer->mVk.pAllocation, &alloc_info));
+        CHECK_VKRESULT(vmaBindBufferMemory2(pRenderer->mVk.pVmaAllocator, pBuffer->mVk.pAllocation, 0, pBuffer->mVk.pBuffer, NULL));
+#if VMA_STATS_STRING_ENABLED
+        pBuffer->mVk.pAllocation->InitBufferImageUsage(add_info.usage);
+#endif
     }
 
     pBuffer->pCpuMappedAddress = alloc_info.pMappedData;
@@ -4792,7 +5196,8 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
         }
         else
         {
-            CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVk.pDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->mVk.pUniformTexelView));
+            CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVk.pDevice, &viewInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER_VIEW),
+                                              &pBuffer->mVk.pUniformTexelView));
         }
     }
     if (add_info.usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
@@ -4811,7 +5216,8 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
         }
         else
         {
-            CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVk.pDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->mVk.pStorageTexelView));
+            CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVk.pDevice, &viewInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER_VIEW),
+                                              &pBuffer->mVk.pStorageTexelView));
         }
     }
 
@@ -4841,23 +5247,21 @@ void vk_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 
     if (pBuffer->mVk.pUniformTexelView)
     {
-        vkDestroyBufferView(pRenderer->mVk.pDevice, pBuffer->mVk.pUniformTexelView, &gVkAllocationCallbacks);
+        vkDestroyBufferView(pRenderer->mVk.pDevice, pBuffer->mVk.pUniformTexelView, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER_VIEW));
         pBuffer->mVk.pUniformTexelView = VK_NULL_HANDLE;
     }
     if (pBuffer->mVk.pStorageTexelView)
     {
-        vkDestroyBufferView(pRenderer->mVk.pDevice, pBuffer->mVk.pStorageTexelView, &gVkAllocationCallbacks);
+        vkDestroyBufferView(pRenderer->mVk.pDevice, pBuffer->mVk.pStorageTexelView, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER_VIEW));
         pBuffer->mVk.pStorageTexelView = VK_NULL_HANDLE;
     }
 
+    vkDestroyBuffer(pRenderer->mVk.pDevice, pBuffer->mVk.pBuffer, GetAllocationCallbacks(VK_OBJECT_TYPE_BUFFER));
+    pBuffer->mVk.pBuffer = VK_NULL_HANDLE;
     if (pBuffer->mVk.pAllocation)
     {
-        vmaDestroyBuffer(pRenderer->mVk.pVmaAllocator, pBuffer->mVk.pBuffer, pBuffer->mVk.pAllocation);
-    }
-    else
-    {
-        vkDestroyBuffer(pRenderer->mVk.pDevice, pBuffer->mVk.pBuffer, &gVkAllocationCallbacks);
-        pBuffer->mVk.pBuffer = VK_NULL_HANDLE;
+        vmaFreeMemory(pRenderer->mVk.pVmaAllocator, pBuffer->mVk.pAllocation);
+        pBuffer->mVk.pAllocation = VMA_NULL;
     }
 
     SAFE_FREE(pBuffer);
@@ -4922,13 +5326,20 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
         {
             ResourceHeap* pHeap = pDesc->pPlacement->pHeap;
             ASSERT(pHeap);
-            CHECK_VKRESULT(vkCreateImage(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &pTexture->mVk.pImage));
+            CHECK_VKRESULT(
+                vkCreateImage(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE), &pTexture->mVk.pImage));
             CHECK_VKRESULT(vkBindImageMemory(pRenderer->mVk.pDevice, pTexture->mVk.pImage, pHeap->mVk.pMemory, pDesc->pPlacement->mOffset));
         }
         else
         {
-            CHECK_VKRESULT(vmaCreateImage(pRenderer->mVk.pVmaAllocator, &add_info, &mem_reqs, &pTexture->mVk.pImage,
-                                          &pTexture->mVk.pAllocation, NULL));
+            CHECK_VKRESULT(
+                vkCreateImage(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE), &pTexture->mVk.pImage));
+            CHECK_VKRESULT(
+                vmaAllocateMemoryForImage(pRenderer->mVk.pVmaAllocator, pTexture->mVk.pImage, &mem_reqs, &pTexture->mVk.pAllocation, NULL));
+            CHECK_VKRESULT(vmaBindImageMemory2(pRenderer->mVk.pVmaAllocator, pTexture->mVk.pAllocation, 0, pTexture->mVk.pImage, NULL));
+#if VMA_STATS_STRING_ENABLED
+            pTexture->mVk.pAllocation->InitBufferImageUsage(add_info.usage);
+#endif
         }
 
         /************************************************************************/
@@ -5015,14 +5426,24 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 
     if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
     {
-        CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->mVk.pSRVDescriptor));
+        CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &srvDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
+                                         &pTexture->mVk.pSRVDescriptor));
     }
 
     // SRV stencil
     if ((TinyImageFormat_HasStencil(pDesc->mFormat)) && (descriptors & DESCRIPTOR_TYPE_TEXTURE))
     {
         srvDesc.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-        CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->mVk.pSRVStencilDescriptor));
+        CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &srvDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
+                                         &pTexture->mVk.pSRVStencilDescriptor));
+    }
+
+    // ASTC decode mode extension
+    VkImageViewASTCDecodeModeEXT astcDecodeMode = { VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT };
+    astcDecodeMode.decodeMode = VK_FORMAT_R8G8B8A8_UNORM;
+    if (pRenderer->pGpu->mVk.mASTCDecodeModeExtension && TinyImageFormat_IsCompressedASTC(pDesc->mFormat))
+    {
+        srvDesc.pNext = &astcDecodeMode;
     }
 
     // UAV
@@ -5037,7 +5458,8 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
         for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
         {
             uavDesc.subresourceRange.baseMipLevel = i;
-            CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &uavDesc, &gVkAllocationCallbacks, &pTexture->mVk.pUAVDescriptors[i]));
+            CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &uavDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
+                                             &pTexture->mVk.pUAVDescriptors[i]));
         }
     }
     /************************************************************************/
@@ -5069,36 +5491,35 @@ void vk_removeTexture(Renderer* pRenderer, Texture* pTexture)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pTexture->mVk.pImage);
 
-    if (pTexture->mOwnsImage)
-    {
-        if (pTexture->mVk.pAllocation)
-        {
-            vmaDestroyImage(pRenderer->mVk.pVmaAllocator, pTexture->mVk.pImage, pTexture->mVk.pAllocation);
-        }
-        else
-        {
-            vkDestroyImage(pRenderer->mVk.pDevice, pTexture->mVk.pImage, &gVkAllocationCallbacks);
-        }
-    }
-
     if (VK_NULL_HANDLE != pTexture->mVk.pSRVDescriptor)
     {
-        vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pSRVDescriptor, &gVkAllocationCallbacks);
+        vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pSRVDescriptor, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
     }
 
     if (VK_NULL_HANDLE != pTexture->mVk.pSRVStencilDescriptor)
     {
-        vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pSRVStencilDescriptor, &gVkAllocationCallbacks);
+        vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pSRVStencilDescriptor, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
     }
 
     if (pTexture->mVk.pUAVDescriptors)
     {
         for (uint32_t i = 0; i < pTexture->mMipLevels; ++i)
         {
-            vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pUAVDescriptors[i], &gVkAllocationCallbacks);
+            vkDestroyImageView(pRenderer->mVk.pDevice, pTexture->mVk.pUAVDescriptors[i], GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
         }
     }
 
+    if (pTexture->mOwnsImage)
+    {
+        vkDestroyImage(pRenderer->mVk.pDevice, pTexture->mVk.pImage, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE));
+        if (pTexture->mVk.pAllocation)
+        {
+            vmaFreeMemory(pRenderer->mVk.pVmaAllocator, pTexture->mVk.pAllocation);
+            pTexture->mVk.pAllocation = VMA_NULL;
+        }
+    }
+
+    pTexture->mVk.pImage = VK_NULL_HANDLE;
     SAFE_FREE(pTexture);
 }
 
@@ -5227,7 +5648,8 @@ void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
     rtvDesc.subresourceRange.baseArrayLayer = 0;
     rtvDesc.subresourceRange.layerCount = depthOrArraySize;
 
-    CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->mVk.pDescriptor));
+    CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
+                                     &pRenderTarget->mVk.pDescriptor));
 
     for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
     {
@@ -5239,14 +5661,14 @@ void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
             {
                 rtvDesc.subresourceRange.layerCount = 1;
                 rtvDesc.subresourceRange.baseArrayLayer = j;
-                CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
                                                  &pRenderTarget->mVk.pSliceDescriptors[i * depthOrArraySize + j]));
             }
         }
         else
         {
-            CHECK_VKRESULT(
-                vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->mVk.pSliceDescriptors[i]));
+            CHECK_VKRESULT(vkCreateImageView(pRenderer->mVk.pDevice, &rtvDesc, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW),
+                                             &pRenderTarget->mVk.pSliceDescriptors[i]));
         }
     }
 
@@ -5292,7 +5714,7 @@ void vk_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
     ::removeTexture(pRenderer, pRenderTarget->pTexture);
 
-    vkDestroyImageView(pRenderer->mVk.pDevice, pRenderTarget->mVk.pDescriptor, &gVkAllocationCallbacks);
+    vkDestroyImageView(pRenderer->mVk.pDevice, pRenderTarget->mVk.pDescriptor, GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
 
     const uint32_t depthOrArraySize = pRenderTarget->mArraySize * pRenderTarget->mDepth;
     if ((pRenderTarget->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
@@ -5301,12 +5723,13 @@ void vk_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
         for (uint32_t i = 0; i < pRenderTarget->mMipLevels; ++i)
             for (uint32_t j = 0; j < depthOrArraySize; ++j)
                 vkDestroyImageView(pRenderer->mVk.pDevice, pRenderTarget->mVk.pSliceDescriptors[i * depthOrArraySize + j],
-                                   &gVkAllocationCallbacks);
+                                   GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
     }
     else
     {
         for (uint32_t i = 0; i < pRenderTarget->mMipLevels; ++i)
-            vkDestroyImageView(pRenderer->mVk.pDevice, pRenderTarget->mVk.pSliceDescriptors[i], &gVkAllocationCallbacks);
+            vkDestroyImageView(pRenderer->mVk.pDevice, pRenderTarget->mVk.pSliceDescriptors[i],
+                               GetAllocationCallbacks(VK_OBJECT_TYPE_IMAGE_VIEW));
     }
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
@@ -5394,7 +5817,8 @@ void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
         conversion_info.yChromaOffset = (VkChromaLocation)conversionDesc.mChromaOffsetY;
         conversion_info.chromaFilter = util_to_vk_filter(conversionDesc.mChromaFilter);
         conversion_info.forceExplicitReconstruction = conversionDesc.mForceExplicitReconstruction ? VK_TRUE : VK_FALSE;
-        CHECK_VKRESULT(vkCreateSamplerYcbcrConversion(pRenderer->mVk.pDevice, &conversion_info, &gVkAllocationCallbacks,
+        CHECK_VKRESULT(vkCreateSamplerYcbcrConversion(pRenderer->mVk.pDevice, &conversion_info,
+                                                      GetAllocationCallbacks(VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION),
                                                       &pSampler->mVk.pSamplerYcbcrConversion));
 
         pSampler->mVk.mSamplerYcbcrConversionInfo = {};
@@ -5404,7 +5828,8 @@ void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
         add_info.pNext = &pSampler->mVk.mSamplerYcbcrConversionInfo;
     }
 
-    CHECK_VKRESULT(vkCreateSampler(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &(pSampler->mVk.pSampler)));
+    CHECK_VKRESULT(
+        vkCreateSampler(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_SAMPLER), &(pSampler->mVk.pSampler)));
 
     *ppSampler = pSampler;
 }
@@ -5416,11 +5841,12 @@ void vk_removeSampler(Renderer* pRenderer, Sampler* pSampler)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pSampler->mVk.pSampler);
 
-    vkDestroySampler(pRenderer->mVk.pDevice, pSampler->mVk.pSampler, &gVkAllocationCallbacks);
+    vkDestroySampler(pRenderer->mVk.pDevice, pSampler->mVk.pSampler, GetAllocationCallbacks(VK_OBJECT_TYPE_SAMPLER));
 
     if (NULL != pSampler->mVk.pSamplerYcbcrConversion)
     {
-        vkDestroySamplerYcbcrConversion(pRenderer->mVk.pDevice, pSampler->mVk.pSamplerYcbcrConversion, &gVkAllocationCallbacks);
+        vkDestroySamplerYcbcrConversion(pRenderer->mVk.pDevice, pSampler->mVk.pSamplerYcbcrConversion,
+                                        GetAllocationCallbacks(VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION));
     }
 
     SAFE_FREE(pSampler);
@@ -5617,7 +6043,8 @@ void vk_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
     ASSERT(pRenderer);
     ASSERT(pDescriptorSet);
 
-    vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pDescriptorSet->mVk.pDescriptorPool, &gVkAllocationCallbacks);
+    vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pDescriptorSet->mVk.pDescriptorPool,
+                            GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_POOL));
     SAFE_FREE(pDescriptorSet);
 }
 
@@ -6150,7 +6577,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mVert.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mVert.pByteCode;
                 pStageDesc = &pDesc->mVert;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6165,7 +6593,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mHull.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mHull.pByteCode;
                 pStageDesc = &pDesc->mHull;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6180,7 +6609,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mDomain.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mDomain.pByteCode;
                 pStageDesc = &pDesc->mDomain;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6195,7 +6625,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mGeom.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mGeom.pByteCode;
                 pStageDesc = &pDesc->mGeom;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6210,7 +6641,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mFrag.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mFrag.pByteCode;
                 pStageDesc = &pDesc->mFrag;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6225,7 +6657,8 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
                 create_info.codeSize = pDesc->mComp.mByteCodeSize;
                 create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
                 pStageDesc = &pDesc->mComp;
-                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVk.pDevice, &create_info,
+                                                    GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE),
                                                     &(pShaderProgram->mVk.pShaderModules[counter])));
 
                 SetVkObjectName(pRenderer, (uint64_t)pShaderProgram->mVk.pShaderModules[counter], VK_OBJECT_TYPE_SHADER_MODULE,
@@ -6302,36 +6735,37 @@ void vk_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
     if (pShaderProgram->mStages & SHADER_STAGE_VERT)
     {
         vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mVertexStageIndex],
-                              &gVkAllocationCallbacks);
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     if (pShaderProgram->mStages & SHADER_STAGE_TESC)
     {
         vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mHullStageIndex],
-                              &gVkAllocationCallbacks);
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     if (pShaderProgram->mStages & SHADER_STAGE_TESE)
     {
         vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mDomainStageIndex],
-                              &gVkAllocationCallbacks);
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     if (pShaderProgram->mStages & SHADER_STAGE_GEOM)
     {
         vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex],
-                              &gVkAllocationCallbacks);
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     if (pShaderProgram->mStages & SHADER_STAGE_FRAG)
     {
         vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mPixelStageIndex],
-                              &gVkAllocationCallbacks);
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     if (pShaderProgram->mStages & SHADER_STAGE_COMP)
     {
-        vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[0], &gVkAllocationCallbacks);
+        vkDestroyShaderModule(pRenderer->mVk.pDevice, pShaderProgram->mVk.pShaderModules[0],
+                              GetAllocationCallbacks(VK_OBJECT_TYPE_SHADER_MODULE));
     }
 
     destroyPipelineReflection(pShaderProgram->pReflection);
@@ -6675,7 +7109,8 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
                 layoutInfo.pBindings = layout.mBindings;
                 layoutInfo.flags = 0;
 
-                CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVk.pDevice, &layoutInfo, &gVkAllocationCallbacks,
+                CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVk.pDevice, &layoutInfo,
+                                                           GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT),
                                                            &pRootSignature->mVk.mDescriptorSetLayouts[layoutIndex]));
             }
             else
@@ -6735,8 +7170,8 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
     add_info.pSetLayouts = descriptorSetLayouts;
     add_info.pushConstantRangeCount = pushConstantCount;
     add_info.pPushConstantRanges = pushConstants;
-    CHECK_VKRESULT(
-        vkCreatePipelineLayout(pRenderer->mVk.pDevice, &add_info, &gVkAllocationCallbacks, &(pRootSignature->mVk.pPipelineLayout)));
+    CHECK_VKRESULT(vkCreatePipelineLayout(pRenderer->mVk.pDevice, &add_info, GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE_LAYOUT),
+                                          &(pRootSignature->mVk.pPipelineLayout)));
     /************************************************************************/
     // Update templates
     /************************************************************************/
@@ -6775,17 +7210,20 @@ void vk_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
     {
         if (pRootSignature->mVk.mDescriptorSetLayouts[i] != pRenderer->mVk.pEmptyDescriptorSetLayout)
         {
-            vkDestroyDescriptorSetLayout(pRenderer->mVk.pDevice, pRootSignature->mVk.mDescriptorSetLayouts[i], &gVkAllocationCallbacks);
+            vkDestroyDescriptorSetLayout(pRenderer->mVk.pDevice, pRootSignature->mVk.mDescriptorSetLayouts[i],
+                                         GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT));
         }
         if (VK_NULL_HANDLE != pRootSignature->mVk.pEmptyDescriptorPool[i])
         {
-            vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pRootSignature->mVk.pEmptyDescriptorPool[i], &gVkAllocationCallbacks);
+            vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pRootSignature->mVk.pEmptyDescriptorPool[i],
+                                    GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_POOL));
         }
     }
 
     shfree(pRootSignature->pDescriptorNameToIndexMap);
 
-    vkDestroyPipelineLayout(pRenderer->mVk.pDevice, pRootSignature->mVk.pPipelineLayout, &gVkAllocationCallbacks);
+    vkDestroyPipelineLayout(pRenderer->mVk.pDevice, pRootSignature->mVk.pPipelineLayout,
+                            GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE_LAYOUT));
 
     SAFE_FREE(pRootSignature);
 }
@@ -6864,12 +7302,14 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 #endif
         renderPassDesc.mStoreActionDepth = gDefaultStoreActions[0];
         renderPassDesc.mStoreActionStencil = gDefaultStoreActions[1];
-        add_render_pass(pRenderer, &renderPassDesc, &renderPass);
+        AddRenderPass(pRenderer, &renderPassDesc, &renderPass);
     }
 
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
+    {
         ASSERT(VK_NULL_HANDLE != pShaderProgram->mVk.pShaderModules[i]);
+    }
 
     const VkSpecializationInfo* specializationInfo = pShaderProgram->mVk.pSpecializationInfo;
 
@@ -7064,6 +7504,15 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
         ms.alphaToCoverageEnable = VK_FALSE;
         ms.alphaToOneEnable = VK_FALSE;
 
+        DECLARE_ZERO(VkPipelineSampleLocationsStateCreateInfoEXT, sl);
+        if (pDesc->mUseCustomSampleLocations)
+        {
+            sl.sType = VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT;
+            sl.sampleLocationsEnable = VK_TRUE;
+            sl.sampleLocationsInfo = { VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT };
+            ms.pNext = &sl;
+        }
+
         DECLARE_ZERO(VkPipelineRasterizationStateCreateInfo, rs);
         rs = pDesc->pRasterizerState ? util_to_rasterizer_desc(pRenderer, pDesc->pRasterizerState) : gDefaultRasterizerDesc;
 
@@ -7126,12 +7575,12 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
         add_info.subpass = 0;
         add_info.basePipelineHandle = VK_NULL_HANDLE;
         add_info.basePipelineIndex = -1;
-        CHECK_VKRESULT(vkCreateGraphicsPipelines(pRenderer->mVk.pDevice, psoCache, 1, &add_info, &gVkAllocationCallbacks,
-                                                 &(pPipeline->mVk.pPipeline)));
+        CHECK_VKRESULT(vkCreateGraphicsPipelines(pRenderer->mVk.pDevice, psoCache, 1, &add_info,
+                                                 GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE), &(pPipeline->mVk.pPipeline)));
 
         if (renderPass.pRenderPass)
         {
-            remove_render_pass(pRenderer, &renderPass);
+            RemoveRenderPass(pRenderer, &renderPass);
         }
     }
 
@@ -7175,8 +7624,8 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
         create_info.layout = pDesc->pRootSignature->mVk.pPipelineLayout;
         create_info.basePipelineHandle = 0;
         create_info.basePipelineIndex = 0;
-        CHECK_VKRESULT(vkCreateComputePipelines(pRenderer->mVk.pDevice, psoCache, 1, &create_info, &gVkAllocationCallbacks,
-                                                &(pPipeline->mVk.pPipeline)));
+        CHECK_VKRESULT(vkCreateComputePipelines(pRenderer->mVk.pDevice, psoCache, 1, &create_info,
+                                                GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE), &(pPipeline->mVk.pPipeline)));
     }
 
     *ppPipeline = pPipeline;
@@ -7221,7 +7670,7 @@ void vk_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
     ASSERT(VK_NULL_HANDLE != pPipeline->mVk.pPipeline);
 
-    vkDestroyPipeline(pRenderer->mVk.pDevice, pPipeline->mVk.pPipeline, &gVkAllocationCallbacks);
+    vkDestroyPipeline(pRenderer->mVk.pDevice, pPipeline->mVk.pPipeline, GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE));
 
     SAFE_FREE(pPipeline);
 }
@@ -7239,8 +7688,8 @@ void vk_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, Pi
     psoCacheCreateInfo.initialDataSize = pDesc->mSize;
     psoCacheCreateInfo.pInitialData = pDesc->pData;
     psoCacheCreateInfo.flags = util_to_pipeline_cache_flags(pDesc->mFlags);
-    CHECK_VKRESULT(
-        vkCreatePipelineCache(pRenderer->mVk.pDevice, &psoCacheCreateInfo, &gVkAllocationCallbacks, &pPipelineCache->mVk.pCache));
+    CHECK_VKRESULT(vkCreatePipelineCache(pRenderer->mVk.pDevice, &psoCacheCreateInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE_CACHE),
+                                         &pPipelineCache->mVk.pCache));
 
     *ppPipelineCache = pPipelineCache;
 }
@@ -7252,7 +7701,7 @@ void vk_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache)
 
     if (pPipelineCache->mVk.pCache)
     {
-        vkDestroyPipelineCache(pRenderer->mVk.pDevice, pPipelineCache->mVk.pCache, &gVkAllocationCallbacks);
+        vkDestroyPipelineCache(pRenderer->mVk.pDevice, pPipelineCache->mVk.pCache, GetAllocationCallbacks(VK_OBJECT_TYPE_PIPELINE_CACHE));
     }
 
     SAFE_FREE(pPipelineCache);
@@ -7398,9 +7847,7 @@ void vk_endCmd(Cmd* pCmd)
     CHECK_VKRESULT(vkEndCommandBuffer(pCmd->mVk.pCmdBuf));
 }
 
-void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
-                                    const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices,
-                                    uint32_t depthArraySlice, uint32_t depthMipSlice)
+void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
     ASSERT(VK_NULL_HANDLE != pCmd->mVk.pCmdBuf);
@@ -7411,40 +7858,41 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         pCmd->mVk.mIsRendering = false;
     }
 
-    if (!renderTargetCount && !pDepthStencil)
+    if (!pDesc)
+    {
         return;
+    }
 
-    bool                      vrFoveatedRendering = false;
+    bool vrFoveatedRendering = false;
+    UNREF_PARAM(vrFoveatedRendering);
     VkRenderingAttachmentInfo colorAttachments[MAX_RENDER_TARGET_ATTACHMENTS] = {};
     VkRenderingAttachmentInfo depthAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
     VkRenderingAttachmentInfo stencilAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
-    bool                      hasStencil = false;
+    const bool                hasDepth = pDesc->mDepthStencil.pDepthStencil;
+    const bool                hasStencil = hasDepth && TinyImageFormat_HasStencil(pDesc->mDepthStencil.pDepthStencil->mFormat);
 
-    for (uint32_t i = 0; i < renderTargetCount; ++i)
+    for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
-        vrFoveatedRendering |= ppRenderTargets[i]->mVRFoveatedRendering;
-        const LoadActionType loadAction = pLoadActions ? pLoadActions->mLoadActionsColor[i] : gDefaultLoadActions[i];
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+        vrFoveatedRendering |= desc->pRenderTarget->mVRFoveatedRendering;
+        const LoadActionType loadAction = desc->mLoadAction;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
         StoreActionType storeAction;
-        bool            resolveAttachment = pLoadActions && IsStoreActionResolve(pLoadActions->mStoreActionsColor[i]);
+        bool            resolveAttachment = IsStoreActionResolve(desc->mStoreAction);
         if (resolveAttachment)
         {
-            storeAction = ppRenderTargets[i]->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
+            storeAction = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
 
             colorAttachments[i].resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachments[i].resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
         }
         else
         {
-            storeAction = ppRenderTargets[i]->pTexture->mLazilyAllocated
-                              ? STORE_ACTION_DONTCARE
-                              : (pLoadActions ? pLoadActions->mStoreActionsColor[i] : gDefaultStoreActions[i]);
+            storeAction = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
         }
 #else
-        const StoreActionType storeAction = ppRenderTargets[i]->pTexture->mLazilyAllocated
-                                                ? STORE_ACTION_DONTCARE
-                                                : (pLoadActions ? pLoadActions->mStoreActionsColor[i] : gDefaultStoreActions[i]);
+        const StoreActionType storeAction = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
 #endif
 
         colorAttachments[i].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
@@ -7453,65 +7901,64 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         colorAttachments[i].loadOp = gVkAttachmentLoadOpTranslator[loadAction];
         colorAttachments[i].storeOp = gVkAttachmentStoreOpTranslator[storeAction];
 
-        if (!pColorMipSlices && !pColorArraySlices)
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
-            colorAttachments[i].imageView = ppRenderTargets[i]->mVk.pDescriptor;
+            colorAttachments[i].imageView = desc->pRenderTarget->mVk.pDescriptor;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
             if (resolveAttachment)
             {
-                colorAttachments[i].resolveImageView = ppRenderTargets[i]->pResolveAttachment->mVk.pDescriptor;
+                colorAttachments[i].resolveImageView = desc->pRenderTarget->pResolveAttachment->mVk.pDescriptor;
             }
 #endif
         }
         else
         {
             uint32_t handle = 0;
-            if (pColorMipSlices)
+            if (desc->mUseMipSlice)
             {
-                if (pColorArraySlices)
-                    handle = pColorMipSlices[i] * ppRenderTargets[i]->mArraySize + pColorArraySlices[i];
+                if (desc->mUseArraySlice)
+                {
+                    handle = desc->mMipSlice * desc->pRenderTarget->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = pColorMipSlices[i];
+                {
+                    handle = desc->mMipSlice;
+                }
             }
-            else if (pColorArraySlices)
+            else if (desc->mUseArraySlice)
             {
-                handle = pColorArraySlices[i];
+                handle = desc->mArraySlice;
             }
-            colorAttachments[i].imageView = ppRenderTargets[i]->mVk.pSliceDescriptors[handle];
+            colorAttachments[i].imageView = desc->pRenderTarget->mVk.pSliceDescriptors[handle];
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
             if (resolveAttachment)
             {
-                colorAttachments[i].resolveImageView = ppRenderTargets[i]->pResolveAttachment->mVk.pSliceDescriptors[handle];
+                colorAttachments[i].resolveImageView = desc->pRenderTarget->pResolveAttachment->mVk.pSliceDescriptors[handle];
             }
 #endif
         }
-
-        if (pLoadActions)
-        {
-            ClearValue clearValue = pLoadActions->mClearColorValues[i];
-            colorAttachments[i].clearValue.color = { { clearValue.r, clearValue.g, clearValue.b, clearValue.a } };
-        }
+        const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pRenderTarget->mClearValue;
+        colorAttachments[i].clearValue.color = { { clearValue->r, clearValue->g, clearValue->b, clearValue->a } };
     }
-    if (pDepthStencil)
+    if (hasDepth)
     {
-        hasStencil = TinyImageFormat_HasStencil(pDepthStencil->mFormat);
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
 
-        vrFoveatedRendering |= pDepthStencil->mVRFoveatedRendering;
-        const LoadActionType depthLoadAction = pLoadActions ? pLoadActions->mLoadActionDepth : gDefaultLoadActions[0];
-        const LoadActionType stencilLoadAction = pLoadActions ? pLoadActions->mLoadActionStencil : gDefaultLoadActions[0];
+        vrFoveatedRendering |= desc->pDepthStencil->mVRFoveatedRendering;
+        const LoadActionType depthLoadAction = desc->mLoadAction;
+        const LoadActionType stencilLoadAction = desc->mLoadActionStencil;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
         // Dynamic rendering allows depth stencil auto resolve
         StoreActionType depthStoreAction;
         StoreActionType stencilStoreAction;
-        bool            resolveAttachment = pLoadActions && (IsStoreActionResolve(pLoadActions->mStoreActionDepth) ||
-                                                  IsStoreActionResolve(pLoadActions->mStoreActionStencil));
+        bool            resolveAttachment = IsStoreActionResolve(desc->mStoreAction) || IsStoreActionResolve(desc->mStoreActionStencil);
         if (resolveAttachment)
         {
-            depthStoreAction = pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
-            stencilStoreAction = pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
+            depthStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
+            stencilStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
             depthAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthAttachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
             stencilAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -7519,20 +7966,14 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         }
         else
         {
-            depthStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                                   ? STORE_ACTION_DONTCARE
-                                   : (pLoadActions ? pLoadActions->mStoreActionDepth : gDefaultStoreActions[0]);
-            stencilStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                                     ? STORE_ACTION_DONTCARE
-                                     : (pLoadActions ? pLoadActions->mStoreActionStencil : gDefaultStoreActions[0]);
+            depthStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
+            stencilStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreActionStencil;
         }
 #else
-        const StoreActionType depthStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                                                     ? STORE_ACTION_DONTCARE
-                                                     : (pLoadActions ? pLoadActions->mStoreActionDepth : gDefaultStoreActions[0]);
-        const StoreActionType stencilStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                                                       ? STORE_ACTION_DONTCARE
-                                                       : (pLoadActions ? pLoadActions->mStoreActionStencil : gDefaultStoreActions[0]);
+        const StoreActionType depthStoreAction =
+            desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
+        const StoreActionType stencilStoreAction =
+            desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreActionStencil;
 #endif
 
         depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -7543,37 +7984,41 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         stencilAttachment.loadOp = gVkAttachmentLoadOpTranslator[stencilLoadAction];
         stencilAttachment.storeOp = gVkAttachmentStoreOpTranslator[stencilStoreAction];
 
-        if (UINT32_MAX == depthMipSlice && UINT32_MAX == depthArraySlice)
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
-            depthAttachment.imageView = pDepthStencil->mVk.pDescriptor;
+            depthAttachment.imageView = desc->pDepthStencil->mVk.pDescriptor;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
             if (resolveAttachment)
             {
-                depthAttachment.resolveImageView = pDepthStencil->pResolveAttachment->mVk.pDescriptor;
+                depthAttachment.resolveImageView = desc->pDepthStencil->pResolveAttachment->mVk.pDescriptor;
             }
 #endif
         }
         else
         {
             uint32_t handle = 0;
-            if (depthMipSlice != UINT32_MAX)
+            if (desc->mUseMipSlice)
             {
-                if (depthArraySlice != UINT32_MAX)
-                    handle = depthMipSlice * pDepthStencil->mArraySize + depthArraySlice;
+                if (desc->mUseArraySlice)
+                {
+                    handle = desc->mMipSlice * desc->pDepthStencil->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = depthMipSlice;
+                {
+                    handle = desc->mMipSlice;
+                }
             }
-            else if (depthArraySlice != UINT32_MAX)
+            else if (desc->mUseArraySlice)
             {
-                handle = depthArraySlice;
+                handle = desc->mArraySlice;
             }
-            depthAttachment.imageView = pDepthStencil->mVk.pSliceDescriptors[handle];
+            depthAttachment.imageView = desc->pDepthStencil->mVk.pSliceDescriptors[handle];
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
             if (resolveAttachment)
             {
-                depthAttachment.resolveImageView = pDepthStencil->pResolveAttachment->mVk.pSliceDescriptors[handle];
+                depthAttachment.resolveImageView = desc->pDepthStencil->pResolveAttachment->mVk.pSliceDescriptors[handle];
             }
 #endif
         }
@@ -7581,11 +8026,9 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         stencilAttachment.imageView = depthAttachment.imageView;
         stencilAttachment.resolveImageView = depthAttachment.resolveImageView;
 
-        if (pLoadActions)
-        {
-            depthAttachment.clearValue.depthStencil = { pLoadActions->mClearDepth.depth, pLoadActions->mClearDepth.stencil };
-            stencilAttachment.clearValue.depthStencil = { pLoadActions->mClearDepth.depth, pLoadActions->mClearDepth.stencil };
-        }
+        const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+        depthAttachment.clearValue.depthStencil = { clearValue->depth, clearValue->stencil };
+        stencilAttachment.clearValue.depthStencil = { clearValue->depth, clearValue->stencil };
     }
 
     VkRect2D renderArea = {};
@@ -7593,41 +8036,59 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
     renderArea.offset.y = 0;
 
     uint32_t layerCount = 0;
-    if (renderTargetCount)
+    if (pDesc->mRenderTargetCount)
     {
-        renderArea.extent.width = ppRenderTargets[0]->mWidth;
-        renderArea.extent.height = ppRenderTargets[0]->mHeight;
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[0];
+        renderArea.extent.width = desc->pRenderTarget->mWidth >> (desc->mUseMipSlice ? desc->mMipSlice : 0);
+        renderArea.extent.height = desc->pRenderTarget->mHeight >> (desc->mUseMipSlice ? desc->mMipSlice : 0);
 
-        if (pColorArraySlices)
+        if (desc->mUseArraySlice)
+        {
             layerCount = 1;
+        }
         else
-            layerCount = ppRenderTargets[0]->mVRMultiview ? 1 : ppRenderTargets[0]->mArraySize;
+        {
+            layerCount = desc->pRenderTarget->mVRMultiview ? 1 : desc->pRenderTarget->mArraySize;
+        }
     }
-    else if (pDepthStencil)
+    else if (hasDepth)
     {
-        renderArea.extent.width = pDepthStencil->mWidth;
-        renderArea.extent.height = pDepthStencil->mHeight;
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        renderArea.extent.width = desc->pDepthStencil->mWidth >> (desc->mUseMipSlice ? desc->mMipSlice : 0);
+        renderArea.extent.height = desc->pDepthStencil->mHeight >> (desc->mUseMipSlice ? desc->mMipSlice : 0);
 
-        if (depthArraySlice != UINT32_MAX)
+        if (desc->mUseArraySlice)
+        {
             layerCount = 1;
+        }
         else
-            layerCount = pDepthStencil->mVRMultiview ? 1 : pDepthStencil->mArraySize;
+        {
+            layerCount = desc->pDepthStencil->mVRMultiview ? 1 : desc->pDepthStencil->mArraySize;
+        }
     }
     else
     {
-        ASSERT(0 && "No color or depth attachments");
+        // Empty render pass - Need to set layerCount to 1
+        ASSERT(pDesc->mExtent[0] && pDesc->mExtent[1]);
+        renderArea.extent = { pDesc->mExtent[0], pDesc->mExtent[1] };
+        renderArea.offset = {};
+        layerCount = 1;
     }
 
-    if (renderTargetCount && ppRenderTargets[0]->mDepth > 1)
+    if (pDesc->mRenderTargetCount && pDesc->mRenderTargets[0].pRenderTarget->mDepth > 1)
     {
-        layerCount = ppRenderTargets[0]->mDepth;
+        layerCount = pDesc->mRenderTargets[0].pRenderTarget->mDepth;
+    }
+    else if (hasDepth && pDesc->mDepthStencil.pDepthStencil->mDepth > 1)
+    {
+        layerCount = pDesc->mDepthStencil.pDepthStencil->mDepth;
     }
 
     VkRenderingInfoKHR renderingInfo = { VK_STRUCTURE_TYPE_RENDERING_INFO_KHR };
     renderingInfo.pColorAttachments = colorAttachments;
-    renderingInfo.colorAttachmentCount = renderTargetCount;
-    renderingInfo.pDepthAttachment = pDepthStencil ? &depthAttachment : NULL;
-    renderingInfo.pStencilAttachment = (pDepthStencil && hasStencil) ? &stencilAttachment : NULL;
+    renderingInfo.colorAttachmentCount = pDesc->mRenderTargetCount;
+    renderingInfo.pDepthAttachment = hasDepth ? &depthAttachment : NULL;
+    renderingInfo.pStencilAttachment = hasStencil ? &stencilAttachment : NULL;
     renderingInfo.renderArea = renderArea;
     renderingInfo.layerCount = layerCount;
 
@@ -7644,17 +8105,13 @@ void vk_cmdBindRenderTargetsDynamic(Cmd* pCmd, uint32_t renderTargetCount, Rende
         fragDensityAttachmentInfo.imageView = pFragmentDensityMask->mVk.pDescriptor;
     }
     renderingInfo.pNext = &fragDensityAttachmentInfo;
-#else
-    (void)vrFoveatedRendering; // Fixes unnused variable warning when QUEST_VR is not defined
 #endif
 
     vkCmdBeginRenderingKHR(pCmd->mVk.pCmdBuf, &renderingInfo);
     pCmd->mVk.mIsRendering = true;
 }
 
-void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
-                             const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices,
-                             uint32_t depthArraySlice, uint32_t depthMipSlice)
+void vk_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
     ASSERT(VK_NULL_HANDLE != pCmd->mVk.pCmdBuf);
@@ -7665,8 +8122,12 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
         pCmd->mVk.pActiveRenderPass = VK_NULL_HANDLE;
     }
 
-    if (!renderTargetCount && !pDepthStencil)
+    if (!pDesc)
+    {
         return;
+    }
+
+    const bool hasDepth = pDesc->mDepthStencil.pDepthStencil;
 
     size_t          renderPassHash = 0;
     size_t          frameBufferHash = 0;
@@ -7682,74 +8143,70 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
     // We hash those two values to generate render pass hash
     // Frame buffer is the actual array of all the VkImageViews
     // We hash the texture id associated with the render target to generate frame buffer hash
-    for (uint32_t i = 0; i < renderTargetCount; ++i)
+    for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-        bool resolveAttachment = pLoadActions && IsStoreActionResolve(pLoadActions->mStoreActionsColor[i]);
+        bool resolveAttachment = IsStoreActionResolve(desc->mStoreAction);
         if (resolveAttachment)
         {
-            colorStoreAction[i] = ppRenderTargets[i]->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
+            colorStoreAction[i] = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_RESOLVE_DONTCARE : STORE_ACTION_DONTCARE;
         }
         else
 #endif
         {
-            colorStoreAction[i] = ppRenderTargets[i]->pTexture->mLazilyAllocated
-                                      ? STORE_ACTION_DONTCARE
-                                      : (pLoadActions ? pLoadActions->mStoreActionsColor[i] : gDefaultStoreActions[i]);
+            colorStoreAction[i] = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
         }
 
-        uint32_t renderPassHashValues[] = { (uint32_t)ppRenderTargets[i]->mFormat, (uint32_t)ppRenderTargets[i]->mSampleCount,
-                                            pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : gDefaultLoadActions[i],
-                                            (uint32_t)colorStoreAction[i] };
+        uint32_t renderPassHashValues[] = { (uint32_t)desc->pRenderTarget->mFormat, (uint32_t)desc->pRenderTarget->mSampleCount,
+                                            (uint32_t)desc->mLoadAction, (uint32_t)colorStoreAction[i] };
         uint32_t frameBufferHashValues[] = {
-            ppRenderTargets[i]->mVk.mId,
+            desc->pRenderTarget->mVk.mId,
+            ((uint32_t)desc->mUseArraySlice << 1) | ((uint32_t)desc->mUseMipSlice),
+            (uint32_t)desc->mArraySlice,
+            (uint32_t)desc->mMipSlice,
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-            resolveAttachment ? ppRenderTargets[i]->pResolveAttachment->mVk.mId : 0
+            resolveAttachment ? desc->pRenderTarget->pResolveAttachment->mVk.mId : 0
 #endif
         };
         renderPassHash = tf_mem_hash<uint32_t>(renderPassHashValues, TF_ARRAY_COUNT(renderPassHashValues), renderPassHash);
         frameBufferHash = tf_mem_hash<uint32_t>(frameBufferHashValues, TF_ARRAY_COUNT(frameBufferHashValues), frameBufferHash);
-        vrFoveatedRendering |= ppRenderTargets[i]->mVRFoveatedRendering;
+        vrFoveatedRendering |= desc->pRenderTarget->mVRFoveatedRendering;
 
         ++frameBufferRenderTargetCount;
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
         frameBufferRenderTargetCount += resolveAttachment ? 1 : 0;
 #endif
     }
-    if (pDepthStencil)
+    if (hasDepth)
     {
-        depthStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                               ? STORE_ACTION_DONTCARE
-                               : (pLoadActions ? pLoadActions->mStoreActionDepth : gDefaultStoreActions[0]);
-        stencilStoreAction = pDepthStencil->pTexture->mLazilyAllocated
-                                 ? STORE_ACTION_DONTCARE
-                                 : (pLoadActions ? pLoadActions->mStoreActionStencil : gDefaultStoreActions[0]);
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        depthStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
+        stencilStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreActionStencil;
 
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
         // Dont support depth stencil auto resolve
         ASSERT(!(IsStoreActionResolve(depthStoreAction) || IsStoreActionResolve(stencilStoreAction)));
 #endif
 
-        uint32_t hashValues[] = {
-            (uint32_t)pDepthStencil->mFormat,
-            (uint32_t)pDepthStencil->mSampleCount,
-            pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : gDefaultLoadActions[0],
-            pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : gDefaultLoadActions[0],
+        uint32_t renderPassHashValues[] = {
+            (uint32_t)desc->pDepthStencil->mFormat,
+            (uint32_t)desc->pDepthStencil->mSampleCount,
+            (uint32_t)desc->mLoadAction,
+            (uint32_t)desc->mLoadActionStencil,
             (uint32_t)depthStoreAction,
             (uint32_t)stencilStoreAction,
         };
-        renderPassHash = tf_mem_hash<uint32_t>(hashValues, 6, renderPassHash);
-        frameBufferHash = tf_mem_hash<uint32_t>(&pDepthStencil->mVk.mId, 1, frameBufferHash);
-        vrFoveatedRendering |= pDepthStencil->mVRFoveatedRendering;
+        uint32_t frameBufferHashValues[] = {
+            desc->pDepthStencil->mVk.mId,
+            ((uint32_t)desc->mUseArraySlice << 1) | ((uint32_t)desc->mUseMipSlice),
+            (uint32_t)desc->mArraySlice,
+            (uint32_t)desc->mMipSlice,
+        };
+        renderPassHash = tf_mem_hash<uint32_t>(renderPassHashValues, TF_ARRAY_COUNT(renderPassHashValues), renderPassHash);
+        frameBufferHash = tf_mem_hash<uint32_t>(frameBufferHashValues, TF_ARRAY_COUNT(frameBufferHashValues), frameBufferHash);
+        vrFoveatedRendering |= desc->pDepthStencil->mVRFoveatedRendering;
     }
-    if (pColorArraySlices)
-        frameBufferHash = tf_mem_hash<uint32_t>(pColorArraySlices, renderTargetCount, frameBufferHash);
-    if (pColorMipSlices)
-        frameBufferHash = tf_mem_hash<uint32_t>(pColorMipSlices, renderTargetCount, frameBufferHash);
-    if (depthArraySlice != UINT32_MAX)
-        frameBufferHash = tf_mem_hash<uint32_t>(&depthArraySlice, 1, frameBufferHash);
-    if (depthMipSlice != UINT32_MAX)
-        frameBufferHash = tf_mem_hash<uint32_t>(&depthMipSlice, 1, frameBufferHash);
 
     SampleCount sampleCount = SAMPLE_COUNT_1;
 
@@ -7764,39 +8221,40 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
     if (!pNode)
     {
         TinyImageFormat colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+        LoadActionType  colorLoadActions[MAX_RENDER_TARGET_ATTACHMENTS] = {};
         TinyImageFormat depthStencilFormat = TinyImageFormat_UNDEFINED;
         bool            vrMultiview = false;
-        for (uint32_t i = 0; i < renderTargetCount; ++i)
+        for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
         {
-            colorFormats[i] = ppRenderTargets[i]->mFormat;
-            vrMultiview |= ppRenderTargets[i]->mVRMultiview;
+            const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+            colorFormats[i] = desc->pRenderTarget->mFormat;
+            colorLoadActions[i] = desc->mLoadAction;
+            vrMultiview |= desc->pRenderTarget->mVRMultiview;
+            sampleCount = desc->pRenderTarget->mSampleCount;
         }
-        if (pDepthStencil)
+        if (hasDepth)
         {
-            depthStencilFormat = pDepthStencil->mFormat;
-            sampleCount = pDepthStencil->mSampleCount;
-            vrMultiview |= pDepthStencil->mVRMultiview;
-        }
-        else if (renderTargetCount)
-        {
-            sampleCount = ppRenderTargets[0]->mSampleCount;
+            const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+            depthStencilFormat = desc->pDepthStencil->mFormat;
+            sampleCount = desc->pDepthStencil->mSampleCount;
+            vrMultiview |= desc->pDepthStencil->mVRMultiview;
         }
 
         RenderPass     renderPass = {};
         RenderPassDesc renderPassDesc = {};
-        renderPassDesc.mRenderTargetCount = renderTargetCount;
+        renderPassDesc.mRenderTargetCount = pDesc->mRenderTargetCount;
         renderPassDesc.mSampleCount = sampleCount;
         renderPassDesc.pColorFormats = colorFormats;
         renderPassDesc.mDepthStencilFormat = depthStencilFormat;
-        renderPassDesc.pLoadActionsColor = pLoadActions ? pLoadActions->mLoadActionsColor : gDefaultLoadActions;
-        renderPassDesc.mLoadActionDepth = pLoadActions ? pLoadActions->mLoadActionDepth : gDefaultLoadActions[0];
-        renderPassDesc.mLoadActionStencil = pLoadActions ? pLoadActions->mLoadActionStencil : gDefaultLoadActions[0];
+        renderPassDesc.pLoadActionsColor = colorLoadActions;
+        renderPassDesc.mLoadActionDepth = pDesc->mDepthStencil.mLoadAction;
+        renderPassDesc.mLoadActionStencil = pDesc->mDepthStencil.mLoadActionStencil;
         renderPassDesc.pStoreActionsColor = colorStoreAction;
         renderPassDesc.mStoreActionDepth = depthStoreAction;
         renderPassDesc.mStoreActionStencil = stencilStoreAction;
         renderPassDesc.mVRMultiview = vrMultiview;
         renderPassDesc.mVRFoveatedRendering = vrFoveatedRendering;
-        add_render_pass(pCmd->pRenderer, &renderPassDesc, &renderPass);
+        AddRenderPass(pCmd->pRenderer, &renderPassDesc, &renderPass);
 
         // No need of a lock here since this map is per thread
         hmput(*pRenderPassMap, renderPassHash, renderPass);
@@ -7809,21 +8267,8 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
     // If a frame buffer of this combination already exists just use it or create a new one
     if (!pFrameBufferNode)
     {
-        FrameBuffer     frameBuffer = {};
-        FrameBufferDesc desc = {};
-        desc.mRenderTargetCount = renderTargetCount;
-        desc.pDepthStencil = pDepthStencil;
-        desc.ppRenderTargets = ppRenderTargets;
-#if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
-        desc.pRenderTargetResolveActions = colorStoreAction;
-#endif
-        desc.pRenderPass = pRenderPass;
-        desc.pColorArraySlices = pColorArraySlices;
-        desc.pColorMipSlices = pColorMipSlices;
-        desc.mDepthArraySlice = depthArraySlice;
-        desc.mDepthMipSlice = depthMipSlice;
-        desc.mVRFoveatedRendering = vrFoveatedRendering;
-        add_framebuffer(pCmd->pRenderer, &desc, &frameBuffer);
+        FrameBuffer frameBuffer = {};
+        AddFramebuffer(pCmd->pRenderer, pRenderPass->pRenderPass, pDesc, &frameBuffer);
 
         // No need of a lock here since this map is per thread
         hmput(*pFrameBufferMap, frameBufferHash, frameBuffer);
@@ -7833,26 +8278,27 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
 
     FrameBuffer* pFrameBuffer = &pFrameBufferNode->value;
 
-    DECLARE_ZERO(VkRect2D, render_area);
-    render_area.offset.x = 0;
-    render_area.offset.y = 0;
-    render_area.extent.width = pFrameBuffer->mWidth;
-    render_area.extent.height = pFrameBuffer->mHeight;
+    VkRect2D renderArea = {};
+    renderArea.offset.x = 0;
+    renderArea.offset.y = 0;
+    renderArea.extent.width = pFrameBuffer->mWidth;
+    renderArea.extent.height = pFrameBuffer->mHeight;
 
     uint32_t     clearValueCount = frameBufferRenderTargetCount;
     VkClearValue clearValues[VK_MAX_ATTACHMENT_ARRAY_COUNT] = {};
-    if (pLoadActions)
+
+    for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
-        for (uint32_t i = 0; i < renderTargetCount; ++i)
-        {
-            ClearValue clearValue = pLoadActions->mClearColorValues[i];
-            clearValues[i].color = { { clearValue.r, clearValue.g, clearValue.b, clearValue.a } };
-        }
-        if (pDepthStencil)
-        {
-            clearValues[frameBufferRenderTargetCount].depthStencil = { pLoadActions->mClearDepth.depth, pLoadActions->mClearDepth.stencil };
-            ++clearValueCount;
-        }
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+        const ClearValue*           clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pRenderTarget->mClearValue;
+        clearValues[i].color = { { clearValue->r, clearValue->g, clearValue->b, clearValue->a } };
+    }
+    if (hasDepth)
+    {
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        const ClearValue*          clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+        clearValues[frameBufferRenderTargetCount].depthStencil = { clearValue->depth, clearValue->stencil };
+        ++clearValueCount;
     }
 
     DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
@@ -7860,7 +8306,7 @@ void vk_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
     begin_info.pNext = NULL;
     begin_info.renderPass = pRenderPass->pRenderPass;
     begin_info.framebuffer = pFrameBuffer->pFramebuffer;
-    begin_info.renderArea = render_area;
+    begin_info.renderArea = renderArea;
     begin_info.clearValueCount = clearValueCount;
     begin_info.pClearValues = clearValues;
 
@@ -8725,7 +9171,7 @@ TinyImageFormat vk_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapCh
         }
     }
 
-    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, vkSurface, &gVkAllocationCallbacks);
+    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, vkSurface, GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR));
 
     return format;
 }
@@ -8743,7 +9189,7 @@ uint32_t vk_getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowH
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderer->pGpu->mVk.pGpu, surface, &surfaceCaps);
     uint32_t imageCount = min(surfaceCaps.minImageCount + 1, (uint32_t)MAX_SWAPCHAIN_IMAGES);
     imageCount = min(surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : UINT32_MAX, imageCount);
-    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, surface, &gVkAllocationCallbacks);
+    vkDestroySurfaceKHR(pRenderer->pContext->mVk.pInstance, surface, GetAllocationCallbacks(VK_OBJECT_TYPE_SURFACE_KHR));
     return imageCount;
 #endif
 }
@@ -8911,7 +9357,8 @@ void vk_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool*
     createInfo.queryType = pQueryPool->mVk.mType;
     createInfo.flags = 0;
     createInfo.pipelineStatistics = VK_QUERY_TYPE_PIPELINE_STATISTICS == pQueryPool->mVk.mType ? pipelineStatsFlags : 0;
-    CHECK_VKRESULT(vkCreateQueryPool(pRenderer->mVk.pDevice, &createInfo, &gVkAllocationCallbacks, &pQueryPool->mVk.pQueryPool));
+    CHECK_VKRESULT(vkCreateQueryPool(pRenderer->mVk.pDevice, &createInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_QUERY_POOL),
+                                     &pQueryPool->mVk.pQueryPool));
     SetVkObjectName(pRenderer, (uint64_t)pQueryPool->mVk.pQueryPool, VK_OBJECT_TYPE_QUERY_POOL, VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT,
                     pDesc->pName);
     ResetQueryPool(pRenderer, pQueryPool);
@@ -8923,7 +9370,7 @@ void vk_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
     ASSERT(pRenderer);
     ASSERT(pQueryPool);
-    vkDestroyQueryPool(pRenderer->mVk.pDevice, pQueryPool->mVk.pQueryPool, &gVkAllocationCallbacks);
+    vkDestroyQueryPool(pRenderer->mVk.pDevice, pQueryPool->mVk.pQueryPool, GetAllocationCallbacks(VK_OBJECT_TYPE_QUERY_POOL));
 
     SAFE_FREE(pQueryPool);
 }

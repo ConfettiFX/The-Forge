@@ -105,7 +105,7 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\sprites.tex" "
 
 
 xcopy $(ProjectDir)..\..\src\19_CodeHotReload\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -160,7 +160,7 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\sprites.tex" "
 
 
 xcopy $(ProjectDir)..\..\src\19_CodeHotReload\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
+xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

@@ -22,7 +22,12 @@
 * under the License.
 */
 
+#ifndef USE_VRS
+    #define USE_VRS 0
+#endif
+
 #include "shader_defs.h.fsl"
+#include "vrs_resources.h.fsl"
 
 STRUCT(GeometryCountOIT)
 {
@@ -38,7 +43,7 @@ STRUCT(PsIn)
     DATA(float2, texCoord, TEXCOORD);
 };
 
-void PS_MAIN( PsIn In )
+void PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
 {
 	INIT_MAIN;
 	

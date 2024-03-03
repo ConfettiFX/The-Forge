@@ -100,7 +100,7 @@ extern "C"
         {
             bstring key;
             int     value;
-        } *strmap = NULL, s;
+        }* strmap = NULL, s;
 
         {
             s.key = bconstfromliteral("a");
@@ -170,7 +170,7 @@ extern "C"
             {
                 bstring key;
                 char    value;
-            }*      hash = NULL;
+            }* hash = NULL;
             bstring name = bconstfromliteral("jen");
             bstring bob = bconstfromliteral("bob");
             bhput(hash, bob, 'h');

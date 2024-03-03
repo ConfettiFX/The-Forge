@@ -323,7 +323,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 // #define ENABLE_PROFILER_WEBSERVER
 #endif
 
-// TODO: Obsolete options?
+// Enable output of a .MTuner file for the memory profiler https://github.com/RudjiGames/MTuner/releases
 // #define ENABLE_MTUNER
 
 // By default the UI uses 16bit indexes, enable define below to change it to 32bits

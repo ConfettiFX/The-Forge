@@ -31,6 +31,7 @@
 struct WindowsStackTraceLineInfo
 {
     char  mFunctionName[512];
+    char  mModuleName[512];
     char  mFileName[512];
     DWORD mLineNumber;
 };
@@ -38,15 +39,19 @@ struct WindowsStackTraceLineInfo
 class WindowsStackTrace
 {
 public:
-    static WindowsStackTrace* pInst;
+    static bool Init();
+    static void Exit();
+    static LONG Dump(EXCEPTION_POINTERS* pExceptionInfo);
 
-    Mutex  mDbgHelpMutex;
-    size_t mUsedMemorySize;
-    size_t mPreallocatedMemorySize;
-    void*  pPreallocatedMemory;
+private:
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
+    static bool         mInit;
+    static Mutex        mDbgHelpMutex;
+    static const size_t mPreallocatedMemorySize = 1024LL * 1024LL;
+    static uint8_t      mPreallocatedMemory[mPreallocatedMemorySize];
+    static size_t       mUsedMemorySize;
 
-    static bool  Init();
-    static void  Exit();
     static void* Alloc(size_t size);
-    static LONG  Dump(EXCEPTION_POINTERS* pExceptionInfo);
+    static void  Log(const char* msg, ...);
+#endif // ENABLE_FORGE_STACKTRACE_DUMP
 };

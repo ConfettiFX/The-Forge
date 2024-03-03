@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef VRS_RESOURCES_H
+#define VRS_RESOURCES_H
+
+//WA for driver issue on Scarlett: SV_SampleIndex and multisampled stencil test interaction causes issues on AMD GPU used for Scarlett
+#if defined(TARGET_SCARLETT)
+#define USE_SINGLE_SAMPLE 1
+#else
+#define USE_SINGLE_SAMPLE 0
+#endif
+
+#define SHADING_RATE_2X2 0
+#define SHADING_RATE_1X2 1
+#define SHADING_RATE_2X1 2
+#define SHADING_RATE_1X1 3
+
+STATIC uint2 sampleOffsets[] = {
+		uint2(0.0,0.0),
+		uint2(1.0,0.0),
+		uint2(0.0,1.0),
+		uint2(1.0,1.0),
+};
+
+STATIC float2 samplePositions[] = {
+		float2(-0.5,0.5),
+		float2(0.5,0.5),
+		float2(-0.5,-0.5),
+		float2(0.5,-0.5),
+};
+
+STATIC float2 uvOffsets[] = {
+		float2(-0.25,-0.25),
+		float2(0.25,-0.25),
+		float2(-0.25,0.25),
+		float2(0.25,0.25),
+};
+
+STATIC out_coverage coverage[] = {
+		0x1,
+		0x5,
+		0x3,
+		0xf,
+};
+
+STATIC float qualityThreshold = 0.2;
+STATIC float black = 1.0/255.0;
+
+uint GetConservativeRate(uint history)
+{
+	uint rate = history | (history >> 4);
+	return ((rate >> 2) | rate) & 0x3;
+}
+
+#endif

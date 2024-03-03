@@ -551,7 +551,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             parsed_entry = True
             continue
 
-        if parsed_entry and re.search('(^|\s+)RETURN', line):
+        if parsed_entry and re.search(r'(^|\s+)RETURN', line):
             ws = get_whitespace(line)
             output_statement = [ws+'{\n']
             if shader.returnType:

@@ -59,9 +59,6 @@
       <FileRef
          location = "group:34_Input/34_Input.xcodeproj">
       </FileRef>
-      <FileRef
-         location = "group:35_VariableRateShading/35_VariableRateShading.xcodeproj">
-      </FileRef>
    </Group>
    <Group
       location = "container:"

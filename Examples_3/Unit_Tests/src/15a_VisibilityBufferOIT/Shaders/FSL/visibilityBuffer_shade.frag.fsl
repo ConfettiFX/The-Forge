@@ -29,6 +29,7 @@
 #define USE_RAY_DIFFERENTIALS
 
 #include "shading.h.fsl"
+#include "vrs_resources.h.fsl"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
 
 // This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
@@ -402,7 +403,10 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	float VisDepth = 0.0f;
 	float3 OutColor = float3(0, 0, 0);
-
+#if USE_VRS
+	float2 step = float2(2.f/Get(screenWidth), 2.f/Get(screenHeight));
+	float2 screenPos = clamp(In.screenPos + step * samplePositions[i], -1.f, 1.f);
+#endif
 	// Early exit if this pixel doesn't contain triangle data
 	if (alphaBit_transBit_drawID_triID != ~0u)
 	{
@@ -412,14 +416,23 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		uint alpha1_opaque0 = (alphaBit_transBit_drawID_triID & ALPH_IS_MASK) >> ALPH_IS_LOW_BIT;
 		uint geomSet = alpha1_opaque0; // GEOMSET_OPAQUE == 0, GEOMSET_ALPHA_CUTOUT == 1
 
+#if USE_VRS
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, screenPos, drawID, triangleID, geomSet);
+#else
 		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, In.screenPos, drawID, triangleID, geomSet);
+#endif
 		OutColor = shadedFragment.color.rgb; // Alpha is 1 for GEOMSET_OPAQUE and GEOMSET_ALPHA_CUTOUT, we can ignore it
 		VisDepth = shadedFragment.depth;
 
 		opaqueShaded = 1; 
 	}
 
+#if USE_VRS
+	uint2 pixelAddr = uint2(In.position.xy) * 2 + sampleOffsets[i];
+#else
 	uint2 pixelAddr = uint2(In.position.xy);
+#endif
+
 	uint scrW = Get(screenWidth); 
 	uint scrH = Get(screenHeight); 
 	uint nodeIdx = OIT_HEAD_INVALID;
@@ -447,7 +460,11 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 			uint nodeDrawID = (nodeTriangleData & DRAW_ID_MASK) >> DRAW_ID_LOW_BIT;
 			uint nodeTriangleID = (nodeTriangleData & PRIM_ID_MASK) >> PRIM_ID_LOW_BIT;
+#if USE_VRS
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, screenPos, nodeDrawID, nodeTriangleID, GEOMSET_ALPHA_BLEND);
+#else
 			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodeDrawID, nodeTriangleID, GEOMSET_ALPHA_BLEND);
+#endif
 
 			// Manual visbuf depth test
 			if (nodeColorData.depth > VisDepth)

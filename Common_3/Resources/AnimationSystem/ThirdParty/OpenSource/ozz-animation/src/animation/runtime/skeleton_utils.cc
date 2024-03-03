@@ -60,7 +60,6 @@ AffineTransform GetJointLocalRestPose(const Skeleton& _skeleton,
 #pragma GCC diagnostic pop
 #endif
 
-
   // Transpose SoA data to AoS.
   Vector4 translations[4];
   transpose3x4(&soa_transform.translation.x, translations);

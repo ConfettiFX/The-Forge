@@ -128,7 +128,7 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 
 			float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler),reflectedPos.xy, 0).r;
 
-			if(depth <= reflectedPos.z)
+			if(depth >= reflectedPos.z)
 			{
 				return false;
 			}
@@ -277,8 +277,8 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 		
 	float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler), fragUV, 0).r;
 
-	//if there is no obj
-	if(depth >= 1.0)
+	// if there is no obj
+	if(depth <= 0.0) // prespective projection matrix has a reverse Z, meaning camera depth is now 0 --> 1 (Far away from camera).. 
 		RETURN();
 
 	float4 worldPos = getWorldPosition(fragUV, depth);

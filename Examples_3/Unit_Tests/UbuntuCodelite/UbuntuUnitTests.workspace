@@ -25,7 +25,6 @@
   <Project Name="15a_VisibilityBufferOIT" Path="15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.project" Active="No"/>
   <Project Name="34_Input" Path="34_Input/34_Input.project" Active="No"/>
   <Project Name="36_AlgorithmsAndContainers" Path="36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.project" Active="No"/>
-  <Project Name="35_VariableRateShading" Path="35_VariableRateShading/35_VariableRateShading.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
       <Environment/>
@@ -63,7 +62,6 @@
       <Project Name="19a_CodeHotReload_Game" ConfigName="Debug"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Debug"/>
       <Project Name="21_Animations" ConfigName="Debug"/>
-      <Project Name="35_VariableRateShading" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release">
       <Environment/>
@@ -100,7 +98,6 @@
       <Project Name="19a_CodeHotReload_Game" ConfigName="Release"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Release"/>
       <Project Name="21_Animations" ConfigName="Release"/>
-      <Project Name="35_VariableRateShading" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

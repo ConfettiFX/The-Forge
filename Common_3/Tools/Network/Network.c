@@ -194,16 +194,68 @@ bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port)
     else if (host && host[0])
     {
         const char* realHost = (strncmp(host, "localhost", 9) == 0) ? "127.0.0.1" : host;
-
         if (!inet_pton(family, realHost, addrPSinAddr(addr)))
         {
             LOGF(eERROR, "Failed to create socket address from `%s:%u`: %s", host, (uint32_t)port, socketLastErrorMessage());
             return false;
         }
     }
-
     return true;
 }
+
+#ifdef FORGE_TOOLS // Name resolution is only supported when running the UIRemoteControl tool
+bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port)
+{
+    ASSERT(addr);
+    memset(addr, 0, sizeof(SocketAddr));
+
+    bool             success = true;
+    struct hostent*  remoteHost = NULL;
+    struct addrinfo* result;
+
+    int family = AF_INET;
+
+    if (hostname == 0)
+    {
+        // Just set the family and port
+        *addrPSaFamily(addr) = family;
+        *addrPSinPort(addr) = htons(port);
+        return true;
+    }
+
+    struct addrinfo hints;
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    char portStr[12] = { 0 };
+    snprintf(portStr, 12, "%d", port);
+    success = (getaddrinfo(hostname, portStr, &hints, &result) == 0);
+
+    if (!success)
+    {
+        LOGF(eERROR, "Failed to create socket address from `%s:%s`: %s", hostname, port, socketLastErrorMessage());
+    }
+    else
+    {
+        family = result->ai_family;
+
+        *addrPSaFamily(addr) = family;
+        *addrPSinPort(addr) = ((struct sockaddr_in*)result->ai_addr)->sin_port;
+
+        // IPV6 requires we initialize wildcard addresses with `in6addr_any`
+        if (family == AF_INET6 && hostname == SOCKET_HOST_ANY6)
+        {
+            memcpy(addrPSinAddr(addr), &in6addr_any, sizeof(in6addr_any));
+        }
+
+        memcpy(addrPSinAddr(addr), &((struct sockaddr_in*)result->ai_addr)->sin_addr, result->ai_addrlen);
+    }
+
+    return success;
+}
+#endif // FORGE_TOOLS
 
 void socketAddrToHostPort(const SocketAddr* addr, char* host, size_t hostSize, uint16_t* port)
 {
@@ -324,7 +376,7 @@ ssize_t socketSend(Socket* sock, const void* data, size_t dataSize)
 
     ssize_t r = send(*sock, data, (int)dataSize, 0);
     if (r < 0)
-        return socketError("Failed to send data to socket", NULL);
+        socketError("Failed to send data to socket", NULL);
 
     return r;
 }
@@ -336,7 +388,7 @@ ssize_t socketRecv(Socket* sock, void* data, size_t dataSize)
 
     ssize_t r = recv(*sock, data, (int)dataSize, 0);
     if (r < 0)
-        return socketError("Failed to receive data from socket", NULL);
+        socketError("Failed to receive data from socket", NULL);
 
     return r;
 }

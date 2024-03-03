@@ -225,20 +225,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "35_VariableRateShading_iOS.app"
-               BlueprintName = "35_VariableRateShading_iOS"
-               ReferencedContainer = "container:35_VariableRateShading/35_VariableRateShading.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
                BuildableName = "36_AlgorithmsAndContainers_iOS.app"
                BlueprintName = "36_AlgorithmsAndContainers_iOS"
                ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">

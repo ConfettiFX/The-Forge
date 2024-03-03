@@ -524,7 +524,7 @@ typedef struct LinearAllocator
 	inline void Reserve(size_t newCapacity)
 	{
 		capacity = newCapacity;
-		buffer = (uint8_t*)malloc(capacity);
+		buffer = (uint8_t*)tf_malloc(capacity);
 	}
 
 	inline uint8_t* Allocate(size_t size)
@@ -550,7 +550,7 @@ typedef struct LinearAllocator
 
 	inline void Reset() { offset = 0; }
 
-	~LinearAllocator() { free(buffer); }
+	~LinearAllocator() { tf_free(buffer); }
 
 	private:
 	uint8_t* buffer;
@@ -609,7 +609,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 			return XInputType::InputTypeNone;
 		}
 
-		RawDevList = (PRAWINPUTDEVICELIST)malloc(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
+		RawDevList = (PRAWINPUTDEVICELIST)tf_malloc(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
 		if (RawDevList == NULL)
 		{
 			return XInputType::InputTypeNone;
@@ -617,7 +617,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 
 		if (GetRawInputDeviceList(RawDevList, &RawDevListCount, sizeof(RAWINPUTDEVICELIST)) == -1)
 		{
-			free(RawDevList);
+			tf_free(RawDevList);
 			RawDevList = NULL;
 			return XInputType::InputTypeNone;
 		}
@@ -1051,11 +1051,14 @@ public:
 		return instance;
 	}
 
-
-	~DirectInputInitializer()
+	void Exit()
 	{
-		free(RawDevList);
-		RawDevList = NULL;
+		// TF Edit : Need this function to provide a way to free the allocated memory before the TF Memory Logger exits
+		if (RawDevList != NULL)
+		{
+			tf_free(RawDevList);
+			RawDevList = NULL;
+		}
 	}
 
 	bool Init(void* _hwnd)
@@ -1128,31 +1131,31 @@ public:
 		gamePads.xinputCountConnected = 0;
 	}
 
-    void FilterHIDHandledDevices()
-    {
+	void FilterHIDHandledDevices()
+	{
 #if defined(_WINDOWS)
-        extern bool HIDIsSupported(uint16_t vendor, uint16_t product);
-        HIDIsSupported(0, 0);
-        int32_t it = gamePads.directInputCountConnected - 1;
+		extern bool HIDIsSupported(uint16_t vendor, uint16_t product);
 
-        for (; it >= 0; --it)
-        {
-            joystick_hwdata* pad = &gamePads.gamePadInfos[it].gamepad.hwdata;
-            if (HIDIsSupported(pad->vendor, pad->product))
-            {
-                int32_t last = gamePads.directInputCountConnected - 1;
+		int32_t it = gamePads.directInputCountConnected - 1;
 
-                if (it != last)
-                {
-                    GamePadInfo* dst = gamePads.gamePadInfos + it;
-                    memcpy(dst, dst + 1, sizeof(*dst) * (last - it));
-                }
+		for (; it >= 0; --it)
+		{
+			joystick_hwdata* pad = &gamePads.gamePadInfos[it].gamepad.hwdata;
+			if (HIDIsSupported(pad->vendor, pad->product))
+			{
+				int32_t last = gamePads.directInputCountConnected - 1;
 
-                --gamePads.directInputCountConnected;
-            }
-        }
+				if (it != last)
+				{
+					GamePadInfo* dst = gamePads.gamePadInfos + it;
+					memcpy(dst, dst + 1, sizeof(*dst) * (last - it));
+				}
+
+				--gamePads.directInputCountConnected;
+			}
+		}
 #endif
-    }
+	}
 
 	void DInputClean()
 	{
@@ -1178,7 +1181,7 @@ public:
 		gamePadsInUse = 0;
 		gamePads.directInputCountConnected = 0;
 		IDirectInput8_EnumDevices(gamePads.dinput, DI8DEVCLASS_GAMECTRL, EnumJoysticksCallback, &gamePads, DIEDFL_ATTACHEDONLY);
-        FilterHIDHandledDevices();
+		FilterHIDHandledDevices();
 	}
 
 	int DInputCount()

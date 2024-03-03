@@ -29,8 +29,8 @@
                     if exist "%(FSLShader.BinaryOutDir)"\ (
                         rmdir /s /q "%(FSLShader.BinaryOutDir)"
                     )
-                    if exist "%(FSLShader.BinaryOutDir)/shader-server.txt"\ (
-                        del /q "%(FSLShader.BinaryOutDir)/shader-server.txt"
+                    if exist "%(FSLShader.BinaryOutDir)/reload-server.txt"\ (
+                        del /q "%(FSLShader.BinaryOutDir)/reload-server.txt"
                     )
                     if exist "$(IntermediateOutputPath)/fsl_cmds"\ (
                         del /q "$(IntermediateOutputPath)/fsl_cmds"

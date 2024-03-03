@@ -82,7 +82,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="no"># GpuConfig</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Animations</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Animation/ $(ProjectPath)/$(ConfigurationName)/Animation/</Command>
         <Command Enabled="no"># Fonts</Command>
@@ -162,7 +162,7 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="no"># GpuConfig</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Animations</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Animation/ $(ProjectPath)/$(ConfigurationName)/Animation/</Command>
         <Command Enabled="no"># Fonts</Command>

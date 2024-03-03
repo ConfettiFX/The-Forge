@@ -54,7 +54,7 @@ STRUCT(PSOutput)
 
 float WeightFunction(float alpha, float depth)
 {
-	float tmp = 1.0f - depth * 0.99f;
+	float tmp = depth * 0.99f;
 	tmp *= tmp * tmp * 1e4f;
 	return clamp(alpha * tmp, 1e-3f, 1.5e2);
 }
@@ -92,7 +92,7 @@ PSOutput PS_MAIN( VSOutput In )
 	float collimation = Get(Materials)[In.MatID].Collimation;
 	float4 finalColor = Shade(In.MatID, In.UV.xy, In.WorldPosition.xyz, normalize(In.Normal.xyz), VR_VIEW_ID(In.ViewID));
 
-	float d = In.Position.z / In.Position.w;
+	float d = 1.0f - (In.Position.z / In.Position.w); // no need to rcp(In.Position.w) since it is reverse z, we will one minus depth to make up for it... one less div...
 	float4 premultipliedColor = float4(finalColor.rgb * finalColor.a, finalColor.a);
 	float coverage = finalColor.a;
 

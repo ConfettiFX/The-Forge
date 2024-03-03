@@ -20,7 +20,7 @@
 
 const static int frustumVertexCount = 8;
 const vec3       normalizedCube[frustumVertexCount] = { vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1),
-                                                        vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0) };
+                                                  vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0) };
 
 float splitPositionLog(int cascadeIndex, int cascadeCount, float zNear, float zFar)
 {

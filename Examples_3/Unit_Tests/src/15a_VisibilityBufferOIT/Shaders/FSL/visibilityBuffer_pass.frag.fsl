@@ -34,10 +34,15 @@ STRUCT(PsInOpaque)
 #endif
 };
 
-float4 PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveId )
+STRUCT(PsOut)
+{
+	DATA(float4, VBData,       SV_Target0);
+};
+
+PsOut PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveId )
 {
     INIT_MAIN;
-    float4 Out;
-    Out = unpackUnorm4x8(GET_OUTPUT_VB_ID(getDrawID(), primitiveId));
+    PsOut Out;
+    Out.VBData = unpackUnorm4x8(GET_OUTPUT_VB_ID(getDrawID(), primitiveId));
     RETURN(Out);
 }

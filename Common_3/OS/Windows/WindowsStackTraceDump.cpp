@@ -24,7 +24,7 @@
 
 #include "WindowsStackTraceDump.h"
 
-#include "../../Application/Config.h"
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 
 #include "../../Utilities/Interfaces/ILog.h"
 #pragma warning(push)
@@ -34,15 +34,16 @@
 #pragma comment(lib, "DbgHelp.lib")
 #include <Psapi.h>
 
-WindowsStackTrace* WindowsStackTrace::pInst;
+bool    WindowsStackTrace::mInit = false;
+Mutex   WindowsStackTrace::mDbgHelpMutex;
+uint8_t WindowsStackTrace::mPreallocatedMemory[mPreallocatedMemorySize];
+size_t  WindowsStackTrace::mUsedMemorySize = 0;
 
 static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo) { return WindowsStackTrace::Dump(pExceptionInfo); }
 
-#ifdef ENABLE_FORGE_STACKTRACE_DUMP
-
 bool WindowsStackTrace::Init()
 {
-    if (pInst)
+    if (mInit)
     {
         return false;
     }
@@ -53,55 +54,75 @@ bool WindowsStackTrace::Init()
 
     SetUnhandledExceptionFilter(&dumpStackTrace);
 
-    pInst = tf_new(WindowsStackTrace);
-    initMutex(&pInst->mDbgHelpMutex);
-    pInst->mUsedMemorySize = 0;
-    pInst->mPreallocatedMemorySize = 1024LL * 1024LL;
-    pInst->pPreallocatedMemory = tf_calloc(1, pInst->mPreallocatedMemorySize);
+    initMutex(&mDbgHelpMutex);
 
+    mInit = true;
     return true;
 }
 
-void WindowsStackTrace::Exit()
-{
-    if (pInst)
-    {
-        tf_free(pInst->pPreallocatedMemory);
-        destroyMutex(&pInst->mDbgHelpMutex);
-        tf_delete(pInst);
-        pInst = NULL;
-    }
-}
+void WindowsStackTrace::Exit() { mInit = false; }
 
 void* WindowsStackTrace::Alloc(size_t size)
 {
-    if (!pInst)
+    if ((mUsedMemorySize + size) > mPreallocatedMemorySize)
     {
-        LOGF(LogLevel::eERROR, "StackTrace instance is not initialized");
+        Log("Not enough preallocated memory remaining for allocation of %u bytes", size);
         return NULL;
     }
 
-    if ((pInst->mUsedMemorySize + size) > pInst->mPreallocatedMemorySize)
-    {
-        LOGF(LogLevel::eERROR, "Not enough preallocated memory for dump stack trace");
-        return NULL;
-    }
-
-    void* pMem = ((uint8_t*)pInst->pPreallocatedMemory + pInst->mUsedMemorySize);
-    pInst->mUsedMemorySize += size;
+    void* pMem = ((uint8_t*)mPreallocatedMemory + mUsedMemorySize);
+    mUsedMemorySize += size;
     return pMem;
+}
+
+void WindowsStackTrace::Log(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    if (mInit)
+    {
+        // Use the normal log output if we haven't shutdown the log system yet
+        writeLogVaList(LogLevel::eERROR, __FILE__, __LINE__, fmt, args);
+    }
+    else
+    {
+        // Manually write output if we have already shutdown OS systems.
+        const char* outputBuf;
+        char        fmtBuf[1024];
+        int         charsWritten = vsnprintf(fmtBuf, sizeof(fmtBuf), fmt, args);
+        if (charsWritten < 0)
+        {
+            // Some kind of formatting error occurred, just print the format string instead
+            outputBuf = fmt;
+        }
+        else
+        {
+            charsWritten += 2; // "\n\0"
+            if (charsWritten > sizeof(fmtBuf))
+                charsWritten = sizeof(fmtBuf);
+
+            // Ensure there's a newline and null terminator
+            fmtBuf[charsWritten - 2] = '\n';
+            fmtBuf[charsWritten - 1] = '\0';
+            outputBuf = fmtBuf;
+        }
+
+        // We really really don't want to miss these messages.
+        // Write to stdout, stderr, and the debugger.
+        fputs(outputBuf, stdout);
+        fputs(outputBuf, stderr);
+        OutputDebugStringA(outputBuf);
+    }
+
+    va_end(args);
 }
 
 LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 {
-    if (!pInst)
-    {
-        return EXCEPTION_EXECUTE_HANDLER;
-    }
+    MutexLock dbgHelpLock(mDbgHelpMutex);
 
-    MutexLock dbgHelpLock(pInst->mDbgHelpMutex);
-
-    LOGF(LogLevel::eERROR, "APP CRASHED - See the stack trace below");
+    Log("APP CRASHED - See the stack trace below. Output might be duplicated if you are capturing both stdout and stderr");
 
     HANDLE thread = GetCurrentThread();
     HANDLE process = GetCurrentProcess();
@@ -117,7 +138,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
     pModuleHandles = (HMODULE*)WindowsStackTrace::Alloc(requiredSize);
     if (!pModuleHandles)
     {
-        LOGF(LogLevel::eERROR, "Failed to allocate storage for pModuleHandles during stack trace dump");
+        Log("Failed to allocate storage for pModuleHandles during stack trace dump");
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
@@ -173,7 +194,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
         (WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
     if (!stackTraceLines)
     {
-        LOGF(LogLevel::eERROR, "Failed to allocate WindowsStackTraceLineInfo");
+        Log("Failed to allocate WindowsStackTraceLineInfo");
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
@@ -186,11 +207,12 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
         {
             if (numLines >= maxNumLines)
             {
-                LOGF(LogLevel::eERROR, "You need to allocate more memory for stackTraceLines");
+                Log("You need to allocate more memory for stackTraceLines");
                 break;
             }
 
             WindowsStackTraceLineInfo& lineInfo = stackTraceLines[numLines++];
+            memset(&lineInfo, 0, sizeof(lineInfo));
 
             memset(pSymbol, 0, sizeof(symbolMem));
             pSymbol->SizeOfStruct = sizeof(*pSymbol);
@@ -213,6 +235,23 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
             if (line.FileName)
                 strcpy(lineInfo.mFileName, line.FileName);
             lineInfo.mLineNumber = line.LineNumber;
+
+            IMAGEHLP_MODULE64 module = {};
+            module.SizeOfStruct = sizeof(module);
+            if (SymGetModuleInfo64(process, stackFrame.AddrPC.Offset, &module))
+            {
+                size_t lastSlash = 0;
+                for (size_t i = 0; i < sizeof(module.ImageName); i++)
+                {
+                    if (module.ImageName[i] == '\0')
+                        break;
+
+                    if (module.ImageName[i] == '/' || module.ImageName[i] == '\\')
+                        lastSlash = i + 1;
+                }
+
+                strncpy(lineInfo.mModuleName, &module.ImageName[lastSlash], sizeof(lineInfo.mModuleName));
+            }
         }
     } while (stackFrame.AddrReturn.Offset != 0);
 
@@ -220,8 +259,8 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
     {
         DWORD                      padding = 5;
         WindowsStackTraceLineInfo& lineInfo = stackTraceLines[i];
-        LOGF(LogLevel::eERROR, "%-*s | %s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mFileName,
-             lineInfo.mLineNumber);
+        Log("%-*s | %s!%s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mModuleName, lineInfo.mFileName,
+            lineInfo.mLineNumber);
     }
 
     SymCleanup(process);
@@ -233,8 +272,6 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 bool WindowsStackTrace::Init() { return false; }
 
 void WindowsStackTrace::Exit() {}
-
-void* WindowsStackTrace::Alloc(size_t size) { return NULL; }
 
 LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo) { return EXCEPTION_EXECUTE_HANDLER; }
 

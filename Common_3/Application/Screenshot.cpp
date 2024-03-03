@@ -56,11 +56,20 @@ extern PlatformParameters gPlatformParameters;
 bool gCaptureFlag = false;
 char gScreenshotName[FS_MAX_PATH] = "";
 
+#ifdef ENABLE_FORGE_REMOTE_UI
+extern bool remoteAppIsConnected();
+#endif // DEBUG
+
 // Hide or show the UI depending on the current state of gCaptureFlag
 void updateUIVisibility()
 {
     bool shouldShowUI = !gCaptureFlag;
-    uiToggleRendering(shouldShowUI);
+#ifdef ENABLE_FORGE_REMOTE_UI
+    if (!remoteAppIsConnected())
+#endif // ENABLE_FORGE_REMOTE_UI
+    {
+        uiToggleRendering(shouldShowUI);
+    }
     toggleProfilerDrawing(shouldShowUI);
 }
 
@@ -432,7 +441,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         uint32_t                   floatBufferSize = pRenderTarget->mWidth * pRenderTarget->mHeight * sizeof(float4);
         float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
         const bool                 result = TinyImageFormat_DecodeLogicalPixelsF(pRenderTarget->mFormat, &fetchInput,
-                                                                                 pRenderTarget->mWidth * pRenderTarget->mHeight, pDecoded);
+                                                                 pRenderTarget->mWidth * pRenderTarget->mHeight, pDecoded);
         ASSERT(result);
 
         pEncoded = tf_malloc(floatBufferSize);

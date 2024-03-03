@@ -74,6 +74,10 @@
 #error "Windows is needed!"
 #endif
 
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
+#include <dxgidebug.h>
+#endif
+
 //
 // C++ is the only language supported by D3D12:
 //   https://msdn.microsoft.com/en-us/library/windows/desktop/dn899120(v=vs.85).aspx
@@ -212,11 +216,11 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 	D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME,
 #endif
 };
-// clang-format on
+    // clang-format on
 
-// =================================================================================================
-// IMPLEMENTATION
-// =================================================================================================
+    // =================================================================================================
+    // IMPLEMENTATION
+    // =================================================================================================
 
 #if defined(RENDERER_IMPLEMENTATION)
 
@@ -1254,12 +1258,15 @@ typedef HRESULT(WINAPI* PFN_D3D12_SerializeVersionedRootSignature)(const D3D12_V
 
 typedef HRESULT(WINAPI* PFN_DXGI_CreateDXGIFactory2)(UINT, REFIID riid, void** ppFactory);
 
+typedef HRESULT(WINAPI* PFN_DXGI_DXGIGetDebugInterface1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
+
 static bool                                      gD3D12dllInited = false;
 static PFN_D3D12_CREATE_DEVICE_FIXED             gPfnCreateDevice = NULL;
 static PFN_D3D12_GET_DEBUG_INTERFACE             gPfnGetDebugInterface = NULL;
 static PFN_D3D12_EnableExperimentalFeatures      gPfnEnableExperimentalFeatures = NULL;
 static PFN_D3D12_SerializeVersionedRootSignature gPfnSerializeVersionedRootSignature = NULL;
 static PFN_DXGI_CreateDXGIFactory2               gPfnCreateDXGIFactory2 = NULL;
+static PFN_DXGI_DXGIGetDebugInterface1           gPfnDXGIGetDebugInterface1 = NULL;
 static HMODULE                                   gD3D12dll = NULL;
 static HMODULE                                   gDXGIdll = NULL;
 
@@ -1270,6 +1277,7 @@ void d3d12dll_exit()
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gD3D12dll)
     {
+        LOGF(LogLevel::eINFO, "Unloading d3d12.dll");
         gPfnCreateDevice = NULL;
         gPfnGetDebugInterface = NULL;
         gPfnEnableExperimentalFeatures = NULL;
@@ -1280,7 +1288,9 @@ void d3d12dll_exit()
 
     if (gDXGIdll)
     {
+        LOGF(LogLevel::eINFO, "Unloading dxgi.dll");
         gPfnCreateDXGIFactory2 = NULL;
+        gPfnDXGIGetDebugInterface1 = NULL;
         FreeLibrary(gDXGIdll);
         gDXGIdll = NULL;
     }
@@ -1296,6 +1306,7 @@ bool d3d12dll_init()
     if (gD3D12dllInited)
         return true;
 
+    LOGF(LogLevel::eINFO, "Loading d3d12.dll");
     gD3D12dll = LoadLibraryExA("d3d12.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gD3D12dll)
     {
@@ -1307,10 +1318,12 @@ bool d3d12dll_init()
             (PFN_D3D12_SerializeVersionedRootSignature)(GetProcAddress(gD3D12dll, "D3D12SerializeVersionedRootSignature"));
     }
 
+    LOGF(LogLevel::eINFO, "Loading dxgi.dll");
     gDXGIdll = LoadLibraryExA("dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gDXGIdll)
     {
         gPfnCreateDXGIFactory2 = (PFN_DXGI_CreateDXGIFactory2)(GetProcAddress(gDXGIdll, "CreateDXGIFactory2"));
+        gPfnDXGIGetDebugInterface1 = (PFN_DXGI_DXGIGetDebugInterface1)(GetProcAddress(gDXGIdll, "DXGIGetDebugInterface1"));
     }
 
     gD3D12dllInited = gDXGIdll && gD3D12dll;
@@ -1375,6 +1388,17 @@ static HRESULT WINAPI d3d12dll_CreateDXGIFactory2(UINT Flags, REFIID riid, void*
     return DXGI_ERROR_UNSUPPORTED;
 #else
     return CreateDXGIFactory2(Flags, riid, ppFactory);
+#endif
+}
+
+HRESULT WINAPI d3d12dll_DXGIGetDebugInterface1(UINT Flags, REFIID riid, void** ppFactory) //-V835
+{                                                                                         //-V835
+#if defined(FORGE_D3D12_DYNAMIC_LOADING)
+    if (gPfnDXGIGetDebugInterface1)
+        return gPfnDXGIGetDebugInterface1(Flags, riid, ppFactory);
+    return DXGI_ERROR_UNSUPPORTED;
+#else
+    return DXGIGetDebugInterface1(Flags, riid, ppFactory);
 #endif
 }
 #endif
@@ -1877,7 +1901,8 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
                             d3d12dll_CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&device));
                             hook_fill_gpu_desc(device, feature_levels[level], pGpuDesc);
                             // get preset for current gpu description
-                            pGpuDesc->mPreset = getGPUPresetLevel(pGpuDesc->mVendorId, pGpuDesc->mDeviceId, pGpuDesc->mRevisionId);
+                            pGpuDesc->mPreset = getGPUPresetLevel(getGPUVendorName(pGpuDesc->mVendorId), pGpuDesc->mName,
+                                                                  pGpuDesc->mDeviceId, pGpuDesc->mRevisionId);
                             SAFE_RELEASE(device);
                         }
                         else
@@ -1983,8 +2008,8 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     DXGI_ADAPTER_DESC adapterDesc;
     pGpuDesc->pGpu->GetDesc(&adapterDesc);
 
-    // set default driver to be very high to avoid triggering driver rejection rules if NVAPI or AMDAGS fails
-    snprintf(gpuSettings.mGpuVendorPreset.mGpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "%u.%u", 999999, 99);
+    // set default driver version as empty string
+    gpuSettings.mGpuVendorPreset.mGpuDriverVersion[0] = '\0';
     if (gpuVendorEquals(adapterDesc.VendorId, "nvidia"))
     {
 #if defined(NVAPI)
@@ -2355,21 +2380,7 @@ static void RemoveDevice(Renderer* pRenderer)
     SAFE_RELEASE(pRenderer->mDx.pDebugValidation);
 #endif
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
-    ID3D12DebugDevice* pDebugDevice = NULL;
-    pRenderer->mDx.pDevice->QueryInterface(&pDebugDevice);
-
     SAFE_RELEASE(pRenderer->mDx.pDevice);
-
-    if (pDebugDevice)
-    {
-        // Debug device is released first so report live objects don't show its ref as a warning.
-        pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-        pDebugDevice->Release();
-    }
-#else
-    SAFE_RELEASE(pRenderer->mDx.pDevice);
-#endif
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
     DestroyAftermathTracker(&pRenderer->mAftermathTracker);
@@ -2431,6 +2442,23 @@ void ExitCommon(RendererContext* pContext)
 #if defined(USE_DRED)
     SAFE_RELEASE(pContext->pDredSettings);
 #endif
+
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
+    IDXGIDebug1* dxgiDebug = NULL;
+    if (SUCCEEDED(d3d12dll_DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
+    {
+        LOGF(eWARNING, "Printing live D3D12 objects to the debugger output window...");
+
+        dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL,
+                                     DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+        SAFE_RELEASE(dxgiDebug);
+    }
+    else
+    {
+        LOGF(eWARNING, "Unable to retrieve the D3D12 DXGI debug interface, cannot print live D3D12 objects.");
+    }
+#endif
+
     nvapiExit();
     agsExit();
     d3d12dll_exit();
@@ -2598,7 +2626,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 
 #if !defined(XBOX)
         // anything below LOW preset is not supported and we will exit
-        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+        if (pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel < GPU_PRESET_VERYLOW)
         {
             // remove device and any memory we allocated in just above as this is the first function called
             // when initializing the forge
@@ -2608,7 +2636,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
 
             // have the condition in the assert as well so its cleared when the assert message box appears
-            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW); //-V547
+            ASSERT(pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel >= GPU_PRESET_VERYLOW); //-V547
 
             // return NULL pRenderer so that client can gracefully handle exit
             // This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -3285,6 +3313,7 @@ void d3d12_removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap)
 {
     UNREF_PARAM(pRenderer);
 
+    SAFE_RELEASE(pHeap->mDx.pHeap);
     SAFE_FREE(pHeap);
 }
 
@@ -5632,6 +5661,7 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     pipeline_state_desc.pRootSignature = pDesc->pRootSignature->mDx.pRootSignature;
     pipeline_state_desc.CS = CS;
     pipeline_state_desc.CachedPSO = cached_pso_desc;
+
 #if !defined(XBOX)
     pipeline_state_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 #endif
@@ -5831,113 +5861,122 @@ void d3d12_endCmd(Cmd* pCmd)
     CHECK_HRESULT(pCmd->mDx.pCmdList->Close());
 }
 
-void d3d12_cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** pRenderTargets, RenderTarget* pDepthStencil,
-                                const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices,
-                                uint32_t depthArraySlice, uint32_t depthMipSlice)
+void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
     ASSERT(pCmd->mDx.pCmdList);
 
-    if (!renderTargetCount && !pDepthStencil)
+    if (!pDesc)
+    {
         return;
+    }
+
+    if (!pDesc->mRenderTargetCount && !pDesc->mDepthStencil.pDepthStencil)
+    {
+        pCmd->mDx.pCmdList->OMSetRenderTargets(0, NULL, FALSE, NULL);
+        return;
+    }
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+    const bool                  hasDepth = pDesc->mDepthStencil.pDepthStencil;
 
-    for (uint32_t i = 0; i < renderTargetCount; ++i)
+    for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
+        const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
 #if defined(XBOX)
-        pCmd->mDx.mSampleCount = pRenderTargets[i]->mSampleCount;
+        pCmd->mDx.mSampleCount = desc->pRenderTarget->mSampleCount;
 #endif
-        if (!pColorMipSlices && !pColorArraySlices)
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
             rtvs[i] = descriptor_id_to_cpu_handle(pCmd->pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV],
-                                                  pRenderTargets[i]->mDx.mDescriptors);
+                                                  desc->pRenderTarget->mDx.mDescriptors);
         }
         else
         {
             uint32_t handle = 0;
-            if (pColorMipSlices)
+            if (desc->mUseMipSlice)
             {
-                if (pColorArraySlices)
-                    handle = 1 + pColorMipSlices[i] * (uint32_t)pRenderTargets[i]->mArraySize + pColorArraySlices[i];
+                if (desc->mUseArraySlice)
+                {
+                    handle = 1 + desc->mMipSlice * (uint32_t)desc->pRenderTarget->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = 1 + pColorMipSlices[i];
+                {
+                    handle = 1 + desc->mMipSlice;
+                }
             }
-            else if (pColorArraySlices)
+            else if (desc->mUseArraySlice)
             {
-                handle = 1 + pColorArraySlices[i];
+                handle = 1 + desc->mArraySlice;
             }
 
             rtvs[i] = descriptor_id_to_cpu_handle(pCmd->pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV],
-                                                  pRenderTargets[i]->mDx.mDescriptors + handle);
+                                                  desc->pRenderTarget->mDx.mDescriptors + handle);
+        }
+
+        if (desc->mLoadAction == LOAD_ACTION_CLEAR)
+        {
+            const float* clearValue = desc->mOverrideClearValue ? &desc->mClearValue.r : &desc->pRenderTarget->mClearValue.r;
+            pCmd->mDx.pCmdList->ClearRenderTargetView(rtvs[i], clearValue, 0, NULL);
         }
     }
 
-    if (pDepthStencil)
+    if (hasDepth)
     {
+        const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
 #if defined(XBOX)
-        pCmd->mDx.mSampleCount = pDepthStencil->mSampleCount;
+        pCmd->mDx.mSampleCount = desc->pDepthStencil->mSampleCount;
 #endif
 
-        if (-1 == depthMipSlice && -1 == depthArraySlice)
+        if (!desc->mUseMipSlice && !desc->mUseArraySlice)
         {
             dsv = descriptor_id_to_cpu_handle(pCmd->pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV],
-                                              pDepthStencil->mDx.mDescriptors);
+                                              desc->pDepthStencil->mDx.mDescriptors);
         }
         else
         {
             uint32_t handle = 0;
-            if (depthMipSlice != -1)
+            if (desc->mUseMipSlice)
             {
-                if (depthArraySlice != -1)
-                    handle = 1 + depthMipSlice * (uint32_t)pDepthStencil->mArraySize + depthArraySlice;
+                if (desc->mUseArraySlice)
+                {
+                    handle = 1 + desc->mMipSlice * (uint32_t)desc->pDepthStencil->mArraySize + desc->mArraySlice;
+                }
                 else
-                    handle = 1 + depthMipSlice;
+                {
+                    handle = 1 + desc->mMipSlice;
+                }
             }
-            else if (depthArraySlice != -1)
+            else if (desc->mUseArraySlice)
             {
-                handle = 1 + depthArraySlice;
+                handle = 1 + desc->mArraySlice;
             }
 
             dsv = descriptor_id_to_cpu_handle(pCmd->pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV],
-                                              pDepthStencil->mDx.mDescriptors + handle);
+                                              desc->pDepthStencil->mDx.mDescriptors + handle);
         }
-    }
 
-    pCmd->mDx.pCmdList->OMSetRenderTargets(renderTargetCount, rtvs, FALSE, dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL ? &dsv : NULL);
-
-    // process clear actions (clear color/depth)
-    if (pLoadActions)
-    {
-        for (uint32_t i = 0; i < renderTargetCount; ++i)
+        ASSERT(dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL);
+        if (desc->mLoadAction == LOAD_ACTION_CLEAR || desc->mLoadActionStencil == LOAD_ACTION_CLEAR)
         {
-            if (pLoadActions->mLoadActionsColor[i] == LOAD_ACTION_CLEAR)
-            {
-                float color_rgba[4] = {
-                    pLoadActions->mClearColorValues[i].r,
-                    pLoadActions->mClearColorValues[i].g,
-                    pLoadActions->mClearColorValues[i].b,
-                    pLoadActions->mClearColorValues[i].a,
-                };
-
-                pCmd->mDx.pCmdList->ClearRenderTargetView(rtvs[i], color_rgba, 0, NULL);
-            }
-        }
-        if (pDepthStencil && (pLoadActions->mLoadActionDepth == LOAD_ACTION_CLEAR || pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR))
-        {
-            ASSERT(dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL);
-
             D3D12_CLEAR_FLAGS flags = (D3D12_CLEAR_FLAGS)0;
-            if (pLoadActions->mLoadActionDepth == LOAD_ACTION_CLEAR)
+            if (desc->mLoadAction == LOAD_ACTION_CLEAR)
+            {
                 flags |= D3D12_CLEAR_FLAG_DEPTH;
-            if (pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR)
+            }
+            if (desc->mLoadActionStencil == LOAD_ACTION_CLEAR)
+            {
                 flags |= D3D12_CLEAR_FLAG_STENCIL;
+                ASSERT(TinyImageFormat_HasStencil(desc->pDepthStencil->mFormat));
+            }
             ASSERT(flags > 0);
-            pCmd->mDx.pCmdList->ClearDepthStencilView(dsv, flags, pLoadActions->mClearDepth.depth, (UINT8)pLoadActions->mClearDepth.stencil,
-                                                      0, NULL);
+            const ClearValue* clearValue = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
+            pCmd->mDx.pCmdList->ClearDepthStencilView(dsv, flags, clearValue->depth, (UINT8)clearValue->stencil, 0, NULL);
         }
     }
+
+    pCmd->mDx.pCmdList->OMSetRenderTargets(pDesc->mRenderTargetCount, rtvs, FALSE, dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL ? &dsv : NULL);
 }
 
 void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
@@ -6820,7 +6859,9 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
     BufferDesc bufDesc = {};
     bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
     bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+    bufDesc.mElementCount = queryCount;
     bufDesc.mSize = queryCount * pQueryPool->mStride;
+    bufDesc.mStructStride = pQueryPool->mStride;
     bufDesc.pName = pDesc->pName;
     bufDesc.mNodeIndex = pDesc->mNodeIndex;
     bufDesc.mStartState = RESOURCE_STATE_COPY_DEST;
@@ -6910,7 +6951,10 @@ void d3d12_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery
     ASSERT(pQueryPool);
     ASSERT(queryCount);
 
+    hook_pre_resolve_query(pCmd);
+
     const uint32_t internalQueryCount = (D3D12_QUERY_TYPE_TIMESTAMP == pQueryPool->mDx.mType ? 2 : 1);
+
     pCmd->mDx.pCmdList->ResolveQueryData(pQueryPool->mDx.pQueryHeap, pQueryPool->mDx.mType, startQuery * internalQueryCount,
                                          queryCount * internalQueryCount, pQueryPool->mDx.pReadbackBuffer->mDx.pResource,
                                          (uint64_t)startQuery * internalQueryCount * pQueryPool->mStride);

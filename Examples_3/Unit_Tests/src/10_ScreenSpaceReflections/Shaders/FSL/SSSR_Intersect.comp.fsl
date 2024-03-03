@@ -205,13 +205,13 @@ bool AdvanceRay(float3 origin, float3 direction, float3 inv_direction, float2 cu
     float3 t = (boundary_planes - origin) * inv_direction;
 
     // Prevent using z plane when shooting out of the depth buffer.
-    t.z = direction.z > 0 ? t.z : FFX_SSSR_FLOAT_MAX;
+    t.z = direction.z < 0 ? t.z : FFX_SSSR_FLOAT_MAX;
 
     // Choose nearest intersection with a boundary.
     float t_min = fast_min(fast_min(t.x, t.y), t.z);
 
-    // Smaller z means closer to the camera.
-    bool above_surface = surface_z > position.z;
+    // Larger z means closer to the camera.
+    bool above_surface = surface_z < position.z;
 
     // Decide whether we are able to advance the ray until we hit the xy boundaries or if we had to clamp it at the surface.
     bool skipped_tile = (isunordered(t_min, t.z) || t_min != t.z) && above_surface;
@@ -287,7 +287,7 @@ float ValidateHit(float3 hit, Ray reflected_ray, float3 world_space_ray_directio
     // Don't lookup radiance from the background.
     int2 texel_coords = int2(screen_size * hit.xy);
     float surface_z = LoadDepth(float2(texel_coords / 2), 1);
-    if (surface_z == 1.0)
+    if (surface_z == 0.0)
     {
         return 0;
     }
