@@ -88,11 +88,11 @@ xcuserdata/
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
-# Art
-# Art/
+Art
+Art/
 Art.zip
 PBR.zip
-# Examples_3/Unit_Tests/UnitTestResources/Textures/PBR/
+Examples_3/Unit_Tests/UnitTestResources/
 
 # Binary Shaders
 **/D3D12/Binary/

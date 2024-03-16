@@ -234,7 +234,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #if (_MSC_VER == 1929) // VS 2019 all VC++ compilers
 #else
 #pragma message("Bad Visual Studio version: (" QUOTE(_MSC_VER) " " QUOTE(_MSC_FULL_VER) " " QUOTE(_MSC_BUILD) ").")
-#error "Bad Visual Studio version"
+//#error "Bad Visual Studio version"
 #endif
 
 #endif
@@ -361,8 +361,8 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //                         This define allows to hide Renderer functionality to the Game, so that if someone tries to use it it'll get a
 //                         linker error.
 //   - FORGE_TOOL_API: is used to expose tool functionality, mostly tool filesystem.
-#define FORGE_API
-#define FORGE_RENDERER_API
+#define FORGE_API FORGE_EXPORT
+#define FORGE_RENDERER_API FORGE_EXPORT
 #define FORGE_TOOL_API
 
 #ifndef FORGE_DEBUG
