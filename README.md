@@ -68,6 +68,64 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.56 - April 4th, 2024 I3D | Warzone Mobile | Visibility Buffer | Aura on macOS | Ephemeris on Switch | GPU breadcrumbs | Swappy in Android | Screen-space Shadows | Metal Debug Markers improved
+
+
+### I3D 
+We are sponsoring I3D again. Come by and say hi! We also will be giving a talk on the new development around Triangle Visibility Buffer.
+
+
+[![I3D Sponsorship](Screenshots/I3D/Platinum%20Sponsor.png)](https://i3dsymposium.org/2024/)
+
+
+### Warzone Mobile launched
+We work on Warzone Mobile since August 2020. The game launched on March 21, 2024.
+
+![Warzone Mobile](Screenshots/Warzone%20Mobile/cod-warzone-eng-1_11zon.jpg) 
+
+![Warzone Mobile](Screenshots/Warzone%20Mobile/WZM-LIMITEDRELEASE-1128-TOUT.jpg) 
+
+### Visibility Buffer
+We removed CPU cluster culling and simplified the animation data usage. Now traingle filtering only takes one dispatch each frame again.
+
+### Swappy frame pacer is now vailable in Android/Vulkan
+We integrated the [Swappy](https://developer.android.com/games/sdk/frame-pacing) frame pacer into the Android / Vulkan eco system. 
+
+
+### GPUCfg system improved with more ids and less string compares
+we did another pass on the GPUCfg system and now we can generate the vendor Ids and model Ids with a python script to keep the *_gpu.data list easily up to date for each platform. 
+We removed most of the name comparisons and replaced them with the id comparisons which should speed up parsing time and is more specific.
+
+### Screen-Space Shadows in UT9
+We added to the number of shadow approaches in that unit test screen-space shadows. These are complementary to regular shadow mapping and add more detail. We also fixed a number of inconsistencies with the other shadow map approaches.
+
+PS5 - Screen-Space Shadows on
+![Screen-Space Shadows PS5](Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
+
+PS5 - Screen-Space Shadows off
+![Screen-Space Shadows PS5](Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
+
+Nintendo Switch
+![Screen-Space Shadows Switch](Screenshots/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
+
+PS4
+![Screen-Space Shadows PS4](Screenshots/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
+
+
+### GPU breadcrumbs on all platforms
+Now you can have GPU crash reports on all platforms. We skipped OpenGL ES and DX11 so ...
+
+A simple example of a crash report is this:
+
+2024-04-04 23:44:08 [MainThread     ] 09a_HybridRaytracing.cp:1685   ERR| [Breadcrumb] Simulating a GPU crash situation (RAYTRACE SHADOWS)...
+2024-04-04 23:44:10 [MainThread     ] 09a_HybridRaytracing.cp:2428  INFO| Last rendering step (approx): Raytrace Shadows, crashed frame: 2
+
+We will extend the reporting a bit more over time.
+
+
+### Ephemeris now also runs on Switch ... 
+
+
 ## Release 1.55 - March 1st, 2024 - Ephemeris | gpu.data | Many bug fixes and smaller improvements
 
 ### Ephemeris 2.0 Update 
@@ -699,6 +757,21 @@ The following shots show Signed Distance Field Soft Shadows running on XBOX One:
 Readme for Signed Distance Field Soft Shadow Maps:
 
 To generate the SDF Mesh data you should select “Signed Distance Field” as the selected shadow type in the Light and Shadow Playground. There is a button called “Generate Missing SDF” and once its clicked, it shows a progress bar that represents the remaining SDF mesh objects utilized for SDF data generation. This process is multithreaded, so the user can still move around the scene while waiting for the SDF process to be finished. This is a long process and it could consume up to 8+ hours depending on your CPU specs. To check how many SDF objects there are presently in the scene, you can mark the checkbox "Visualize SDF Geometry On The Scene".
+
+This unit test also supports screen-space shadows. These are complementary to regular shadow mapping and add more detail. We also fixed a number of inconsistencies with the other shadow map approaches.
+
+PS5 - Screen-Space Shadows on
+![Screen-Space Shadows PS5](Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
+
+PS5 - Screen-Space Shadows off
+![Screen-Space Shadows PS5](Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
+
+Nintendo Switch
+![Screen-Space Shadows Switch](Screenshots/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
+
+PS4
+![Screen-Space Shadows PS4](Screenshots/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
+
 
 ## 9a. Hybrid Ray-Traced Shadows
 This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
