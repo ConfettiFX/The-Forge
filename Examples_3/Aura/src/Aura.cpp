@@ -265,6 +265,7 @@ DebugVisualizationSettings gDebugVisualizationSettings;
 /************************************************************************/
 Renderer*         pRenderer = NULL;
 VisibilityBuffer* pVisibilityBuffer = NULL;
+VBPreFilterStats  gVBPreFilterStats[gDataBufferCount];
 /************************************************************************/
 // Queues and Command buffers
 /************************************************************************/
@@ -389,7 +390,6 @@ Geometry* pGeom = NULL;
 /************************************************************************/
 // Indirect buffers
 /************************************************************************/
-Buffer*   pMaterialPropertyBuffer = NULL;
 Buffer*   pPerFrameUniformBuffers[gDataBufferCount] = { NULL };
 enum
 {
@@ -408,18 +408,18 @@ Buffer*  pMeshConstantsBuffer = NULL;
 /************************************************************************/
 // Other buffers for lighting, point lights,...
 /************************************************************************/
-Buffer*          pLightsBuffer = NULL;
-Buffer**         gPerBatchUniformBuffers = NULL;
-Buffer*          pLightClustersCount[gDataBufferCount] = { NULL };
-Buffer*          pLightClusters[gDataBufferCount] = { NULL };
-Buffer*          pUniformBufferSky[gDataBufferCount] = { NULL };
-Buffer*          pUniformBufferAuraLightApply[gDataBufferCount] = { NULL };
-uint64_t         gFrameCount = 0;
-FilterContainer* pFilterContainers = NULL;
-uint32_t         gMeshCount = 0;
-uint32_t         gMaterialCount = 0;
-FontDrawDesc     gFrameTimeDraw;
-uint32_t         gFontID = 0;
+Buffer*         pLightsBuffer = NULL;
+Buffer**        gPerBatchUniformBuffers = NULL;
+Buffer*         pLightClustersCount[gDataBufferCount] = { NULL };
+Buffer*         pLightClusters[gDataBufferCount] = { NULL };
+Buffer*         pUniformBufferSky[gDataBufferCount] = { NULL };
+Buffer*         pUniformBufferAuraLightApply[gDataBufferCount] = { NULL };
+uint64_t        gFrameCount = 0;
+VBMeshInstance* pVBMeshInstances = NULL;
+uint32_t        gMeshCount = 0;
+uint32_t        gMaterialCount = 0;
+FontDrawDesc    gFrameTimeDraw;
+uint32_t        gFontID = 0;
 
 UIComponent* pGuiWindow = NULL;
 UIComponent* pAuraDebugTexturesWindow = nullptr;
@@ -540,6 +540,11 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
 
         pAuraApp = this;
+
+#if defined(AUTOMATED_TESTING) && defined(ENABLE_CPU_PROPAGATION)
+        LuaScriptDesc scripts[] = { { "Test_CPU_Propagation_Switching.lua" }, { "Test_CPU_propagation.lua" } };
+        luaDefineScripts(scripts, 2);
+#endif
 
         /************************************************************************/
         // Initialize the Forge renderer with the appropriate parameters.
@@ -683,7 +688,7 @@ public:
         gAppSettings.propagationValueIndex = 5;
         gAppSettings.specularQuality = 2;
         gAppSettings.useLPV = true;
-        gAppSettings.enableSun = false;
+        gAppSettings.enableSun = true;
         gAppSettings.useSpecular = true;
         gAppSettings.useColorMaps = true;
 
@@ -761,7 +766,7 @@ public:
 
         gMeshCount = pScene->geom->mDrawArgCount;
         gMaterialCount = pScene->geom->mDrawArgCount;
-        pFilterContainers = (FilterContainer*)tf_calloc(gMeshCount, sizeof(FilterContainer));
+        pVBMeshInstances = (VBMeshInstance*)tf_calloc(gMeshCount, sizeof(VBMeshInstance));
         pGeom = pScene->geom;
         /************************************************************************/
         // Texture loading
@@ -789,7 +794,6 @@ public:
 
         // Init visibility buffer
         VisibilityBufferDesc vbDesc = {};
-        vbDesc.mFilterBatchCount = FILTER_BATCH_COUNT;
         vbDesc.mNumFrames = gDataBufferCount;
         vbDesc.mNumBuffers = gDataBufferCount;
         vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
@@ -798,40 +802,38 @@ public:
         vbDesc.mIndirectElementCount = INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
         vbDesc.mDrawArgCount = gMeshCount;
         vbDesc.mIndexCount = pScene->geom->mIndexCount;
-        vbDesc.mFilterBatchSize = FILTER_BATCH_SIZE;
+        vbDesc.mComputeThreads = VB_COMPUTE_THEADS;
         vbDesc.mMaxPrimitivesPerDrawIndirect = MAX_PRIMITIVES_PER_DRAW_INDIRECT;
         initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
 
         /************************************************************************/
-        // Cluster creation
+        // Filter batch creation
         /************************************************************************/
         HiresTimer clusterTimer;
         initHiresTimer(&clusterTimer);
 
-        // Calculate clusters
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
             MaterialFlags material = pScene->materialFlags[i];
+            uint32_t      geomSet = material & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
 
-            FilterContainerDescriptor desc = {};
-            desc.mType = FILTER_CONTAINER_TYPE_CLUSTER;
-            desc.mBaseIndex = (pScene->geom->pDrawArgs + i)->mStartIndex;
-            desc.mInstanceIndex = INSTANCE_INDEX_NONE;
-            desc.mGeometrySet = GEOMSET_OPAQUE;
-            if (material & MATERIAL_FLAG_ALPHA_TESTED)
-                desc.mGeometrySet = GEOMSET_ALPHA_CUTOUT;
-
-            desc.mIndexCount = (pScene->geom->pDrawArgs + i)->mIndexCount;
-            desc.mMeshIndex = i;
-
-            desc.mIsTwoSided = material & MATERIAL_FLAG_TWO_SIDED;
-            desc.pPositions = (float3*)pScene->geomData->pShadow->pAttributes[SEMANTIC_POSITION];
-            desc.pIndices = (uint32_t*)pScene->geomData->pShadow->pIndices;
-
-            addVBFilterContainer(&desc, &pFilterContainers[i]);
+            pVBMeshInstances[i].mGeometrySet = geomSet;
+            pVBMeshInstances[i].mMeshIndex = i;
+            pVBMeshInstances[i].mTriangleCount = (pScene->geom->pDrawArgs + i)->mIndexCount / 3;
+            pVBMeshInstances[i].mInstanceIndex = INSTANCE_INDEX_NONE;
         }
         removeResource(pScene->geomData);
-        LOGF(LogLevel::eINFO, "Load clusters : %f ms", getHiresTimerUSec(&clusterTimer, true) / 1000.0f);
+
+        UpdateVBMeshFilterGroupsDesc updateVBMeshFilterGroupsDesc = {};
+        updateVBMeshFilterGroupsDesc.mNumMeshInstance = gMeshCount;
+        updateVBMeshFilterGroupsDesc.pVBMeshInstances = pVBMeshInstances;
+        for (uint32_t frameIdx = 0; frameIdx < gDataBufferCount; ++frameIdx)
+        {
+            updateVBMeshFilterGroupsDesc.mFrameIndex = frameIdx;
+            gVBPreFilterStats[frameIdx] = updateVBMeshFilterGroups(pVisibilityBuffer, &updateVBMeshFilterGroupsDesc);
+        }
+
+        LOGF(LogLevel::eINFO, "Created Filter Batches : %f ms", getHiresTimerUSec(&clusterTimer, true) / 1000.0f);
 
         // Generate sky box vertex buffer
         static const float skyBoxPoints[] = {
@@ -1082,11 +1084,6 @@ public:
             removeResource(pUniformBufferAuraLightApply[frameIdx]);
         }
 
-        // Destroy clusters
-        for (uint32_t i = 0; i < gMeshCount; ++i)
-        {
-            removeVBFilterContainer(&pFilterContainers[i]);
-        }
         // Remove Textures
         for (uint32_t i = 0; i < gMaterialCount; ++i)
         {
@@ -1098,7 +1095,7 @@ public:
         tf_free(gDiffuseMapsStorage);
         tf_free(gNormalMapsStorage);
         tf_free(gSpecularMapsStorage);
-        tf_free(pFilterContainers);
+        tf_free(pVBMeshInstances);
 
 #if defined(_WINDOWS)
         arrfree(gGuiResolution.mResNameContainer);
@@ -1338,13 +1335,6 @@ public:
             cmdBeginGpuFrameProfile(computeCmd, gGpuProfileTokens[1], true);
 
             TriangleFilteringPassDesc triangleFilteringDesc = {};
-            triangleFilteringDesc.pFilterContainers = pFilterContainers;
-            triangleFilteringDesc.mNumContainers = gMeshCount;
-            triangleFilteringDesc.mCullClusters = gAppSettings.mClusterCulling;
-
-            triangleFilteringDesc.mNumCullingViewports = NUM_CULLING_VIEWPORTS;
-            triangleFilteringDesc.pViewportObjectSpace = gPerFrame[frameIdx].gEyeObjectSpace;
-
             triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
             triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
             triangleFilteringDesc.pPipelineBatchCompaction = pPipelineBatchCompaction;
@@ -1357,12 +1347,12 @@ public:
             triangleFilteringDesc.mFrameIndex = frameIdx;
             triangleFilteringDesc.mBuffersIndex = frameIdx;
             triangleFilteringDesc.mGpuProfileToken = gGpuProfileTokens[1];
-            triangleFilteringDesc.mClearThreadCount = CLEAR_THREAD_COUNT;
-            FilteringStats stats = cmdVisibilityBufferTriangleFilteringPass(pVisibilityBuffer, computeCmd, &triangleFilteringDesc);
+            triangleFilteringDesc.mVBPreFilterStats = gVBPreFilterStats[frameIdx];
+            cmdVBTriangleFilteringPass(pVisibilityBuffer, computeCmd, &triangleFilteringDesc);
 
-            gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = stats.mGeomsetDrawCounts[GEOMSET_OPAQUE];
-            gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] = stats.mGeomsetDrawCounts[GEOMSET_ALPHA_CUTOUT];
-            gPerFrame[frameIdx].gTotalDrawCount = stats.mTotalDrawCount;
+            gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
+            gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] = gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
+            gPerFrame[frameIdx].gTotalDrawCount = gVBPreFilterStats[frameIdx].mTotalMaxDrawCount;
 
             cmdBeginGpuTimestampQuery(computeCmd, gGpuProfileTokens[1], "Clear Light Clusters");
 
@@ -1478,13 +1468,6 @@ public:
             if (!gAppSettings.mAsyncCompute && gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
             {
                 TriangleFilteringPassDesc triangleFilteringDesc = {};
-                triangleFilteringDesc.pFilterContainers = pFilterContainers;
-                triangleFilteringDesc.mNumContainers = gMeshCount;
-                triangleFilteringDesc.mCullClusters = gAppSettings.mClusterCulling;
-
-                triangleFilteringDesc.mNumCullingViewports = NUM_CULLING_VIEWPORTS;
-                triangleFilteringDesc.pViewportObjectSpace = gPerFrame[frameIdx].gEyeObjectSpace;
-
                 triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
                 triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
                 triangleFilteringDesc.pPipelineBatchCompaction = pPipelineBatchCompaction;
@@ -1497,12 +1480,13 @@ public:
                 triangleFilteringDesc.mFrameIndex = frameIdx;
                 triangleFilteringDesc.mBuffersIndex = frameIdx;
                 triangleFilteringDesc.mGpuProfileToken = gGpuProfileTokens[0];
-                triangleFilteringDesc.mClearThreadCount = CLEAR_THREAD_COUNT;
-                FilteringStats stats = cmdVisibilityBufferTriangleFilteringPass(pVisibilityBuffer, graphicsCmd, &triangleFilteringDesc);
+                triangleFilteringDesc.mVBPreFilterStats = gVBPreFilterStats[frameIdx];
+                cmdVBTriangleFilteringPass(pVisibilityBuffer, graphicsCmd, &triangleFilteringDesc);
 
-                gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = stats.mGeomsetDrawCounts[GEOMSET_OPAQUE];
-                gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] = stats.mGeomsetDrawCounts[GEOMSET_ALPHA_CUTOUT];
-                gPerFrame[frameIdx].gTotalDrawCount = stats.mTotalDrawCount;
+                gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
+                gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] =
+                    gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
+                gPerFrame[frameIdx].gTotalDrawCount = gVBPreFilterStats[frameIdx].mTotalMaxDrawCount;
             }
 
             if (!gAppSettings.mFilterTriangles)
@@ -1714,20 +1698,18 @@ public:
         }
         // Triangle Filtering
         {
-            DescriptorData filterParams[4] = {};
+            DescriptorData filterParams[3] = {};
             filterParams[0].pName = "vertexPositionBuffer";
             filterParams[0].ppBuffers = &pGeom->pVertexBuffers[0];
             filterParams[1].pName = "indexDataBuffer";
             filterParams[1].ppBuffers = &pGeom->pIndexBuffer;
             filterParams[2].pName = "meshConstantsBuffer";
             filterParams[2].ppBuffers = &pMeshConstantsBuffer;
-            filterParams[3].pName = "materialProps";
-            filterParams[3].ppBuffers = &pMaterialPropertyBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 3, filterParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData filterParams[3] = {};
+                DescriptorData filterParams[4] = {};
                 filterParams[0].pName = "filteredIndicesBuffer";
                 filterParams[0].mCount = gNumViews;
                 filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[i * NUM_CULLING_VIEWPORTS];
@@ -1735,7 +1717,9 @@ public:
                 filterParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[i];
                 filterParams[2].pName = "PerFrameVBConstants";
                 filterParams[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 3, filterParams);
+                filterParams[3].pName = "filterDispatchGroupDataBuffer";
+                filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 4, filterParams);
             }
         }
         // Batch Compaction
@@ -2595,25 +2579,6 @@ public:
     void addTriangleFilteringBuffers(Scene* pScene)
     {
         /************************************************************************/
-        // Material props
-        /************************************************************************/
-        uint32_t* alphaTestMaterials = (uint32_t*)tf_malloc(gMaterialCount * sizeof(uint32_t));
-        for (uint32_t i = 0; i < gMaterialCount; ++i)
-        {
-            alphaTestMaterials[i] = (pScene->materialFlags[i] & MATERIAL_FLAG_ALPHA_TESTED) ? 1 : 0;
-        }
-
-        BufferLoadDesc materialPropDesc = {};
-        materialPropDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-        materialPropDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        materialPropDesc.mDesc.mElementCount = gMaterialCount;
-        materialPropDesc.mDesc.mStructStride = sizeof(uint32_t);
-        materialPropDesc.mDesc.mSize = materialPropDesc.mDesc.mElementCount * materialPropDesc.mDesc.mStructStride;
-        materialPropDesc.pData = alphaTestMaterials;
-        materialPropDesc.ppBuffer = &pMaterialPropertyBuffer;
-        materialPropDesc.mDesc.pName = "Material Prop Desc";
-        addResource(&materialPropDesc, NULL);
-        /************************************************************************/
         // Indirect draw arguments to draw all triangles
         /************************************************************************/
         const uint32_t numBatches = (const uint32_t)gMeshCount;
@@ -2763,7 +2728,7 @@ public:
         uint32_t       lightClustersInitData[LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT] = {};
         BufferLoadDesc lightClustersCountBufferDesc = {};
         lightClustersCountBufferDesc.mDesc.mSize = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT * sizeof(uint32_t);
-        lightClustersCountBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER;
+        lightClustersCountBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
         lightClustersCountBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         lightClustersCountBufferDesc.mDesc.mFirstElement = 0;
         lightClustersCountBufferDesc.mDesc.mElementCount = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
@@ -2779,7 +2744,7 @@ public:
 
         BufferLoadDesc lightClustersDataBufferDesc = {};
         lightClustersDataBufferDesc.mDesc.mSize = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT * sizeof(uint32_t);
-        lightClustersDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER;
+        lightClustersDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
         lightClustersDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         lightClustersDataBufferDesc.mDesc.mFirstElement = 0;
         lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
@@ -2811,15 +2776,10 @@ public:
 
         tf_free(meshConstants);
         tf_free(indirectArgsDwords);
-        tf_free(alphaTestMaterials);
     }
 
     void removeTriangleFilteringBuffers()
     {
-        /************************************************************************/
-        // Material props
-        /************************************************************************/
-        removeResource(pMaterialPropertyBuffer);
         /************************************************************************/
         // Indirect draw arguments to draw all triangles
         /************************************************************************/

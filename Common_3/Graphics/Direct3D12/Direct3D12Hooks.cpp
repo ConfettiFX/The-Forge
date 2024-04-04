@@ -110,14 +110,58 @@ HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_CO
 
 void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->mDx.pPipelineState); }
 
-HRESULT hook_create_special_resource(Renderer*, const D3D12_RESOURCE_DESC*, const D3D12_CLEAR_VALUE*, D3D12_RESOURCE_STATES, uint32_t,
-                                     ID3D12Resource**)
+HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
+                                  D3D12_RESOURCE_STATES state, uint32_t flags, Buffer* pBuffer)
+{
+    if (!(flags & BUFFER_CREATION_FLAG_MARKER))
+    {
+        return E_NOINTERFACE;
+    }
+    // CreatePlacedResource requires 64KB granularity for D3D12_RESOURCE_DIMENSION_BUFFER resources
+    const size_t requiredResourceHeapAlign = 64 * TF_KB;
+    size_t       requiredDataSize = pDesc->Width;
+    size_t       bufferSize = round_up_64(requiredDataSize, requiredResourceHeapAlign);
+    void*        allocatedData = VirtualAlloc(nullptr, bufferSize, MEM_COMMIT, PAGE_READWRITE);
+    if (!allocatedData)
+    {
+        return E_NOINTERFACE;
+    }
+
+    memset(allocatedData, 0xFF, requiredDataSize);
+    if (bufferSize > requiredDataSize)
+    {
+        memset((uint8_t*)allocatedData + requiredDataSize, 0xCF, bufferSize - requiredDataSize);
+    }
+    ID3D12Device3* device = NULL;
+    HRESULT        hres = pRenderer->mDx.pDevice->QueryInterface(&device);
+    if (!SUCCEEDED(hres))
+    {
+        VirtualFree(allocatedData, 0, MEM_DECOMMIT);
+        return E_NOINTERFACE;
+    }
+    ID3D12Heap* heap = NULL;
+    hres = device->OpenExistingHeapFromAddress(allocatedData, IID_PPV_ARGS(&heap));
+    ASSERT(SUCCEEDED(hres));
+    D3D12_RESOURCE_DESC desc = *pDesc;
+    desc.Alignment = 0;
+    desc.Width = bufferSize;
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+    ASSERT(D3D12_RESOURCE_STATE_COPY_DEST == state);
+    hres = device->CreatePlacedResource(heap, 0, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&pBuffer->mDx.pResource));
+    ASSERT(SUCCEEDED(hres));
+    pBuffer->mDx.pMarkerBufferHeap = heap;
+    pBuffer->mDx.mMarkerBuffer = true;
+    return S_OK;
+}
+
+HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
+                                  D3D12_RESOURCE_STATES startState, uint32_t flags, Texture* pOutTexture)
 {
     return E_NOINTERFACE;
 }
 
-HRESULT hook_create_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
-                                    const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState, ID3D12Resource** ppOutResource)
+HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
+                                 const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState, ID3D12Resource** ppOutResource)
 {
     return pRenderer->mDx.pDevice->CreatePlacedResource(pPlacement->pHeap->mDx.pHeap, pPlacement->mOffset, pDesc, startState, pClearValue,
                                                         IID_PPV_ARGS(ppOutResource));

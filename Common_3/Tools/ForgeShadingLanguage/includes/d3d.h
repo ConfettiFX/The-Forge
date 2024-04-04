@@ -683,6 +683,16 @@ inline void AtomicMax3D(RWTexture2DArray<TYPE> tex, int3 p, TYPE val, out TYPE o
 { InterlockedMax(tex[p], val, original_val); }
 _DECL_AtomicMax3D(uint)
 
+#define _DECL_AtomicMin2D(TYPE) \
+inline void AtomicMin2D(RWTexture2D<TYPE> tex, int2 p, TYPE val, out TYPE original_val) \
+{ InterlockedMin(tex[p], val, original_val); }
+_DECL_AtomicMin2D(uint)
+
+#define _DECL_AtomicMax2D(TYPE) \
+inline void AtomicMax2D(RWTexture2D<TYPE> tex, int2 p, TYPE val, out TYPE original_val) \
+{ InterlockedMax(tex[p], val, original_val); }
+_DECL_AtomicMax2D(uint)
+
 // #define _DECL_AtomicMin2DArray(TYPE) \
 // inline void AtomicMin2DArray(RWTexture2DArray<TYPE> tex, int2 p, int layer, TYPE val, out TYPE original_val) \
 // { InterlockedMin(tex[int3(p, layer)], val, original_val); }

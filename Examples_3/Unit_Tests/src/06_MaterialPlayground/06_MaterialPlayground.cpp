@@ -1685,6 +1685,11 @@ public:
         RenderTargetBarrier shadowTexBarrier = { pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &shadowTexBarrier);
 
+        if (gMaterialType == MATERIAL_METAL || gMaterialType == MATERIAL_WOOD)
+        {
+            cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Lighting Pass");
+        }
+
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
@@ -1709,8 +1714,6 @@ public:
         {
             if (gMaterialType == MATERIAL_METAL)
             {
-                cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Lighting Pass");
-
                 // DRAW THE NAME PLATES
                 //
                 cmdBindPipeline(cmd, ppSceneMaterialPipelines[SCENE_MATERIAL_NAME_PLATE]);
@@ -1738,14 +1741,10 @@ public:
                     cmdBindDescriptorSet(cmd, descriptorIndex, ppSceneMaterialDescriptorSets[materialindex][2]);
                     cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
                 }
-
-                cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // Lighting Pass
             }
 
             if (gMaterialType == MATERIAL_WOOD)
             {
-                cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Lighting Pass");
-
                 // DRAW THE NAME PLATES
                 //
                 cmdBindPipeline(cmd, ppSceneMaterialPipelines[SCENE_MATERIAL_NAME_PLATE]);
@@ -1773,10 +1772,9 @@ public:
                     cmdBindDescriptorSet(cmd, descriptorIndex, ppSceneMaterialDescriptorSets[materialindex][2]);
                     cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
                 }
-
-                cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // Lighting Pass
             }
 
+            cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // Lighting Pass
             cmdBindRenderTargets(cmd, NULL);
         }
         // Draw hair
@@ -2223,6 +2221,9 @@ public:
         // SET UP DRAW COMMANDS (UI)
         //
 
+        // draw world-space text
+        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Text");
+
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
@@ -2231,8 +2232,6 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-        // draw world-space text
-        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Text");
         const char** ppMaterialNames = NULL;
         switch (GuiController::currentMaterialType)
         {
@@ -2264,6 +2263,9 @@ public:
                 cmdDrawWorldSpaceTextWithFont(cmd, &gTextWorldMats[i], &gTextProjView, &gMaterialPropDraw);
             }
         }
+        cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // HUD Text
+
+        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
 
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -2287,9 +2289,6 @@ public:
             gErrMsgDrawDesc.mFontSize = 18.0f;
             cmdDrawTextWithFont(cmd, screenCoords, &gErrMsgDrawDesc);
         }
-        cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // HUD Text
-
-        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
 
         cmdDrawUserInterface(cmd);
         cmdBindRenderTargets(cmd, NULL);

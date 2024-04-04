@@ -569,6 +569,8 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarrier);
 
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Wave Shader");
+
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
@@ -579,7 +581,6 @@ public:
         // wave debug
         const uint32_t triangleStride = sizeof(Vertex);
         cmdBeginDebugMarker(cmd, 0, 0, 1, "Wave Shader");
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Wave Shader");
         cmdBindPipeline(cmd, pPipelineWave);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, &triangleStride, NULL);

@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+#define WAVE_SIZE 64
+#define SS_SAMPLE_COUNT 60
+#define HARD_SHADOW_SAMPLES 4
+#define FADE_OUT_SAMPLES 8
+#define SHADOW_MAX_VALUE 0xFFFF
+
+#ifndef SAMPLE_COUNT
+#define SAMPLE_COUNT 4
+#endif
+
+#define READ_COUNT (SS_SAMPLE_COUNT / WAVE_SIZE + 2)
+
+#define DEBUG_OUTPUT_MODE_NONE 0
+#define DEBUG_OUTPUT_MODE_EDGE_MASK 1
+#define DEBUG_OUTPUT_MODE_THREAD_INDEX 2
+#define DEBUG_OUTPUT_MODE_WAVE_INDEX 3
+
+#define NEAR_DEPTH_VALUE 1.0f
+#define FAR_DEPTH_VALUE 0.0
+
+#if defined(METAL)
+#define TEXTURE_ATOMIC_SUPPORTED 0
+#else
+#define TEXTURE_ATOMIC_SUPPORTED 1
+#endif
+
+CBUFFER(SSSUniformData, UPDATE_FREQ_NONE, b1, binding = 1)
+{
+	DATA(float4, mLightCoordinate, None);
+	DATA(float4, mScreenSize, None);
+	DATA(float, mSurfaceThickness, None);
+	DATA(float, mBilinearThreshold, None);
+	DATA(float, mShadowContrast, None);
+	DATA(uint, mIgnoreEdgePixels, None);
+	DATA(uint, mBilinearSamplingOffsetMode, None);
+	DATA(uint, mDebugOutput, None);
+	DATA(uint, mWaveLaneCount, None);
+};
+
+// UPDATE_FREQ_FRAME
+PUSH_CONSTANT(DispatchRootConstants, b0)
+{
+	DATA(int2, WaveOffset, None);
+};
+
+#if SAMPLE_COUNT > 1
+RES(Depth2DMS(float, SAMPLE_COUNT), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 2);
+#else
+RES(Depth2D(float), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 2);
+#endif
+
+#if TEXTURE_ATOMIC_SUPPORTED
+	RES(RWTex2D(uint), OutputTexture, UPDATE_FREQ_NONE, u1, binding = 3);
+#else
+	RES(RWBuffer(uint), OutputTexture, UPDATE_FREQ_NONE, u1, binding = 3);
+#endif

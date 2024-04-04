@@ -1,10 +1,10 @@
-#version: 0.1
-#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+version: 0.2
+#Possible Classfications for Preset: ultra; high; medium; low; verylow; office
 #Sources:
 
 BEGIN_DEFAULT_CONFIGURATION;
 #if the gpu doesn't exist in the GPU_LIST use this instead
-DefaultPresetLevel; Medium;
+DefaultPresetLevel; medium;
 END_DEFAULT_CONFIGURATION;
 
 BEGIN_VENDOR_LIST;
@@ -13,7 +13,7 @@ END_VENDOR_LIST;
 
 #VendorName ; DeviceName ; Classification ; DeviceID (Can be null) ; Revision ID (Can be null) ; Codename (can be null)
 BEGIN_GPU_LIST;
-# Steam Deck
-amd; AMD Custom GPU 0405 (RADV VANGOGH); Medium; 0x163f;
-# missing steam deck oled
+
+0x1002; 0x163F; medium; #AMD; AMD Custom GPU 0405 (RADV VANGOGH)
+
 END_GPU_LIST;

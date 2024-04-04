@@ -73,7 +73,6 @@
 
 #include "../../Utilities/Math/AlgorithmsImpl.h"
 #include "../../Utilities/Threading/Atomics.h"
-#include "../GPUConfig.h"
 
 #include "VulkanCapsBuilder.h"
 
@@ -86,6 +85,10 @@
 #include "../Quest/VrApiHooks.h"
 
 extern RenderTarget* pFragmentDensityMask;
+#endif
+
+#if defined(GFX_ENABLE_SWAPPY)
+#include "swappy/swappyVk.h"
 #endif
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -283,6 +286,8 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
 	VK_AMD_GCN_SHADER_EXTENSION_NAME,
+    VK_AMD_BUFFER_MARKER_EXTENSION_NAME,
+    VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME,
 	/************************************************************************/
 	// Multi GPU Extensions
 	/************************************************************************/
@@ -2477,6 +2482,31 @@ void util_find_queue_family_index(const Renderer* pRenderer, uint32_t nodeIndex,
             queueIndex = 0;
             break;
         }
+#if defined(__ANDROID__)
+        // Note: Xclipse 920 GPU has issues with the transfer queue from the non-graphics queue family in the recent driver, Android OS U
+        // But since Vulkan properties always provide 2.0.0 driver version for all Xclipse GPUs
+        // We have to apply this workaround for Xclipse 920 in general
+        // Expected to be fixed in Android OS V update
+        if (pRenderer->pGpu->mSettings.mXclipseTransferQueueWorkaround)
+        {
+            if (queueType == QUEUE_TYPE_TRANSFER)
+            {
+                if (graphicsQueue)
+                {
+                    found = true;
+                    queueFamilyIndex = index;
+                    queueIndex = (pRenderer->mVk.pUsedQueueCount[nodeIndex][index] < pRenderer->mVk.pAvailableQueueCount[nodeIndex][index])
+                                     ? pRenderer->mVk.pUsedQueueCount[nodeIndex][index]
+                                     : 0;
+                    break;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+        }
+#endif
         // Only flag set on this queue family is the one required - Most optimal choice
         // Example: Required flag is VK_QUEUE_TRANSFER_BIT and the queue family has only VK_QUEUE_TRANSFER_BIT set
         if (matchingQueueFlags && ((queueFlags & ~requiredFlags) == 0) &&
@@ -2632,6 +2662,10 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
                 {
                     if (strcmp(wantedDeviceExtensions[k], properties[j].extensionName) == 0)
                     {
+                        if (strcmp(wantedDeviceExtensions[k], VK_AMD_BUFFER_MARKER_EXTENSION_NAME) == 0)
+                            pGpu->mVk.mAMDBufferMarkerExtension = true;
+                        if (strcmp(wantedDeviceExtensions[k], VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME) == 0)
+                            pGpu->mVk.mAMDDeviceCoherentMemoryExtension = true;
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
                         if (strcmp(wantedDeviceExtensions[k], VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME) == 0)
                             pGpu->mVk.mDeviceMemoryReportExtension = gEnableDeviceMemoryTracking;
@@ -2758,6 +2792,9 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     };
     ADD_TO_NEXT_CHAIN(pGpu->mVk.mDeviceMemoryReportExtension, memoryReportFeatures);
 
+    VkPhysicalDeviceCoherentMemoryFeaturesAMD deviceCoherentFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mAMDDeviceCoherentMemoryExtension, deviceCoherentFeatures);
+
     vkGetPhysicalDeviceFeatures2KHR(pGpu->mVk.pGpu, &gpuFeatures2);
 
     // Get memory properties
@@ -2819,6 +2856,8 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
 #if !defined(NX64) && !defined(__ANDROID__)
     pGpu->mSettings.mHDRSupported = true;
 #endif
+    pGpu->mSettings.mGpuMarkers = true;
+    pGpu->mVk.mAMDDeviceCoherentMemorySupported = deviceCoherentFeatures.deviceCoherentMemory;
     /************************************************************************/
     // To find VRAM in Vulkan, loop through all the heaps and find if the
     // heap has the DEVICE_LOCAL_BIT flag set
@@ -2889,10 +2928,9 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     }
 
     // TODO: Fix once vulkan adds support for revision ID
-    pGpu->mSettings.mGpuVendorPreset.mRevisionId = 0;
-    pGpu->mSettings.mGpuVendorPreset.mPresetLevel =
-        getGPUPresetLevel(getGPUVendorName(pGpu->mSettings.mGpuVendorPreset.mVendorId), pGpu->mSettings.mGpuVendorPreset.mGpuName,
-                          pGpu->mSettings.mGpuVendorPreset.mModelId, pGpu->mSettings.mGpuVendorPreset.mRevisionId);
+    GPUVendorPreset* preset = &pGpu->mSettings.mGpuVendorPreset;
+    preset->mRevisionId = 0;
+    preset->mPresetLevel = getGPUPresetLevel(preset->mVendorId, preset->mModelId, preset->mVendorName, preset->mGpuName);
 
     // set default driver to be very high to not trigger driver rejection rules if NVAPI or AMDAGS fails
     snprintf(pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "%u.%u", 999999, 99);
@@ -2944,6 +2982,11 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
 
     return true;
 }
+
+#if defined(GFX_ENABLE_SWAPPY)
+bool     gSwappyEnabled = true;
+uint64_t gSwapIntervalNS = SWAPPY_SWAP_60FPS;
+#endif
 
 void InitializeBufferCreateInfo(Renderer* pRenderer, const BufferDesc* pDesc, VkBufferCreateInfo* pOutInfo)
 {
@@ -3477,6 +3520,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
     // These are the extensions that we have loaded
     const char* deviceExtensionCache[MAX_DEVICE_EXTENSIONS] = {};
+    uint32_t    extension_count = 0;
 
     VkDeviceGroupDeviceCreateInfoKHR   deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
     VkPhysicalDeviceGroupPropertiesKHR props[MAX_LINKED_GPUS] = {};
@@ -3543,6 +3587,33 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     VkExtensionProperties* exts = (VkExtensionProperties*)alloca(sizeof(VkExtensionProperties) * extCount);
     vkEnumerateDeviceExtensionProperties(pGpu->mVk.pGpu, NULL, &extCount, exts);
 
+#if defined(GFX_ENABLE_SWAPPY)
+    // Swappy could require some extensions to work, so find and enable them
+    uint32_t swappyExtensionCount = 0;
+    char**   pSwappyExtensions = NULL;
+    char*    pSwappyExtensionsData = NULL;
+
+    if (gSwappyEnabled)
+    {
+        // Determine the number of required extensions.
+        SwappyVk_determineDeviceExtensions(pGpu->mVk.pGpu, extCount, exts, &swappyExtensionCount, nullptr);
+
+        // Determine the required extensions.
+        pSwappyExtensions = (char**)tf_malloc(swappyExtensionCount * sizeof(char*));
+        pSwappyExtensionsData = (char*)tf_malloc(swappyExtensionCount * (VK_MAX_EXTENSION_NAME_SIZE + 1));
+        for (uint32_t i = 0; i < swappyExtensionCount; i++)
+        {
+            pSwappyExtensions[i] = &pSwappyExtensionsData[i * (VK_MAX_EXTENSION_NAME_SIZE + 1)];
+        }
+        SwappyVk_determineDeviceExtensions(pGpu->mVk.pGpu, extCount, exts, &swappyExtensionCount, pSwappyExtensions);
+
+        for (uint32_t i = 0; i < swappyExtensionCount; i++)
+        {
+            deviceExtensionCache[extension_count++] = pSwappyExtensions[i];
+        }
+    }
+#endif
+
 #if VK_DEBUG_LOG_EXTENSIONS
     for (uint32_t i = 0; i < layerCount; ++i)
     {
@@ -3554,8 +3625,6 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
         internal_log(eINFO, exts[i].extensionName, "vkdevice-ext");
     }
 #endif
-
-    uint32_t extension_count = 0;
 
     // Standalone extensions
     {
@@ -3654,6 +3723,14 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
     VkPhysicalDeviceFaultFeaturesEXT deviceFaultFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT };
     ADD_TO_NEXT_CHAIN(pGpu->mVk.mDeviceFaultExtension, deviceFaultFeatures);
+
+    VkPhysicalDeviceDeviceMemoryReportFeaturesEXT memoryReportFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_MEMORY_REPORT_FEATURES_EXT
+    };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mDeviceMemoryReportExtension, memoryReportFeatures);
+
+    VkPhysicalDeviceCoherentMemoryFeaturesAMD deviceCoherentFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mAMDDeviceCoherentMemoryExtension, deviceCoherentFeatures);
 
     vkGetPhysicalDeviceFeatures2KHR(pRenderer->pGpu->mVk.pGpu, &gpuFeatures2);
 
@@ -3825,6 +3902,14 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
         LOGF(LogLevel::eINFO, "Successfully loaded Device Fault extension");
     }
 
+#if defined(GFX_ENABLE_SWAPPY)
+    if (gSwappyEnabled)
+    {
+        tf_free(pSwappyExtensions);
+        tf_free(pSwappyExtensionsData);
+    }
+#endif
+
     return true;
 }
 
@@ -3973,7 +4058,7 @@ void vk_initRendererContext(const char* appName, const RendererContextDesc* pDes
         pContext->mGpus[realGpu].mVk.pGpu = gpus[i];
         QueryGpuSettings(pDesc, pContext, &pContext->mGpus[realGpu]);
         vkCapsBuilder(&pContext->mGpus[realGpu]);
-        applyConfigurationSettings(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
+        applyGPUConfigurationRules(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
 
         // ----- update vulkan features based on gpu.cfg
         pContext->mGpus[realGpu].mSettings.mDynamicRenderingSupported &= gEnableDynamicRenderingExtension;
@@ -4140,6 +4225,11 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
         if (pRenderer->pGpu->mVk.mBufferDeviceAddressSupported)
         {
             createInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        }
+
+        if (pRenderer->pGpu->mVk.mAMDDeviceCoherentMemorySupported)
+        {
+            createInfo.flags |= VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
         }
 
         VmaVulkanFunctions vulkanFunctions = {};
@@ -4430,6 +4520,13 @@ void vk_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     }
 
     *ppQueue = pQueue;
+
+#if defined(GFX_ENABLE_SWAPPY)
+    if (pQueue->mType == QUEUE_TYPE_GRAPHICS && gSwappyEnabled)
+    {
+        SwappyVk_setQueueFamilyIndex(pRenderer->mVk.pDevice, pQueue->mVk.pQueue, queueFamilyIndex);
+    }
+#endif
 
 #if defined(QUEST_VR)
     extern Queue* pSynchronisationQueue;
@@ -4919,9 +5016,26 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
     swapChainCreateInfo.oldSwapchain = 0;
     CHECK_VKRESULT(vkCreateSwapchainKHR(pRenderer->mVk.pDevice, &swapChainCreateInfo, GetAllocationCallbacks(VK_OBJECT_TYPE_SWAPCHAIN_KHR),
                                         &vkSwapchain));
-
     ((SwapChainDesc*)pDesc)->mColorFormat = TinyImageFormat_FromVkFormat((TinyImageFormat_VkFormat)surfaceFormat.format);
 
+#if defined(GFX_ENABLE_SWAPPY)
+    if (gSwappyEnabled)
+    {
+        // Setup Swappy
+        // AndroidWindow.cpp, used to retrieve the Java activity
+        extern WindowDesc gWindow;
+        uint64_t          refreshDuration;
+
+        JNIEnv* pJavaEnv = NULL;
+        gWindow.handle.activity->vm->AttachCurrentThread(&pJavaEnv, NULL);
+
+        SwappyVk_initAndGetRefreshCycleDuration(pJavaEnv, gWindow.handle.activity->clazz, pRenderer->pGpu->mVk.pGpu, pRenderer->mVk.pDevice,
+                                                vkSwapchain, &refreshDuration);
+        SwappyVk_setAutoSwapInterval(false);
+        // Don't swap faster than the monitor refresh rate
+        SwappyVk_setSwapIntervalNS(pRenderer->mVk.pDevice, vkSwapchain, max(refreshDuration, gSwapIntervalNS));
+    }
+#endif
     // Create rendertargets from swapchain
     uint32_t imageCount = 0;
     CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->mVk.pDevice, vkSwapchain, &imageCount, NULL));
@@ -4977,6 +5091,13 @@ void vk_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
     ASSERT(pRenderer);
     ASSERT(pSwapChain);
+
+#if defined(GFX_ENABLE_SWAPPY)
+    if (gSwappyEnabled)
+    {
+        SwappyVk_destroySwapchain(pRenderer->mVk.pDevice, pSwapChain->mVk.pSwapChain);
+    }
+#endif
 
 #if defined(QUEST_VR)
     hook_remove_swap_chain(pRenderer, pSwapChain);
@@ -5105,6 +5226,10 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
         vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
     if (pDesc->mFlags & BUFFER_CREATION_FLAG_HOST_COHERENT)
         vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    if (pRenderer->pGpu->mVk.mAMDDeviceCoherentMemorySupported && (pDesc->mFlags & BUFFER_CREATION_FLAG_MARKER))
+        vma_mem_reqs.preferredFlags |= VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD | VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD;
+    if (!pRenderer->pGpu->mVk.mAMDDeviceCoherentMemorySupported && (pDesc->mFlags & BUFFER_CREATION_FLAG_MARKER))
+        vma_mem_reqs.preferredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
 #if defined(ANDROID) || defined(NX64)
     // UMA for Android and NX64 devices
@@ -9015,8 +9140,19 @@ void vk_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
         // Lightweight lock to make sure multiple threads dont use the same queue simultaneously
         MutexLock lock(*pQueue->mVk.pSubmitMutex);
-        VkResult  vk_res =
-            vkQueuePresentKHR(pSwapChain->mVk.pPresentQueue ? pSwapChain->mVk.pPresentQueue : pQueue->mVk.pQueue, &present_info);
+
+        VkResult vk_res;
+#if defined(GFX_ENABLE_SWAPPY)
+        if (gSwappyEnabled)
+        {
+            vk_res =
+                SwappyVk_queuePresent(pSwapChain->mVk.pPresentQueue ? pSwapChain->mVk.pPresentQueue : pQueue->mVk.pQueue, &present_info);
+        }
+        else
+#endif
+        {
+            vk_res = vkQueuePresentKHR(pSwapChain->mVk.pPresentQueue ? pSwapChain->mVk.pPresentQueue : pQueue->mVk.pQueue, &present_info);
+        }
 
         if (vk_res == VK_ERROR_DEVICE_LOST)
         {
@@ -9564,9 +9700,33 @@ void vk_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pNam
 #endif
 }
 
-uint32_t vk_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+void vk_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
 {
-    return 0;
+    ASSERT(pCmd);
+    ASSERT(pDesc);
+    ASSERT(pDesc->pBuffer);
+
+    if (pCmd->pRenderer->pGpu->mVk.mAMDBufferMarkerExtension)
+    {
+        VkPipelineStageFlagBits pipeStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        if (pDesc->mFlags & MARKER_FLAG_WAIT_FOR_WRITE)
+        {
+            pipeStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        }
+        vkCmdWriteBufferMarkerAMD(pCmd->mVk.pCmdBuf, pipeStage, pDesc->pBuffer->mVk.pBuffer, pDesc->mOffset, pDesc->mValue);
+    }
+    else
+    {
+        vkCmdFillBuffer(pCmd->mVk.pCmdBuf, pDesc->pBuffer->mVk.pBuffer, pDesc->mOffset, sizeof(uint32_t), pDesc->mValue);
+        if (pDesc->mFlags & MARKER_FLAG_WAIT_FOR_WRITE)
+        {
+            VkMemoryBarrier barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+            barrier.srcAccessMask = util_to_vk_access_flags(ResourceState(UINT32_MAX)); //-V1016
+            barrier.dstAccessMask = barrier.srcAccessMask;
+            vkCmdPipelineBarrier(pCmd->mVk.pCmdBuf, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &barrier,
+                                 0, NULL, 0, NULL);
+        }
+    }
 }
 /************************************************************************/
 // Resource Debug Naming Interface

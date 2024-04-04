@@ -130,14 +130,14 @@
     <Filter Include="Common_3\Application\Fonts\Shaders">
       <UniqueIdentifier>{5f94891e-672d-4f3d-832d-f74a47ebf473}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics">
-      <UniqueIdentifier>{f71003a8-f5de-4682-a24b-b16c1eeadb93}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\OS\Interfaces">
       <UniqueIdentifier>{d7adb3b1-8059-4f1b-b412-b2b745c24731}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\Interfaces">
       <UniqueIdentifier>{2a579ddc-3b5d-4c10-ad92-2ecda06a60fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Graphics">
+      <UniqueIdentifier>{f71003a8-f5de-4682-a24b-b16c1eeadb93}</UniqueIdentifier>
     </Filter>
     <Filter Include="Middleware_3\PaniniProjection\Shaders\FSL">
       <UniqueIdentifier>{b5f94e7b-e344-4f11-ae70-d9b5082cc57b}</UniqueIdentifier>
@@ -500,9 +500,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h">
       <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h">
-      <Filter>Common_3\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h">
       <Filter>Common_3\Application\Interfaces</Filter>

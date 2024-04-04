@@ -265,6 +265,8 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                 continue
             shader_src += [ '#define {0}\n'.format(flag.name) ]
 
+    if Features.INVARIANT in binary.features:
+        shader_src += ['invariant gl_Position;\n']
     
     if Features.PRIM_ID in binary.features and binary.stage == Stages.FRAG:
         #  generate pass-through gs

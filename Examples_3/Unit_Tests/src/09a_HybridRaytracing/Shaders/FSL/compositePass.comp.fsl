@@ -74,6 +74,19 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 		outputColor = float4(diffuse*albedo, 0);
 	}
 
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        outputColor.xyz += float3(0.1, 0.2, 0.3);
+        counter += outputColor.r;
+		counter -= 0.0000001;
+		Write2D(Get(outputRT), DTid.xy, outputColor);
+    }
+#endif
+
 	Write2D(Get(outputRT), DTid.xy, outputColor);
+
 	RETURN();
 }

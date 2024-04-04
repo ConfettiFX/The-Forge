@@ -177,8 +177,8 @@ namespace MT
 	const uint32 MT_MAX_THREAD_COUNT = 64;
 	const uint32 MT_SCHEDULER_STACK_SIZE = 1048576; // 1Mb
 
-	const uint32 MT_MAX_STANDART_FIBERS_COUNT = 256;
-	const uint32 MT_STANDART_FIBER_STACK_SIZE = 32768; //32Kb
+	const uint32 MT_MAX_STANDARD_FIBERS_COUNT = 256;
+	const uint32 MT_STANDARD_FIBER_STACK_SIZE = 32768; //32Kb
 
 	const uint32 MT_MAX_EXTENDED_FIBERS_COUNT = 8;
 	const uint32 MT_EXTENDED_FIBER_STACK_SIZE = 1048576; // 1Mb
@@ -315,11 +315,11 @@ namespace MT
 		TaskGroupDescription groupStats[TaskGroup::MT_MAX_GROUPS_COUNT];
 
 		// Fibers context
-		FiberContext standartFiberContexts[MT_MAX_STANDART_FIBERS_COUNT];
+		FiberContext standardFiberContexts[MT_MAX_STANDARD_FIBERS_COUNT];
 		FiberContext extendedFiberContexts[MT_MAX_EXTENDED_FIBERS_COUNT];
 
 		// Fibers pool
-		LockFreeQueueMPMC<FiberContext*, MT_MAX_STANDART_FIBERS_COUNT * 2> standartFibersAvailable;
+		LockFreeQueueMPMC<FiberContext*, MT_MAX_STANDARD_FIBERS_COUNT * 2> standardFibersAvailable;
 		LockFreeQueueMPMC<FiberContext*, MT_MAX_EXTENDED_FIBERS_COUNT * 2> extendedFibersAvailable;
 
 #ifdef MT_INSTRUMENTED_BUILD

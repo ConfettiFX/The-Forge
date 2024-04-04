@@ -2133,8 +2133,16 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     arrfree(meshletTriangles);
                 }
 
-                for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
-                    ((uint32_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
+                if (sizeof(uint16_t) == indexStride)
+                {
+                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
+                        ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
+                }
+                else
+                {
+                    for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
+                        ((uint32_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
+                }
 
                 indexCount += (uint32_t)(prim->indices->count);
                 vertexCount += optimizedVertexCount;

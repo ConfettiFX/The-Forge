@@ -1,11 +1,9 @@
-#version: 0.1
-#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+version: 0.2
+#Possible Classfications for Preset: ultra; high; medium; low; verylow; office
 #Sources:
-#https://www.notebookcheck.net/Mobile-Graphics-Cards-Benchmark-List.844.0.html  -> Classifies into Ultra; High; Medium; Low; Office
-#https://github.com/GameTechDev/gpudetect/blob/master/IntelGfx.cfg
-#https://github.com/GPUOpen-Tools/common-src-DeviceInfo/blob/master/DeviceInfoUtils.cpp
-#https://www.techpowerup.com/vgabios
-#https://pci-ids.ucw.cz/
+#https://technical.city/en/video/rating
+#https://raw.githubusercontent.com/GameTechDev/gpudetect/master/IntelGfx.cfg
+#https://vulkan.gpuinfo.org/api/v2/getreportlist.php
 
 BEGIN_DEFAULT_CONFIGURATION;
 #if the gpu doesn't exist in the GPU_LIST use this instead
@@ -13,437 +11,699 @@ DefaultPresetLevel; Low;
 END_DEFAULT_CONFIGURATION;
 
 BEGIN_VENDOR_LIST;
-intel; 0x163C, 0x8086, 0x8087;
-nvidia; 0x10DE
-amd; 0x1002, 0x1022;
-Qualcomm; 0x5143;
+intel; 0x8086;
+amd; 0x1002;
+nvidia; 0x10de;
+qualcomm; 0x5143;
 END_VENDOR_LIST;
 
-#VendorName ; DeviceName ; Classification ; DeviceID (Can be null) ; Revision ID (Can be null) ; Codename (can be null)
+#VendorID ; DeviceID ; Preset ; #Device Details
+
 BEGIN_GPU_LIST;
-#NVIDIA GPUs
-nvidia ; NVIDIA GeForce 6800 GT ; Low
-nvidia ; NVIDIA GeForce 6800 Ultra ; Low
-nvidia ; NVIDIA GeForce 6800 ; Low ;
-nvidia ; NVIDIA GeForce 6800 LE ; Low ;
-nvidia ; NVIDIA GeForce 8800 GTS ; Low ;
-nvidia ; NVIDIA GeForce 8800M GTS ; Low ;
-nvidia ; NVIDIA GeForce 9600 GT ; Low ;
-nvidia ; NVIDIA GeForce GT 330M ; Low ;
-nvidia ; NVIDIA GeForce GTX 460 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 480M ; Medium ;
-nvidia ; NVIDIA GeForce GTX 480 ; Medium ;
-nvidia ; NVIDIA Tesla C2050 ; Low ;
-nvidia ; NVIDIA GeForce GTX 580 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 580M ; Medium ;
-nvidia ; NVIDIA GeForce GTX 765M ; Medium ;
-nvidia ; NVIDIA GeForce GTX 780M ; Medium ;
-nvidia ; NVIDIA GeForce GTX 950 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 960 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 970 ; High ;
-nvidia ; NVIDIA GeForce GTX 980 ; High ;
-nvidia ; NVIDIA GeForce GTX 980 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce GTX 1050 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1050 Ti ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1060 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1070 ; High ;
-nvidia ; NVIDIA GeForce GTX 1080 ; High ;
-nvidia ; NVIDIA GeForce GTX 1080 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce GTX TITAN Black ; Ultra ;
-nvidia ; NVIDIA GeForce GTX TITAN X ; Ultra ;
-nvidia ; NVIDIA GeForce GTX 1650 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1650 Super ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1650 TI ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1660 ; Medium ;
-nvidia ; NVIDIA GeForce GTX 1660 Super ; High ;
-nvidia ; NVIDIA GeForce GTX 1660 Ti ; High ;
-nvidia ; NVIDIA GeForce RTX 2050 ; Medium ;
-nvidia ; NVIDIA GeForce RTX 2060 ; High ;
-nvidia ; NVIDIA GeForce RTX 2060 Super ; High ;
-nvidia ; NVIDIA GeForce RTX 2070 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 2070 Super ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 2080 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 2080 Super ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 2080 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce Titan RTX ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3050 ; High ;
-nvidia ; NVIDIA GeForce RTX 3050 Ti ; High ;
-nvidia ; NVIDIA GeForce RTX 3060 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3060 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3070 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3070 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3080 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3080 Ti ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3090 ; Ultra ;
-nvidia ; NVIDIA GeForce RTX 3090 Ti ; Ultra ;
-nvidia ; NVIDIA Quadro P6000 ; Ultra ;
-nvidia ; NVIDIA Geforce MX570 ; Medium ;
-nvidia ; NVIDIA Geforce RTX 4050 ; High ;
-nvidia ; NVIDIA Geforce RTX 4050 Ti ; High ;
-nvidia ; NVIDIA Geforce RTX 4060 ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4060 Ti ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4070 ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4070 Super ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4070 Ti ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4070 Ti Super ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4080 ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4080 Super ; Ultra ;
-nvidia ; NVIDIA Geforce RTX 4090 ; Ultra ;
-nvidia ; RTX TITAN Ada ; Ultra ;
+#intel
+0x8086; 0x0042; verylow; #Intel; Intel(R) HD Graphics - Core i3/i5 + Pentium G9650 Processors
+0x8086; 0x0046; verylow; #Intel; Intel(R) HD Graphics - Core i3/i5/i7 Mobile Processors
+0x8086; 0x0102; verylow; #Intel; Intel(R) HD Graphics 2000
+0x8086; 0x0106; verylow; #Intel; Intel(R) HD Graphics 2000
+0x8086; 0x010A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0112; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0116; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0122; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0126; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0152; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x0156; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x015A; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x0162; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x0166; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x016A; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x0402; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0406; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0412; verylow; #Intel; Intel(R) HD Graphics 4600
+0x8086; 0x0416; verylow; #Intel; Intel(R) HD Graphics 4600
+0x8086; 0x041A; verylow; #Intel; Intel(R) HD Graphics P4600/P4700
+0x8086; 0x041B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x041E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0422; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x0426; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x042A; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x042B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x042E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0900; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0901; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0902; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0903; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0904; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0A02; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD1; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD2; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD3; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD4; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C02; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C06; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C0A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C12; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C16; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C1A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C22; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C26; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C2A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0F30; verylow; #Intel; Intel(R) Vallyview Graphics
+0x8086; 0x0F31; verylow; #Intel; Intel(R) Vallyview Graphics
+0x8086; 0x1602; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1606; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1612; verylow; #Intel; Intel(R) HD Graphics 5600
+0x8086; 0x1616; verylow; #Intel; Intel(R) HD Graphics 5500
+0x8086; 0x161A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161E; verylow; #Intel; Intel(R) HD Graphics 5300
+0x8086; 0x1622; verylow; #Intel; Intel(R) Iris(TM) Pro Graphics 6200
+0x8086; 0x1626; verylow; #Intel; Intel(R) HD Graphics 6000
+0x8086; 0x162A; verylow; #Intel; Intel(R) Iris(TM) Pro Graphics P6300
+0x8086; 0x162B; verylow; #Intel; Intel(R) Iris(TM) Graphics 6100
+0x8086; 0x162D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x162E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1632; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1636; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1902; low; #Intel; Intel(R) HD Graphics 510
+0x8086; 0x1906; low; #Intel; Intel(R) HD Graphics 510
+0x8086; 0x190A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x190B; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x190E; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1912; low; #Intel; Intel(R) HD Graphics 530
+0x8086; 0x1913; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1916; low; #Intel; Intel(R) HD Graphics 520
+0x8086; 0x191A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x191B; low; #Intel; Intel(R) HD Graphics 530
+0x8086; 0x191D; low; #Intel; Intel(R) HD Graphics P530
+0x8086; 0x191E; low; #Intel; Intel(R) HD Graphics 515
+0x8086; 0x1921; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1923; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1926; low; #Intel; Intel(R) Iris Graphics 540
+0x8086; 0x1927; low; #Intel; Intel(R) Iris Graphics 540
+0x8086; 0x192A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x192B; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x192D; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x193A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x193B; medium; #Intel; Intel(R) Iris Pro Graphics 580
+0x8086; 0x193D; medium; #Intel; Intel(R) Iris Pro Graphics P580
+0x8086; 0x22B0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B1; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B2; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B3; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x2982; verylow; #Intel; Intel(R) G35 Express Chipset Family
+0x8086; 0x2983; verylow; #Intel; Intel(R) G35 Express Chipset Family
+0x8086; 0x2A02; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A03; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A12; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A13; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A42; verylow; #Intel; Mobile Intel(R) 4 Series Express Chipset Family
+0x8086; 0x2A43; verylow; #Intel; Mobile Intel(R) 4 Series Express Chipset Family
+0x8086; 0x2E02; verylow; #Intel; Intel(R) 4 Series Express Chipset
+0x8086; 0x2E03; verylow; #Intel; Intel(R) 4 Series Express Chipset
+0x8086; 0x2E12; verylow; #Intel; Intel(R) Q45/Q43 Express Chipset
+0x8086; 0x2E13; verylow; #Intel; Intel(R) Q45/Q43 Express Chipset
+0x8086; 0x2E22; verylow; #Intel; Intel(R) G45/G43 Express Chipset
+0x8086; 0x2E23; verylow; #Intel; Intel(R) G45/G43 Express Chipset
+0x8086; 0x2E32; verylow; #Intel; Intel(R) G41 Express Chipset
+0x8086; 0x2E33; verylow; #Intel; Intel(R) G41 Express Chipset
+0x8086; 0x2E42; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E43; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E92; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E93; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x3184; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3185; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E90; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E91; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E92; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E93; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E94; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E96; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E98; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E99; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9A; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9B; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9C; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA0; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA1; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA2; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA3; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA4; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA5; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA6; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA7; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA8; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA9; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4626; low; #Intel; , Intel(R) Xe Graphics
+0x8086; 0x4680; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4682; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4688; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x468A; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x468B; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4690; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4692; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4693; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x46A3; low; #Intel; , Intel(R) Xe Graphics
+0x8086; 0x46A6; low; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4905; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4906; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4907; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4C8A; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4C8B; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4C90; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x5690; medium; #Intel; Intel(R) Arc(TM) A770M Graphics
+0x8086; 0x5693; medium; #Intel; Intel(R) Arc(TM) A370M Graphics
+0x8086; 0x56A0; medium; #Intel; Intel(R) Arc(TM) A770 Graphics
+0x8086; 0x56A1; medium; #Intel; Intel(R) Arc(TM) A750 Graphics
+0x8086; 0x56A5; medium; #Intel; Intel(R) Arc(TM) A380 Graphics
+0x8086; 0x5902; verylow; #Intel; Intel(R) HD Graphics 610
+0x8086; 0x5906; verylow; #Intel; Intel(R) HD Graphics 610
+0x8086; 0x5908; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x590A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x590B; verylow; #Intel; Intel(R) HD Graphics P610
+0x8086; 0x590E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5912; low; #Intel; Intel(R) HD Graphics 630
+0x8086; 0x5913; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5915; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5916; low; #Intel; Intel(R) HD Graphics 620
+0x8086; 0x5917; low; #Intel; Intel(R) UHD Graphics 620
+0x8086; 0x591A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x591B; low; #Intel; Intel(R) HD Graphics 630
+0x8086; 0x591C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x591D; low; #Intel; Intel(R) HD Graphics P630
+0x8086; 0x591E; verylow; #Intel; Intel(R) HD Graphics 615
+0x8086; 0x5921; low; #Intel; Intel(R) HD Graphics 620
+0x8086; 0x5923; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5926; medium; #Intel; Intel(R) Iris Plus Graphics 640
+0x8086; 0x5927; medium; #Intel; Intel(R) Iris Plus Graphics 650
+0x8086; 0x592A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x592B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5932; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A40; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A41; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A42; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A44; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A49; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A4A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A4C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A50; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A51; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A52; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A54; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A59; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A5A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A5C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x87C0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x87CA; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x8A50; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A51; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A52; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A53; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A54; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A56; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A57; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A58; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A59; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5A; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5B; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A5C; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5D; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A71; low; #Intel; Intel(R) Iris Plus Graphics (8 EUs)
+0x8086; 0x9A40; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A49; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A59; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A60; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A68; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A70; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A78; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A7F; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AC0; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AC9; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AD9; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AF8; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9B21; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9B41; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA0; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA2; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA4; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA5; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA8; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAA; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAB; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAC; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC0; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC2; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC4; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC5; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC8; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCA; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCB; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCC; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BE6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BF6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0xA780; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0xA788; medium; #Intel; Intel(R) Xe Graphics
 
-#VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
-#AMD GPUs
-amd ; AMD Radeon R9 200 ; High ;
-amd ; AMD FirePro W9000 ; Low ;
-amd ; ATI FirePro V (FireGL V) Graphics Adapter ; Low ;
-amd ; AMD FirePro W8000 ; Low ;
-amd ; AMD FirePro W7000 ; Low ;
-amd ; ATI FirePro W5000 ; Low ;
-amd ; AMD Radeon HD 7970M ; Low ;
-amd ; AMD Radeon HD8970M ; Low ;
-amd ; AMD Radeon R9 M290X ; Low ;
-amd ; AMD Radeon R9 M275X ; Low ;
-amd ; AMD Radeon R9 M375 ; Low ;
-amd ; AMD Radeon R9 M375X ; Low ;
-amd ; AMD Radeon R9 M370X ; Low ;
-amd ; AMD Radeon R7 M380 ; Low ;
-amd ; AMD Radeon E8860 ; Low ;
-amd ; AMD Radeon R9 M360 ; Low ;
-amd ; AMD FirePro W600 ; Low ;
-amd ; AMD FirePro W4100 ; Low ;
+#amd
+0x1002; 0x1309; verylow; #AMD; AMD Radeon(TM) R7 Graphics
+0x1002; 0x130A; verylow; #AMD; AMD Radeon(TM) R6 Graphics
+0x1002; 0x130D; verylow; #AMD; AMD Radeon(TM) R6 Graphics
+0x1002; 0x130F; verylow; #AMD; AMD Radeon(TM) R7 Graphics
+0x1002; 0x1313; verylow; #AMD; AMD Radeon(TM) R7 Graphics
+0x1002; 0x15BF; verylow; #AMD; AMD Radeon (TM) 740M Graphics
+0x1002; 0x15D8; verylow; #AMD; AMD 15D8:C8
+0x1002; 0x15DD; verylow; #AMD; AMD Radeon(TM) RX Vega 10 Graphics
+0x1002; 0x15E7; verylow; #AMD; AMD Radeon (TM) Graphics
+0x1002; 0x163F; verylow; #AMD; AMD Custom GPU 0405
+0x1002; 0x164E; verylow; #AMD; AMD Radeon(TM) 610M
+0x1002; 0x1681; verylow; #AMD; AMD Radeon (TM) Graphics
+0x1002; 0x6600; verylow; #AMD; AMD Radeon (TM) R7 M370
+0x1002; 0x6601; verylow; #AMD; AMD Radeon (TM) HD 8500M/8700M
+0x1002; 0x6604; verylow; #AMD; AMD Radeon (TM) R7 M350
+0x1002; 0x6605; verylow; #AMD; AMD FirePro M4150
+0x1002; 0x6606; verylow; #AMD; AMD Radeon HD 8790M
+0x1002; 0x6608; verylow; #AMD; AMD FirePro W2100
+0x1002; 0x6610; verylow; #AMD; AMD Radeon (TM) R5 340
+0x1002; 0x6611; verylow; #AMD; AMD Radeon HD 8570
+0x1002; 0x6613; verylow; #AMD; AMD Radeon R7 240
+0x1002; 0x6640; verylow; #AMD; AMD FirePro M6100
+0x1002; 0x6646; verylow; #AMD; AMD Radeon (TM) R9 M470X
+0x1002; 0x6660; verylow; #AMD; AMD Radeon (TM) 520
+0x1002; 0x6665; verylow; #AMD; AMD Radeon (TM) R5 M320
+0x1002; 0x666F; verylow; #AMD; AMD Radeon HD 8500M
+0x1002; 0x66A1; medium; #AMD; AMD Radeon Pro VII
+0x1002; 0x66AF; high; #AMD; AMD Radeon VII
+0x1002; 0x67A0; verylow; #AMD; AMD FirePro S9150
+0x1002; 0x67B0; low; #AMD; AMD Radeon(TM) R9 290X
+0x1002; 0x67C4; medium; #AMD; AMD Radeon (TM) Pro WX 7100 Graphics
+0x1002; 0x67C7; low; #AMD; Radeon (TM) Pro WX 5100 Graphics
+0x1002; 0x67DF; medium; #AMD; AMD Radeon (TM) RX 480
+0x1002; 0x67E3; verylow; #AMD; Radeon (TM) Pro WX 4100
+0x1002; 0x67E8; verylow; #AMD; Radeon(TM) Pro WX 4150 Graphics
+0x1002; 0x67EF; verylow; #AMD; AMD Radeon Pro 460
+0x1002; 0x6801; verylow; #AMD; AMD Radeon(TM) HD8970M
+0x1002; 0x6808; low; #AMD; AMD FirePro W7000
+0x1002; 0x6810; verylow; #AMD; AMD FirePro D300
+0x1002; 0x6820; verylow; #AMD; AMD FirePro W5170M
+0x1002; 0x6821; verylow; #AMD; AMD FirePro M5100
+0x1002; 0x682B; verylow; #AMD; AMD Radeon (TM) R9 M360
+0x1002; 0x682C; verylow; #AMD; AMD FirePro W4100
+0x1002; 0x683D; verylow; #AMD; AMD Radeon HD 7770 GHz Edition
+0x1002; 0x6861; medium; #AMD; Radeon (TM) Pro WX 9100
+0x1002; 0x6863; medium; #AMD; Radeon Vega Frontier Edition
+0x1002; 0x6869; medium; #AMD; Radeon Pro Vega 48
+0x1002; 0x686B; medium; #AMD; Radeon Pro Vega 64X
+0x1002; 0x687F; medium; #AMD; Radeon RX Vega
+0x1002; 0x6900; verylow; #AMD; AMD Radeon (TM) 535DX
+0x1002; 0x6901; verylow; #AMD; AMD Radeon R5 M255
+0x1002; 0x6920; low; #AMD; AMD RADEON R9 M395X
+0x1002; 0x6929; verylow; #AMD; AMD FirePro S7150
+0x1002; 0x692B; low; #AMD; AMD FirePro W7100
+0x1002; 0x6938; low; #AMD; AMD RADEON R9 M295X
+0x1002; 0x694C; low; #AMD; Radeon RX Vega M GH Graphics
+0x1002; 0x694E; verylow; #AMD; Radeon RX Vega M GL Graphics
+0x1002; 0x699F; verylow; #AMD; AMD Embedded Radeon E9175
+0x1002; 0x69AF; low; #AMD; Radeon Pro Vega 20
+0x1002; 0x6FDF; low; #AMD; AMD Radeon RX 580 2048SP
+0x1002; 0x7300; medium; #AMD; Radeon (TM) Pro Duo
+0x1002; 0x7312; medium; #AMD; AMD Radeon Pro W5700
+0x1002; 0x731F; medium; #AMD; AMD Radeon RX 5600 XT
+0x1002; 0x7340; low; #AMD; AMD Radeon Pro 5300
+0x1002; 0x7341; medium; #AMD; AMD Radeon Pro W5500
+0x1002; 0x7360; medium; #AMD; AMD Radeon Pro 5600M
+0x1002; 0x7362; low; #AMD; AMD Radeon Pro V520 MxGPU
+0x1002; 0x73A3; high; #AMD; AMD Radeon PRO W6800
+0x1002; 0x73A5; high; #AMD; AMD Radeon RX 6950 XT
+0x1002; 0x73AB; low; #AMD; AMD Radeon Pro W6800X
+0x1002; 0x73AF; high; #AMD; AMD Radeon RX 6900 XT
+0x1002; 0x73BF; high; #AMD; AMD Radeon RX 6800
+0x1002; 0x73DF; high; #AMD; AMD Radeon RX 6700
+0x1002; 0x73E3; high; #AMD; AMD Radeon PRO W6600
+0x1002; 0x73EF; high; #AMD; AMD Radeon RX 6650 XT
+0x1002; 0x73FF; medium; #AMD; AMD Radeon RX 6600
+0x1002; 0x7422; medium; #AMD; AMD Radeon PRO W6400
+0x1002; 0x743F; low; #AMD; AMD Radeon RX 6400
+0x1002; 0x744C; high; #AMD; AMD Radeon RX 7900 XT
+0x1002; 0x747E; high; #AMD; AMD Radeon RX 7700 XT
+0x1002; 0x7480; high; #AMD; AMD Radeon RX 7600
+0x1002; 0x9832; verylow; #AMD; AMD Radeon HD 8330
+0x1002; 0x9834; office; #AMD; AMD Radeon HD 8210
+0x1002; 0x9850; verylow; #AMD; AMD Radeon(TM) R2 Graphics
+0x1002; 0x9851; verylow; #AMD; AMD Radeon(TM) R4 Graphics
+0x1002; 0x9853; verylow; #AMD; AMD Radeon(TM) R2 Graphics
+0x1002; 0x9874; verylow; #AMD; AMD Radeon R5 Graphics
+0x1002; 0x98E4; verylow; #AMD; AMD Radeon(TM) R2 Graphics
 
-#Navi 
-amd ; AMD Radeon Pro 5300M ; Medium ;
-amd ; AMD Radeon Pro 5500M ; Medium ;
-amd ; AMD Radeon Pro 5500 XT ; Medium ;
-amd ; AMD Radeon Pro 5600M ; Medium ;
-amd ; AMD Radeon RX 5600M ; Medium ;
-amd ; AMD Radeon RX 5600 XT ; Medium ;
-amd ; AMD Radeon RX 5700 ; Medium ;
-amd ; AMD Radeon RX 5700 XT ; Medium ;
-amd ; AMD Radeon RX 6500 XT ; Medium ;
-amd ; AMD Radeon RX6500 XT ; Medium ; #Vulkan seems to return "RX6500" without the space. Adding another entry for Vulkan
-amd ; AMD Radeon RX 6600 XT ; Ultra ;
-amd ; AMD Radeon RX 6600 ; Ultra ;
-amd ; AMD Radeon Pro W6600 ; High ;
-amd ; AMD Radeon Pro W6400 ; High ;
-amd ; AMD Radeon Pro W6800 ; Ultra ;
-amd ; AMD Radeon RX 6700 XT ; Ultra ;
-amd ; AMD Radeon RX 6800M ; High ;
-amd ; AMD Radeon RX 6800 XT ; Ultra ;
-amd ; AMD Radeon RX 6800 ; Ultra ;
-amd ; AMD Radeon RX 6900 XT ; Ultra ;
+#nvidia
+0x10DE; 0x1001; medium; #NVIDIA; GeForce GTX TITAN Z
+0x10DE; 0x1004; medium; #NVIDIA; GeForce GTX 780
+0x10DE; 0x1005; medium; #NVIDIA; GeForce GTX TITAN
+0x10DE; 0x100A; medium; #NVIDIA; GeForce GTX 780 Ti
+0x10DE; 0x100C; medium; #NVIDIA; GeForce GTX TITAN Black
+0x10DE; 0x1023; verylow; #NVIDIA; Tesla K40m
+0x10DE; 0x103A; medium; #NVIDIA; Quadro K6000
+0x10DE; 0x103C; low; #NVIDIA; Quadro K5200
+0x10DE; 0x1180; low; #NVIDIA; GeForce GTX 680
+0x10DE; 0x1183; low; #NVIDIA; GeForce GTX 660 Ti
+0x10DE; 0x1184; low; #NVIDIA; GeForce GTX 770
+0x10DE; 0x1185; low; #NVIDIA; GeForce GTX 660
+0x10DE; 0x1187; low; #NVIDIA; GeForce GTX 760
+0x10DE; 0x1188; low; #NVIDIA; GeForce GTX 690
+0x10DE; 0x1189; low; #NVIDIA; GeForce GTX 670
+0x10DE; 0x118E; low; #NVIDIA; GeForce GTX 760 (192-bit)
+0x10DE; 0x1198; verylow; #NVIDIA; GeForce GTX 880M
+0x10DE; 0x1199; verylow; #NVIDIA; GeForce GTX 870M
+0x10DE; 0x119A; verylow; #NVIDIA; GeForce GTX 860M
+0x10DE; 0x119E; verylow; #NVIDIA; GeForce GTX 780M
+0x10DE; 0x119F; verylow; #NVIDIA; GeForce GTX 780M
+0x10DE; 0x11A1; verylow; #NVIDIA; GeForce GTX 670MX
+0x10DE; 0x11A3; low; #NVIDIA; GeForce GTX 680MX
+0x10DE; 0x11A7; verylow; #NVIDIA; GeForce GTX 675MX
+0x10DE; 0x11B4; low; #NVIDIA; Quadro K4200
+0x10DE; 0x11B6; verylow; #NVIDIA; Quadro K3100M
+0x10DE; 0x11B7; verylow; #NVIDIA; Quadro K4100M
+0x10DE; 0x11B8; verylow; #NVIDIA; Quadro K5100M
+0x10DE; 0x11BC; verylow; #NVIDIA; Quadro K5000M
+0x10DE; 0x11BE; verylow; #NVIDIA; Quadro K3000M
+0x10DE; 0x11C0; low; #NVIDIA; GeForce GTX 660
+0x10DE; 0x11C2; verylow; #NVIDIA; GeForce GTX 650 Ti BOOST
+0x10DE; 0x11C4; verylow; #NVIDIA; GeForce GTX 645
+0x10DE; 0x11C6; verylow; #NVIDIA; GeForce GTX 650 Ti
+0x10DE; 0x11C8; verylow; #NVIDIA; GeForce GTX 650
+0x10DE; 0x11E0; verylow; #NVIDIA; GeForce GTX 770M
+0x10DE; 0x11E1; verylow; #NVIDIA; NVIDIA GeForce GTX 765M
+0x10DE; 0x11E2; verylow; #NVIDIA; GeForce GTX 765M
+0x10DE; 0x11E3; verylow; #NVIDIA; GeForce GTX 760M
+0x10DE; 0x11FA; verylow; #NVIDIA; Quadro K4000
+0x10DE; 0x11FC; verylow; #NVIDIA; K2100M
+0x10DE; 0x1280; verylow; #NVIDIA; GeForce GT 635
+0x10DE; 0x1281; verylow; #NVIDIA; GT 710
+0x10DE; 0x1282; verylow; #NVIDIA; NVIDIA GeForce GT 640
+0x10DE; 0x1284; verylow; #NVIDIA; GeForce GT 630
+0x10DE; 0x1286; verylow; #NVIDIA; GeForce GT 720
+0x10DE; 0x1287; verylow; #NVIDIA; GeForce GT 730
+0x10DE; 0x1288; verylow; #NVIDIA; GeForce GT 720
+0x10DE; 0x128B; verylow; #NVIDIA; GeForce GT 710
+0x10DE; 0x1290; verylow; #NVIDIA; GeForce GT 730M
+0x10DE; 0x1292; verylow; #NVIDIA; GeForce GT 740M
+0x10DE; 0x1295; verylow; #NVIDIA; GeForce 810A
+0x10DE; 0x1299; verylow; #NVIDIA; 920M
+0x10DE; 0x129A; verylow; #NVIDIA; GeForce 910M
+0x10DE; 0x12B9; verylow; #NVIDIA; Quadro K610M
+0x10DE; 0x1340; verylow; #NVIDIA; NVIDIA GeForce 830M
+0x10DE; 0x1341; verylow; #NVIDIA; 840M
+0x10DE; 0x1344; verylow; #NVIDIA; GeForce 845M
+0x10DE; 0x1346; verylow; #NVIDIA; GeForce 930M
+0x10DE; 0x1347; verylow; #NVIDIA; GeForce 940M
+0x10DE; 0x134B; verylow; #NVIDIA; NVIDIA GeForce GPU
+0x10DE; 0x134D; verylow; #NVIDIA; GeForce 940MX
+0x10DE; 0x134E; verylow; #NVIDIA; 930MX
+0x10DE; 0x134F; verylow; #NVIDIA; 920MX
+0x10DE; 0x137B; verylow; #NVIDIA; Quadro M520
+0x10DE; 0x1380; low; #NVIDIA; GeForce GTX 750 Ti
+0x10DE; 0x1381; verylow; #NVIDIA; GeForce GTX 750
+0x10DE; 0x1382; low; #NVIDIA; GeForce GTX 745
+0x10DE; 0x1391; verylow; #NVIDIA; GeForce GTX 850M
+0x10DE; 0x1392; verylow; #NVIDIA; GeForce GPU
+0x10DE; 0x139A; verylow; #NVIDIA; GeForce GTX 950M
+0x10DE; 0x139B; verylow; #NVIDIA; GeForce GTX 960M
+0x10DE; 0x139C; verylow; #NVIDIA; NVIDIA GeForce 940M
+0x10DE; 0x13B0; verylow; #NVIDIA; Quadro M2000M
+0x10DE; 0x13B1; verylow; #NVIDIA; M1000M
+0x10DE; 0x13B4; verylow; #NVIDIA; Quadro M620
+0x10DE; 0x13B6; verylow; #NVIDIA; Quadro M1200
+0x10DE; 0x13BA; verylow; #NVIDIA; K2200
+0x10DE; 0x13BB; verylow; #NVIDIA; Quadro K620
+0x10DE; 0x13C0; medium; #NVIDIA; GeForce GTX 980
+0x10DE; 0x13C2; medium; #NVIDIA; GeForce GTX 970
+0x10DE; 0x13D7; low; #NVIDIA; GeForce GTX 980M
+0x10DE; 0x13D8; low; #NVIDIA; GeForce GTX 970M
+0x10DE; 0x13F1; low; #NVIDIA; Quadro M4000
+0x10DE; 0x13F2; low; #NVIDIA; GRID M60-8Q
+0x10DE; 0x13F8; low; #NVIDIA; Quadro M5000M
+0x10DE; 0x13F9; low; #NVIDIA; Quadro M4000M
+0x10DE; 0x13FA; low; #NVIDIA; Quadro M3000M
+0x10DE; 0x1401; low; #NVIDIA; GeForce GTX 960
+0x10DE; 0x1402; low; #NVIDIA; GeForce GTX 950
+0x10DE; 0x1407; verylow; #NVIDIA; GeForce GTX 750
+0x10DE; 0x1427; verylow; #NVIDIA; GeForce GTX 965M
+0x10DE; 0x1430; low; #NVIDIA; Quadro M2000
+0x10DE; 0x1436; low; #NVIDIA; Quadro M2200
+0x10DE; 0x15F0; high; #NVIDIA; Quadro GP100
+0x10DE; 0x1617; low; #NVIDIA; NVIDIA GeForce GTX 980M
+0x10DE; 0x1618; low; #NVIDIA; GeForce GTX 970M
+0x10DE; 0x174D; verylow; #NVIDIA; GeForce MX130
+0x10DE; 0x174E; verylow; #NVIDIA; GeForce MX110
+0x10DE; 0x179C; verylow; #NVIDIA; 940MX
+0x10DE; 0x17C2; medium; #NVIDIA; GeForce GTX TITAN X
+0x10DE; 0x17C8; medium; #NVIDIA; GeForce GTX 980 Ti
+0x10DE; 0x17F0; medium; #NVIDIA; Quadro M6000
+0x10DE; 0x17F1; medium; #NVIDIA; Quadro M6000 24GB
+0x10DE; 0x1B00; medium; #NVIDIA; NVIDIA TITAN X (Pascal)
+0x10DE; 0x1B02; high; #NVIDIA; NVIDIA TITAN Xp
+0x10DE; 0x1B06; high; #NVIDIA; GeForce GTX 1080 Ti
+0x10DE; 0x1B30; medium; #NVIDIA; Quadro P6000
+0x10DE; 0x1B38; verylow; #NVIDIA; GRID P40-4Q
+0x10DE; 0x1B80; high; #NVIDIA; GeForce GTX 1080
+0x10DE; 0x1B81; medium; #NVIDIA; GeForce GTX 1070
+0x10DE; 0x1B82; medium; #NVIDIA; GeForce GTX 1070 Ti
+0x10DE; 0x1B83; medium; #NVIDIA; GeForce GTX 1060 6GB
+0x10DE; 0x1B84; medium; #NVIDIA; NVIDIA GeForce GTX 1060 3GB
+0x10DE; 0x1BA1; low; #NVIDIA; GeForce GTX 1070 with Max-Q Design
+0x10DE; 0x1BB0; medium; #NVIDIA; Quadro P5000
+0x10DE; 0x1BB1; medium; #NVIDIA; NVIDIA Quadro P4000
+0x10DE; 0x1BB3; medium; #NVIDIA; Tesla P4
+0x10DE; 0x1BB5; medium; #NVIDIA; Quadro P5200
+0x10DE; 0x1BB6; medium; #NVIDIA; Quadro P5000
+0x10DE; 0x1BB7; medium; #NVIDIA; NVIDIA Quadro P4000
+0x10DE; 0x1BB8; medium; #NVIDIA; Quadro P3000
+0x10DE; 0x1BB9; medium; #NVIDIA; Quadro P4200
+0x10DE; 0x1BBB; medium; #NVIDIA; Quadro P3200
+0x10DE; 0x1BE0; high; #NVIDIA; GeForce GTX 1080
+0x10DE; 0x1BE1; medium; #NVIDIA; GeForce GTX 1070
+0x10DE; 0x1C02; medium; #NVIDIA; GeForce GTX 1060 3GB
+0x10DE; 0x1C03; medium; #NVIDIA; GeForce GTX 1060 6GB
+0x10DE; 0x1C04; medium; #NVIDIA; GeForce GTX 1060 5GB
+0x10DE; 0x1C06; medium; #NVIDIA; GeForce GTX 1060 6GB
+0x10DE; 0x1C07; low; #NVIDIA; P106-100
+0x10DE; 0x1C09; verylow; #NVIDIA; P106-090
+0x10DE; 0x1C20; medium; #NVIDIA; GeForce GTX 1060
+0x10DE; 0x1C21; low; #NVIDIA; GeForce GTX 1050 Ti
+0x10DE; 0x1C30; low; #NVIDIA; Quadro P2000
+0x10DE; 0x1C31; medium; #NVIDIA; Quadro P2200
+0x10DE; 0x1C60; medium; #NVIDIA; GeForce GTX 1060
+0x10DE; 0x1C81; low; #NVIDIA; GeForce GTX 1050
+0x10DE; 0x1C82; low; #NVIDIA; GeForce GTX 1050 Ti
+0x10DE; 0x1C8C; low; #NVIDIA; GeForce GTX 1050 Ti
+0x10DE; 0x1C8D; low; #NVIDIA; GeForce GTX 1050
+0x10DE; 0x1C8F; low; #NVIDIA; GeForce GTX 1050 Ti with Max-Q Design
+0x10DE; 0x1C90; verylow; #NVIDIA; NVIDIA GeForce MX150
+0x10DE; 0x1C91; low; #NVIDIA; GeForce GTX 1050
+0x10DE; 0x1C92; low; #NVIDIA; GeForce GTX 1050
+0x10DE; 0x1C94; verylow; #NVIDIA; NVIDIA GeForce MX350
+0x10DE; 0x1C96; verylow; #NVIDIA; GeForce MX350
+0x10DE; 0x1CB2; verylow; #NVIDIA; Quadro P600
+0x10DE; 0x1CB3; verylow; #NVIDIA; Quadro P400
+0x10DE; 0x1CB6; verylow; #NVIDIA; Quadro P620
+0x10DE; 0x1CBA; low; #NVIDIA; Quadro P2000
+0x10DE; 0x1CBB; low; #NVIDIA; Quadro P1000
+0x10DE; 0x1CBC; verylow; #NVIDIA; Quadro P600
+0x10DE; 0x1CBD; verylow; #NVIDIA; NVIDIA Quadro P620
+0x10DE; 0x1D01; verylow; #NVIDIA; GeForce GT 1030
+0x10DE; 0x1D10; verylow; #NVIDIA; GeForce MX150
+0x10DE; 0x1D11; verylow; #NVIDIA; GeForce MX230
+0x10DE; 0x1D12; verylow; #NVIDIA; GeForce MX150
+0x10DE; 0x1D13; verylow; #NVIDIA; GeForce MX250
+0x10DE; 0x1D16; verylow; #NVIDIA; GeForce MX330
+0x10DE; 0x1D52; verylow; #NVIDIA; GeForce MX250
+0x10DE; 0x1D81; high; #NVIDIA; NVIDIA TITAN V
+0x10DE; 0x1DBA; high; #NVIDIA; Quadro GV100
+0x10DE; 0x1E02; high; #NVIDIA; NVIDIA TITAN RTX
+0x10DE; 0x1E04; high; #NVIDIA; GeForce RTX 2080 Ti
+0x10DE; 0x1E07; high; #NVIDIA; GeForce RTX 2080 Ti
+0x10DE; 0x1E30; high; #NVIDIA; Quadro RTX 6000
+0x10DE; 0x1E81; high; #NVIDIA; GeForce RTX 2080 SUPER
+0x10DE; 0x1E82; high; #NVIDIA; GeForce RTX 2080
+0x10DE; 0x1E84; high; #NVIDIA; GeForce RTX 2070 SUPER
+0x10DE; 0x1E87; high; #NVIDIA; GeForce RTX 2080
+0x10DE; 0x1E89; medium; #NVIDIA; GeForce RTX 2060
+0x10DE; 0x1E90; medium; #NVIDIA; GeForce RTX 2080 with Max-Q Design
+0x10DE; 0x1E91; high; #NVIDIA; NVIDIA GeForce RTX 2070 Super
+0x10DE; 0x1E93; medium; #NVIDIA; NVIDIA GeForce RTX 2080 Super with Max-Q Design
+0x10DE; 0x1EB0; high; #NVIDIA; Quadro RTX 5000
+0x10DE; 0x1EB1; medium; #NVIDIA; Quadro RTX 4000
+0x10DE; 0x1EB5; medium; #NVIDIA; NVIDIA Quadro RTX 5000 with Max-Q Design
+0x10DE; 0x1EB6; medium; #NVIDIA; Quadro RTX 4000
+0x10DE; 0x1EB8; low; #NVIDIA; GRID T4-2B
+0x10DE; 0x1EC7; high; #NVIDIA; NVIDIA GeForce RTX 2070 SUPER
+0x10DE; 0x1ED0; high; #NVIDIA; NVIDIA GeForce RTX 2080
+0x10DE; 0x1ED1; high; #NVIDIA; NVIDIA GeForce RTX 2070 Super
+0x10DE; 0x1ED3; medium; #NVIDIA; NVIDIA GeForce RTX 2080 Super with Max-Q Design
+0x10DE; 0x1F02; high; #NVIDIA; GeForce RTX 2070
+0x10DE; 0x1F03; medium; #NVIDIA; NVIDIA GeForce RTX 2060
+0x10DE; 0x1F06; high; #NVIDIA; GeForce RTX 2060 SUPER
+0x10DE; 0x1F07; high; #NVIDIA; GeForce RTX 2070
+0x10DE; 0x1F08; medium; #NVIDIA; GeForce RTX 2060
+0x10DE; 0x1F0A; medium; #NVIDIA; NVIDIA GeForce GTX 1650
+0x10DE; 0x1F10; high; #NVIDIA; GeForce RTX 2070
+0x10DE; 0x1F11; medium; #NVIDIA; GeForce RTX 2060
+0x10DE; 0x1F12; medium; #NVIDIA; GeForce RTX 2060 with Max-Q Design
+0x10DE; 0x1F14; high; #NVIDIA; NVIDIA GeForce RTX 2070
+0x10DE; 0x1F15; medium; #NVIDIA; GeForce RTX 2060
+0x10DE; 0x1F36; medium; #NVIDIA; Quadro RTX 3000
+0x10DE; 0x1F47; high; #NVIDIA; NVIDIA GeForce RTX 2060 SUPER
+0x10DE; 0x1F50; high; #NVIDIA; GeForce RTX 2070
+0x10DE; 0x1F82; medium; #NVIDIA; GeForce GTX 1650
+0x10DE; 0x1F91; medium; #NVIDIA; GeForce GTX 1650
+0x10DE; 0x1F95; medium; #NVIDIA; GeForce GTX 1650 Ti
+0x10DE; 0x1F96; medium; #NVIDIA; GeForce GTX 1650
+0x10DE; 0x1F97; verylow; #NVIDIA; NVIDIA GeForce MX450
+0x10DE; 0x1F99; medium; #NVIDIA; GeForce GTX 1650
+0x10DE; 0x1F9C; verylow; #NVIDIA; NVIDIA GeForce MX450
+0x10DE; 0x1F9D; medium; #NVIDIA; GeForce GTX 1650
+0x10DE; 0x1F9F; low; #NVIDIA; NVIDIA GeForce MX550
+0x10DE; 0x1FB1; low; #NVIDIA; NVIDIA T600
+0x10DE; 0x1FB2; verylow; #NVIDIA; NVIDIA T400
+0x10DE; 0x1FB6; verylow; #NVIDIA; NVIDIA T600 Laptop GPU
+0x10DE; 0x1FB7; low; #NVIDIA; NVIDIA T550 Laptop GPU
+0x10DE; 0x1FB8; low; #NVIDIA; NVIDIA Quadro T2000
+0x10DE; 0x1FB9; low; #NVIDIA; Quadro T1000
+0x10DE; 0x1FBA; verylow; #NVIDIA; NVIDIA T600 Laptop GPU
+0x10DE; 0x1FBB; verylow; #NVIDIA; NVIDIA T500
+0x10DE; 0x1FBC; low; #NVIDIA; NVIDIA T1200 Laptop GPU
+0x10DE; 0x1FDD; medium; #NVIDIA; NVIDIA GeForce GTX 1650
+0x10DE; 0x1FF2; verylow; #NVIDIA; NVIDIA T400 4GB
+0x10DE; 0x2182; medium; #NVIDIA; GeForce GTX 1660 Ti
+0x10DE; 0x2184; medium; #NVIDIA; GeForce GTX 1660
+0x10DE; 0x2187; medium; #NVIDIA; GeForce GTX 1650 SUPER
+0x10DE; 0x2188; medium; #NVIDIA; NVIDIA GeForce GTX 1650
+0x10DE; 0x2191; medium; #NVIDIA; GeForce GTX 1660 Ti
+0x10DE; 0x2192; medium; #NVIDIA; GeForce GTX 1650 Ti
+0x10DE; 0x21C4; medium; #NVIDIA; GeForce GTX 1660 SUPER
+0x10DE; 0x2203; ultra; #NVIDIA; NVIDIA GeForce RTX 3090 Ti
+0x10DE; 0x2204; high; #NVIDIA; GeForce RTX 3090
+0x10DE; 0x2206; high; #NVIDIA; GeForce RTX 3080
+0x10DE; 0x2207; high; #NVIDIA; NVIDIA GeForce RTX 3070 Ti
+0x10DE; 0x2208; high; #NVIDIA; NVIDIA GeForce RTX 3080 Ti
+0x10DE; 0x220A; high; #NVIDIA; NVIDIA GeForce RTX 3080
+0x10DE; 0x2216; high; #NVIDIA; NVIDIA GeForce RTX 3080
+0x10DE; 0x2230; high; #NVIDIA; NVIDIA RTX A6000
+0x10DE; 0x2231; high; #NVIDIA; NVIDIA RTX A5000
+0x10DE; 0x2232; high; #NVIDIA; NVIDIA RTX A4500
+0x10DE; 0x2237; high; #NVIDIA; NVIDIA A10G
+0x10DE; 0x2420; high; #NVIDIA; NVIDIA GeForce RTX 3080 Ti Laptop GPU
+0x10DE; 0x2438; medium; #NVIDIA; NVIDIA RTX A5500 Laptop GPU
+0x10DE; 0x2460; high; #NVIDIA; NVIDIA GeForce RTX 3080 Ti Laptop GPU
+0x10DE; 0x2482; high; #NVIDIA; NVIDIA GeForce RTX 3070 Ti
+0x10DE; 0x2484; high; #NVIDIA; GeForce RTX 3070
+0x10DE; 0x2486; high; #NVIDIA; GeForce RTX 3060 Ti
+0x10DE; 0x2487; high; #NVIDIA; NVIDIA GeForce RTX 3060
+0x10DE; 0x2488; high; #NVIDIA; NVIDIA GeForce RTX 3070
+0x10DE; 0x2489; high; #NVIDIA; NVIDIA GeForce RTX 3060 Ti
+0x10DE; 0x249C; high; #NVIDIA; GeForce RTX 3080 Laptop GPU
+0x10DE; 0x249D; medium; #NVIDIA; GeForce RTX 3070 Laptop GPU
+0x10DE; 0x24A0; high; #NVIDIA; NVIDIA GeForce RTX 3070 Ti Laptop GPU
+0x10DE; 0x24B0; high; #NVIDIA; NVIDIA RTX A4000
+0x10DE; 0x24B6; medium; #NVIDIA; NVIDIA RTX A5000 Laptop GPU
+0x10DE; 0x24B8; medium; #NVIDIA; NVIDIA RTX A3000 Laptop GPU
+0x10DE; 0x24B9; medium; #NVIDIA; NVIDIA RTX A3000 12GB Laptop GPU
+0x10DE; 0x24C9; high; #NVIDIA; NVIDIA GeForce RTX 3060 Ti
+0x10DE; 0x24DC; high; #NVIDIA; GeForce RTX 3080 Laptop GPU
+0x10DE; 0x24DD; medium; #NVIDIA; NVIDIA GeForce RTX 3070 Laptop GPU
+0x10DE; 0x24E0; high; #NVIDIA; NVIDIA GeForce RTX 3070 Ti Laptop GPU
+0x10DE; 0x2503; high; #NVIDIA; NVIDIA GeForce RTX 3060
+0x10DE; 0x2504; high; #NVIDIA; NVIDIA GeForce RTX 3060
+0x10DE; 0x2507; high; #NVIDIA; NVIDIA GeForce RTX 3050
+0x10DE; 0x2508; medium; #NVIDIA; NVIDIA GeForce RTX 3050 OEM
+0x10DE; 0x2520; medium; #NVIDIA; GeForce RTX 3060 Laptop GPU
+0x10DE; 0x2531; medium; #NVIDIA; NVIDIA RTX A2000
+0x10DE; 0x2544; high; #NVIDIA; NVIDIA GeForce RTX 3060
+0x10DE; 0x2560; medium; #NVIDIA; NVIDIA GeForce RTX 3060 Laptop GPU
+0x10DE; 0x2563; medium; #NVIDIA; NVIDIA GeForce RTX 3050 Ti Laptop GPU
+0x10DE; 0x2571; medium; #NVIDIA; NVIDIA RTX A2000 12GB
+0x10DE; 0x2582; high; #NVIDIA; NVIDIA GeForce RTX 3050
+0x10DE; 0x25A0; medium; #NVIDIA; GeForce RTX 3050 Ti Laptop GPU
+0x10DE; 0x25A2; medium; #NVIDIA; GeForce RTX 3050 Laptop GPU
+0x10DE; 0x25A5; medium; #NVIDIA; NVIDIA GeForce RTX 3050 Laptop GPU
+0x10DE; 0x25A9; high; #NVIDIA; NVIDIA GeForce RTX 2050
+0x10DE; 0x25AA; low; #NVIDIA; NVIDIA GeForce MX570 A
+0x10DE; 0x25AC; high; #NVIDIA; NVIDIA GeForce RTX 3050 6GB Laptop GPU
+0x10DE; 0x25AD; high; #NVIDIA; NVIDIA GeForce RTX 2050
+0x10DE; 0x25B8; medium; #NVIDIA; NVIDIA RTX A2000 Laptop GPU
+0x10DE; 0x25B9; medium; #NVIDIA; NVIDIA RTX A1000 Laptop GPU
+0x10DE; 0x25BA; medium; #NVIDIA; NVIDIA RTX A2000 8GB Laptop GPU
+0x10DE; 0x25BB; medium; #NVIDIA; NVIDIA RTX A500 Laptop GPU
+0x10DE; 0x25BC; medium; #NVIDIA; NVIDIA RTX A1000 6GB Laptop GPU
+0x10DE; 0x25E0; medium; #NVIDIA; NVIDIA GeForce RTX 3050 Ti Laptop GPU
+0x10DE; 0x25E2; medium; #NVIDIA; NVIDIA GeForce RTX 3050 Laptop GPU
+0x10DE; 0x25EC; medium; #NVIDIA; NVIDIA GeForce RTX 3050 6GB Laptop GPU
+0x10DE; 0x2684; ultra; #NVIDIA; NVIDIA GeForce RTX 4090
+0x10DE; 0x2702; ultra; #NVIDIA; NVIDIA GeForce RTX 4080 SUPER
+0x10DE; 0x2704; ultra; #NVIDIA; NVIDIA GeForce RTX 4080
+0x10DE; 0x2705; ultra; #NVIDIA; NVIDIA GeForce RTX 4070 Ti SUPER
+0x10DE; 0x2730; high; #NVIDIA; NVIDIA RTX 5000 Ada Generation Laptop GPU
+0x10DE; 0x2757; high; #NVIDIA; NVIDIA GeForce RTX 4090 Laptop GPU
+0x10DE; 0x2782; ultra; #NVIDIA; NVIDIA GeForce RTX 4070 Ti
+0x10DE; 0x2783; ultra; #NVIDIA; NVIDIA GeForce RTX 4070 SUPER
+0x10DE; 0x2786; high; #NVIDIA; NVIDIA GeForce RTX 4070
+0x10DE; 0x27A0; high; #NVIDIA; NVIDIA GeForce RTX 4080 Laptop GPU
+0x10DE; 0x27BB; high; #NVIDIA; NVIDIA RTX 3500 Ada Generation Laptop GPU
+0x10DE; 0x27E0; high; #NVIDIA; NVIDIA GeForce RTX 4080 Laptop GPU
+0x10DE; 0x2803; high; #NVIDIA; NVIDIA GeForce RTX 4060 Ti
+0x10DE; 0x2805; high; #NVIDIA; NVIDIA GeForce RTX 4060 Ti
+0x10DE; 0x2820; high; #NVIDIA; NVIDIA GeForce RTX 4070 Laptop GPU
+0x10DE; 0x2860; high; #NVIDIA; NVIDIA GeForce RTX 4070 Laptop GPU
+0x10DE; 0x2882; high; #NVIDIA; NVIDIA GeForce RTX 4060
+0x10DE; 0x28A0; high; #NVIDIA; NVIDIA GeForce RTX 4060 Laptop GPU
+0x10DE; 0x28A1; medium; #NVIDIA; NVIDIA GeForce RTX 4050 Laptop GPU
+0x10DE; 0x28E0; high; #NVIDIA; NVIDIA GeForce RTX 4060 Laptop GPU
+0x10DE; 0x28E1; medium; #NVIDIA; NVIDIA GeForce RTX 4050 Laptop GPU
+0x10DE; 0x67DF; verylow; #NVIDIA; NVIDIA GeForce GTX 765M
+0x10DE; 0xFC0; verylow; #NVIDIA; GeForce GT 640
+0x10DE; 0xFC1; verylow; #NVIDIA; GeForce GT 640
+0x10DE; 0xFC2; verylow; #NVIDIA; GeForce GT 630
+0x10DE; 0xFC6; verylow; #NVIDIA; GeForce GT 740
+0x10DE; 0xFC8; verylow; #NVIDIA; GeForce GT 740
+0x10DE; 0xFCD; verylow; #NVIDIA; GeForce GT 755M
+0x10DE; 0xFD1; verylow; #NVIDIA; GeForce GT 650M
+0x10DE; 0xFD2; verylow; #NVIDIA; GeForce GT 640M
+0x10DE; 0xFD3; verylow; #NVIDIA; GeForce GT 640M LE
+0x10DE; 0xFD4; verylow; #NVIDIA; GeForce GTX 660M
+0x10DE; 0xFD9; verylow; #NVIDIA; GeForce GT 645M
+0x10DE; 0xFDF; verylow; #NVIDIA; GeForce GT 740M
+0x10DE; 0xFE1; verylow; #NVIDIA; GeForce GT 730M
+0x10DE; 0xFE3; verylow; #NVIDIA; GeForce GT 745M
+0x10DE; 0xFE4; verylow; #NVIDIA; GeForce GT 750M
+0x10DE; 0xFE9; verylow; #NVIDIA; GeForce GT 750M
+0x10DE; 0xFF3; verylow; #NVIDIA; Quadro K420
+0x10DE; 0xFF6; verylow; #NVIDIA; Quadro K1100M
+0x10DE; 0xFFA; verylow; #NVIDIA; Quadro K600
+0x10DE; 0xFFB; verylow; #NVIDIA; Quadro K2000M
+0x10DE; 0xFFC; verylow; #NVIDIA; Quadro K1000M
+0x10DE; 0xFFE; verylow; #NVIDIA; K2000
+0x10DE; 0xFFF; verylow; #NVIDIA; NVIDIA Quadro 410
 
-
-#Amd-Oland
-amd ; AMD FirePro W2100 ; Low ;
-amd ; AMD Radeon R7 350 ; Low ;
-amd ; AMD Radeon R5 340 ; Low ;
-
-#Amd-Mars (Mobile Oland)
-amd ; AMD Radeon HD 8600 ; Low
-amd ; AMD Radeon HD 8700M ; Low ;
-amd ; AMD Radeon HD 8500M ; Low ;
-amd ; AMD Radeon HD 8790M ; Low ;
-amd ; AMD Radeon R7 M370 ; Low ;
-amd ; AMD Radeon R7 M265 Series ; Low ;
-amd ; AMD Radeon R7 M350 ; Low ;
-amd ; AMD Radeon R7 M340 ; Low ;
-amd ; AMD Radeon R5 M240 ; Low ;
-
-#Amd-Hainan
-amd ; AMD Radeon R5 M335 ; Low ;
-amd ; AMD Radeon R5 M330 ; Low ;
-amd ; AMD Radeon R5 M320 ; Low ; 
-amd ; AMD Radeon R5 M435 ; Low ; 
-amd ; AMD Radeon HD 8500M ; Low ;
-
-#Amd-Bonaire
-amd ; AMD FirePro W5100 ; Low ;
-amd ; AMD Radeon R7 200 Series ; Low ;
-amd ; AMD Radeon R7 360 Series ; Low ;
-
-#Amd-Saturn (mobile Bonaire)
-amd ; AMD Radeon HD 8950 ; Low ;
-amd ; AMD Radeon R9 M380 ; Low ;
-amd ; AMD Radeon R9 M280X ; Low ;
-amd ; AMD Radeon R9 M385 ; Low ;
-amd ; AMD Radeon R9 M380 ; Low ;
-
-#Amd-Hawaii
-amd ; AMD FirePro W9100 ; Low ;
-amd ; AMD FirePro W8100 ; Low ;
-
-#Amd-Kaveri -- will probably need multiple entries in g_deviceInfo for these
-amd ; AMD Radeon R7 Graphics ; Low ;
-amd ; AMD Radeon R6 Graphics ; Low ;
-amd ; AMD Radeon R5 Graphics ; Low ;
-amd ; AMD Radeon R4 Graphics ; Low ;
-
-#Amd-Kabini
-amd ; AMD Radeon HD 8400 ; Low ;
-amd ; AMD Radeon HD 8400E ; Low ;
-amd ; AMD Radeon HD 8330 ; Low ;
-amd ; AMD Radeon HD 8330E ; Low ;
-amd ; AMD Radeon HD 8210 ; Low ;
-amd ; AMD Radeon HD 8210E ; Low ;
-amd ; AMD Radeon HD 8200 ; Low ;
-amd ; AMD Radeon HD 8280E ; Low ;
-
-#Amd-Temash
-amd ; AMD Radeon HD 8180 ; Low ;
-amd ; AMD Radeon HD 8250 ; Low ;
-
-#Amd-Beema
-amd ; AMD Radeon R5E Graphics ; Low ;
-amd ; AMD Radeon R3 Graphics ; Low ;
-amd ; AMD Radeon R2 Graphics ; Low ;
-amd ; AMD Radeon E1 Graphics ; Low ;
-amd ; AMD Radeon R4E Graphics ; Low ;
-amd ; AMD Radeon R1E Graphics ; Low ;
-amd ; AMD Radeon R1E Graphics ; Low ;
-
-#Amd-Iceland/Topaz
-amd ; AMD Radeon R7 M260 ; Low ;
-amd ; AMD Radeon R7 M360 ; Low ;
-amd ; AMD Radeon R7 M340 ; Low ;
-amd ; AMD Radeon R5 M465 ; Low ;
-amd ; AMD Radeon R5 M445 ; Low ;
-amd ; AMD Radeon R5 M255 ; Low ;
-amd ; AMD Radeon R5 M255 ; Low ;
-amd ; AMD Radeon R5 M315 ; Low ;
-
-#Amd-Tonga
-amd ; AMD Radeon R9 M395X ; Low ;
-amd ; AMD Radeon R9 M390X ; Low ;
-amd ; AMD FirePro S7150 ; Low ;
-amd ; AMD FirePro S7100X ; Low ;
-amd ; AMD FirePro W7100 ; Low ;
-amd ; AMD MxGPU ; Low ;
-
-#Amd-Fiji
-amd ; AMD FirePro S9300 x2 ; Low ;
-amd ; AMD Radeon Pro Duo ; Low ;
-amd ; AMD MxGPU ; Low ;
-
-#Amd-Ellesmere
-amd ; AMD Radeon Pro WX 7100 Graphics ; Low ;
-amd ; AMD Radeon E9550 ; Low ;
-amd ; AMD Radeon Pro V7350x2 ; Low ;
-amd ; AMD Radeon Pro V7300X ; Low ;
-amd ; AMD Radeon Pro WX 7100 Graphics ; Low ;
-amd ; AMD Radeon Pro WX 5100 Graphics ; Low ;
-amd ; AMD Radeon Pro V7350x2 ; Low ;
-amd ; AMD Radeon Pro V7300X ; Low ;
-amd ; AMD Radeon RX 480 Graphics ; High ;
-amd ; AMD Radeon RX 470 Graphics ; High ;
-amd ; Radeon RX470/470 Series ; High ;
-amd ; AMD Radeon RX 470 ; Medium ;
-amd ; AMD Radeon RX 580 ; High ;
-amd ; AMD Radeon RX 570 ; High ;
-
-#Amd-Baffin
-amd ; AMD Radeon Pro WX 4100 ; Low ;
-amd ; AMD Radeon E9260 ; Low ;
-amd ; AMD Radeon Pro V5300X ; Low ;
-amd ; AMD Radeon Pro 460 ; Medium ;
-amd ; AMD Radeon Pro 455 ; Medium ;
-amd ; AMD Radeon Pro 450 ; Medium ;
-amd ; AMD Radeon Pro 465 ; Medium ;
-amd ; Radeon RX460/460 Series ; Medium ;
-amd ; Radeon RX560/560 Series ; Medium ;
-amd ; Radeon RX550/550 Series ; Medium ;
-
-#Amd-GFX8_0_4
-amd ; AMD Radeon Pro WX 3100 ; Low ;
-amd ; AMD Radeon Pro WX 3100 ; Low ;
-amd ; AMD Radeon Pro WX 2100 ; Low ;
-amd ; AMD Embedded Radeon E9171 ; Low ;
-amd ; AMD Radeon Pro WX 2100 ; Low ;
-amd ; AMD Radeon Pro WX 2100 ; Low ;
-amd ; AMD Embedded Radeon E9170 Series ; Low ;
-
-#Amd-VegaM
-amd ; AMD Radeon RX Vega M GH Graphics ; High ;
-amd ; AMD Radeon RX Vega M GL Graphics ; Medium ;
-
-
-#Amd-GFX9_0_2
-amd ; AMD 15DD Graphics ; Low ;
-amd ; AMD Radeon RX Vega 11 Graphics ; Medium ;
-amd ; AMD Radeon RX Vega 10 Graphics ; Medium ;
-amd ; AMD Radeon RX Vega 8 Graphics WS ; Medium ;
-amd ; AMD Radeon Vega 10 Graphics ; Medium ;
-amd ; AMD Radeon Vega 9 Graphics ; Medium ;
-amd ; AMD Radeon Vega 8 Graphics ; Medium ;
-amd ; AMD Radeon Vega 6 Graphics ; Low ;
-amd ; AMD Radeon Vega 3 Graphics ; Low ;
-amd ; AMD Radeon Vega 1 Graphics ; Low ;
-
-# GFX9_0_4
-amd ; AMD Radeon Pro Vega 20 ; Medium ;
-amd ; AMD Radeon Pro Vega 16 ; Medium ;
-amd ; AMD Radeon RX Vega 16 ; Medium ;
-
-# GFX9_0_6
-amd ; AMD Radeon VII ; High ;
-amd ; AMD RadeonProVII ; High ;
-
-# GFX10_1_0
-amd ; AMD Radeon Pro W5700X ; High ;
-amd ; AMD Radeon Pro W5700 ; High ;
-amd ; AMD Radeon Pro 5700 XT ; High ;
-amd ; AMD Radeon RX 5700M ; High ;
-amd ; AMD Radeon RX 5600 OEM ; High ;
-
-# GFX10_1_1
-amd ; AMD Radeon Pro 5600M ; High ;
-amd ; AMD Radeon Pro V520 ; High ;
-amd ; AMD Radeon Pro V520 MxGPU ; High ;
-
-# GFX10_1_2
-amd ; AMD Radeon Pro W5500X ; High ;
-amd ; AMD Radeon Pro 5300 ; Medium ;
-amd ; AMD Radeon RX 5500M ; Medium ;
-amd ; AMD Radeon RX 5300M ; Medium ;
-amd ; AMD Radeon RX 5500 XT ; High ;
-amd ; AMD Radeon RX 5500 ; High ;
-amd ; AMD Radeon RX 5300 ; Medium ;
-amd ; AMD Radeon Pro W5500 ; High ;
-amd ; AMD Radeon Pro W5500M ; High ;
-amd ; AMD Radeon Pro W5300M ; High ;
-
-# GFX10_3_0
-amd ; AMD Radeon RX 6950 XT ; Ultra ;
-amd ; AMD Radeon RX 6900 XT ; Ultra ;
-amd ; AMD Radeon RX 6800 XT ; Ultra ;
-amd ; AMD Radeon RX 6800 ; Ultra ;
-amd ; AMD Radeon Pro V620 ; Ultra ;
-amd ; AMD Radeon Pro W6800 ; Ultra ;
-
-# GFX10_3_1
-amd ; AMD Radeon RX 6750 XT ; High ;
-amd ; AMD Radeon RX 6800M ; High ;
-amd ; AMD Radeon RX 6700M ; High ;
-
-# GFX10_3_2
-amd ; AMD 73E0:00 ; Low ;
-amd ; AMD Radeon RX 6800S ; Ultra ;
-amd ; AMD Radeon RX 6650 XT ; High ;
-amd ; AMD Radeon RX 6700S ; High ;
-amd ; AMD Radeon RX 6650M ; High ;
-amd ; AMD Radeon RX 6650M XT ; High ;
-amd ; AMD Radeon RX 6600 XT ; High ;
-amd ; AMD Radeon RX 6600 ; High ;
-amd ; AMD Radeon RX 6600M ; High ;
-amd ; AMD Radeon RX 6600S ; High ;
-amd ; AMD Radeon Pro W6600M ; High ;
-amd ; AMD Radeon Pro W6600 ; High ;
-
-# GFX10_3_4
-amd ; AMD Radeon Graphics ; Low ;
-amd ; AMD Radeon Pro W6400 ; Medium ;
-amd ; AMD Radeon RX 6500 XT ; Medium ;
-amd ; AMD Radeon RX 6400 ; Medium ;
-amd ; AMD Radeon RX 6400 ; Medium ;
-amd ; AMD Radeon Pro W6500M ; Medium ;
-amd ; AMD Radeon Pro W6300M ; Medium ;
-amd ; AMD Radeon Pro W6300 ; Medium ;
-amd ; AMD Radeon RX 6500M ; Medium ;
-amd ; AMD Radeon RX 6300M ; Medium ;
-amd ; AMD Radeon RX 6500M ; Medium ;
-amd ; AMD Radeon 6550S ; Medium ;
-amd ; AMD Radeon RX 6400M ; Medium ;
-amd ; AMD Radeon RX 6500M ; Medium ;
-
-# GFX11_0_0
-amd ; AMD Radeon RX 7900 XTX ; Ultra ;
-amd ; AMD Radeon RX 7900 XT ; Ultra ;
-amd ; AMD Radeon RX 7600 ; High ;
-
-#Qualcomm
-Qualcomm ; Snapdragon X Elite Adreno GPU ; Medium
-
-# VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
-# INTEL GPUs
-# Other
-intel ; Intel G35 Express Chipset Family ; Office ;
-intel ; Mobile Intel 965 Express Chipset Family ; Office ; 
-intel ; Mobile Intel 4 Series Express Chipset Family ; Office ;
-intel ; Intel 4 Series Express Chipset ; Office ;
-intel ; Intel G45/G43 Express Chipset ; Office ; 
-intel ; Intel Q45/Q43 Express Chipset ; Office ; 
-intel ; Intel G41 Express Chipset ; Office ;
-intel ; Intel B43 Express Chipset ; Office ;
-intel ; Intel HD Graphics - Core i3/i5/i7 Mobile Processors ; Office ; 0x0046
-intel ; Intel HD Graphics - Core i3/i5 + Pentium G9650 Processors ; Office ; 0x0042
-
-# Sandybridge
-intel ; Intel HD Graphics 2000 ; Office ;
-intel ; Intel HD Graphics 3000 ; Office ;
-
-# Ivybridge
-intel ; Intel HD Graphics 2500 ; Office ;
-intel ; Intel HD Graphics 4000 ; Office ;
-
-# Haswell
-intel ; Intel HD Graphics 4600 ; Office ;
-intel ; Intel HD Graphics 5000 ; Office ;
-intel ; Intel HD Graphics 4600 ; Office ;
-intel ; Intel HD Graphics P4600/P4700 ; Office ;
-intel ; Intel HD Graphics 5000 ; Office ;
-intel ; Intel HD Graphics 4400 ; Office ;
-intel ; Intel HD Graphics 4200 ; Office ;
-intel ; Intel HD Graphics 4600 ; Office ;
-intel ; Intel Iris Graphics 5100 ; Office ;
-intel ; Intel Iris Graphics 5100 ; Office ;
-intel ; Intel Iris Graphics 5100 ; Office ;
-intel ; Intel Iris Graphics 5100 ; Office ;
-intel ; Intel Iris Pro Graphics 5200 ; Office ;
-
-# Broadwell
-intel ; Intel HD Graphics 5600 ; Low ;
-intel ; Intel HD Graphics 5500 ; Low ;
-intel ; Intel HD Graphics 5300 ; Low ;
-intel ; Intel Iris Pro Graphics 6200 ; Low ;
-intel ; Intel HD Graphics 6000 ; Low ;
-intel ; Intel Iris Graphics 6100 ; Low ;
-intel ; Intel Iris Pro Graphics P6300 ; Low ;
-
-# Skylake
-intel ; Intel Iris Graphics 540 ; Low ;
-intel ; Intel HD Graphics 530 ; Low ;
-intel ; Intel HD Graphics 520 ; Low ;
-intel ; Intel HD Graphics 515 ; Low ;
-intel ; Intel HD Graphics 510 ; Low ;
-intel ; Intel HD Graphics P530 ; Low ;
-
-intel ; Intel UHD Graphics 770 ; Low ;
-intel ; Intel UHD Graphics 750 ; Low ;
-intel ; Intel UHD Graphics 630 ; Low ;
-intel ; Intel UHD Graphics 620 ; Low ;
-intel ; Intel HD Graphics 630 ; Low ;
-intel ; Intel HD Graphics 630 ; Low ;
-intel ; Intel HD Graphics P630 ; Low ;
-intel ; Intel HD Graphics 620 ; Low ;
-intel ; Intel HD Graphics 615 ; Low ;
-intel ; Intel HD Graphics 610 ; Low ;
-intel ; Intel HD Graphics 610 ; Low ;
-intel ; Intel HD Graphics P610 ; Low ;
-
-intel ; Intel Iris Pro Graphics 580 ; Medium ;
-intel ; Intel Iris Pro Graphics P580 ; Medium ;
-intel ; Intel Iris Plus Graphics 640 ; Low ;
-intel ; Intel Iris Plus Graphics 650 ; Medium ;
-intel ; Intel Iris Plus Graphics ; Medium ;
-intel ; Intel Iris Xe Graphics ; Low ;
-intel ; Intel Iris Xe MAX Graphics ; Low ;
-
-# Alchemist/DG2
-intel ; Intel Arc A370M Graphics ; Medium ;
-intel ; Intel Arc A770M Graphics ; Medium ;
-intel ; Intel Arc A770 Graphics ; Medium ;
-intel ; Intel Arc A750 Graphics ; Medium ;
-intel ; Intel Arc A380 Graphics ; Medium ;
+#qualcomm
+0x5143; 0x6030500; UNDEFINED; #Qualcomm; Adreno 7c+ Gen 3
+0x5143; 0x6080001; UNDEFINED; #Qualcomm; Qualcomm(R) Adreno(TM) 640 GPU
+0x5143; 0x6090000; UNDEFINED; #Qualcomm; Adreno (TM) 690
+0x5143; 0x7030002; UNDEFINED; #Qualcomm; Turnip Adreno (TM) 725
 
 END_GPU_LIST;
+

@@ -46,12 +46,10 @@ RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_NONE
 RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
 RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u1, binding = 8);
 
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 3);
+RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t1, binding = 1);
 
-CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 2)
-{
-    DATA(FilterBatchData, filterBatchDataBuffer[FILTER_BATCH_COUNT], None);
-};
+RES(Buffer(FilterDispatchGroupData), filterDispatchGroupDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+
 #endif
 
 #ifdef _VB_PRE_SKIN_VERTEXES_H

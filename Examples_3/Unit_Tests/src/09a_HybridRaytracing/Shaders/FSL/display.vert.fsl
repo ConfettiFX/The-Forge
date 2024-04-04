@@ -40,6 +40,16 @@ PsIn VS_MAIN( SV_VertexID(uint) VertexID )
 	position.y = (VertexID == 0) ? -3.0 : 1.0;
 	position.zw = f2(1.0);
 
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        position.xyz += float3(0.1, 0.2, 0.3);
+        counter += position.r;
+    }
+#endif
+
 	Out.position = position;
 	Out.texCoord = position.xy * float2(0.5, -0.5) + 0.5;
 

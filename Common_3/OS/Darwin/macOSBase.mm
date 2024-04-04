@@ -49,6 +49,7 @@
 #include "../Interfaces/IOperatingSystem.h"
 
 #include "../../OS/CPUConfig.h"
+#include "../../Tools/Network/Network.h"
 #include "../../Utilities/Math/MathTypes.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -255,6 +256,10 @@ bool initBaseSubsystems()
 #endif
 #endif
 
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    initNetwork();
+#endif
+
     return true;
 }
 
@@ -296,6 +301,10 @@ void exitBaseSubsystems()
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
+#endif
+
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    exitNetwork();
 #endif
 }
 

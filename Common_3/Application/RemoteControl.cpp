@@ -368,7 +368,8 @@ static bool serverSend(Socket* socket)
     unsigned char* drawDataToSend = get_read_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
     if (drawDataToSend)
     {
-        sendSucceed &= (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) > 0);
+        sendSucceed =
+            sendSucceed && (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.mSize) > 0);
         mark_buffer_processed(&pRemoteAppServer->mAwaitingSendDrawData);
     }
 
@@ -730,7 +731,7 @@ static void unpackUserInterfaceDrawData(unsigned char* pData, UserInterfaceDrawD
     drawData->mIndexSize = remoteDrawData->mIndexSize;
 }
 
-static void freeUserInterfaceDrawData(UserInterfaceDrawData* data)
+static void removeUserInterfaceDrawData(UserInterfaceDrawData* data)
 {
     if (data)
     {
@@ -770,11 +771,12 @@ static bool clientSend(Socket* socket)
     unsigned char* inputDataToSend = get_read_buffer(&pRemoteControlClient->mAwaitingSendInput);
     if (inputDataToSend)
     {
-        sendSucceed &= (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.mSize) > 0);
+        sendSucceed =
+            sendSucceed && (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.mSize) > 0);
         mark_buffer_processed(&pRemoteControlClient->mAwaitingSendInput);
     }
 
-    if (!sendSucceed)
+    if (!sendSucceed || *socket == SOCKET_INVALID)
     {
         return false;
     }
@@ -862,7 +864,7 @@ static void client(void* pData)
 
     // Free all received draw data
     remove_circular_buffer(&pRemoteControlClient->mReceivedDrawData);
-    freeUserInterfaceDrawData(&pRemoteControlClient->mLastReceivedDrawData);
+    removeUserInterfaceDrawData(&pRemoteControlClient->mLastReceivedDrawData);
     remove_circular_buffer(&pRemoteControlClient->mReceivedTextureData);
 
     for (uint32_t i = 0; i < hmlen(pRemoteControlClient->mTextureHashmap); i++)

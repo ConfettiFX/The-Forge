@@ -100,6 +100,12 @@ typedef struct UserInterface
     float     dpiScale[2] = { 0.0f };
     uint32_t  frameIdx = 0;
 
+    struct TextureNode
+    {
+        uint64_t key = -1;
+        Texture* value = NULL;
+    }* pTextureHashmap = NULL;
+    uint32_t       mDynamicTexturesCount = 0;
     Shader*        pShaderTextured[SAMPLE_COUNT_COUNT] = { NULL };
     RootSignature* pRootSignatureTextured = NULL;
     DescriptorSet* pDescriptorSetUniforms = NULL;
@@ -1298,8 +1304,11 @@ static void processDebugTexturesWidget(UIWidget* pWidget)
 
     for (uint32_t i = 0; i < pOriginalWidget->mTexturesCount; ++i)
     {
-        const Texture* tex = pOriginalWidget->pTextures[i];
-        ImGui::Image((void*)tex, pOriginalWidget->mTextureDisplaySize);
+        Texture*  texture = (Texture*)pOriginalWidget->pTextures[i];
+        ptrdiff_t id = pUserInterface->mMaxUIFonts + ((ptrdiff_t)pUserInterface->frameIdx * pUserInterface->mMaxDynamicUIUpdatesPerBatch +
+                                                      pUserInterface->mDynamicTexturesCount++);
+        hmput(pUserInterface->pTextureHashmap, id, texture);
+        ImGui::Image((void*)id, pOriginalWidget->mTextureDisplaySize);
         ImGui::SameLine();
     }
 
@@ -2465,6 +2474,7 @@ void uiNewFrame()
         }
     }
 #endif
+    pUserInterface->mDynamicTexturesCount = 0;
     ImGui::NewFrame();
 }
 
@@ -2843,7 +2853,7 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
 
 static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawCmd, const float2& displayPos, const float2& displaySize,
                              Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, int32_t& globalVtxOffsetInOut,
-                             int32_t& globalIdxOffsetInOut, uint32_t& dynamicUIUpdatesInOut, uint32_t& prevSetIndexInOut)
+                             int32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut)
 {
     // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.size(); i++)
     //{
@@ -2877,22 +2887,31 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
     uint32_t  setIndex = (uint32_t)id;
     if (id >= pUserInterface->mMaxUIFonts)
     {
-        if (dynamicUIUpdatesInOut >= pUserInterface->mMaxDynamicUIUpdatesPerBatch)
+        if (pUserInterface->mDynamicTexturesCount >= pUserInterface->mMaxDynamicUIUpdatesPerBatch)
         {
             LOGF(eWARNING,
                  "Too many dynamic UIs.  Consider increasing 'mMaxDynamicUIUpdatesPerBatch' when initializing the user interface.");
             return;
         }
-        setIndex =
-            pUserInterface->mMaxUIFonts + (pUserInterface->frameIdx * pUserInterface->mMaxDynamicUIUpdatesPerBatch + dynamicUIUpdatesInOut);
+        Texture* tex = hmgetp(pUserInterface->pTextureHashmap, id)->value;
+
+#ifdef ENABLE_FORGE_REMOTE_UI
+        // UI Remote Control still receives texture pointers as IDs
+        if (tex == NULL)
+        {
+            tex = (Texture*)id;
+            setIndex = (uint32_t)(pUserInterface->mMaxUIFonts + (pUserInterface->frameIdx * pUserInterface->mMaxDynamicUIUpdatesPerBatch +
+                                                                 pUserInterface->mDynamicTexturesCount++));
+        }
+#endif // ENABLE_FORGE_REMOTE_UI
+
         DescriptorData params[1] = {};
         params[0].pName = "uTex";
-        params[0].ppTextures = (Texture**)&pImDrawCmd->mTextureId;
+        params[0].ppTextures = &tex;
         updateDescriptorSet(pUserInterface->pRenderer, setIndex, pUserInterface->pDescriptorSetTexture, 1, params);
 
         uint32_t pipelineIndex = (uint32_t)log2(params[0].ppTextures[0]->mSampleCount);
         *ppPipelineInOut = pUserInterface->pPipelineTextured[pipelineIndex];
-        ++dynamicUIUpdatesInOut;
     }
     else
     {
@@ -3035,6 +3054,7 @@ void exitUserInterface()
         removeResource(pUserInterface->pCachedFontsArr[i].pFontTex);
 
     arrfree(pUserInterface->pCachedFontsArr);
+    hmfree(pUserInterface->pTextureHashmap);
 
     // Resources can no longer be used. Force ImGui to clear all use:
     {
@@ -3313,16 +3333,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
     cmdPrepareRenderingForUI(pCmd, displayPos, displaySize, pPipeline, vOffset, iOffset);
 
     // Render command lists
-    uint32_t dynamicUIUpdates = 0;
-    int32_t  globalVtxOffset = 0;
-    int32_t  globalIdxOffset = 0;
+    int32_t globalVtxOffset = 0;
+    int32_t globalIdxOffset = 0;
 
     if (pUIDrawData->mDrawCommands)
     {
         for (int32_t i = 0; i < numDrawCommands; i++)
         {
             cmdDrawUICommand(pCmd, &pUIDrawData->mDrawCommands[i], displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                             globalIdxOffset, dynamicUIUpdates, prevSetIndex);
+                             globalIdxOffset, prevSetIndex);
         }
     }
     else
@@ -3360,7 +3379,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
                 }
                 drawCommand.mElemCount = pImDrawCmd->ElemCount;
                 cmdDrawUICommand(pCmd, &drawCommand, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                                 globalIdxOffset, dynamicUIUpdates, prevSetIndex);
+                                 globalIdxOffset, prevSetIndex);
             }
         }
     }

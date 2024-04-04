@@ -169,7 +169,18 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 			};
 		}
 	}
-	
+
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        collision = collision && bool(counter);
+        counter += float(collision);
+		counter -= 0.0000001;
+		Write2D(Get(outputShadowRT), DTid.xy, 1.0f - float(collision));
+    }
+#endif
 
 	Write2D(Get(outputShadowRT), DTid.xy, 1.0f - float(collision));
 	RETURN();

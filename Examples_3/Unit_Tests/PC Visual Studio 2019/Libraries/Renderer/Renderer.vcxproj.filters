@@ -87,7 +87,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp">
       <Filter>Graphics\Direct3D12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp">

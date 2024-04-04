@@ -48,7 +48,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp">
@@ -84,9 +84,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp">
       <Filter>Tools\ReloadServer</Filter>
     </ClCompile>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h">
       <Filter>Graphics</Filter>
     </ClInclude>

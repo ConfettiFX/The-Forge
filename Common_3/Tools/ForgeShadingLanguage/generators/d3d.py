@@ -177,6 +177,9 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             if skip_semantics or data_decl[-1] == 'None':
                 line = get_whitespace(line) + data_decl[0] + ' ' + data_decl[1] + ';\n'
 
+            if not pssl and Features.INVARIANT in binary.features and data_decl[2].upper() == 'SV_POSITION':
+                    line = get_whitespace(line) + 'precise ' + line.strip() + '\n'
+
             if pssl and type(parsing_struct) is not str:
                 basename = getArrayBaseName(data_decl[1])
                 init, ref = pssl.declare_element_reference(shader, parsing_struct, data_decl)
@@ -226,6 +229,8 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                         line = line.rstrip() + ': SV_DEPTH\n'
                 if shader.stage == Stages.VERT:
                     line = line.rstrip() + ': SV_POSITION\n'
+                    if not pssl and Features.INVARIANT in binary.features:
+                        line = 'precise ' + line
 
         # manually transform Type(var) to Type var (necessary for DX11/fxc)
         if '_MAIN(' in line:

@@ -48,7 +48,7 @@ namespace MT
 #ifdef MT_INSTRUMENTED_BUILD
 		profilerEventListener = listener;
 #endif
-
+        
 		if (workerThreadsCount != 0)
 		{
 			threadsCount.StoreRelaxed( MT::Clamp(workerThreadsCount, (uint32)1, (uint32)MT_MAX_THREAD_COUNT) );
@@ -61,12 +61,12 @@ namespace MT
 		uint32 fiberIndex = 0;
 
 		// create fiber pool (fibers with standard stack size)
-		for (uint32 i = 0; i < MT_MAX_STANDART_FIBERS_COUNT; i++)
+		for (uint32 i = 0; i < MT_MAX_STANDARD_FIBERS_COUNT; i++)
 		{
-			FiberContext& context = standartFiberContexts[i];
-			context.fiber.Create(MT_STANDART_FIBER_STACK_SIZE, FiberMain, &context);
+			FiberContext& context = standardFiberContexts[i];
+			context.fiber.Create(MT_STANDARD_FIBER_STACK_SIZE, FiberMain, &context);
 			context.fiberIndex = fiberIndex;
-			bool res = standartFibersAvailable.TryPush( &context );
+			bool res = standardFibersAvailable.TryPush( &context );
 			MT_USED_IN_ASSERT(res);
 			MT_ASSERT(res == true, "Can't add fiber to storage");
 			fiberIndex++;
@@ -85,7 +85,7 @@ namespace MT
 		}
 
 #ifdef MT_INSTRUMENTED_BUILD
-		NotifyFibersCreated(MT_MAX_STANDART_FIBERS_COUNT + MT_MAX_EXTENDED_FIBERS_COUNT);
+		NotifyFibersCreated(MT_MAX_STANDARD_FIBERS_COUNT + MT_MAX_EXTENDED_FIBERS_COUNT);
 #endif
 
 		for (int16 i = 0; i < TaskGroup::MT_MAX_GROUPS_COUNT; i++)
@@ -169,7 +169,7 @@ namespace MT
 		switch(stackRequirements)
 		{
 		case MT::StackRequirements::STANDARD:
-			res = standartFibersAvailable.TryPop(fiberContext);
+			res = standardFibersAvailable.TryPop(fiberContext);
             MT_USED_IN_ASSERT(res);
 			MT_ASSERT(res, "Can't get more standard fibers!");
 			break;
@@ -205,7 +205,7 @@ namespace MT
 		switch(stackRequirements)
 		{
 		case MT::StackRequirements::STANDARD:
-			res = standartFibersAvailable.TryPush(std::move(fiberContext));
+			res = standardFibersAvailable.TryPush(std::move(fiberContext));
 			break;
 		case MT::StackRequirements::EXTENDED:
 			res = extendedFibersAvailable.TryPush(std::move(fiberContext));

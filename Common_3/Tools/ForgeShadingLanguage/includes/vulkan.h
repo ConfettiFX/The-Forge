@@ -402,6 +402,8 @@ ivec4 _to4(in(int)   x)  { return ivec4(x, 0, 0, 0); }
 
 #define AtomicMin3D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMin((DST), ivec3((COORD).xyz), (VALUE)))
 #define AtomicMax3D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMax((DST), ivec3((COORD).xyz), (VALUE)))
+#define AtomicMin2D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMin((DST), ivec2((COORD).xy), (VALUE)))
+#define AtomicMax2D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMax((DST), ivec2((COORD).xy), (VALUE)))
 #define AtomicMin(DST, VALUE) atomicMin(DST, VALUE)
 #define AtomicMax(DST, VALUE) atomicMax(DST, VALUE)
 

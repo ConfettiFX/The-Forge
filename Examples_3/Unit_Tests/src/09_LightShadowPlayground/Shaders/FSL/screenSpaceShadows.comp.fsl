@@ -1,0 +1,226 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "sss_resources.h.fsl"
+
+struct WavefrontExtents
+{
+	float2 deltaXY;
+	float2 pixelXY;
+	float pixelDistance;
+	bool majorAxisX;
+};
+
+WavefrontExtents ComputeWavefrontExtents(int3 inGroupID, int inGroupThreadID)
+{
+	int2 xy = int2(inGroupID.yz) * WAVE_SIZE + Get(WaveOffset);
+	
+	float2 light_xy = floor(Get(mLightCoordinate).xy) + 0.5;
+	float2 light_xy_fraction = Get(mLightCoordinate).xy - light_xy;
+	bool reverse_direction = Get(mLightCoordinate).w > 0.0f;
+
+	int2 sign_xy = int2(sign(float2(xy)));
+	bool horizontal = abs(xy.x + sign_xy.y) < abs(xy.y - sign_xy.x);
+
+	int2 axis;
+	axis.x = horizontal ? (+sign_xy.y) : (0);
+	axis.y = horizontal ? (0) : (-sign_xy.x);
+
+	xy = axis * inGroupID.x + xy;
+	float2 xy_f = float2(xy);
+
+	bool x_axis_major = abs(xy_f.x) > abs(xy_f.y);
+	float major_axis = x_axis_major ? xy_f.x : xy_f.y;
+
+	float major_axis_start = abs(major_axis);
+	float major_axis_end = abs(major_axis) - WAVE_SIZE;
+
+	float ma_light_frac = x_axis_major ? light_xy_fraction.x : light_xy_fraction.y;
+	ma_light_frac = major_axis > 0 ? -ma_light_frac : ma_light_frac;
+
+	float2 start_xy = xy_f + light_xy;
+
+	float2 end_xy = lerp(Get(mLightCoordinate).xy, start_xy, (major_axis_end + ma_light_frac) / (major_axis_start + ma_light_frac));
+
+	float2 xy_delta = (start_xy - end_xy);
+
+	float thread_step = float((inGroupThreadID ^ (reverse_direction ? 0 : (WAVE_SIZE - 1))));
+
+	float2 pixel_xy = lerp(start_xy, end_xy, thread_step / WAVE_SIZE);
+	float pixel_distance = major_axis_start - thread_step + ma_light_frac;
+
+	WavefrontExtents extents = {xy_delta, pixel_xy, pixel_distance, x_axis_major};
+	return extents;
+}
+
+GroupShared(float, DepthData[READ_COUNT * WAVE_SIZE]);
+
+NUM_THREADS(WAVE_SIZE, 1, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupID )
+{
+	INIT_MAIN;
+	WavefrontExtents extents = ComputeWavefrontExtents(int3(groupID), int(threadInGroupId.x));
+	float2 xy_delta = extents.deltaXY;
+	float2 pixel_xy = extents.pixelXY;
+	float pixel_distance = extents.pixelDistance;
+	bool x_axis_major = extents.majorAxisX;
+
+	float sampling_depth[READ_COUNT];
+	float shadowing_depth[READ_COUNT];
+	float depth_thickness_scale[READ_COUNT];
+	float sample_distance[READ_COUNT];
+
+	const float direction = -Get(mLightCoordinate).w;
+	const float z_sign = NEAR_DEPTH_VALUE > FAR_DEPTH_VALUE ? -1 : +1;
+
+	int i;
+	bool is_edge = false;
+	bool skip_pixel = false;
+	uint2 write_xy = uint2(floor(pixel_xy));
+	uint temp = 0;
+
+	for (i = 0; i < READ_COUNT; i++)
+	{
+		int2 read_xy = int2(floor(pixel_xy));
+		float minor_axis = x_axis_major ? pixel_xy.y : pixel_xy.x;
+
+		const float edge_skip = 1e20;
+
+		float2 depths;
+		float bilinear = frac(minor_axis) - 0.5;
+
+		int bias = bilinear > 0 ? 1 : -1;
+		int2 offset_xy = int2(x_axis_major ? 0 : bias, x_axis_major ? bias : 0);
+
+		#if SAMPLE_COUNT > 1
+			depths = f2(0.0f);
+			for (int smp = 0; smp < SAMPLE_COUNT; smp++)
+			{
+				depths.x += LoadTex2DMS(Get(DepthTexture), NO_SAMPLER, read_xy, smp).r;
+				depths.y += LoadTex2DMS(Get(DepthTexture), NO_SAMPLER, read_xy + offset_xy, smp).r;
+			}
+			depths /= SAMPLE_COUNT;
+		#else
+			depths.x = f4(LoadTex2D(Get(DepthTexture), NO_SAMPLER, read_xy, 0)).r;
+			depths.y = f4(LoadTex2D(Get(DepthTexture), NO_SAMPLER, read_xy + offset_xy, 0)).r;
+		#endif
+
+		depth_thickness_scale[i] = abs(FAR_DEPTH_VALUE - depths.x);
+
+		bool use_point_filter = abs(depths.x - depths.y) > depth_thickness_scale[i] * Get(mBilinearThreshold);
+
+		if (i == 0) is_edge = use_point_filter;
+
+		if (bool(Get(mBilinearSamplingOffsetMode)))
+		{
+			bilinear = use_point_filter ? 0 : bilinear;
+			sampling_depth[i] = lerp(depths.x, depths.y, abs(bilinear));
+			shadowing_depth[i] = (bool(Get(mIgnoreEdgePixels)) && use_point_filter) ? edge_skip : sampling_depth[i];
+		}
+		else
+		{
+			sampling_depth[i] = depths.x;
+			float edge_depth = bool(Get(mIgnoreEdgePixels)) ? edge_skip : depths.x;
+			float shadow_depth = depths.x + abs(depths.x - depths.y) * z_sign;
+			shadowing_depth[i] = use_point_filter ? edge_depth : shadow_depth;
+		}
+		sample_distance[i] = pixel_distance + (WAVE_SIZE * i) * direction;
+		pixel_xy += xy_delta * direction;
+	}
+
+	float LightZ = Get(mLightCoordinate).z;
+
+	for (i = 0; i < READ_COUNT; i++)
+	{
+		float stored_depth = (shadowing_depth[i] - LightZ) / sample_distance[i];
+
+		if (i != 0)
+		{
+			stored_depth = sample_distance[i] > 0 ? stored_depth : 1e10;
+		}
+		uint idx = (i * WAVE_SIZE) + threadInGroupId.x;
+		DepthData[idx] = stored_depth;
+	}
+
+	GroupMemoryBarrier();
+
+	float start_depth = sampling_depth[0];
+
+	start_depth = (start_depth - LightZ) / sample_distance[0];
+
+	uint sample_index = threadInGroupId.x + 1;
+
+	float4 shadow_value = f4(1.0f);
+	float hard_shadow = 1;
+
+	float depth_scale = min(sample_distance[0] + direction, 1.0 / Get(mSurfaceThickness)) * sample_distance[0] / depth_thickness_scale[0];
+
+	start_depth = start_depth * depth_scale - z_sign;
+
+	for (i = 0; i < HARD_SHADOW_SAMPLES; i++)
+	{
+		float depth_delta = abs(start_depth - DepthData[sample_index + i] * depth_scale);
+		hard_shadow = min(hard_shadow, depth_delta);
+	}
+
+	for (i = HARD_SHADOW_SAMPLES; i < SS_SAMPLE_COUNT - FADE_OUT_SAMPLES; i++)
+	{
+		float depth_delta = abs(start_depth - DepthData[sample_index + i] * depth_scale);
+		shadow_value[i & 3] = min(shadow_value[i & 3], depth_delta);
+	}
+
+	for (i = SS_SAMPLE_COUNT - FADE_OUT_SAMPLES; i < SS_SAMPLE_COUNT; i++)
+	{
+		float depth_delta = abs(start_depth - DepthData[sample_index + i] * depth_scale);
+		const float fade_out = float((i + 1 - (SS_SAMPLE_COUNT - FADE_OUT_SAMPLES))) / (FADE_OUT_SAMPLES + 1) * 0.75;
+		shadow_value[i & 3] = min(shadow_value[i & 3], depth_delta + fade_out);
+	}
+
+
+	shadow_value = saturate(shadow_value * (Get(mShadowContrast)) + (1 - Get(mShadowContrast)));
+	hard_shadow = saturate(hard_shadow * (Get(mShadowContrast)) + (1 - Get(mShadowContrast)));
+
+	float result = 0;
+	result = dot(shadow_value, f4(0.25f));
+
+	result = min(hard_shadow, result);
+
+	if (Get(mDebugOutput) == DEBUG_OUTPUT_MODE_EDGE_MASK)
+		result = is_edge ? 1 : 0;
+	if (Get(mDebugOutput) == DEBUG_OUTPUT_MODE_THREAD_INDEX)
+		result = (threadInGroupId.x / float(WAVE_SIZE));
+	if (Get(mDebugOutput) == DEBUG_OUTPUT_MODE_WAVE_INDEX)		
+		result = frac(groupID.x / float(WAVE_SIZE));
+			
+	uint mappedResult = uint(round(saturate(result) * SHADOW_MAX_VALUE));
+
+	#if TEXTURE_ATOMIC_SUPPORTED
+		uint2 write_coord = write_xy;
+		AtomicMin2D(Get(OutputTexture), write_coord, mappedResult, temp);
+	#else
+		uint write_coord = write_xy.x + uint(Get(mScreenSize).x) * write_xy.y;
+		AtomicMin(Get(OutputTexture)[write_coord], mappedResult);
+	#endif
+	RETURN();
+}

@@ -339,8 +339,11 @@ namespace MT
 #ifdef MT_INSTRUMENTED_BUILD
 		static void SetThreadName(const char* threadName)
 		{
-			pthread_t callThread = pthread_self();
-			pthread_setname_np(callThread, threadName);
+            #ifdef __APPLE__
+			pthread_setname_np(threadName);
+            #else
+            pthread_setname_np(pthread_self(), threadName);
+            #endif
 		}
 #endif
 

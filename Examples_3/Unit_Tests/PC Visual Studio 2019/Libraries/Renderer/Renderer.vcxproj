@@ -18,7 +18,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
