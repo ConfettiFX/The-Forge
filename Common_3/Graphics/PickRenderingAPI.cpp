@@ -25,10 +25,6 @@
 #include "Interfaces/IGraphics.h"
 #include "Interfaces/IRay.h"
 
-#include "../Tools/Network/Network.h"
-#include "../Tools/ReloadServer/ReloadClient.h"
-
-#include "GPUConfig.h"
 #include "GraphicsConfig.h"
 
 // API functions
@@ -200,15 +196,12 @@ DECLARE_INTERNAL_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Tex
 /************************************************************************/
 
 // <-- This should move to graphic Properties --> */
-bool        gD3D11Unsupported = false;
-bool        gGLESUnsupported = false;
-bool        gRendererUnsupported = false;
-const char* pRendererUnsupportedReason = "";
+bool               gD3D11Unsupported = false;
+bool               gGLESUnsupported = false;
+bool               gRendererUnsupported = false;
+const char*        pRendererUnsupportedReason = "";
 // < ------------------------------------------ > */
-
 PlatformParameters gPlatformParameters;
-// GPUConfig.cpp
-uint32_t           gPreferredGPUDeviceId = 0;
 
 /************************************************************************/
 // Internal initialization functions
@@ -463,7 +456,7 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
 
     // no need for extendedSettings for configuring gpu, applyExtendedSettings is not called in this function
     ExtendedSettings* extendedSettings = NULL;
-    initGPUSettings(extendedSettings);
+    addGPUConfigurationRules(extendedSettings);
 
     gD3D11Unsupported = !pSettings->mD3D11Supported;
     gGLESUnsupported = !pSettings->mGLESSupported;
@@ -491,7 +484,7 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
     }
 #endif
 
-    exitGPUSettings();
+    removeGPUConfigurationRules();
 }
 
 void exitRendererContext(RendererContext* pContext)
@@ -501,18 +494,12 @@ void exitRendererContext(RendererContext* pContext)
     exitRendererContextAPI(pContext, gPlatformParameters.mSelectedRendererApi);
 }
 
-void clearPlatformParameters()
+void setupPlatformParameters(Renderer* pRenderer)
 {
     gPlatformParameters.mAvailableGpuCount = 0;
     gPlatformParameters.mSelectedGpuIndex = 0;
-}
 
-void updatePlatformParameters(Renderer* pRenderer)
-{
-    // Clear previous available gpu list
-    clearPlatformParameters();
-
-    // update available gpu list
+    // update available gpus and renderer api
     if (pRenderer != NULL)
     {
         uint32_t gpuCount = pRenderer->pContext->mGpuCount;
@@ -539,10 +526,7 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     gD3D11Unsupported = !pSettings->mD3D11Supported;
     gGLESUnsupported = !pSettings->mGLESSupported;
 
-    // GPUConfig.cpp preferred device
-    gPreferredGPUDeviceId = gPlatformParameters.mPreferedGpuId;
-
-    initGPUSettings(pSettings->pExtendedSettings);
+    addGPUConfigurationRules(pSettings->pExtendedSettings);
 
     // Init requested renderer API
     if (!apiIsUnsupported(gPlatformParameters.mSelectedRendererApi))
@@ -567,56 +551,24 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     }
 #endif
 
-    // Advanced renderer settings
+    // set available gpus and renderer api
+    setupPlatformParameters(*ppRenderer);
+    // configure the user's settings using the newly created device
     if (pSettings->pExtendedSettings && *ppRenderer)
-        applyExtendedSettings(pSettings->pExtendedSettings, &(*ppRenderer)->pGpu->mSettings);
-
-    // Update platform properties
-    updatePlatformParameters(*ppRenderer);
-
-    // ReloadServer on iOS can cause a network popup to be shown that stops the world until dismissed
-    // by physically clicking the dismiss button. Until we are using Appium in Jenkins to click the button
-    // for us, we disable ReloadServer for iOS Jenkins.
-#if defined(AUTOMATED_TESTING) && defined(TARGET_IOS)
-    const bool disableReloadServer = true;
-#else
-    const bool disableReloadServer = pSettings->mDisableReloadServer;
-#endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    initNetwork();
-#endif
-
-    if (!disableReloadServer)
     {
-        if (!platformInitReloadClient())
-        {
-            LOGF(eERROR, "Failed to initialize ReloadServer");
-#ifdef AUTOMATED_TESTING
-            ASSERT(false);
-#endif
-        }
-    }
-    else
-    {
-        LOGF(eWARNING, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
-                       "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
-                       "If you want to re-enable ReloadServer you need to set `RendererDesc.mDisableReloadServer = false` when calling "
-                       "`initRenderer`. "
-                       "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
+        setupExtendedSettings(pSettings->pExtendedSettings, &(*ppRenderer)->pGpu->mSettings);
     }
 
-    exitGPUSettings();
+    removeGPUConfigurationRules();
 }
 
 void exitRenderer(Renderer* pRenderer)
 {
     ASSERT(pRenderer);
 
-    platformExitReloadClient();
     exitRendererAPI(pRenderer, pRenderer->mRendererApi);
-    clearPlatformParameters();
-
+    gPlatformParameters.mAvailableGpuCount = 0;
+    gPlatformParameters.mSelectedGpuIndex = 0;
     gD3D11Unsupported = false;
     gGLESUnsupported = false;
 }

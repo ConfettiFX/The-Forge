@@ -78,7 +78,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
                 MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 3	hugeWallFront00
-    setTextures(pScene, index++, "Barro_2", "Barro_2_SPEC", "Barro_2_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "Barro_2", "Barro_2_SPEC", "Barro_2_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 4	floor2nd00
     setDefaultTextures(pScene, index++);
@@ -96,7 +96,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "Fierro_A", "Fierro_A_SPEC", "Fierro_A_NRM", MATERIAL_FLAG_NONE);
 
     // 9	floor03
-    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 10	wall03
     setTextures(pScene, index++, "muros_b2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -166,7 +166,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "brushedMetal", "brushedMetal_SPEC", "brushedMetal_NRM", MATERIAL_FLAG_NONE);
 
     // 32	underLeaves02
-    setTextures(pScene, index++, "l37-upper", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
+    setTextures(pScene, index++, "l37-upper", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_ALPHA_TESTED);
 
     // 33	rose00
     setTextures(pScene, index++, "FL13pet2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
@@ -184,7 +184,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "tela_blanca", "tela_blanca_SPEC", "tela_blanca_NRM", MATERIAL_FLAG_NONE);
 
     // 38	underLeaves01
-    setTextures(pScene, index++, "l04-upper", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
+    setTextures(pScene, index++, "l04-upper", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_ALPHA_TESTED);
 
     // 39	stem06
     setTextures(pScene, index++, "HP19stm1", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -229,7 +229,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "wood.3.Bubinga", "WOOD08_SPEC", "WOOD08_NRM", MATERIAL_FLAG_NONE);
 
     // 53	wall02
-    setTextures(pScene, index++, "muros_b1", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_b1", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 54	leaves09
     setTextures(pScene, index++, "HP19lef2", "HP19lef2_SPEC", "HP19lef2_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
@@ -262,10 +262,11 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "rust_a1", "rust_a1_SPEC", "rust_a1_NRM", MATERIAL_FLAG_NONE);
 
     // 64	arc_floor00
-    setTextures(pScene, index++, "arcos_lisos_3_color_1", "arcos_lisos_3_color_1_SPEC", "arcos_lisos_3_color_1_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "arcos_lisos_3_color_1", "arcos_lisos_3_color_1_SPEC", "arcos_lisos_3_color_1_NRM",
+                MATERIAL_FLAG_TWO_SIDED);
 
     // 65	hugeWallLeft
-    setTextures(pScene, index++, "muros_n", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_n", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 66	cap
     setTextures(pScene, index++, "muros_q_patio2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -289,7 +290,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "muros_l", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
 
     // 73	hugeBackWall01
-    setTextures(pScene, index++, "muros_h", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_h", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 74	picture06
     setTextures(pScene, index++, "0001_carros", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -312,13 +313,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
                 MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 80	group21
-    setTextures(pScene, index++, "muros_c2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_c2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 81	leaves07
     setTextures(pScene, index++, "FL29lef", "FL29lef_SPEC", "FL29lef_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 83	underLeaves00
-    setTextures(pScene, index++, "FL13pet2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
+    setTextures(pScene, index++, "FL13pet2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_ALPHA_TESTED);
 
     // 84	flower0339
     setTextures(pScene, index++, "FL19pe15", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
@@ -354,13 +355,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "D30_Smiguel_2003_7758", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
 
     // 96	floor00
-    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 97	leaves017
     setTextures(pScene, index++, "FL29lef", "FL29lef_SPEC", "FL29pet1_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 98	hugeWall00
-    setTextures(pScene, index++, "muros_a", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_a", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 99	picture14
     setTextures(pScene, index++, "tapa_talabera", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -384,13 +385,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "FL19stm", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
 
     // 107	floorOutside00
-    setTextures(pScene, index++, "052terresable", "052terresable_SPEC", "052terresable_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "052terresable", "052terresable_SPEC", "052terresable_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 108	capitel
     setTextures(pScene, index++, "detmoldura_06_color", "detmoldura_06_color_SPEC", "detmoldura_06_color_NRM", MATERIAL_FLAG_NONE);
 
     // 109	pillar00
-    setTextures(pScene, index++, "concrete", "concrete_SPEC", "concrete_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "concrete", "concrete_SPEC", "concrete_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 110	windowStairCase
     setTextures(pScene, index++, "concreto_02", "concreto_02_SPEC", "concreto_02_NRM", MATERIAL_FLAG_NONE);
@@ -399,13 +400,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "FL24stm", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
 
     // 112	doorCover
-    setTextures(pScene, index++, "marco_puerta_1", "marco_puerta_1_SPEC", "marco_puerta_1_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "marco_puerta_1", "marco_puerta_1_SPEC", "marco_puerta_1_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 113	Wall00
-    setTextures(pScene, index++, "muros_g", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_g", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 114	stair00
-    setTextures(pScene, index++, "escalera_color", "escalera_color_SPEC", "escalera_color_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "escalera_color", "escalera_color_SPEC", "escalera_color_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 115	treeLeaves03
     setTextures(pScene, index++, "sm_leaf_02b", "sm_leaf_02b_SPEC", "sm_leaf_02b_NRM",
@@ -439,10 +440,10 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "Fierro_A", "Fierro_A_SPEC", "Fierro_A_NRM", MATERIAL_FLAG_NONE);
 
     // 125	sideFloor2nd
-    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 126	wall00
-    setTextures(pScene, index++, "muros_q_patio2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_q_patio2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 127	picture12
     setTextures(pScene, index++, "D30_Smiguel_2003_7843", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -457,22 +458,22 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "FL29cnt2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
 
     // 131	arc01
-    setTextures(pScene, index++, "arcos_lisos_2_color", "arcos_lisos_2_color_SPEC", "arcos_lisos_2_color_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "arcos_lisos_2_color", "arcos_lisos_2_color_SPEC", "arcos_lisos_2_color_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 132	arc00
     // setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
 
     // 133	outsideWall
-    setTextures(pScene, index++, "newWall", DEFAULT_SPEC, "newWall_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "newWall", DEFAULT_SPEC, "newWall_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 134	metal03
     setTextures(pScene, index++, "rust_detalle", "rust_detalle_SPEC", "rust_detalle_NRM", MATERIAL_FLAG_NONE);
 
     // 135	muros01
-    setTextures(pScene, index++, "muros_k", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_k", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 136	wall05
-    setTextures(pScene, index++, "muros_e", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_e", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 137	metal04
     setTextures(pScene, index++, "Fierro_A", "Fierro_A_SPEC", "Fierro_A_NRM", MATERIAL_FLAG_NONE);
@@ -558,7 +559,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "FL17lef2", "FL17lef2_SPEC", "FL17lef2_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 162	underBalconi
-    setTextures(pScene, index++, "techo", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "techo", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 163	leaves0381
     setTextures(pScene, index++, "TR02lef5", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
@@ -579,7 +580,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "l04-upper", "l04-upper_SPEC", "l04-upper_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 169	floor02
-    setTextures(pScene, index++, DEFAULT_ALBEDO, DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, DEFAULT_ALBEDO, DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 170	leaves04
     setTextures(pScene, index++, "HP19lef3", "HP19lef3_SPEC", "HP19lef3_NRM", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
@@ -594,13 +595,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "HP19lef3", "HP19lef3_SPEC", DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 174	sideStair01
-    setTextures(pScene, index++, "muros_m", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_m", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 175	Wall01
-    setTextures(pScene, index++, "Barro_2", "Barro_2_SPEC", "Barro_2_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "Barro_2", "Barro_2_SPEC", "Barro_2_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 176	sideStair00
-    setTextures(pScene, index++, "muros_f", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_f", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 177	TreeBasket
     setTextures(pScene, index++, "techo_01", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
@@ -666,7 +667,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "brushedMetal", "brushedMetal_SPEC", "brushedMetal_NRM", MATERIAL_FLAG_NONE);
 
     // 192	muros00
-    setTextures(pScene, index++, "muros_j", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "muros_j", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED);
 
     // 193	picture011
     setTextures(pScene, index++, "D30_Smiguel_2003_7833", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -687,13 +688,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "balconi2nd", "balconi2nd_SPEC", "balconi2nd_NRM", MATERIAL_FLAG_NONE);
 
     // 199	ceilEdge
-    setTextures(pScene, index++, "concrete", "concrete_SPEC", "concrete_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "concrete", "concrete_SPEC", "concrete_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 200	floor01 flower
     setTextures(pScene, index++, "FL29pet2", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED);
 
     // 201	floor_Main00
-    setTextures(pScene, index++, "piso_patio_exterior", "piso_patio_exterior_SPEC", "piso_patio_exterior_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "piso_patio_exterior", "piso_patio_exterior_SPEC", "piso_patio_exterior_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 202	picture03
     setTextures(pScene, index++, "D30_Smiguel_2003_7833", DEFAULT_SPEC, DEFAULT_NORMAL, MATERIAL_FLAG_NONE);
@@ -730,13 +731,13 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
     setTextures(pScene, index++, "newWall", DEFAULT_SPEC, "newWall_NRM", MATERIAL_FLAG_NONE);
 
     // 101	arc00
-    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 101	arc03
-    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     // 101	wall04
-    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
+    setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_TWO_SIDED);
 
     const size_t defaultAlbedoSize = strlen(DEFAULT_ALBEDO) + 1;
     const size_t defaultNormalSize = strlen(DEFAULT_NORMAL) + 1;

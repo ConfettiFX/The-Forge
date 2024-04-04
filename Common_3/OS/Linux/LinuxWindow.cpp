@@ -821,6 +821,8 @@ void getRecommendedResolution(RectDesc* rect)
     *rect = { 0, 0, min(1920, (int)(WidthOfScreen(screen) * 0.75)), min(1080, (int)(HeightOfScreen(screen) * 0.75)) };
 }
 
+void getRecommendedWindowRect(WindowDesc*, RectDesc* rect) { getRecommendedResolution(rect); }
+
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
     if (!requireXRandrVersion(1, 2))

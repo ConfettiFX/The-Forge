@@ -1298,10 +1298,6 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const F
     curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
     curTotalTxtSizePx.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
 
-    // Metal only supports gpu timers on command buffer boundaries so all timers other than root will be zero
-#ifdef METAL
-    return;
-#else
     for (uint32_t i = index + 1; i < pGpuProfiler->mCurrentPoolIndex; ++i)
     {
         if (pGpuProfiler->pGpuTimerPool[i].pParent == pRoot)
@@ -1309,7 +1305,6 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const F
             drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, origin, i, curTotalTxtSizePx);
         }
     }
-#endif
 }
 
 float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc)

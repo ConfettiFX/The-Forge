@@ -120,7 +120,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_internal.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Interfaces\IScripting.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\AnimatedObject.h" />

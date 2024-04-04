@@ -325,6 +325,7 @@ FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, i
 FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
 
 FORGE_API void getRecommendedResolution(RectDesc* rect);
+FORGE_API void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
 // Sets video mode for specified display
 FORGE_API void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 

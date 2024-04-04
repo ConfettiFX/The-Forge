@@ -1375,6 +1375,10 @@ public:
         barriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, barriers);
 
+        // Draw the opaque objects.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw shadow map");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render shadow map");
+
         // Start render pass and apply load actions
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1385,16 +1389,14 @@ public:
                        0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetShadowVariance[0]->mWidth, pRenderTargetShadowVariance[0]->mHeight);
 
-        // Draw the opaque objects.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw shadow map");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render shadow map");
-
         cmdBindPipeline(pCmd, pPipelineShadow);
         cmdBindDescriptorSet(pCmd, UNIFORM_SET(gFrameIndex, VIEW_SHADOW, GEOM_OPAQUE), pDescriptorSetUniforms);
         DrawObjects(pCmd, gOpaqueDrawCallCount, gOpaqueDrawCalls, pRootSignature);
+        cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
         cmdEndDebugMarker(pCmd);
 
         // Blur shadow map
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Blur shadow map0");
         cmdBeginDebugMarker(pCmd, 1, 0, 1, "Blur shadow map");
 
         for (uint32_t i = 0; i < 1; ++i)
@@ -1422,6 +1424,9 @@ public:
             cmdDraw(pCmd, 3, 0);
 
             cmdBindRenderTargets(pCmd, NULL);
+
+            cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
+            cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Blur shadow map1");
 
             barriers[0].pRenderTarget = pRenderTargetShadowVariance[1];
             barriers[0].mCurrentState = RESOURCE_STATE_RENDER_TARGET;
@@ -1665,6 +1670,10 @@ public:
         if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
             rt = pRenderTargetPTBackground;
 
+        // Draw the opaque objects.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw opaque geometry");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render opaque geometry");
+
         // Start render pass and apply load actions
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1673,10 +1682,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, rt->mWidth, rt->mHeight);
-
-        // Draw the opaque objects.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw opaque geometry");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render opaque geometry");
 
         if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
         {
@@ -1691,10 +1696,14 @@ public:
         cmdBindDescriptorSet(pCmd, UNIFORM_SET(gFrameIndex, VIEW_CAMERA, GEOM_OPAQUE), pDescriptorSetUniforms);
         DrawObjects(pCmd, gOpaqueDrawCallCount, gOpaqueDrawCalls, pRootSignature);
         cmdBindRenderTargets(pCmd, NULL);
+        cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
+
+        //        cmdBeginGpuFrameProfile(pCmd, gCurrentGpuProfileToken);
 
 #if PT_USE_DIFFUSION != 0
         if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
         {
+            cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "PT Gen Mips");
             RenderTargetBarrier barrier = { rt, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_UNORDERED_ACCESS };
             cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
 
@@ -1725,15 +1734,20 @@ public:
 
             barrier = { rt, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
             cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
+            cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
         }
 #endif
 
-        cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
+        //        cmdEndGpuFrameProfile(pCmd, gCurrentGpuProfileToken);
         cmdEndDebugMarker(pCmd);
     }
 
     void AlphaBlendTransparentPass(Cmd* pCmd)
     {
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry");
+
         // Start render pass and apply load actions
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1742,10 +1756,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry");
 
         Pipeline* pipelines[2] = { pPipelineTransparentForwardBack, pPipelineTransparentForwardFront };
         for (uint32_t i = 0; i < TF_ARRAY_COUNT(pipelines); ++i)
@@ -1775,6 +1785,10 @@ public:
         }
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
 
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (WBOIT)");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (WBOIT)");
+
         // Start render pass and apply load actions
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = WBOIT_RT_COUNT;
@@ -1786,10 +1800,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetWBOIT[0]->mWidth, (float)pRenderTargetWBOIT[0]->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetWBOIT[0]->mWidth, pRenderTargetWBOIT[0]->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (WBOIT)");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (WBOIT)");
 
         cmdBindPipeline(pCmd, pShadePipeline);
         cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1809,6 +1819,10 @@ public:
         }
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
 
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite WBOIT buffers");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite WBOIT buffers");
+
         // Start render pass and apply load actions
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1816,10 +1830,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite WBOIT buffers");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite WBOIT buffers");
 
         cmdBindPipeline(pCmd, pCompositePipeline);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetWBOITComposite);
@@ -1843,6 +1853,10 @@ public:
         textureBarriers[1].mNewState = RESOURCE_STATE_RENDER_TARGET;
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, textureBarriers);
 
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "PT Copy depth buffer");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "PT Copy depth buffer");
+
         // Start render pass and apply load actions
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1850,10 +1864,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTDepthCopy->mWidth, (float)pRenderTargetPTDepthCopy->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetPTDepthCopy->mWidth, pRenderTargetPTDepthCopy->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "PT Copy depth buffer");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "PT Copy depth buffer");
 
         cmdBindPipeline(pCmd, pPipelinePTCopyDepth);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTCopyDepth);
@@ -1879,6 +1889,10 @@ public:
         }
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, PT_RT_COUNT, textureBarriers);
 
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (PT)");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (PT)");
+
         // Start render pass and apply load actions
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = PT_RT_COUNT;
@@ -1890,10 +1904,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPT[0]->mWidth, (float)pRenderTargetPT[0]->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetPT[0]->mWidth, pRenderTargetPT[0]->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (PT)");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (PT)");
 
         cmdBindPipeline(pCmd, pPipelinePTShade);
         cmdBindDescriptorSet(pCmd, SHADE_PT, pDescriptorSetShade);
@@ -1913,6 +1923,10 @@ public:
         }
         cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, PT_RT_COUNT, textureBarriers);
 
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite PT buffers");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite PT buffers");
+
         // Start render pass and apply load actions
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1920,10 +1934,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite PT buffers");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite PT buffers");
 
         cmdBindPipeline(pCmd, pPipelinePTComposite);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTComposite);
@@ -1942,12 +1952,16 @@ public:
 
         TextureBarrier textureBarrier = { pTextureAOITClearMask, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
         BufferBarrier  bufferBarriers[] = {
-            { pBufferAOITColorData, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pBufferAOITColorData, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
 #if AOIT_NODE_COUNT != 2
-            { pBufferAOITDepthData, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pBufferAOITDepthData, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
 #endif
-        };
+		};
         cmdResourceBarrier(pCmd, sizeof(bufferBarriers) / sizeof(bufferBarriers[0]), bufferBarriers, 1, &textureBarrier, 0, NULL);
+
+        // Draw fullscreen quad.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Clear AOIT buffers");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Clear AOIT buffers");
 
         // Clear AOIT buffers
         // Start render pass and apply load actions
@@ -1957,16 +1971,16 @@ public:
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
-        // Draw fullscreen quad.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Clear AOIT buffers");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Clear AOIT buffers");
-
         cmdBindPipeline(pCmd, pPipelineAOITClear);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITClear);
         cmdDraw(pCmd, 3, 0);
         cmdBindRenderTargets(pCmd, NULL);
         cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
         cmdEndDebugMarker(pCmd);
+
+        // Draw the transparent geometry.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (AOIT)");
 
         // Start render pass and apply load actions
         bindRenderTargets = {};
@@ -1975,10 +1989,6 @@ public:
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pSwapChain->ppRenderTargets[0]->mWidth, (float)pSwapChain->ppRenderTargets[0]->mHeight,
                        0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pSwapChain->ppRenderTargets[0]->mWidth, pSwapChain->ppRenderTargets[0]->mHeight);
-
-        // Draw the transparent geometry.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (AOIT)");
 
         cmdBindPipeline(pCmd, pPipelineAOITShade);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITShade[0]);
@@ -1997,6 +2007,10 @@ public:
 #endif
         cmdResourceBarrier(pCmd, sizeof(bufferBarriers) / sizeof(bufferBarriers[0]), bufferBarriers, 1, &textureBarrier, 0, NULL);
 
+        // Draw fullscreen quad.
+        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite AOIT buffers");
+        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite AOIT buffers");
+
         // Start render pass and apply load actions
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -2004,10 +2018,6 @@ public:
         cmdBindRenderTargets(pCmd, &bindRenderTargets);
         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
         cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
-
-        // Draw fullscreen quad.
-        cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite AOIT buffers");
-        cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite AOIT buffers");
 
         cmdBindPipeline(pCmd, pPipelineAOITComposite);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITComposite);
@@ -2465,15 +2475,15 @@ public:
 #endif
 
         Shader* pShaders[] = {
-            pShaderShadow,
-            pShaderWBOITShade,
-            pShaderWBOITVShade,
-            pShaderForward,
-            pShaderPTShade,
+			pShaderShadow,
+			pShaderWBOITShade,
+			pShaderWBOITVShade,
+			pShaderForward,
+			pShaderPTShade,
 #if PT_USE_CAUSTICS
-            pShaderPTShadow
+			pShaderPTShadow
 #endif
-        };
+		};
         // Forward shading root signature
         RootSignatureDesc forwardRootSignatureDesc = {};
         forwardRootSignatureDesc.ppShaders = pShaders;

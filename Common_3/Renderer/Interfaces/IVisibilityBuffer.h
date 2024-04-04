@@ -30,47 +30,104 @@
 
 #include "../../Utilities/Math/MathTypes.h"
 
-typedef enum FilterContainerType
+/************************************************************************/
+// Visibility Buffer Interface
+/************************************************************************/
+typedef struct VisibilityBuffer
 {
-    FILTER_CONTAINER_TYPE_CLUSTER, // Clusters will be generated for this container type, which are able to be culled before triangle filter
-                                   // pass
-    FILTER_CONTAINER_TYPE_LIST,
+    Buffer** ppUncompactedDrawArgumentsBuffer;
+    Buffer** ppFilteredIndirectDrawArgumentsBuffers;
+    Buffer** ppFilteredIndexBuffer;
+    Buffer** ppFilterDispatchGroupDataBuffer;
+    Buffer** ppIndirectDataIndexBuffer;
+} VisibilityBuffer;
 
-    FILTER_CONTAINER_TYPE_MAX
-} FilterContainerType;
-
-typedef struct Cluster Cluster;
-
-typedef struct FilterContainer
+typedef struct VisibilityBufferDesc
 {
-    uint32_t mType : 1;
+    // Number of images for double/triple buffering.
+    // This is used to allocate buffers for data comming from the CPU.
+    uint32_t mNumFrames;
+
+    // If the app uses async compute for triangle filtering this should be the same as mNumFrames.
+    // If the app doesn't use async compute, this should be 1 and TriangleFilteringPassDesc::mBufferIndex musht be always 0.
+    // This is used to allocate GPU only buffers for data we generate on the GPU for Triangle Filtering and Batch Compaction stages.
+    uint32_t mNumBuffers;
+
+    uint32_t mIndirectElementCount;
+    uint32_t mDrawArgCount;
+    uint32_t mIndexCount;
+
+    uint32_t mMaxDrawsIndirect;
+    uint32_t mMaxPrimitivesPerDrawIndirect;
+    uint32_t mComputeThreads; // Set as VB_COMPUTE_THEADS, this should be equal to the amount of triangles that will be processed in
+                              // parallel by the triangle filter shader
+
+    uint32_t mNumGeometrySets;
+    uint32_t mNumViews;
+
+    bool     mEnablePreSkinPass;
+    uint32_t mPreSkinBatchSize;
+    uint32_t mPreSkinBatchCount;
+
+} VisibilityBufferDesc;
+
+FORGE_RENDERER_API bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc, VisibilityBuffer** ppVisibilityBuffer);
+FORGE_RENDERER_API void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer);
+
+// Triangle filtering
+
+typedef struct VBMeshInstance
+{
     uint32_t mGeometrySet: VISIBILITY_BUFFER_GEOMETRY_SET_BITS;
-    uint32_t mMeshIndex: (32 - (1 + VISIBILITY_BUFFER_GEOMETRY_SET_BITS));
+    uint32_t mMeshIndex: (32 - (VISIBILITY_BUFFER_GEOMETRY_SET_BITS));
     uint32_t mInstanceIndex;
-    uint32_t mFilterBatchCount;
     uint32_t mTriangleCount;
-    Cluster* pClusters; // if valid points to an array of exactly mFilterBatchCount elements
-} FilterContainer;
+} VBMeshInstance;
 
-typedef struct FilterContainerDescriptor
+typedef struct VBPreFilterStats
 {
-    FilterContainerType mType;
-    uint32_t            mMeshIndex;
-    uint32_t            mIndexCount;
-    uint32_t            mGeometrySet;
+    uint32_t mNumDispatchGroups; // Total number of dispatch groups for the triangle filtering pass
 
-    uint32_t mBaseIndex;
-    uint32_t mInstanceIndex;
+    uint32_t mGeomsetMaxDrawCounts[VISIBILITY_BUFFER_MAX_GEOMETRY_SETS]; // Max draw count per geometry set
+    uint32_t mTotalMaxDrawCount;                                         // Summed max draw count for all elements in mGeomsetMaxDrawCounts
+} VBPreFilterStats;
 
-    // Required data for FILTER_CONTAINER_TYPE_CLUSTER used for generating clusters
-    const float3*   pPositions;
-    const uint32_t* pIndices;
-    bool            mIsTwoSided;
+typedef struct TriangleFilteringPassDesc
+{
+    Pipeline* pPipelineClearBuffers;
+    Pipeline* pPipelineTriangleFiltering;
+    Pipeline* pPipelineBatchCompaction;
 
-} FilterContainerDescriptor;
+    DescriptorSet* pDescriptorSetTriangleFiltering;
+    DescriptorSet* pDescriptorSetTriangleFilteringPerFrame;
+    DescriptorSet* pDescriptorSetClearBuffers;
+    DescriptorSet* pDescriptorSetBatchCompaction;
 
-FORGE_RENDERER_API void addVBFilterContainer(FilterContainerDescriptor* pDesc, FilterContainer* pContainer);
-FORGE_RENDERER_API void removeVBFilterContainer(FilterContainer* pContainer);
+    uint64_t mGpuProfileToken;
+
+    uint32_t mFrameIndex;
+    uint32_t mBuffersIndex; // See comment in VisibilityBufferDesc::mNumBuffers
+
+    VBPreFilterStats mVBPreFilterStats;
+} TriangleFilteringPassDesc;
+
+typedef struct UpdateVBMeshFilterGroupsDesc
+{
+    VBMeshInstance* pVBMeshInstances;
+    uint32_t        mNumMeshInstance;
+
+    uint32_t mFrameIndex;
+
+} UpdateVBMeshFilterGroupsDesc;
+
+FORGE_RENDERER_API VBPreFilterStats updateVBMeshFilterGroups(VisibilityBuffer*                   pVisibilityBuffer,
+                                                             const UpdateVBMeshFilterGroupsDesc* pDesc);
+
+FORGE_RENDERER_API void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, TriangleFilteringPassDesc* pDesc);
+
+/************************************************************************/
+// Animations (TODO: Remove from IVisibilityBuffer.h)
+/************************************************************************/
 
 // In order to be able to use Async Compute with Animations we need to use Buffer Aliasing, which means we need to allocate the Heaps
 // for the vertex buffers upfront and then use these to create the aliased buffers.
@@ -139,48 +196,6 @@ struct PreSkinContainer
     uint32_t mOutputVertexOffset;
 };
 
-// Visibility buffer
-typedef struct VisibilityBuffer
-{
-    Buffer** ppUncompactedDrawArgumentsBuffer;
-    Buffer** ppFilteredIndirectDrawArgumentsBuffers;
-    Buffer** ppFilteredIndexBuffer;
-    Buffer** ppIndirectDataIndexBuffer;
-} VisibilityBuffer;
-
-typedef struct VisibilityBufferDesc
-{
-    // Number of images for double/triple buffering.
-    // This is used to allocate buffers for data comming from the CPU.
-    uint32_t mNumFrames;
-
-    // If the app uses async compute for triangle filtering this should be the same as mNumFrames.
-    // If the app doesn't use async compute, this should be 1 and TriangleFilteringPassDesc::mBufferIndex musht be always 0.
-    // This is used to allocate GPU only buffers for data we generate on the GPU for Triangle Filtering and Batch Compaction stages.
-    uint32_t mNumBuffers;
-
-    uint32_t mIndirectElementCount;
-    uint32_t mDrawArgCount;
-    uint32_t mIndexCount;
-
-    uint32_t mMaxDrawsIndirect;
-    uint32_t mMaxPrimitivesPerDrawIndirect;
-    uint32_t mFilterBatchCount; // Set as FILTER_BATCH_COUNT, defines the limit to the amount of triangle batches we can process on the GPU
-    uint32_t mFilterBatchSize;  // Set as FILTER_BATCH_SIZE, this should be equal to the amount of triangles that will be processed in
-                                // parallel by the triangle filter shader
-
-    uint32_t mNumGeometrySets;
-    uint32_t mNumViews;
-
-    bool     mEnablePreSkinPass;
-    uint32_t mPreSkinBatchSize;
-    uint32_t mPreSkinBatchCount;
-
-} VisibilityBufferDesc;
-
-FORGE_RENDERER_API bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc, VisibilityBuffer** ppVisibilityBuffer);
-FORGE_RENDERER_API void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer);
-
 typedef struct PreSkinVertexesPassDesc
 {
     uint64_t mGpuProfileToken;
@@ -206,47 +221,3 @@ typedef struct PreSkinVertexesStats
 
 FORGE_RENDERER_API PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd,
                                                                                PreSkinVertexesPassDesc* pDesc);
-
-// TODO: reduce required items
-typedef struct TriangleFilteringPassDesc
-{
-    uint32_t         mNumContainers;
-    FilterContainer* pFilterContainers;
-    bool             mCullClusters;
-    uint32_t         mNumCullingViewports;
-    vec3*            pViewportObjectSpace;
-
-    Pipeline* pPipelineClearBuffers;
-    Pipeline* pPipelineTriangleFiltering;
-    Pipeline* pPipelineBatchCompaction;
-
-    DescriptorSet* pDescriptorSetTriangleFiltering;
-    DescriptorSet* pDescriptorSetTriangleFilteringPerFrame;
-    DescriptorSet* pDescriptorSetClearBuffers;
-    DescriptorSet* pDescriptorSetBatchCompaction;
-
-    uint64_t mGpuProfileToken;
-    uint32_t mClearThreadCount;
-
-    uint32_t mFrameIndex;
-    uint32_t mBuffersIndex; // See comment in VisibilityBufferDesc::mNumBuffers
-
-} TriangleFilteringPassDesc;
-
-typedef struct FilteringStats
-{
-    uint32_t mProcessedTriangleClusters; // Number of FilterContainers that used FILTER_CONTAINER_TYPE_CLUSTER
-    uint32_t mCulledTriangleClusters;    // Number of clusters that were not sent to the GPU due to ClusterCulling. Always
-                                         // (mCulledTriangleClusters <= mProcessedTriangleClusters)
-
-    uint32_t mTotalProcessedTriangleBatches; // Total processed triangle batches
-    uint32_t mTotalSubmittedTriangleBatches; // Number of batches submitted to the GPU -> (mTotalProcessedTriangleBatches -
-                                             // mCulledTriangleClusters)
-    uint32_t mTotalShaderDispatches;         // Number of triangle_filtering shader dispatches
-
-    uint32_t mGeomsetDrawCounts[VISIBILITY_BUFFER_MAX_GEOMETRY_SETS]; // DrawCount per geometry set
-    uint32_t mTotalDrawCount;                                         // Summed draw count for all elements in mGeomsetDrawCounts
-} FilterPassStats;
-
-FORGE_RENDERER_API FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd,
-                                                                           TriangleFilteringPassDesc* pDesc);

@@ -243,9 +243,8 @@
 		B23498CD2693B83600504010 /* lbaselib.c in Sources */ = {isa = PBXBuildFile; fileRef = B23498882693B83600504010 /* lbaselib.c */; };
 		B23498CE2693B83600504010 /* lstrlib.c in Sources */ = {isa = PBXBuildFile; fileRef = B23498892693B83600504010 /* lstrlib.c */; };
 		B23498CF2693B83600504010 /* lstrlib.c in Sources */ = {isa = PBXBuildFile; fileRef = B23498892693B83600504010 /* lstrlib.c */; };
-		B243250A28747FE900B1A081 /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B243250928747FE900B1A081 /* GPUConfig.h */; };
-		B2432510287480BC00B1A081 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B243250F287480BC00B1A081 /* GPUConfig.cpp */; };
-		B2432511287480BC00B1A081 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B243250F287480BC00B1A081 /* GPUConfig.cpp */; };
+		B2432510287480BC00B1A081 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B243250F287480BC00B1A081 /* GraphicsConfig.cpp */; };
+		B2432511287480BC00B1A081 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B243250F287480BC00B1A081 /* GraphicsConfig.cpp */; };
 		B243251E2874829800B1A081 /* IApp.h in Headers */ = {isa = PBXBuildFile; fileRef = B24325172874829800B1A081 /* IApp.h */; };
 		B243251F2874829800B1A081 /* ICameraController.h in Headers */ = {isa = PBXBuildFile; fileRef = B24325182874829800B1A081 /* ICameraController.h */; };
 		B24325202874829800B1A081 /* IUI.h in Headers */ = {isa = PBXBuildFile; fileRef = B24325192874829800B1A081 /* IUI.h */; };
@@ -506,8 +505,7 @@
 		B23498872693B83600504010 /* ldo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ldo.c; path = "../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldo.c"; sourceTree = "<group>"; };
 		B23498882693B83600504010 /* lbaselib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lbaselib.c; path = "../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lbaselib.c"; sourceTree = "<group>"; };
 		B23498892693B83600504010 /* lstrlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lstrlib.c; path = "../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstrlib.c"; sourceTree = "<group>"; };
-		B243250928747FE900B1A081 /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../Graphics/GPUConfig.h; sourceTree = "<group>"; };
-		B243250F287480BC00B1A081 /* GPUConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GPUConfig.cpp; sourceTree = "<group>"; };
+		B243250F287480BC00B1A081 /* GraphicsConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GraphicsConfig.cpp; sourceTree = "<group>"; };
 		B24325172874829800B1A081 /* IApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IApp.h; sourceTree = "<group>"; };
 		B24325182874829800B1A081 /* ICameraController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ICameraController.h; sourceTree = "<group>"; };
 		B24325192874829800B1A081 /* IUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IUI.h; sourceTree = "<group>"; };
@@ -1194,8 +1192,7 @@
 				B2D10F85299A49040089617D /* ShaderUtilities.h.fsl */,
 				EDA02B87291D01570067A459 /* IVisibilityBuffer.h */,
 				ED2B119E2912F96500688D30 /* VibilityBuffer */,
-				B243250F287480BC00B1A081 /* GPUConfig.cpp */,
-				B243250928747FE900B1A081 /* GPUConfig.h */,
+				B243250F287480BC00B1A081 /* GraphicsConfig.cpp */,
 				55EF1A5926E0E99100880C04 /* GraphicsConfig.h */,
 				55EF1A6126E0EA9800880C04 /* MetalConfig.h */,
 				B22CEE9125D682460062036A /* PickRenderingApi.cpp */,
@@ -1339,7 +1336,6 @@
 				2683447F29783D5E00F4F318 /* debug.h in Headers */,
 				268344492978343E00F4F318 /* IFileSystem.h in Headers */,
 				B24325212874829800B1A081 /* IMiddleware.h in Headers */,
-				B243250A28747FE900B1A081 /* GPUConfig.h in Headers */,
 				ED609567286F36D500331537 /* UnixThreadID.h in Headers */,
 				ED609563286F36D500331537 /* Atomics.h in Headers */,
 				2683446929783D5E00F4F318 /* bits.h in Headers */,
@@ -1559,7 +1555,7 @@
 				B23498562693B79000504010 /* LuaManagerImpl.cpp in Sources */,
 				B23498C12693B83600504010 /* lauxlib.c in Sources */,
 				5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
-				B2432511287480BC00B1A081 /* GPUConfig.cpp in Sources */,
+				B2432511287480BC00B1A081 /* GraphicsConfig.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
 				2683447D29783D5E00F4F318 /* zstd_common.c in Sources */,
 				5C172FF121414CC60074EE71 /* MetalRenderer.mm in Sources */,
@@ -1661,7 +1657,7 @@
 				B23498CA2693B83600504010 /* ldo.c in Sources */,
 				B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */,
 				B23498B62693B83600504010 /* lstring.c in Sources */,
-				B2432510287480BC00B1A081 /* GPUConfig.cpp in Sources */,
+				B2432510287480BC00B1A081 /* GraphicsConfig.cpp in Sources */,
 				2683449C29783D9B00F4F318 /* zstd_decompress.c in Sources */,
 				B23498632693B7EC00504010 /* FontSystem.cpp in Sources */,
 				DD3ABA8F2B6956C500DA53AE /* ReloadClient.cpp in Sources */,

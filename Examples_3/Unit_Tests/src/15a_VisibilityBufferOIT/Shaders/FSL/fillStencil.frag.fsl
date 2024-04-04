@@ -37,7 +37,9 @@ STRUCT(PsIn)
 STRUCT(PSOut)
 {
 	DATA(uint, rate, SV_Target0);
+#if !defined(METAL)
 	DATA(out_coverage, coverage, SV_Coverage);
+#endif
 };
 
 float samplePrevFrameLuma(int2 nonMsaaPixelPos)
@@ -162,7 +164,9 @@ PSOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
 	}
 
 	Out.rate = history;
+#if !defined(METAL)
 	Out.coverage = coverage[GetConservativeRate(Out.rate)];
+#endif
     RETURN(Out);
 
 }

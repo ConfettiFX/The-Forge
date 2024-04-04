@@ -46,17 +46,6 @@
 // the max constant buffer size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
 #define SKIN_BATCH_COUNT 2048
 
-// This defines the amount of triangles that will be processed in parallel by the
-// compute shader in the triangle filtering process.
-// Should be a multiple of the wavefront size
-#define FILTER_BATCH_SIZE 256
-
-// FILTER_BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
-// It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB -> sizeof(FilterBatchData) * 2048 = 64KB
-#define FILTER_BATCH_COUNT 2048
-
-
 // This defines the amount of viewports that are going to be culled in parallel.
 #ifndef NUM_CULLING_VIEWPORTS
 #define NUM_CULLING_VIEWPORTS 2
@@ -65,8 +54,10 @@
 #endif
 
 // This value defines the amount of threads per group that will be used to clear the
-// indirect draw buffers.
-#define CLEAR_THREAD_COUNT 256
+// indirect draw buffers, filter triangles and compact draw arguments.
+#ifndef VB_COMPUTE_THEADS
+#define VB_COMPUTE_THEADS 256
+#endif
 
 #if defined(DIRECT3D12)
 #define INDIRECT_ROOT_CONSTANT 1
@@ -125,16 +116,9 @@
 #define MAX_DRAWS_INDIRECT 256   // Maximum value that can be represented with # bits DrawID
 #endif
 
-
-// The following value defines the maximum amount of triangles we can draw on each indirect draw call. 
-// The values of FILTER_BATCH_COUNT, FILTER_BATCH_SIZE and MAX_PRIMITIVES_PER_DRAW_INDIRECT determine how many invocations to 
-// triangle_filtering are needed, one of the values will exhaust first the capacity of each filtering batch.
-// 
-// If MAX_PRIMITIVES_PER_DRAW_INDIRECT is smaller than FILTER_BATCH_COUNT * FILTER_BATCH_SIZE, then it means we'll be making more 
-// triangle_filtering dispatches and none of them will use the max capacity of the shader. This is needed when bigger
-// DrawID values are needed, DrawID needs more bits and PrimitiveID has less bits.
+ // Maximum value that can be represented with # bits PrimitiveID
 #ifndef MAX_PRIMITIVES_PER_DRAW_INDIRECT
-#define MAX_PRIMITIVES_PER_DRAW_INDIRECT (1 + (PRIM_ID_MASK >> PRIM_ID_LOW_BIT)) // Maximum value that can be represented with # bits PrimitiveID
+#define MAX_PRIMITIVES_PER_DRAW_INDIRECT (1 + (PRIM_ID_MASK >> PRIM_ID_LOW_BIT))
  #endif
 
 #define MAX_DRAWS_INDIRECT_ELEMENTS (MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)

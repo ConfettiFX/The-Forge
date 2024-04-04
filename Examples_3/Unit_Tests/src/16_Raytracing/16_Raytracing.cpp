@@ -995,6 +995,11 @@ public:
         /************************************************************************/
         // Present to screen
         /************************************************************************/
+        if (raytracingTechniqueSupported)
+        {
+            cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render result");
+        }
+
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
@@ -1007,7 +1012,6 @@ public:
             /************************************************************************/
             // Perform copy
             /************************************************************************/
-            cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render result");
             // Draw computed results
             cmdBindPipeline(pCmd, pDisplayTexturePipeline);
             cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetTexture);

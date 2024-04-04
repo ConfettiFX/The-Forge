@@ -124,14 +124,14 @@
     <Filter Include="Common_3\Application\Fonts\Shaders">
       <UniqueIdentifier>{92677230-7018-497a-939d-119a2700c3dc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics">
-      <UniqueIdentifier>{80c57b91-eca0-447a-976d-4796880da4fb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\OS\Interfaces">
       <UniqueIdentifier>{f7dc3199-4a61-4b28-89b8-1154baba3118}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\Interfaces">
       <UniqueIdentifier>{f0f5ef13-520e-4bb3-98b7-ef56a5681f68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Graphics">
+      <UniqueIdentifier>{80c57b91-eca0-447a-976d-4796880da4fb}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\UI\Shaders\FSL">
       <UniqueIdentifier>{f801b0ba-178c-4d33-b976-944a0c454bc3}</UniqueIdentifier>
@@ -479,9 +479,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h">
       <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h">
-      <Filter>Common_3\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h">
       <Filter>Common_3\Application\Interfaces</Filter>

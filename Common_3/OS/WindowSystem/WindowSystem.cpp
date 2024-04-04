@@ -76,8 +76,8 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
 
 static bool wndValidateWindowSize(int32_t width, int32_t height)
 {
-    RectDesc clientRect = pWindowRef->clientRect;
-    if ((abs(getRectWidth(&clientRect) - width) > 1) || (abs(getRectHeight(&clientRect) - height) > 1))
+    RectDesc windowRect = pWindowRef->windowedRect;
+    if ((abs(getRectWidth(&windowRect) - width) > 1) || (abs(getRectHeight(&windowRect) - height) > 1))
         return false;
     return true;
 }
@@ -155,7 +155,7 @@ void wndSetRecommendedWindowSize(void* pUserData)
     wndSetWindowed(pUserData);
 
     RectDesc rect;
-    getRecommendedResolution(&rect);
+    getRecommendedWindowRect(pWindowRef, &rect);
 
     setWindowRect(pWindow, &rect);
 

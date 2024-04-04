@@ -96,6 +96,12 @@ RES(Buffer(LightData), lights,                  UPDATE_FREQ_NONE, t19, binding=1
 RES(ByteBuffer, lightClustersCount, UPDATE_FREQ_PER_FRAME, t20, binding=12);
 RES(ByteBuffer, lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
 
+#if USE_VRS
+#if defined(METAL)
+	RES(Tex2DMS(uint, SAMPLE_COUNT), historyTex, UPDATE_FREQ_NONE, t3, binding = 13);
+#endif
+#endif
+
 RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
 RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s1, binding = 8);
 
@@ -389,6 +395,19 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
+#if USE_VRS
+#if defined(METAL)
+	float4 result = float4(0, 0, 0, 0);
+	uint rate = GetConservativeRate(LoadTex2DMS(Get(historyTex), NO_SAMPLER, uint2(In.position.xy), 0).r);
+	if (rate == SHADING_RATE_2X2 && (i != 0))
+		RETURN(result);
+	if (rate == SHADING_RATE_1X2 && ((i == 1) || (i == 3)))
+		RETURN(result);
+	if (rate == SHADING_RATE_2X1 && ((i == 2) || (i == 3)))
+		RETURN(result);
+#endif
+#endif
+
 	// Load Visibility Buffer raw packed float4 data from render target
 #if(SAMPLE_COUNT > 1)
 	float4 visRaw = LoadTex2DMS(Get(vbTex), Get(depthSampler), uint2(In.position.xy), i);
@@ -440,6 +459,11 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	{
 		uint bufferIdx = pixelAddr.y * scrW + pixelAddr.x;
 		nodeIdx = Get(headIndexBufferSRV)[bufferIdx];
+	}
+
+	if(nodeIdx == OIT_HEAD_INVALID && opaqueShaded == 0u)
+	{
+		discard;
 	}
 
 	float transAlpha = 0.f;
@@ -512,10 +536,6 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 			transparentShaded = 1; 
 		}
-	}
-	else if (opaqueShaded == 0)
-	{
-		discard; 
 	}
 
 	float OutAlpha = (transparentShaded == 1 && opaqueShaded == 0) ? transAlpha : 1.0f; 

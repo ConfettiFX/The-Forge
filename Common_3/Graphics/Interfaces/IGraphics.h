@@ -97,6 +97,9 @@ typedef int32_t DxDescriptorID;
 #if defined(PROSPERO)
 #include "../../../Prospero/Common_3/Graphics/Agc/AgcStructs.h"
 #endif
+#if defined(Xbox)
+#include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
+#endif
 
 typedef enum RendererApi
 {
@@ -608,10 +611,11 @@ typedef enum BufferCreationFlags
     BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT = 0x10,
     BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS = 0x20,
     BUFFER_CREATION_FLAG_SHADER_BINDING_TABLE = 0x40,
+    BUFFER_CREATION_FLAG_MARKER = 0x80,
 #ifdef VULKAN
     /* Memory Host Flags */
-    BUFFER_CREATION_FLAG_HOST_VISIBLE = 0x80,
     BUFFER_CREATION_FLAG_HOST_COHERENT = 0x100,
+    BUFFER_CREATION_FLAG_HOST_VISIBLE = 0x200,
 #endif
 
 } BufferCreationFlags;
@@ -668,18 +672,6 @@ typedef enum ColorSpace
     COLOR_SPACE_P2020,         // BT2020 color space with PQ EOTF
     COLOR_SPACE_EXTENDED_SRGB, // Extended sRGB with linear EOTF
 } ColorSpace;
-
-typedef enum GPUPresetLevel
-{
-    GPU_PRESET_NONE = 0,
-    GPU_PRESET_OFFICE,  // This means unsupported
-    GPU_PRESET_VERYLOW, // Mostly for mobile GPU
-    GPU_PRESET_LOW,
-    GPU_PRESET_MEDIUM,
-    GPU_PRESET_HIGH,
-    GPU_PRESET_ULTRA,
-    GPU_PRESET_COUNT
-} GPUPresetLevel;
 
 // Material Unit test use this enum to index a shader table
 COMPILE_ASSERT(GPU_PRESET_COUNT == 7);
@@ -779,8 +771,16 @@ typedef struct QueryPool
 #if defined(METAL)
         struct
         {
-            double mGpuTimestampStart;
-            double mGpuTimestampEnd;
+            // Length: 'mCount'
+            // Not dynamic. It is of length n, given when a queryPool is added, look at: mtl_addQueryPool()
+            // Take a look into QuerySampleRange in MetalRenderer.mm..
+            void*                      pQueries;
+            // Sampling done only at encoder level..
+            id<MTLCounterSampleBuffer> pSampleBuffer;
+            // Offset from the start of their relative origin
+            uint32_t                   mRenderSamplesOffset;  // Origin: 0.
+            uint32_t                   mComputeSamplesOffset; // Origin: RenderSampleCount * mCount.
+            uint32_t                   mType;
         };
 #endif
 #if defined(DIRECT3D11)
@@ -1033,10 +1033,17 @@ typedef struct DEFINE_ALIGNED(Buffer, 64)
             uint8_t                   mSrvDescriptorOffset;
             /// Offset from mDescriptors for uav descriptor handle
             uint8_t                   mUavDescriptorOffset;
+#if !defined(XBOX)
+            uint8_t mMarkerBuffer : 1;
+#endif
             /// Native handle of the underlying resource
-            ID3D12Resource*           pResource;
-            /// Contains resource allocation info such as parent heap, offset in heap
-            D3D12MAAllocation*        pAllocation;
+            ID3D12Resource* pResource;
+            union
+            {
+                ID3D12Heap*        pMarkerBufferHeap;
+                /// Contains resource allocation info such as parent heap, offset in heap
+                D3D12MAAllocation* pAllocation;
+            };
         } mDx;
 #endif
 #if defined(VULKAN)
@@ -1862,13 +1869,26 @@ typedef struct CmdDesc
 #endif // ENABLE_GRAPHICS_DEBUG
 } CmdDesc;
 
-typedef enum MarkerType
+typedef enum MarkerFlags
 {
-    MARKER_TYPE_DEFAULT = 0x0,
-    MARKER_TYPE_IN = 0x1,
-    MARKER_TYPE_OUT = 0x2,
-    MARKER_TYPE_IN_OUT = 0x3,
-} MarkerType;
+    /// Default flag
+    MARKER_FLAG_NONE = 0,
+    MARKER_FLAG_WAIT_FOR_WRITE = 0x1,
+} MarkerFlags;
+MAKE_ENUM_FLAG(uint8_t, MarkerFlags)
+
+typedef struct MarkerDesc
+{
+    Buffer*     pBuffer;
+    uint32_t    mOffset;
+    uint32_t    mValue;
+    MarkerFlags mFlags;
+} MarkerDesc;
+
+#if !defined(PROSPERO) && !defined(XBOX)
+#define GPU_MARKER_SIZE                        sizeof(uint32_t)
+#define GPU_MARKER_VALUE(markerBuffer, offset) (*((uint32_t*)markerBuffer->pCpuMappedAddress) + ((offset) / GPU_MARKER_SIZE))
+#endif
 
 typedef struct DEFINE_ALIGNED(Cmd, 64)
 {
@@ -1930,8 +1950,8 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             // - cmdDraw functions to check for tessellation and patch control point count
             // - cmdDispatch functions to check for num threads per group (Metal needs to specify numThreadsPerThreadGroup explicitly)
             Pipeline*  pBoundPipeline;
-            // To store the begin-end timestamp for this command buffer
-            QueryPool* pLastFrameQuery;
+            QueryPool* pCurrentQueryPool;
+            int32_t    mCurrentQueryIndex;
             // Stored in cmdBindIndexBuffer and used in cmdDrawIndexed functions (no bindIndexBuffer in Metal)
             NOREFS id<MTLBuffer> mBoundIndexBuffer;
             // Stored in cmdBindIndexBuffer and used in cmdDrawIndexed functions (no bindIndexBuffer in Metal)
@@ -2773,13 +2793,6 @@ typedef enum GpuMode
     GPU_MODE_UNLINKED,
 } GpuMode;
 
-typedef struct ExtendedSettings
-{
-    uint32_t     mNumSettings;
-    uint32_t*    pSettings;
-    const char** ppSettingNames;
-} ExtendedSettings;
-
 typedef struct RendererDesc
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
@@ -2855,10 +2868,6 @@ typedef struct RendererDesc
 #if defined(VULKAN) && defined(ANDROID)
     bool mPreferVulkan;
 #endif
-
-    // Also, if `ReloadServer` code is interfering with debugging (due to threads/networking), then it can be temporarily disabled via this
-    // flag. NOTE: This flag overrides the behaviour specified by the `EnableReloadServer` field.
-    bool mDisableReloadServer;
 } RendererDesc;
 
 typedef struct GPUVendorPreset
@@ -2911,7 +2920,7 @@ typedef enum WaveOpsSupportFlags
 } WaveOpsSupportFlags;
 MAKE_ENUM_FLAG(uint32_t, WaveOpsSupportFlags);
 
-// update availableGpuProperties in GPUConfig.cpp if you made changes to this list
+// update availableGpuProperties in GraphicsConfig.cpp if you made changes to this list
 typedef struct GPUSettings
 {
     uint64_t mVRAM; // set to 0 on OpenGLES platform
@@ -2936,7 +2945,7 @@ typedef struct GPUSettings
     uint32_t mROVsSupported : 1;
     uint32_t mTessellationSupported : 1;
     uint32_t mGeometryShaderSupported : 1;
-    uint32_t mGpuBreadcrumbs : 1;
+    uint32_t mGpuMarkers : 1;
     uint32_t mHDRSupported : 1;
     uint32_t mTimestampQueries : 1;
     uint32_t mOcclusionQueries : 1;
@@ -2952,6 +2961,7 @@ typedef struct GPUSettings
 #endif
 #if defined(VULKAN)
     uint32_t mDynamicRenderingSupported : 1;
+    uint32_t mXclipseTransferQueueWorkaround : 1;
 #endif
     uint32_t mMaxBoundTextures;
     uint32_t mSamplerAnisotropySupported : 1;
@@ -3020,8 +3030,9 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 #if defined(METAL)
         struct
         {
-            id<MTLDevice>          pDevice;
-            struct VmaAllocator_T* pVmaAllocator;
+            id<MTLDevice>               pDevice;
+            struct VmaAllocator_T*      pVmaAllocator;
+            id<MTLComputePipelineState> pFillBufferPipeline;
             NOREFS id<MTLHeap>* pHeaps;
             uint32_t            mHeapCount;
             uint32_t            mHeapCapacity;
@@ -3168,6 +3179,9 @@ typedef struct GpuInfo
             uint32_t                    mDeviceFaultSupported : 1;
             uint32_t                    mASTCDecodeModeExtension : 1;
             uint32_t                    mDeviceMemoryReportExtension : 1;
+            uint32_t                    mAMDBufferMarkerExtension : 1;
+            uint32_t                    mAMDDeviceCoherentMemoryExtension : 1;
+            uint32_t                    mAMDDeviceCoherentMemorySupported : 1;
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
             uint32_t mExternalMemoryExtension : 1;
             uint32_t mExternalMemoryWin32Extension : 1;
@@ -3193,7 +3207,9 @@ typedef struct GpuInfo
     };
 #endif
 #if defined(METAL)
-    id<MTLDevice> pGPU;
+    id<MTLDevice>     pGPU;
+    id<MTLCounterSet> pCounterSetTimestamp;
+    uint32_t          mCounterTimestampEnabled : 1;
 #endif
     GPUSettings mSettings;
     GPUCapBits  mCapBits;
@@ -3503,7 +3519,7 @@ DECLARE_RENDERER_FUNCTION(void, freeMemoryStats, Renderer* pRenderer, char* pSta
 DECLARE_RENDERER_FUNCTION(void, cmdBeginDebugMarker, Cmd* pCmd, float r, float g, float b, const char* pName)
 DECLARE_RENDERER_FUNCTION(void, cmdEndDebugMarker, Cmd* pCmd)
 DECLARE_RENDERER_FUNCTION(void, cmdAddDebugMarker, Cmd* pCmd, float r, float g, float b, const char* pName)
-DECLARE_RENDERER_FUNCTION(uint32_t, cmdWriteMarker, Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags);
+DECLARE_RENDERER_FUNCTION(void, cmdWriteMarker, Cmd* pCmd, const MarkerDesc* pDesc);
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/

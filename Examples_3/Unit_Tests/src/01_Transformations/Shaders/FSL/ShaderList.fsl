@@ -6,10 +6,6 @@
 #include "basic.vert.fsl"
 #end
 
-#vert crash.vert
-#include "crash.vert.fsl"
-#end
-
 #frag skybox.frag
 #include "skybox.frag.fsl"
 #end

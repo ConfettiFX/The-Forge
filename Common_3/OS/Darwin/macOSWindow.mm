@@ -924,10 +924,7 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
         return;
     }
 
-    int clientWidthStart = (getRectWidth(&gCurrentWindow.windowedRect) - getRectWidth(&gCurrentWindow.clientRect)) >> 1;
-    int clientHeightStart = getRectHeight(&gCurrentWindow.windowedRect) - getRectHeight(&gCurrentWindow.clientRect) - clientWidthStart;
-
-    gCurrentWindow.clientRect = *pRect;
+    gCurrentWindow.windowedRect = *pRect;
 
     if (gCurrentWindow.centered)
     {
@@ -935,23 +932,21 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
     }
     else
     {
-        NSRect         contentRect;
+        NSRect         frameRect;
         float          dpiScale[2];
         const uint32_t monitorIdx = getActiveMonitorIdx();
         getMonitorDpiScale(monitorIdx, dpiScale);
-        contentRect.origin.x = pRect->left / dpiScale[0];
-        contentRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - pRect->bottom - clientHeightStart) / dpiScale[1];
-        contentRect.size.width = (float)getRectWidth(pRect) / dpiScale[0];
-        contentRect.size.height = (float)getRectHeight(pRect) / dpiScale[1];
+        frameRect.origin.x = pRect->left / dpiScale[0];
+        frameRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - pRect->bottom) / dpiScale[1];
+        frameRect.size.width = (float)getRectWidth(pRect) / dpiScale[0];
+        frameRect.size.height = (float)getRectHeight(pRect) / dpiScale[1];
 
         ForgeNSWindow* window = (ForgeNSWindow*)view.window;
         window.styleMask = PrepareStyleMask(winDesc);
 
-        NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect styleMask:window.styleMask];
+        [window setFrame:frameRect display:true];
 
-        [window setFrame:styleAdjustedRect display:true];
-
-        RectDesc newRect = [window setRectFromNSRect:styleAdjustedRect];
+        RectDesc newRect = [window setRectFromNSRect:frameRect];
         windowMovedOrResized(&newRect);
     }
 }
@@ -1381,6 +1376,8 @@ void getRecommendedResolution(RectDesc* rect)
     *rect = RectDesc{ 0, 0, (int32_t)(mainScreenRect.size.width * dpiScale[0] * 0.75),
                       (int32_t)(mainScreenRect.size.height * dpiScale[1] * 0.75) };
 }
+
+void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect) { getRecommendedResolution(rect); }
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {

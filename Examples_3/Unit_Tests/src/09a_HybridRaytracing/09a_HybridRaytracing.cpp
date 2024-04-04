@@ -183,15 +183,18 @@ DescriptorSet* pDescriptorSetBatchCompaction = NULL;
 /************************************************************************/
 // VB pass pipeline
 /************************************************************************/
-Shader*        pShaderVBBufferPass[gNumGeomSets] = {};
-Pipeline*      pPipelineVBBufferPass[gNumGeomSets] = {};
+// The last shader / pipeline in the array is used to simulate a crash
+Shader*        pShaderVBBufferPass[gNumGeomSets + 1] = {};
+Pipeline*      pPipelineVBBufferPass[gNumGeomSets + 1] = {};
 RootSignature* pRootSignatureVBPass = NULL;
 DescriptorSet* pDescriptorSetVBPass[2] = { NULL };
 
 enum Enum
 {
     Composite,
+    CompositeCrash,
     RaytracedShadows,
+    RaytracedShadowsCrash,
     CopyToBackbuffer,
     RenderPassCount
 };
@@ -216,7 +219,6 @@ Buffer* pBufferVBConstants[gDataBufferCount] = { NULL };
 Buffer* pBufferCameraUniform[gDataBufferCount] = { NULL };
 
 Buffer* pBufferMeshConstants = NULL;
-Buffer* pBufferMaterialProperty = NULL;
 
 RenderTarget* pRenderTargetVBPass = { NULL };
 RenderTarget* pRenderTargetDepth = NULL;
@@ -285,10 +287,9 @@ struct PropData
     uint32_t         mMaterialCount = 0;
     Buffer*          pConstantBuffer = NULL;
     Texture**        pTextureStorage = NULL;
-    FilterContainer* pFilterContainers = NULL;
+    VBMeshInstance*  pVBMeshInstances = NULL;
+    VBPreFilterStats mVBPreFilterStats[gDataBufferCount] = {};
     MaterialFlags*   mMaterialFlags = NULL;
-    uint32_t         numAlpha = 0;
-    uint32_t         numNoAlpha = 0;
 };
 
 Renderer*  pRenderer = NULL;
@@ -329,6 +330,42 @@ PropData SanMiguelProp;
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
 ProfileToken gGpuProfileToken;
+
+/// GPU Breadcrumbs
+/* Markers to be used to pinpoint which command has caused GPU hang.
+ * In this example, four markers get injected into the command list: one before drawing the VB, one after,
+ * then one before blitting to the swapchain and one after.
+ * Pressing one of the crash buttons will make the application hang at that point.
+ * When a crash is detected, the marker buffer is read to understand which of the 2 steps is missing the
+ * marker inserted after the rendering operation.
+ * Markers aren't perfectly reliable and can be subject to GPU command reordering.
+ * Establishing clear dependencies between render passes can help make them more reliable.
+ */
+
+// Rendering steps where we insert markers
+enum RenderingStep
+{
+    RENDERING_STEP_DRAW_VB_PASS = 0,
+    RENDERING_STEP_RAYTRACE_SHADOWS_PASS,
+    RENDERING_STEP_COMPOSITE_PASS,
+    RENDERING_STEP_COUNT
+};
+
+enum MarkerType
+{
+    MARKER_TASK_INDEX = 0,
+    MARKER_FRAME_INDEX,
+    MARKER_COUNT,
+};
+#define MARKER_OFFSET(type) ((type)*GPU_MARKER_SIZE)
+
+bool bHasCrashed = false;
+bool bCrashedSteps[RENDERING_STEP_COUNT] = {};
+
+Buffer*        pMarkerBuffer = {};
+const uint32_t gMarkerInitialValue = UINT32_MAX;
+const char*    gMarkerNames[] = { "Draw Visibility Buffer", "Raytrace Shadows", "Composite" };
+COMPILE_ASSERT(TF_ARRAY_COUNT(gMarkerNames) == RENDERING_STEP_COUNT);
 
 // forward declarations
 void subdivide(BVHNode* bvhNode, Triangle* tri, uint* triIdx, uint& nodesUsed, uint nodeIdx);
@@ -805,12 +842,35 @@ public:
             addResource(&ubDesc, NULL);
         }
     }
+
+    // Initialize breadcrumb buffer to write markers in it.
+    if (pRenderer->pGpu->mSettings.mGpuMarkers)
+    {
+        initMarkers();
+    }
 }
 
 UIComponentDesc guiDesc = {};
 guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 ;
 uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
+
+if (pRenderer->pGpu->mSettings.mGpuMarkers)
+{
+    static uint32_t renderingStepIndices[RENDERING_STEP_COUNT];
+    for (uint32_t i = 0; i < RENDERING_STEP_COUNT; i++)
+    {
+        renderingStepIndices[i] = i;
+
+        char label[MAX_LABEL_STR_LENGTH];
+        snprintf(label, MAX_LABEL_STR_LENGTH, "Simulate crash (%s)", gMarkerNames[i]);
+        ButtonWidget   crashButton;
+        UIWidget*      pCrashButton = uiCreateComponentWidget(pGuiWindow, label, &crashButton, WIDGET_TYPE_BUTTON);
+        WidgetCallback crashCallback = [](void* pUserData) { bCrashedSteps[*(uint32_t*)pUserData] = true; };
+        uiSetWidgetOnEditedCallback(pCrashButton, &renderingStepIndices[i], crashCallback);
+        REGISTER_LUA_WIDGET(pCrashButton);
+    }
+}
 
 SliderFloatWidget lightRotXSlider;
 lightRotXSlider.pData = &gLightRotationX;
@@ -830,8 +890,9 @@ if (!LoadSanMiguel())
 for (uint32_t frameIdx = 0; frameIdx < gDataBufferCount; ++frameIdx)
 {
     // alpha tested materials can be split here
-    gPerFrameData[frameIdx].mDrawCount[GEOMSET_OPAQUE] = SanMiguelProp.numNoAlpha;
-    gPerFrameData[frameIdx].mDrawCount[GEOMSET_ALPHA_CUTOUT] = SanMiguelProp.numAlpha;
+    gPerFrameData[frameIdx].mDrawCount[GEOMSET_OPAQUE] = SanMiguelProp.mVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
+    gPerFrameData[frameIdx].mDrawCount[GEOMSET_ALPHA_CUTOUT] =
+        SanMiguelProp.mVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
 }
 
 CreateBVHBuffers();
@@ -954,6 +1015,11 @@ void Exit()
 
     exitProfiler();
 
+    if (pRenderer->pGpu->mSettings.mGpuMarkers)
+    {
+        exitMarkers();
+    }
+
     exitUserInterface();
 
     exitFontSystem();
@@ -978,13 +1044,8 @@ void Exit()
     }
 
     removeResource(pBufferMeshConstants);
-    removeResource(pBufferMaterialProperty);
 
-    for (uint32_t i = 0; i < SanMiguelProp.mMeshCount; ++i)
-    {
-        removeVBFilterContainer(&SanMiguelProp.pFilterContainers[i]);
-    }
-    tf_free(SanMiguelProp.pFilterContainers);
+    tf_free(SanMiguelProp.pVBMeshInstances);
 
     removeSemaphore(pRenderer, pImageAcquiredSemaphore);
     removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
@@ -1052,7 +1113,6 @@ bool LoadSanMiguel()
 
     // Cluster creation
     VisibilityBufferDesc vbDesc = {};
-    vbDesc.mFilterBatchCount = FILTER_BATCH_COUNT;
     vbDesc.mNumFrames = gDataBufferCount;
     vbDesc.mNumBuffers = 1; // We don't use Async Compute for triangle filtering, 1 buffer is enough
     vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
@@ -1061,42 +1121,25 @@ bool LoadSanMiguel()
     vbDesc.mIndirectElementCount = INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
     vbDesc.mDrawArgCount = SanMiguelProp.mMeshCount;
     vbDesc.mIndexCount = SanMiguelProp.pGeom->mIndexCount;
-    vbDesc.mFilterBatchSize = FILTER_BATCH_SIZE;
+    vbDesc.mComputeThreads = VB_COMPUTE_THEADS;
     vbDesc.mMaxPrimitivesPerDrawIndirect = MAX_PRIMITIVES_PER_DRAW_INDIRECT;
     initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
 
-    // Calculate clusters
+    // Calculate mesh constants and filter containers
     SanMiguelProp.mMaterialFlags = (MaterialFlags*)tf_calloc(SanMiguelProp.mMeshCount, sizeof(MaterialFlags));
-    SanMiguelProp.pFilterContainers = (FilterContainer*)tf_calloc(SanMiguelProp.mMeshCount, sizeof(FilterContainer));
+    SanMiguelProp.pVBMeshInstances = (VBMeshInstance*)tf_calloc(SanMiguelProp.mMeshCount, sizeof(VBMeshInstance));
     MeshConstants* meshConstants = (MeshConstants*)tf_malloc(SanMiguelProp.mMeshCount * sizeof(MeshConstants));
 
     for (uint32_t i = 0; i < SanMiguelProp.mMeshCount; ++i)
     {
         MaterialFlags materialFlag = pScene->materialFlags[i];
         SanMiguelProp.mMaterialFlags[i] = materialFlag;
+        uint32_t geomSet = materialFlag & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
 
-        FilterContainerDescriptor desc = {};
-        desc.mType = FILTER_CONTAINER_TYPE_CLUSTER;
-        desc.mMeshIndex = i;
-        desc.mIndexCount = (pScene->geom->pDrawArgs + i)->mIndexCount;
-        desc.mGeometrySet = GEOMSET_OPAQUE;
-        desc.mBaseIndex = (pScene->geom->pDrawArgs + i)->mStartIndex;
-        desc.mInstanceIndex = INSTANCE_INDEX_NONE;
-        desc.pPositions = (float3*)pScene->geomData->pShadow->pAttributes[SEMANTIC_POSITION];
-        desc.pIndices = (uint32_t*)pScene->geomData->pShadow->pIndices;
-        desc.mIsTwoSided = materialFlag & MATERIAL_FLAG_TWO_SIDED;
-
-        if (materialFlag & MATERIAL_FLAG_ALPHA_TESTED)
-        {
-            desc.mGeometrySet = GEOMSET_ALPHA_CUTOUT;
-            ++SanMiguelProp.numAlpha;
-        }
-        else
-        {
-            ++SanMiguelProp.numNoAlpha;
-        }
-
-        addVBFilterContainer(&desc, &SanMiguelProp.pFilterContainers[i]);
+        SanMiguelProp.pVBMeshInstances[i].mGeometrySet = geomSet;
+        SanMiguelProp.pVBMeshInstances[i].mMeshIndex = i;
+        SanMiguelProp.pVBMeshInstances[i].mTriangleCount = (pScene->geom->pDrawArgs + i)->mIndexCount / 3;
+        SanMiguelProp.pVBMeshInstances[i].mInstanceIndex = INSTANCE_INDEX_NONE;
 
         meshConstants[i].indexOffset = SanMiguelProp.pGeom->pDrawArgs[i].mStartIndex;
         meshConstants[i].vertexOffset = SanMiguelProp.pGeom->pDrawArgs[i].mVertexOffset;
@@ -1115,27 +1158,18 @@ bool LoadSanMiguel()
     meshConstantDesc.mDesc.pName = "Mesh Constant desc";
     addResource(&meshConstantDesc, NULL);
 
-    uint32_t* materialAlphaData = (uint32_t*)tf_malloc(SanMiguelProp.mMaterialCount * sizeof(uint32_t));
-    for (uint32_t i = 0; i < SanMiguelProp.mMaterialCount; ++i)
+    UpdateVBMeshFilterGroupsDesc updateVBMeshFilterGroupsDesc = {};
+    updateVBMeshFilterGroupsDesc.mNumMeshInstance = SanMiguelProp.mMeshCount;
+    updateVBMeshFilterGroupsDesc.pVBMeshInstances = SanMiguelProp.pVBMeshInstances;
+    for (uint32_t i = 0; i < gDataBufferCount; ++i)
     {
-        materialAlphaData[i] = (pScene->materialFlags[i] & MATERIAL_FLAG_ALPHA_TESTED) ? 1 : 0;
+        updateVBMeshFilterGroupsDesc.mFrameIndex = i;
+        SanMiguelProp.mVBPreFilterStats[i] = updateVBMeshFilterGroups(pVisibilityBuffer, &updateVBMeshFilterGroupsDesc);
     }
-
-    BufferLoadDesc materialPropDesc = {};
-    materialPropDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-    materialPropDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    materialPropDesc.mDesc.mElementCount = SanMiguelProp.mMaterialCount;
-    materialPropDesc.mDesc.mStructStride = sizeof(uint32_t);
-    materialPropDesc.mDesc.mSize = materialPropDesc.mDesc.mElementCount * sizeof(uint32_t);
-    materialPropDesc.pData = materialAlphaData;
-    materialPropDesc.ppBuffer = &pBufferMaterialProperty;
-    materialPropDesc.mDesc.pName = "Material Prop Desc";
-    addResource(&materialPropDesc, NULL);
 
     waitForAllResourceLoads();
     unloadSanMiguel(pScene);
     tf_free(meshConstants);
-    tf_free(materialAlphaData);
 
     return true;
 }
@@ -1413,6 +1447,16 @@ void drawVisibilityBufferPass(Cmd* cmd)
 
     const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 
+    cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw VB pass");
+    if (pRenderer->pGpu->mSettings.mGpuMarkers)
+    {
+        MarkerDesc marker = {};
+        marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+        marker.mValue = RENDERING_STEP_DRAW_VB_PASS;
+        marker.pBuffer = pMarkerBuffer;
+        cmdWriteMarker(cmd, &marker);
+    }
+
     BindRenderTargetsDesc bindRenderTargets = {};
     bindRenderTargets.mRenderTargetCount = 1;
     bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
@@ -1428,8 +1472,18 @@ void drawVisibilityBufferPass(Cmd* cmd)
 
     for (uint32_t i = 0; i < gNumGeomSets; ++i)
     {
+        Pipeline* pipeline = pPipelineVBBufferPass[i];
+        // Using the malfunctioned pipeline
+        if (pRenderer->pGpu->mSettings.mGpuMarkers && bCrashedSteps[RENDERING_STEP_DRAW_VB_PASS])
+        {
+            bCrashedSteps[RENDERING_STEP_DRAW_VB_PASS] = false;
+            bHasCrashed = true;
+            pipeline = pPipelineVBBufferPass[gNumGeomSets];
+            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (DRAW VISIBILITY BUFFER)...");
+        }
+
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, profileNames[i]);
-        cmdBindPipeline(cmd, pPipelineVBBufferPass[i]);
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
         cmdBindVertexBuffer(cmd, i == GEOMSET_OPAQUE ? 1 : 2, pVertexBuffersPosTex, SanMiguelProp.pGeom->mVertexStrides, NULL);
@@ -1443,6 +1497,8 @@ void drawVisibilityBufferPass(Cmd* cmd)
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
     }
     cmdBindRenderTargets(cmd, NULL);
+
+    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 }
 
 void Draw()
@@ -1462,6 +1518,17 @@ void Draw()
     getFenceStatus(pRenderer, elem.pFence, &fenceStatus);
     if (FENCE_STATUS_INCOMPLETE == fenceStatus)
         waitForFences(pRenderer, 1, &elem.pFence);
+
+    if (pRenderer->pGpu->mSettings.mGpuMarkers)
+    {
+        // Check breadcrumb markers
+        bool crashed = checkMarkers();
+        if (crashed)
+        {
+            requestShutdown();
+            return;
+        }
+    }
 
     gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_CAMERA] = (gCameraUniformData.mInvView * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
     gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_SHADOW] = gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_CAMERA];
@@ -1500,18 +1567,22 @@ void Draw()
     Cmd* cmd = elem.pCmds[0];
     beginCmd(cmd);
 
+    MarkerDesc marker = {};
+    marker.pBuffer = pMarkerBuffer;
+
+    marker.mValue = gMarkerInitialValue;
+    marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+    cmdWriteMarker(cmd, &marker);
+
+    marker.mOffset = MARKER_OFFSET(MARKER_FRAME_INDEX);
+    marker.mValue = gFrameIndex;
+    cmdWriteMarker(cmd, &marker);
+
     cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
     // Visibility Prepass *********************************************************************************
     {
         TriangleFilteringPassDesc triangleFilteringDesc = {};
-        triangleFilteringDesc.pFilterContainers = SanMiguelProp.pFilterContainers;
-        triangleFilteringDesc.mNumContainers = SanMiguelProp.mMeshCount;
-        triangleFilteringDesc.mCullClusters = false;
-
-        triangleFilteringDesc.mNumCullingViewports = NUM_CULLING_VIEWPORTS;
-        triangleFilteringDesc.pViewportObjectSpace = gPerFrameData[gFrameIndex].mEyeObjectSpace;
-
         triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
         triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
         triangleFilteringDesc.pPipelineBatchCompaction = pPipelineBatchCompaction;
@@ -1524,11 +1595,13 @@ void Draw()
         triangleFilteringDesc.mFrameIndex = gFrameIndex;
         triangleFilteringDesc.mBuffersIndex = 0; // We don't use Async Compute for triangle filtering, we just have 1 buffer
         triangleFilteringDesc.mGpuProfileToken = gGpuProfileToken;
-        triangleFilteringDesc.mClearThreadCount = CLEAR_THREAD_COUNT;
-        FilteringStats stats = cmdVisibilityBufferTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
+        triangleFilteringDesc.mVBPreFilterStats = SanMiguelProp.mVBPreFilterStats[gFrameIndex];
+        cmdVBTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
 
-        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_OPAQUE] = stats.mGeomsetDrawCounts[GEOMSET_OPAQUE];
-        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_ALPHA_CUTOUT] = stats.mGeomsetDrawCounts[GEOMSET_ALPHA_CUTOUT];
+        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_OPAQUE] =
+            SanMiguelProp.mVBPreFilterStats[gFrameIndex].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
+        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_ALPHA_CUTOUT] =
+            SanMiguelProp.mVBPreFilterStats[gFrameIndex].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
         {
             const uint32_t numBarriers = NUM_CULLING_VIEWPORTS + 2;
             BufferBarrier  barriers2[numBarriers] = {};
@@ -1552,11 +1625,31 @@ void Draw()
         cmdResourceBarrier(cmd, 0, NULL, 1, &uav, 2, barriers);
     }
 
+    cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Shadow/Composite Pass");
+
     // Raytraced shadow pass ************************************************************************
     {
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Raytraced shadow Pass");
+        if (pRenderer->pGpu->mSettings.mGpuMarkers)
+        {
+            MarkerDesc marker = {};
+            marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+            marker.mValue = RENDERING_STEP_RAYTRACE_SHADOWS_PASS;
+            marker.pBuffer = pMarkerBuffer;
+            cmdWriteMarker(cmd, &marker);
+        }
 
-        cmdBindPipeline(cmd, pPipeline[RaytracedShadows]);
+        Pipeline* pipeline = pPipeline[RaytracedShadows];
+        // Using the malfunctioned pipeline
+        if (pRenderer->pGpu->mSettings.mGpuMarkers && bCrashedSteps[RENDERING_STEP_RAYTRACE_SHADOWS_PASS])
+        {
+            bCrashedSteps[RENDERING_STEP_RAYTRACE_SHADOWS_PASS] = false;
+            bHasCrashed = true;
+            pipeline = pPipeline[RaytracedShadowsCrash];
+            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (RAYTRACE SHADOWS)...");
+        }
+
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, Texture_RaytracedShadows, pDescriptorSetCompNonFreq);
         cmdBindDescriptorSet(cmd, gDataBufferCount * Texture_RaytracedShadows + gFrameIndex, pDescriptorSetCompFreq);
 
@@ -1571,6 +1664,14 @@ void Draw()
     // Composite pass *********************************************************************************
     {
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Composite Pass");
+        if (pRenderer->pGpu->mSettings.mGpuMarkers)
+        {
+            MarkerDesc marker = {};
+            marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+            marker.mValue = RENDERING_STEP_COMPOSITE_PASS;
+            marker.pBuffer = pMarkerBuffer;
+            cmdWriteMarker(cmd, &marker);
+        }
 
         // Transfer albedo and lighting to SRV State
         TextureBarrier barriers[] = { { pTextures[Texture_RaytracedShadows], RESOURCE_STATE_UNORDERED_ACCESS,
@@ -1578,7 +1679,17 @@ void Draw()
                                       { pTextures[Texture_Composite], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
         cmdResourceBarrier(cmd, 0, NULL, TF_ARRAY_COUNT(barriers), barriers, 0, NULL);
 
-        cmdBindPipeline(cmd, pPipeline[Composite]);
+        Pipeline* pipeline = pPipeline[Composite];
+        // Using the malfunctioned pipeline
+        if (pRenderer->pGpu->mSettings.mGpuMarkers && bCrashedSteps[RENDERING_STEP_COMPOSITE_PASS])
+        {
+            bCrashedSteps[RENDERING_STEP_COMPOSITE_PASS] = false;
+            bHasCrashed = true;
+            pipeline = pPipeline[CompositeCrash];
+            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (COMPOSE FRAME)...");
+        }
+
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, Texture_Composite, pDescriptorSetCompNonFreq);
         cmdBindDescriptorSet(cmd, gDataBufferCount * Texture_Composite + gFrameIndex, pDescriptorSetCompFreq);
 
@@ -1595,8 +1706,22 @@ void Draw()
         cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
     }
 
+    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken); // Shadow / Composite Pass
+
+    if (pRenderer->pGpu->mSettings.mGpuMarkers)
+    {
+        MarkerDesc marker = {};
+        marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+        marker.mValue = gMarkerInitialValue;
+        marker.pBuffer = pMarkerBuffer;
+        cmdWriteMarker(cmd, &marker);
+    }
+
     // Copy results to the backbuffer & draw text *****************************************************************
     {
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Copy to Backbuffer Pass");
+
+        // draw fullscreen triangle
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_DONTCARE };
@@ -1604,15 +1729,12 @@ void Draw()
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Copy to Backbuffer Pass");
+        Pipeline* pipeline = pPipeline[CopyToBackbuffer];
 
         // Draw  results
-        cmdBindPipeline(cmd, pPipeline[CopyToBackbuffer]);
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, 1, pDescriptorSetNonFreq);
-
-        // draw fullscreen triangle
         cmdDraw(cmd, 3, 0);
-
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
@@ -1690,20 +1812,18 @@ void prepareDescriptorSets()
     }
     // Triangle Filtering
     {
-        DescriptorData filterParams[4] = {};
+        DescriptorData filterParams[3] = {};
         filterParams[0].pName = "vertexPositionBuffer";
         filterParams[0].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
         filterParams[1].pName = "indexDataBuffer";
         filterParams[1].ppBuffers = &SanMiguelProp.pGeom->pIndexBuffer;
         filterParams[2].pName = "meshConstantsBuffer";
         filterParams[2].ppBuffers = &pBufferMeshConstants;
-        filterParams[3].pName = "materialProps";
-        filterParams[3].ppBuffers = &pBufferMaterialProperty;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 3, filterParams);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData filterParams[3] = {};
+            DescriptorData filterParams[4] = {};
             filterParams[0].pName = "filteredIndicesBuffer";
             filterParams[0].mCount = NUM_CULLING_VIEWPORTS;
             filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
@@ -1711,7 +1831,9 @@ void prepareDescriptorSets()
             filterParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[0];
             filterParams[2].pName = "PerFrameVBConstants";
             filterParams[2].ppBuffers = &pBufferVBConstants[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 3, filterParams);
+            filterParams[3].pName = "filterDispatchGroupDataBuffer";
+            filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 4, filterParams);
         }
     }
     // Batch Compaction
@@ -1923,7 +2045,8 @@ void addRootSignatures()
 
     const char*       vbPassSamplerNames[] = { "nearClampSampler" };
     Sampler*          vbPassSamplers[] = { pSamplerMiplessNear };
-    RootSignatureDesc vbPassRootDesc = { pShaderVBBufferPass, gNumGeomSets };
+    // Include the crash shader
+    RootSignatureDesc vbPassRootDesc = { pShaderVBBufferPass, gNumGeomSets + 1 };
     vbPassRootDesc.mMaxBindlessTextures = SanMiguelProp.mMaterialCount;
     vbPassRootDesc.ppStaticSamplerNames = vbPassSamplerNames;
     vbPassRootDesc.mStaticSamplerCount = TF_ARRAY_COUNT(vbPassSamplers);
@@ -2027,15 +2150,23 @@ void addShaders()
     }
     addShader(pRenderer, &visibilityBufferPassAlphaShaderDesc, &pShaderVBBufferPass[GEOMSET_ALPHA_CUTOUT]);
 
+    ShaderLoadDesc vbCrashDesc = shaderVBrepass;
+    vbCrashDesc.mStages[0].pFileName = "visibilityBufferPassCrash.vert";
+    addShader(pRenderer, &vbCrashDesc, &pShaderVBBufferPass[gNumGeomSets]);
+
     // shader for Shadow pass
     ShaderLoadDesc shadowsShader = {};
     shadowsShader.mStages[0].pFileName = "raytracedShadowsPass.comp";
     addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
+    shadowsShader.mStages[0].pFileName = "raytracedShadowsPassCrash.comp";
+    addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadowsCrash]);
 
     // shader for Composite pass
     ShaderLoadDesc compositeShader = {};
     compositeShader.mStages[0].pFileName = "compositePass.comp";
     addShader(pRenderer, &compositeShader, &pShader[Composite]);
+    compositeShader.mStages[0].pFileName = "compositePassCrash.comp";
+    addShader(pRenderer, &compositeShader, &pShader[CompositeCrash]);
 
     // Load shaders for copy to backbufferpass
     ShaderLoadDesc copyShader = {};
@@ -2051,8 +2182,11 @@ void removeShaders()
     removeShader(pRenderer, pShaderBatchCompaction);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_OPAQUE]);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_ALPHA_CUTOUT]);
+    removeShader(pRenderer, pShaderVBBufferPass[gNumGeomSets]);
     removeShader(pRenderer, pShader[Composite]);
+    removeShader(pRenderer, pShader[CompositeCrash]);
     removeShader(pRenderer, pShader[RaytracedShadows]);
+    removeShader(pRenderer, pShader[RaytracedShadowsCrash]);
     removeShader(pRenderer, pShader[CopyToBackbuffer]);
 }
 
@@ -2137,6 +2271,11 @@ void addPipelines()
             desc.mExtensionCount = 0;
         }
 
+        vbPassPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
+        vbPassPipelineSettings.pRasterizerState = &rasterStateDesc;
+        vbPassPipelineSettings.pShaderProgram = pShaderVBBufferPass[gNumGeomSets];
+        addPipeline(pRenderer, &desc, &pPipelineVBBufferPass[gNumGeomSets]);
+
         desc.mGraphicsDesc = {};
         desc.mType = PIPELINE_TYPE_COMPUTE;
         desc.mComputeDesc = {};
@@ -2167,6 +2306,8 @@ void addPipelines()
         pipelineDesc.pRootSignature = pRootSignatureComp;
         pipelineDesc.pShaderProgram = pShader[RaytracedShadows];
         addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadows]);
+        pipelineDesc.pShaderProgram = pShader[RaytracedShadowsCrash];
+        addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadowsCrash]);
     }
 
     // create composite pipeline
@@ -2177,6 +2318,8 @@ void addPipelines()
         pipelineDesc.pRootSignature = pRootSignatureComp;
         pipelineDesc.pShaderProgram = pShader[Composite];
         addPipeline(pRenderer, &desc, &pPipeline[Composite]);
+        pipelineDesc.pShaderProgram = pShader[CompositeCrash];
+        addPipeline(pRenderer, &desc, &pPipeline[CompositeCrash]);
     }
 
     // create copy to backbuffer pipeline
@@ -2205,14 +2348,55 @@ void removePipelines()
     removePipeline(pRenderer, pPipelineClearBuffers);
     removePipeline(pRenderer, pPipelineTriangleFiltering);
     removePipeline(pRenderer, pPipelineBatchCompaction);
-    for (uint32_t i = 0; i < gNumGeomSets; ++i)
+    for (uint32_t i = 0; i <= gNumGeomSets; ++i)
     {
         removePipeline(pRenderer, pPipelineVBBufferPass[i]);
     }
     removePipeline(pRenderer, pPipeline[RaytracedShadows]);
+    removePipeline(pRenderer, pPipeline[RaytracedShadowsCrash]);
     removePipeline(pRenderer, pPipeline[Composite]);
+    removePipeline(pRenderer, pPipeline[CompositeCrash]);
     removePipeline(pRenderer, pPipeline[CopyToBackbuffer]);
 }
+
+void initMarkers()
+{
+    BufferLoadDesc breadcrumbBuffer = {};
+    breadcrumbBuffer.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    breadcrumbBuffer.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    breadcrumbBuffer.mDesc.mSize = GPU_MARKER_SIZE * MARKER_COUNT;
+    breadcrumbBuffer.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#if defined(VULKAN)
+    breadcrumbBuffer.mDesc.mFlags |= BUFFER_CREATION_FLAG_MARKER;
+#endif
+    breadcrumbBuffer.mDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+    breadcrumbBuffer.pData = NULL;
+    breadcrumbBuffer.ppBuffer = &pMarkerBuffer;
+    addResource(&breadcrumbBuffer, NULL);
+}
+
+bool checkMarkers()
+{
+    if (!bHasCrashed)
+    {
+        return false;
+    }
+
+    threadSleep(2000);
+    uint32_t* markersValue = (uint32_t*)pMarkerBuffer->pCpuMappedAddress;
+    if (!markersValue)
+    {
+        return true;
+    }
+    uint32_t    taskIndex = GPU_MARKER_VALUE(pMarkerBuffer, MARKER_TASK_INDEX * GPU_MARKER_SIZE);
+    uint32_t    frameIndex = GPU_MARKER_VALUE(pMarkerBuffer, MARKER_FRAME_INDEX * GPU_MARKER_SIZE);
+    const char* stepName = taskIndex != gMarkerInitialValue ? gMarkerNames[taskIndex] : "Unknown";
+    LOGF(LogLevel::eINFO, "Last rendering step (approx): %s, crashed frame: %u", stepName, frameIndex);
+    bHasCrashed = false;
+    return true;
+}
+
+void exitMarkers() { removeResource(pMarkerBuffer); }
 }
 ;
 

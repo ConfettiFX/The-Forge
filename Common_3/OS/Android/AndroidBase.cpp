@@ -50,6 +50,7 @@
 #include "../../Utilities/Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
+#include "../../Tools/Network/Network.h"
 #include "../CPUConfig.h"
 
 #if defined(QUEST_VR)
@@ -312,6 +313,10 @@ bool initBaseSubsystems(IApp* app)
 #endif
 #endif
 
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    initNetwork();
+#endif
+
     return true;
 }
 
@@ -353,6 +358,10 @@ void exitBaseSubsystems()
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
+#endif
+
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    exitNetwork();
 #endif
 }
 

@@ -223,13 +223,16 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             sorted_elements = sorted(elements, key=lambda x: x[0], reverse=False)
             vkbinding = 0
             for elem in sorted_elements:
-                binding = elem[0].split()[-1]
-                binding = int( ''.join(c for c in binding if c.isdigit()) )
+                def cleaneval(exp: str):
+                    exp = re.sub(r"[A-Za-z]"," ",exp)
+                    return eval(exp)
+                binding = cleaneval(elem[0].split('=')[-1])
+                arr = 1 if not isArray(elem[1][2]) else cleaneval(getArrayLenFlat(elem[1][2]))
                 while vkbinding < binding:
                     ab_decl += [f'\t\tconstant void* _dummy_{ifreq}_{vkbinding};\n']
                     vkbinding += 1
                 ab_decl += ['\t\t', *elem[1], ';\n']
-                vkbinding += 1
+                vkbinding += arr
 
             if len(sorted_elements) == 1:
                 _, elem0 = sorted_elements[0]
@@ -282,6 +285,8 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 output_semantic = ''
                 if 'SV_POSITION' in sem:
                     output_semantic = '[[position]]'
+                    if Features.INVARIANT in binary.features:
+                        output_semantic = '[[position, invariant]]'
                 if 'SV_POINTSIZE' in sem:
                     output_semantic = '[[point_size]]'
                 if 'SV_DEPTH' in sem:

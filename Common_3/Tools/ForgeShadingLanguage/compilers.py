@@ -192,6 +192,9 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             if binary.stage == Stages.VERT:
                 if Features.PRIM_ID in binary.features:
                     profile = 'sce_vs_es_orbis'
+
+            if Features.INVARIANT in binary.features:
+                params += ['-nofastmath']
             
             params += ['-profile', profile]
             params += ['-I'+fsl_basepath, '-o', compiled_filepath, src]
@@ -218,6 +221,10 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
                 sdkDir = os.environ['SCE_PROSPERO_SDK_DIR']
                 params += ['-I' + sdkDir + '\\target\\include_common\\']
                 params += ['-llibScePsr.wal', '-L' + sdkDir + '\\target\\lib\\']
+
+            if Features.INVARIANT in binary.features:
+                params += ['-nofastmath']
+
             params += ['-o', compiled_filepath, src]
 
         elif platform in [Platforms.XBOX, Platforms.SCARLETT]:
@@ -248,6 +255,10 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
                 params = '-sdk macosx metal '.split(' ')
                 params += ['-I', fsl_basepath]
                 params += ['-dD', src, '-o', compiled_filepath]
+
+            if Features.INVARIANT in binary.features:
+                params += ['-fpreserve-invariance']
+
             params += [f"-std=macos-metal{util_shadertarget_metal(platform, binary)}"]
             params += ['-Wno-unused-variable']
 
@@ -269,6 +280,10 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
                 params += ['-mios-version-min=11.0']
                 params += ['-I', fsl_basepath]
                 params += ['-dD', src, '-o', compiled_filepath]
+
+            if Features.INVARIANT in binary.features:
+                params += ['-fpreserve-invariance']
+
             params += [f"-std=ios-metal{util_shadertarget_metal(platform, binary)}"]
             params += ['-Wno-unused-variable']
 

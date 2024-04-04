@@ -51,6 +51,8 @@
 #include "../../Utilities/Interfaces/IThread.h"
 #include "../../Utilities/Interfaces/ITime.h"
 
+#include "../../Tools/Network/Network.h"
+#include "../../Tools/ReloadServer/ReloadClient.h"
 #include "../../Utilities/Math/MathTypes.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -58,8 +60,6 @@
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
 #include "WindowsStackTraceDump.h"
 #endif
-
-#include "../../Tools/ReloadServer/ReloadClient.h"
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -190,6 +190,10 @@ bool initBaseSubsystems()
 #endif
 #endif
 
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    initNetwork();
+#endif
+
     return true;
 }
 
@@ -231,6 +235,10 @@ void exitBaseSubsystems()
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
+#endif
+
+#if defined(ENABLE_FORGE_REMOTE_UI)
+    exitNetwork();
 #endif
 }
 

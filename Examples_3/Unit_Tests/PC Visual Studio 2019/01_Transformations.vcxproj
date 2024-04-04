@@ -16,7 +16,6 @@
   <ItemGroup>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\01_Transformations\Shaders\FSL\crash.vert.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\resources.h.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl" />

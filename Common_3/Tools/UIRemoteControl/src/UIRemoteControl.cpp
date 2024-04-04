@@ -251,7 +251,6 @@ public:
         memset(&settings, 0, sizeof(settings));
         settings.mD3D11Supported = true;
         settings.mGLESSupported = true;
-        settings.mDisableReloadServer = true;
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)

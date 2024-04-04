@@ -111,7 +111,6 @@
 		B210D42D299D831A002C1112 /* UnixFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = B210D42B299D831A002C1112 /* UnixFileSystem.c */; };
 		B2244DDF27B853DC00F19A33 /* impl_x86_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = B2244DDE27B853DC00F19A33 /* impl_x86_macos.c */; };
 		B2244DE327B854A000F19A33 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2244DE227B854A000F19A33 /* CPUConfig.cpp */; };
-		B22CEEDA25D686980062036A /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B22CEED925D686980062036A /* GPUConfig.h */; };
 		B22CEF6A25D68BA30062036A /* IResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* IResourceLoader.h */; };
 		B231A24823F40207006D7450 /* ProfilerBase.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24023F40207006D7450 /* ProfilerBase.h */; };
 		B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24223F40207006D7450 /* GpuProfiler.cpp */; };
@@ -175,8 +174,8 @@
 		B2B33B24297FD6E600A5D377 /* pool.c in Sources */ = {isa = PBXBuildFile; fileRef = B2B33B04297FD6E600A5D377 /* pool.c */; };
 		B2B33B28297FD72200A5D377 /* huf_decompress_amd64.S in Sources */ = {isa = PBXBuildFile; fileRef = B2B33B27297FD72200A5D377 /* huf_decompress_amd64.S */; };
 		B2B33B29297FD72200A5D377 /* huf_decompress_amd64.S in Sources */ = {isa = PBXBuildFile; fileRef = B2B33B27297FD72200A5D377 /* huf_decompress_amd64.S */; };
-		B2B3E4B3286236B900D71D88 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B3E4B2286236B900D71D88 /* GPUConfig.cpp */; };
-		B2B3E4B4286236B900D71D88 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B3E4B2286236B900D71D88 /* GPUConfig.cpp */; };
+		B2B3E4B3286236B900D71D88 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B3E4B2286236B900D71D88 /* GraphicsConfig.cpp */; };
+		B2B3E4B4286236B900D71D88 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B3E4B2286236B900D71D88 /* GraphicsConfig.cpp */; };
 		B2CE780E25664A9600A0FF1B /* Screenshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CE780D25664A9600A0FF1B /* Screenshot.cpp */; };
 		B2CE780F25664A9600A0FF1B /* Screenshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CE780D25664A9600A0FF1B /* Screenshot.cpp */; };
 		B2D8BEFB26963987009EE13D /* lundump.c in Sources */ = {isa = PBXBuildFile; fileRef = B2D8BEBE26963984009EE13D /* lundump.c */; };
@@ -423,7 +422,6 @@
 		B210D42B299D831A002C1112 /* UnixFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = UnixFileSystem.c; sourceTree = "<group>"; };
 		B2244DDE27B853DC00F19A33 /* impl_x86_macos.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = impl_x86_macos.c; path = OS/ThirdParty/OpenSource/cpu_features/src/impl_x86_macos.c; sourceTree = "<group>"; };
 		B2244DE227B854A000F19A33 /* CPUConfig.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPUConfig.cpp; path = ../OS/CPUConfig.cpp; sourceTree = "<group>"; };
-		B22CEED925D686980062036A /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../Graphics/GPUConfig.h; sourceTree = "<group>"; };
 		B231A24023F40207006D7450 /* ProfilerBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerBase.h; sourceTree = "<group>"; };
 		B231A24223F40207006D7450 /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GpuProfiler.cpp; sourceTree = "<group>"; };
 		B231A24323F40207006D7450 /* GpuProfiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuProfiler.h; sourceTree = "<group>"; };
@@ -476,7 +474,7 @@
 		B2B33B03297FD6E600A5D377 /* huf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = huf.h; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/huf.h; sourceTree = "<group>"; };
 		B2B33B04297FD6E600A5D377 /* pool.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pool.c; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/pool.c; sourceTree = "<group>"; };
 		B2B33B27297FD72200A5D377 /* huf_decompress_amd64.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = huf_decompress_amd64.S; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/huf_decompress_amd64.S; sourceTree = "<group>"; };
-		B2B3E4B2286236B900D71D88 /* GPUConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GPUConfig.cpp; path = ../Graphics/GPUConfig.cpp; sourceTree = "<group>"; };
+		B2B3E4B2286236B900D71D88 /* GraphicsConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GraphicsConfig.cpp; path = ../Graphics/GraphicsConfig.cpp; sourceTree = "<group>"; };
 		B2CE780D25664A9600A0FF1B /* Screenshot.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Screenshot.cpp; path = ../Application/Screenshot.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/Application/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
 		B2D8BEBE26963984009EE13D /* lundump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lundump.c; path = "Game/ThirdParty/OpenSource/lua-5.3.5/src/lundump.c"; sourceTree = "<group>"; };
@@ -1090,14 +1088,13 @@
 			isa = PBXGroup;
 			children = (
 				263751832983BAA5006821BC /* ThreadSystem.c */,
-				B2B3E4B2286236B900D71D88 /* GPUConfig.cpp */,
+				B2B3E4B2286236B900D71D88 /* GraphicsConfig.cpp */,
 				550F7A612800777E007F29D2 /* Algorithms.c */,
 				550F7A5F2800777E007F29D2 /* Algorithms.h */,
 				550F7A602800777E007F29D2 /* AlgorithmsImpl.h */,
 				550F7A5E2800777E007F29D2 /* BStringHashMap.h */,
 				550F7A622800777E007F29D2 /* Config.h */,
 				550F7A632800777E007F29D2 /* StbDs.c */,
-				B22CEED925D686980062036A /* GPUConfig.h */,
 				B2CE780D25664A9600A0FF1B /* Screenshot.cpp */,
 				B2244DE227B854A000F19A33 /* CPUConfig.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.c */,
@@ -1288,7 +1285,6 @@
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
 				B2B33B0E297FD6E600A5D377 /* bits.h in Headers */,
 				B2D8BF5426963988009EE13D /* lauxlib.h in Headers */,
-				B22CEEDA25D686980062036A /* GPUConfig.h in Headers */,
 				B2B33B08297FD6E600A5D377 /* fse.h in Headers */,
 				550F7A642800777E007F29D2 /* BStringHashMap.h in Headers */,
 				B2B33B0C297FD6E600A5D377 /* threading.h in Headers */,
@@ -1500,7 +1496,7 @@
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.c in Sources */,
 				B2B33B24297FD6E600A5D377 /* pool.c in Sources */,
 				B2B33B14297FD6E600A5D377 /* entropy_common.c in Sources */,
-				B2B3E4B4286236B900D71D88 /* GPUConfig.cpp in Sources */,
+				B2B3E4B4286236B900D71D88 /* GraphicsConfig.cpp in Sources */,
 				B2D8BF2626963987009EE13D /* lcorolib.c in Sources */,
 				B2D8BEFE26963987009EE13D /* loadlib.c in Sources */,
 				B2D8BF9026963A6D009EE13D /* LuaManagerImpl.cpp in Sources */,
@@ -1621,7 +1617,7 @@
 				B2D8BF1826963987009EE13D /* lbaselib.c in Sources */,
 				B2D8BF0126963987009EE13D /* lstate.c in Sources */,
 				B2D8BF4C26963988009EE13D /* loslib.c in Sources */,
-				B2B3E4B3286236B900D71D88 /* GPUConfig.cpp in Sources */,
+				B2B3E4B3286236B900D71D88 /* GraphicsConfig.cpp in Sources */,
 				B2D8BF3B26963988009EE13D /* linit.c in Sources */,
 				B2D8BEFD26963987009EE13D /* loadlib.c in Sources */,
 				B2D8BF2726963987009EE13D /* ldo.c in Sources */,

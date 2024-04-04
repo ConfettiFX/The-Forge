@@ -108,7 +108,15 @@ MonitorDesc* gMonitors = NULL;
         return;
     }
 
+    // update globals to match newest scale factor.
+    gRetinaScale[0] = scaleFactor;
+    gRetinaScale[1] = scaleFactor;
+    gDeviceWidth = (int)newSize.width;
+    gDeviceHeight = (int)newSize.height;
     ((CAMetalLayer*)(self.layer)).drawableSize = newSize;
+    ((CAMetalLayer*)(self.layer)).contentsScale = scaleFactor;
+    self.contentScaleFactor = scaleFactor;
+    self.window.contentScaleFactor = scaleFactor;
     // Make sure app is notified of resize
     [_delegate drawRectResized:self.bounds.size];
 }
