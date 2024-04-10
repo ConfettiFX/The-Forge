@@ -69,23 +69,27 @@ STRUCT(PreSkinBufferOffsets)
 	DATA(uint, vertexOffset, None);
 };
 
+#define BATCH_GEOMETRY_MASK 0x3
+#define BATCH_FACE_COUNT_MASK 0x1FFC
+
+#define BATCH_GEOMETRY_LOW_BIT 0
+#define BATCH_FACE_COUNT_LOW_BIT 2
+
 // Input to triangle filtering shader
-STRUCT(FilterBatchData)
+STRUCT(FilterDispatchGroupData)
 {
 	DATA(uint, meshIndex, None);	  // Index into meshConstants
 	DATA(uint, indexOffset, None);	  // Index relative to the meshConstants[meshIndex].indexOffset
-	DATA(uint, faceCount, None);      // Number of faces in this small batch
 	DATA(uint, outputIndexOffset, None); // Offset into the output index buffer
-	DATA(uint, drawBatchStart, None);	// First slot for the current draw call
+	DATA(uint, meshDispatchGroupStart, None);	// First slot for the current draw call
 	DATA(uint, accumDrawIndex, None);
-	DATA(uint, instanceDataIndex, None);   // Instance specific data, usually an index into instanceData buffer but could also contain more encoded data in different bits
-	DATA(uint, geometrySet, None); // We only use 2 bits from this variable, the rest is free
+    DATA(uint, instanceDataIndex, None);   // Instance specific data, usually an offset into instanceData buffer but could also contain more encoded data in different bits
 
-	// Note: we could combine faceCount and geometrySet to add more data in this struct
 	//   - geometrySet: 2 bits (we have 3 geometry sets: OPAQUE, ALPHA_CUTOUT, ALPHA_BLEND)
-	//   - faceCount: 9 bits (this depends on FILTER_BATCH_SIZE, but it's usually 256, so 9 bits are enough)
-	//   - 21 bits free
-	//DATA(uint, geometrySet_faceCount, None); 
+    //   - faceCount: 11 bits (this depends on VB_COMPUTE_THEADS, which has a max of 1024 so 11 bits are enough)
+	//   - 19 bit free
+	DATA(uint, geometrySet_faceCount, None); 
+	DATA(uint, _pad0, None); 
 };
 
 STRUCT(CullingViewPort)

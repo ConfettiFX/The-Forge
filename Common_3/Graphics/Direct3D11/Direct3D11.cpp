@@ -44,7 +44,6 @@
 #include "../Interfaces/IGraphics.h"
 
 #include "../../Utilities/RingBuffer.h"
-#include "../GPUConfig.h"
 
 #include "Direct3D11CapBuilder.h"
 
@@ -1313,8 +1312,8 @@ void d3d11_initRendererContext(const char* appName, const RendererContextDesc* p
                     wcstombs(gpuDesc[gpuCount].mName, desc.Description, FS_MAX_PATH);
 
                     // get preset for current gpu description
-                    gpuDesc[gpuCount].mPreset = getGPUPresetLevel(getGPUVendorName(gpuDesc[gpuCount].mVendorId), gpuDesc[gpuCount].mName,
-                                                                  gpuDesc[gpuCount].mDeviceId, gpuDesc[gpuCount].mRevisionId);
+                    gpuDesc[gpuCount].mPreset = getGPUPresetLevel(gpuDesc[gpuCount].mVendorId, gpuDesc[gpuCount].mDeviceId,
+                                                                  getGPUVendorName(gpuDesc[gpuCount].mVendorId), gpuDesc[gpuCount].mName);
 
                     ++gpuCount;
                     SAFE_RELEASE(device);
@@ -1397,7 +1396,7 @@ void d3d11_initRendererContext(const char* appName, const RendererContextDesc* p
         gpu->mDx11.mPartialUpdateConstantBufferSupported = gpuDesc[i].mFeatureDataOptions.ConstantBufferPartialUpdate;
         gpu->mSettings.mFeatureLevel = gpuDesc[i].mMaxSupportedFeatureLevel;
 
-        applyConfigurationSettings(&gpu->mSettings, &gpu->mCapBits);
+        applyGPUConfigurationRules(&gpu->mSettings, &gpu->mCapBits);
 
         // Determine root signature size for this gpu driver
         DXGI_ADAPTER_DESC adapterDesc;
@@ -4475,11 +4474,6 @@ void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
     SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->mDx11.pContext, pName);
 #endif
 }
-
-uint32_t d3d11_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
-{
-    return 0;
-}
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
@@ -4648,7 +4642,6 @@ void initD3D11Renderer(const char* appName, const RendererDesc* pSettings, Rende
     cmdBeginDebugMarker = d3d11_cmdBeginDebugMarker;
     cmdEndDebugMarker = d3d11_cmdEndDebugMarker;
     cmdAddDebugMarker = d3d11_cmdAddDebugMarker;
-    cmdWriteMarker = d3d11_cmdWriteMarker;
     /************************************************************************/
     // Resource Debug Naming Interface
     /************************************************************************/

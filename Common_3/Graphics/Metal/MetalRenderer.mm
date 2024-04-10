@@ -59,7 +59,6 @@
 
 #include "../../Utilities/Interfaces/ILog.h"
 
-#include "../../Graphics/GPUConfig.h"
 #include "../../Utilities/Math/MathTypes.h"
 #include "../../Utilities/Threading/Atomics.h"
 
@@ -97,6 +96,23 @@ typedef struct DescriptorIndexMap
     char*    key;
     uint32_t value;
 } DescriptorIndexMap;
+
+typedef struct QuerySampleRange
+{
+    // Sample start in sample buffer
+    uint32_t mRenderStartIndex;
+    // Number of samples from 'RenderStartIndex'
+    uint32_t mRenderSamples;
+
+    uint32_t mComputeStartIndex;
+    uint32_t mComputeSamples;
+} QuerySampleRange;
+
+// MAX: 4
+#define NUM_RENDER_STAGE_BOUNDARY_COUNTERS  4
+#define NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS 2
+
+bool gIssuedQueryIgnoredWarning = false;
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 namespace RENDERER_CPP_NAMESPACE
@@ -277,8 +293,12 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 void util_set_debug_group(Cmd* pCmd);
 void util_unset_debug_group(Cmd* pCmd);
 
+id<MTLCounterSet>          util_get_counterset(id<MTLDevice> device);
+MTLCounterResultTimestamp* util_resolve_counter_sample_buffer(uint32_t startSample, uint32_t sampleCount,
+                                                              id<MTLCounterSampleBuffer> pSampleBuffer);
+
 // GPU frame time accessor for macOS and iOS
-#define GPU_FREQUENCY 1000000.0
+#define GPU_FREQUENCY 1000000000.0 // nanoseconds
 
 DECLARE_RENDERER_FUNCTION(void, getBufferSizeAlign, Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
 DECLARE_RENDERER_FUNCTION(void, getTextureSizeAlign, Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
@@ -1384,6 +1404,39 @@ id<MTLDepthStencilState> util_to_depth_state(Renderer* pRenderer, const DepthSta
 /************************************************************************/
 // Create default resources to be used a null descriptors in case user does not specify some descriptors
 /************************************************************************/
+static void AddFillBufferPipeline(Renderer* pRenderer)
+{
+    NSError*  error = nil;
+    NSString* fillBuffer = @"#include <metal_stdlib>\n"
+                            "using namespace metal;\n"
+                            "kernel void cs_fill_buffer(device uint32_t* dstBuffer [[buffer(0)]], constant uint2& valueCount "
+                            "[[buffer(1)]], uint dtid [[thread_position_in_grid]])\n"
+                            "{"
+                            "if (dtid >= valueCount.y) return;"
+                            "dstBuffer[dtid] = valueCount.x;"
+                            "}";
+
+    id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithSource:fillBuffer options:nil error:&error];
+    if (error != nil)
+    {
+        LOGF(LogLevel::eWARNING, "Could not create library for fillBuffer compute shader: %s", [error.description UTF8String]);
+        return;
+    }
+
+    // Load the kernel function from the library
+    id<MTLFunction> func = [lib newFunctionWithName:@"cs_fill_buffer"];
+    // Create the compute pipeline state
+    pRenderer->pFillBufferPipeline = [pRenderer->pDevice newComputePipelineStateWithFunction:func error:&error];
+    if (error != nil)
+    {
+        LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s", [error.description UTF8String]);
+        return;
+    }
+
+    lib = nil;
+    func = nil;
+}
+
 void add_default_resources(Renderer* pRenderer)
 {
     TextureDesc texture1DDesc = {};
@@ -1478,6 +1531,8 @@ void add_default_resources(Renderer* pRenderer)
 
     gDefaultRasterizerState = {};
     gDefaultRasterizerState.mCullMode = CULL_MODE_NONE;
+
+    AddFillBufferPipeline(pRenderer);
 }
 
 void remove_default_resources(Renderer* pRenderer)
@@ -1495,6 +1550,8 @@ void remove_default_resources(Renderer* pRenderer)
     removeSampler(pRenderer, pDefaultSampler);
 
     pDefaultDepthState = nil;
+
+    pRenderer->pFillBufferPipeline = nil;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1531,6 +1588,28 @@ TinyImageFormat mtl_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapC
 
 uint32_t mtl_getRecommendedSwapchainImageCount(Renderer*, const WindowHandle*) { return 3; }
 
+#if !defined(TARGET_IOS)
+static uint32_t GetEntryProperty(io_registry_entry_t entry, CFStringRef propertyName)
+{
+    uint32_t  value = 0;
+    CFTypeRef cfProp = IORegistryEntrySearchCFProperty(entry, kIOServicePlane, propertyName, kCFAllocatorDefault,
+                                                       kIORegistryIterateRecursively | kIORegistryIterateParents);
+    if (cfProp)
+    {
+        const uint32_t* pValue = (const uint32_t*)(CFDataGetBytePtr((CFDataRef)cfProp));
+        if (pValue)
+        {
+            value = *pValue;
+        }
+        CFRelease(cfProp);
+    }
+
+    return value;
+}
+#endif
+
+#define VENDOR_ID_APPLE 0x106b
+
 bool FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
 {
     strncpy(gpuVendor.mGpuName, [gpu.name UTF8String], MAX_GPU_VENDOR_STRING_LENGTH);
@@ -1539,33 +1618,48 @@ bool FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
     NSString* version = [[NSProcessInfo processInfo] operatingSystemVersionString];
     snprintf(gpuVendor.mGpuDriverVersion, MAX_GPU_VENDOR_STRING_LENGTH, "GpuFamily: %d OSVersion: %s", familyTier, version.UTF8String);
 
-    // We just need the vendorName and gpuName for apple devices.
     gpuVendor.mModelId = 0x0;
 
-    if (strstr(gpuVendor.mGpuName, "Apple") != NULL)
+    // No vendor id, device id for Apple GPUs
+    if (strstr(gpuVendor.mGpuName, "Apple"))
     {
-        strncpy(gpuVendor.mVendorName, "apple", 5);
-    }
-    else if (strstr(gpuVendor.mGpuName, "AMD") != NULL)
-    {
-        strncpy(gpuVendor.mVendorName, "amd", 3);
-    }
-    else if (strstr(gpuVendor.mGpuName, "Intel") != NULL)
-    {
-        strncpy(gpuVendor.mVendorName, "intel", 5);
-    }
-    else if (strstr(gpuVendor.mGpuName, "NVIDIA") != NULL)
-    {
-        strncpy(gpuVendor.mVendorName, "nvidia", 6);
+        strncpy(gpuVendor.mVendorName, "apple", MAX_GPU_VENDOR_STRING_LENGTH);
+        extern uint32_t getGPUModelID(const char* modelName);
+        gpuVendor.mModelId = getGPUModelID(gpuVendor.mGpuName);
+        gpuVendor.mVendorId = VENDOR_ID_APPLE;
     }
     else
     {
-        gpuVendor.mPresetLevel = getDefaultPresetLevel();
-        LOGF(LogLevel::eERROR, "Failed to get the vendor name for gpu: %s", gpuVendor.mGpuName);
-        return false;
+#if defined(TARGET_IOS)
+        ASSERTFAIL("Non-Apple GPU not supported");
+#else
+        io_registry_entry_t entry;
+        uint64_t            regID = 0;
+        regID = [gpu registryID];
+        if (regID)
+        {
+            entry = IOServiceGetMatchingService(kIOMasterPortDefault, IORegistryEntryIDMatching(regID));
+            if (entry)
+            {
+                // That returned the IOGraphicsAccelerator nub. Its parent, then, is the actual PCI device.
+                io_registry_entry_t parent;
+                if (IORegistryEntryGetParentEntry(entry, kIOServicePlane, &parent) == kIOReturnSuccess)
+                {
+                    uint32_t vendorID = GetEntryProperty(parent, CFSTR("vendor-id"));
+                    uint32_t deviceID = GetEntryProperty(parent, CFSTR("device-id"));
+                    gpuVendor.mVendorId = vendorID;
+                    gpuVendor.mModelId = deviceID;
+                    IOObjectRelease(parent);
+                }
+                IOObjectRelease(entry);
+            }
+        }
+
+        strncpy(gpuVendor.mVendorName, getGPUVendorName(gpuVendor.mVendorId), MAX_GPU_VENDOR_STRING_LENGTH);
+#endif
     }
-    gpuVendor.mVendorId = getGPUVendorID(gpuVendor.mVendorName);
-    gpuVendor.mPresetLevel = getGPUPresetLevel(gpuVendor.mVendorName, gpuVendor.mGpuName);
+
+    gpuVendor.mPresetLevel = getGPUPresetLevel(gpuVendor.mVendorId, gpuVendor.mModelId, gpuVendor.mVendorName, gpuVendor.mGpuName);
     return true;
 }
 
@@ -1926,8 +2020,10 @@ static uint64_t util_get_free_memory()
 }
 #endif
 
-static void QueryGPUSettings(id<MTLDevice> gpu, GPUSettings* pOutSettings)
+static void QueryGPUSettings(GpuInfo* gpuInfo, GPUSettings* pOutSettings)
 {
+    id<MTLDevice> gpu = gpuInfo->pGPU;
+
     setDefaultGPUSettings(pOutSettings);
     GPUVendorPreset& gpuVendor = pOutSettings->mGpuVendorPreset;
     FillGPUVendorPreset(gpu, gpuVendor);
@@ -1978,6 +2074,7 @@ static void QueryGPUSettings(id<MTLDevice> gpu, GPUSettings* pOutSettings)
     pOutSettings->mTimestampQueries = true;
     pOutSettings->mOcclusionQueries = false;
     pOutSettings->mPipelineStatsQueries = false;
+    pOutSettings->mGpuMarkers = true;
 
     const MTLSize maxThreadsPerThreadgroup = [gpu maxThreadsPerThreadgroup];
     pOutSettings->mMaxTotalComputeThreads = (uint32_t)maxThreadsPerThreadgroup.width;
@@ -1992,10 +2089,9 @@ static void QueryGPUSettings(id<MTLDevice> gpu, GPUSettings* pOutSettings)
     pOutSettings->mGeometryShaderSupported = false;
     pOutSettings->mWaveLaneCount = queryThreadExecutionWidth(gpu);
 
-    // Note: disabled for now, due to issues with MS stencil testing - We are getting no performance benefit for stencil samples other than
-    // first
-    bool disableVRS = true;
-    pOutSettings->mSoftwareVRSSupported = [gpu areProgrammableSamplePositionsSupported] && !disableVRS;
+    // Note: With enabled Shader Validation we are getting no performance benefit for stencil samples other than
+    // first even if stencil test for those samples was failed
+    pOutSettings->mSoftwareVRSSupported = [gpu areProgrammableSamplePositionsSupported];
 
     // Wave ops crash the compiler if not supported by gpu
     pOutSettings->mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
@@ -2087,6 +2183,11 @@ static void QueryGPUSettings(id<MTLDevice> gpu, GPUSettings* pOutSettings)
         pOutSettings->mRaytracingSupported = pOutSettings->mRayQuerySupported || pOutSettings->mRayPipelineSupported;
     }
 #endif
+
+    // Get the supported counter set.
+    // We only support timestamps at stage boundary..
+    gpuInfo->pCounterSetTimestamp = util_get_counterset(gpu);
+    gpuInfo->mCounterTimestampEnabled = gpuInfo->pCounterSetTimestamp != nil;
 }
 
 static bool SelectBestGpu(const RendererDesc* settings, Renderer* pRenderer)
@@ -2178,9 +2279,9 @@ void mtl_initRendererContext(const char* appName, const RendererContextDesc* pDe
     for (uint32_t i = 0; i < gpuCount; ++i)
     {
         pContext->mGpus[i].pGPU = gpus[i];
-        QueryGPUSettings(pContext->mGpus[i].pGPU, &pContext->mGpus[i].mSettings);
+        QueryGPUSettings(&pContext->mGpus[i], &pContext->mGpus[i].mSettings);
         mtlCapsBuilder(pContext->mGpus[i].pGPU, &pContext->mGpus[i].mCapBits);
-        applyConfigurationSettings(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
+        applyGPUConfigurationRules(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
 
         LOGF(LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %#x, Model ID: %#x, Preset: %s, GPU Name: %s", i,
              pContext->mGpus[i].mSettings.mGpuVendorPreset.mVendorId, pContext->mGpus[i].mSettings.mGpuVendorPreset.mModelId,
@@ -3866,7 +3967,6 @@ void mtl_beginCmd(Cmd* pCmd)
         pCmd->pBlitEncoder = nil;
         pCmd->pBoundPipeline = NULL;
         pCmd->mBoundIndexBuffer = nil;
-        pCmd->pLastFrameQuery = nil;
 #ifdef ENABLE_GRAPHICS_DEBUG
         pCmd->mDebugMarker[0] = '\0';
 #endif
@@ -4090,18 +4190,39 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             renderPassDesc.defaultRasterSampleCount = 1;
         }
 
+        // Add a sampler buffer attachment
+        if (IOS14_RUNTIME)
+        {
+            if (pCmd->pRenderer->pGpu->mCounterTimestampEnabled && pCmd->pCurrentQueryPool != nil)
+            {
+                MTLRenderPassSampleBufferAttachmentDescriptor* sampleAttachmentDesc = renderPassDesc.sampleBufferAttachments[0];
+                QueryPool*                                     pQueryPool = pCmd->pCurrentQueryPool;
+                QuerySampleRange* pSample = &((QuerySampleRange*)pQueryPool->pQueries)[pCmd->mCurrentQueryIndex];
+
+                uint32_t sampleStartIndex = pSample->mRenderStartIndex + (pSample->mRenderSamples * NUM_RENDER_STAGE_BOUNDARY_COUNTERS);
+
+                if (sampleStartIndex < (pQueryPool->mCount * NUM_RENDER_STAGE_BOUNDARY_COUNTERS))
+                {
+                    sampleAttachmentDesc.sampleBuffer = pQueryPool->pSampleBuffer;
+                    sampleAttachmentDesc.startOfVertexSampleIndex = sampleStartIndex;
+                    sampleAttachmentDesc.endOfVertexSampleIndex = sampleStartIndex + 1;
+                    sampleAttachmentDesc.startOfFragmentSampleIndex = sampleStartIndex + 2;
+                    sampleAttachmentDesc.endOfFragmentSampleIndex = sampleStartIndex + 3;
+
+                    pSample->mRenderSamples++;
+                    pQueryPool->mRenderSamplesOffset += NUM_RENDER_STAGE_BOUNDARY_COUNTERS;
+                }
+            }
+        }
+
         util_end_current_encoders(pCmd, false);
         pCmd->pRenderEncoder = [pCmd->pCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
 
 #ifdef ENABLE_GRAPHICS_DEBUG
         util_set_debug_group(pCmd);
-        if (pDesc->mRenderTargetCount)
+        if (pCmd->mDebugMarker[0])
         {
-            pCmd->pRenderEncoder.label = pDesc->mRenderTargets[0].pRenderTarget->pTexture->pTexture.label;
-        }
-        else if (pDesc->mDepthStencil.pDepthStencil)
-        {
-            pCmd->pRenderEncoder.label = pDesc->mDepthStencil.pDepthStencil->pTexture->pTexture.label;
+            pCmd->pRenderEncoder.label = [NSString stringWithUTF8String:pCmd->mDebugMarker];
         }
 #endif
 
@@ -4216,11 +4337,43 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         {
             if (!pCmd->pComputeEncoder)
             {
-                util_end_current_encoders(pCmd, barrierRequired);
-                pCmd->pComputeEncoder = [pCmd->pCommandBuffer computeCommandEncoder];
-                util_set_debug_group(pCmd);
+                // Add a sampler buffer attachment
+                if (IOS14_RUNTIME)
+                {
+                    MTLComputePassDescriptor* computePassDescriptor = [MTLComputePassDescriptor computePassDescriptor];
+                    MTLComputePassSampleBufferAttachmentDescriptor* sampleAttachmentDesc = computePassDescriptor.sampleBufferAttachments[0];
+                    if (pCmd->pRenderer->pGpu->mCounterTimestampEnabled && pCmd->pCurrentQueryPool != nil)
+                    {
+                        QueryPool*        pQueryPool = pCmd->pCurrentQueryPool;
+                        QuerySampleRange* pSample = &((QuerySampleRange*)pQueryPool->pQueries)[pCmd->mCurrentQueryIndex];
 
-                util_set_heaps_compute(pCmd);
+                        uint32_t sampleStartIndex =
+                            pSample->mComputeStartIndex + (pSample->mComputeSamples * NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS);
+
+                        if (sampleStartIndex < (pQueryPool->mCount * NUM_RENDER_STAGE_BOUNDARY_COUNTERS) +
+                                                   (pQueryPool->mCount * NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS))
+                        {
+                            sampleAttachmentDesc.sampleBuffer = pQueryPool->pSampleBuffer;
+                            sampleAttachmentDesc.startOfEncoderSampleIndex = sampleStartIndex;
+                            sampleAttachmentDesc.endOfEncoderSampleIndex = sampleStartIndex + 1;
+
+                            pSample->mComputeSamples++;
+                            pQueryPool->mComputeSamplesOffset += NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS;
+                        }
+                    }
+
+                    util_end_current_encoders(pCmd, barrierRequired);
+                    pCmd->pComputeEncoder = [pCmd->pCommandBuffer computeCommandEncoderWithDescriptor:computePassDescriptor];
+#ifdef ENABLE_GRAPHICS_DEBUG
+                    util_set_debug_group(pCmd);
+                    if (pCmd->mDebugMarker[0])
+                    {
+                        pCmd->pRenderEncoder.label = [NSString stringWithUTF8String:pCmd->mDebugMarker];
+                    }
+#endif
+
+                    util_set_heaps_compute(pCmd);
+                }
             }
             [pCmd->pComputeEncoder setComputePipelineState:pPipeline->pComputePipelineState];
         }
@@ -4845,19 +4998,8 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 
         for (uint32_t i = 0; i < cmdCount; i++)
         {
-            __block QueryPool* pCmdQueryPool = ppCmds[i]->pLastFrameQuery;
             [ppCmds[i]->pCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
                 uint32_t handlersCalled = 1u + tfrg_atomic32_add_relaxed(&commandsFinished, 1);
-
-                if (pCmdQueryPool)
-                {
-                    const double gpuStartTime([buffer GPUStartTime]);
-                    const double gpuEndTime([buffer GPUEndTime]);
-
-                    pCmdQueryPool->mGpuTimestampStart = +min(pCmdQueryPool->mGpuTimestampStart, gpuStartTime * GPU_FREQUENCY);
-
-                    pCmdQueryPool->mGpuTimestampEnd = max(pCmdQueryPool->mGpuTimestampEnd, gpuEndTime * GPU_FREQUENCY);
-                }
 
                 if (handlersCalled == cmdCount)
                 {
@@ -5032,9 +5174,35 @@ void mtl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pNa
         [pCmd->pBlitEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
 }
 
-uint32_t mtl_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+void mtl_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
 {
-    return 0;
+    ASSERT(pCmd);
+    ASSERT(pDesc);
+    ASSERT(pDesc->pBuffer);
+
+    const bool waitForWrite = pDesc->mFlags & MARKER_FLAG_WAIT_FOR_WRITE;
+    if (!pCmd->pComputeEncoder)
+    {
+        util_end_current_encoders(pCmd, waitForWrite);
+        pCmd->pComputeEncoder = [pCmd->pCommandBuffer computeCommandEncoder];
+        util_set_debug_group(pCmd);
+        util_set_heaps_compute(pCmd);
+    }
+
+    MTLSize  threadgroupCount = MTLSizeMake(1, 1, 1);
+    MTLSize  threadsPerGroup = MTLSizeMake(1, 1, 1);
+    uint32_t valueCount[2] = { pDesc->mValue, 1 };
+    cmdBeginDebugMarker(pCmd, 1.0f, 1.0f, 0.0f, "WriteMarker");
+    [pCmd->pComputeEncoder setComputePipelineState:pCmd->pRenderer->pFillBufferPipeline];
+    [pCmd->pComputeEncoder setBuffer:pDesc->pBuffer->pBuffer offset:pDesc->mOffset atIndex:0];
+    [pCmd->pComputeEncoder setBytes:valueCount length:sizeof(valueCount) atIndex:1];
+    [pCmd->pComputeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadsPerGroup];
+    cmdEndDebugMarker(pCmd);
+
+    if (waitForWrite)
+    {
+        util_end_current_encoders(pCmd, waitForWrite);
+    }
 }
 
 void mtl_getTimestampFrequency(Queue* pQueue, double* pFrequency) { *pFrequency = GPU_FREQUENCY; }
@@ -5057,17 +5225,96 @@ void mtl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool
     ASSERT(pQueryPool);
 
     pQueryPool->mCount = pDesc->mQueryCount;
-    pQueryPool->mGpuTimestampStart = DBL_MAX;
-    pQueryPool->mGpuTimestampEnd = DBL_MIN;
+    pQueryPool->mStride = sizeof(QuerySampleRange);
+
+    // Create counter sampler buffer
+    if (pDesc->mType == QUERY_TYPE_TIMESTAMP)
+    {
+        if (pRenderer->pGpu->mCounterTimestampEnabled)
+        {
+            pQueryPool->pQueries = (void*)tf_calloc(pQueryPool->mCount, sizeof(QuerySampleRange));
+            memset(pQueryPool->pQueries, 0, sizeof(QuerySampleRange) * pQueryPool->mCount);
+
+            @autoreleasepool
+            {
+                MTLCounterSampleBufferDescriptor* pDescriptor;
+                pDescriptor = [[MTLCounterSampleBufferDescriptor alloc] init];
+
+                // This counter set instance belongs to the `device` instance.
+                pDescriptor.counterSet = pRenderer->pGpu->pCounterSetTimestamp;
+
+                // Set the buffer to use shared memory so the CPU and GPU can directly access its contents.
+                pDescriptor.storageMode = MTLStorageModeShared;
+
+                // Add Stage (4) and Compute (2) encoder counters..
+                pDescriptor.sampleCount =
+                    (NUM_RENDER_STAGE_BOUNDARY_COUNTERS * pDesc->mQueryCount) + (NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS * pDesc->mQueryCount);
+
+                // Create the sample buffer by passing the descriptor to the device's factory method.
+                NSError* error = nil;
+                pQueryPool->pSampleBuffer = [pRenderer->pGpu->pGPU newCounterSampleBufferWithDescriptor:pDescriptor error:&error];
+
+                if (error != nil)
+                {
+                    LOGF(LogLevel::eERROR, "Device failed to create a counter sample buffer: %s", [error.description UTF8String]);
+                }
+            }
+        }
+    }
 
     *ppQueryPool = pQueryPool;
 }
 
-void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool) { SAFE_FREE(pQueryPool); }
+void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
+{
+    pQueryPool->pSampleBuffer = nil;
+    SAFE_FREE(pQueryPool->pQueries);
+    SAFE_FREE(pQueryPool);
+}
 
-void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) { pCmd->pLastFrameQuery = pQueryPool; }
+void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+{
+    if (pQueryPool->mType == QUERY_TYPE_TIMESTAMP)
+    {
+        pCmd->pCurrentQueryPool = pQueryPool;
+        pCmd->mCurrentQueryIndex = pQuery->mIndex;
 
-void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) {}
+        if (pQuery->mIndex == 0)
+        {
+            pQueryPool->mRenderSamplesOffset = 0;
+            pQueryPool->mComputeSamplesOffset = pQueryPool->mCount * NUM_RENDER_STAGE_BOUNDARY_COUNTERS;
+        }
+
+        if (pQueryPool->pQueries)
+        {
+            QuerySampleRange* pSample = &((QuerySampleRange*)pQueryPool->pQueries)[pQuery->mIndex];
+            pSample->mRenderSamples = 0;
+            pSample->mComputeSamples = 0;
+            pSample->mRenderStartIndex = pQueryPool->mRenderSamplesOffset;
+            pSample->mComputeStartIndex = pQueryPool->mComputeSamplesOffset;
+        }
+    }
+}
+
+void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+{
+    pCmd->pCurrentQueryPool = nil;
+    pCmd->mCurrentQueryIndex = -1;
+
+    if (pQueryPool->mType == QUERY_TYPE_TIMESTAMP)
+    {
+        if (!gIssuedQueryIgnoredWarning && pQueryPool->pQueries)
+        {
+            QuerySampleRange* pSample = &((QuerySampleRange*)pQueryPool->pQueries)[pQuery->mIndex];
+            if (pSample->mRenderSamples == 0 && pSample->mComputeSamples == 0)
+            {
+                gIssuedQueryIgnoredWarning = true;
+                LOGF(eWARNING, "A BeginQuery() is being ignored: Try moving it above cmdBindRenderTarget() or cmdBindPipeline(Compute). "
+                               "Warning only issued once.");
+            }
+        }
+    }
+}
 
 void mtl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
 
@@ -5079,22 +5326,84 @@ void mtl_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t query
     ASSERT(pQueryPool);
     ASSERT(pOutData);
 
-    // Temporary workaround for a race condition: sometimes the command list
-    // completion handler which populates these variables has not yet run,
-    // so they are still DBL_MAX/DBL_MIN. These checks prevent undefined behavior
-    // from trying to cast a too-large or too-small double value to a uint64_t.
-    double timestampStart = pQueryPool->mGpuTimestampStart;
-    double timestampEnd = pQueryPool->mGpuTimestampEnd;
-    pOutData->mValid = DBL_MAX != timestampStart && DBL_MIN != timestampEnd;
-    if (!pOutData->mValid)
+    uint64_t sumEncoderTimestamps = 0;
+
+    if (pQueryPool->pSampleBuffer != nil)
     {
-        return;
+        QuerySampleRange* pSample = &((QuerySampleRange*)pQueryPool->pQueries)[queryIndex];
+
+        uint32_t numSamples = pSample->mRenderSamples;
+        uint32_t startSampleIndex = pSample->mRenderStartIndex;
+        uint32_t sampleCount = numSamples * NUM_RENDER_STAGE_BOUNDARY_COUNTERS;
+
+        // Cast the data's bytes property to the counter's result type.
+        MTLCounterResultTimestamp* timestamps =
+            util_resolve_counter_sample_buffer(startSampleIndex, sampleCount, pQueryPool->pSampleBuffer);
+
+        if (timestamps != nil)
+        {
+            uint64_t maxVertTime = 0, minFragTime = UINT64_MAX;
+            // Check for invalid values within the (resolved) data from the counter sample buffer.
+            for (int index = 0; index < numSamples; ++index)
+            {
+                uint32_t currentSampleIdx = index * NUM_RENDER_STAGE_BOUNDARY_COUNTERS;
+
+                // Start and end of vertex stage.
+                MTLTimestamp sVertTime = timestamps[currentSampleIdx].timestamp;
+                MTLTimestamp eVertTime = timestamps[currentSampleIdx + 1].timestamp;
+
+                // Start and end of fragment stage.
+                MTLTimestamp sFragTime = timestamps[currentSampleIdx + 2].timestamp;
+                MTLTimestamp eFragTime = timestamps[currentSampleIdx + 3].timestamp;
+
+                if (sVertTime == MTLCounterErrorValue || eVertTime == MTLCounterErrorValue || sFragTime == MTLCounterErrorValue ||
+                    eFragTime == MTLCounterErrorValue)
+                {
+                    LOGF(eWARNING, "Render encoder timestamp sample %u (of %u) has an error value.", currentSampleIdx, sampleCount);
+                    continue;
+                }
+
+                sumEncoderTimestamps += (eFragTime - sFragTime) + (eVertTime - sVertTime);
+
+                maxVertTime = max(maxVertTime, eVertTime);
+                minFragTime = min(minFragTime, sFragTime);
+            }
+
+            // Subtract overlap delta..
+            if (minFragTime != UINT64_MAX)
+                sumEncoderTimestamps -= (maxVertTime > minFragTime) ? maxVertTime - minFragTime : 0;
+        }
+
+        numSamples = pSample->mComputeSamples;
+        startSampleIndex = pSample->mComputeStartIndex;
+        sampleCount = numSamples * NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS;
+
+        timestamps = util_resolve_counter_sample_buffer(startSampleIndex, sampleCount, pQueryPool->pSampleBuffer);
+
+        if (timestamps != nil)
+        {
+            // Check for invalid values within the (resolved) data from the counter sample buffer.
+            for (int index = 0; index < numSamples; ++index)
+            {
+                uint32_t currentSampleIdx = index * NUM_COMPUTE_STAGE_BOUNDARY_COUNTERS;
+
+                // Start and end of vertex stage.
+                MTLTimestamp startTimestamp = timestamps[currentSampleIdx].timestamp;
+                MTLTimestamp endTimestamp = timestamps[currentSampleIdx + 1].timestamp;
+
+                if (startTimestamp == MTLCounterErrorValue || endTimestamp == MTLCounterErrorValue)
+                {
+                    LOGF(eWARNING, "Compute encoder timestamp sample %u (of %u) has an error value.", currentSampleIdx, sampleCount);
+                    continue;
+                }
+
+                sumEncoderTimestamps += endTimestamp - startTimestamp;
+            }
+        }
     }
 
-    pOutData->mBeginTimestamp = (uint64_t)timestampStart;
-    pOutData->mEndTimestamp = (uint64_t)timestampEnd;
-    pQueryPool->mGpuTimestampStart = DBL_MAX;
-    pQueryPool->mGpuTimestampEnd = DBL_MIN;
+    pOutData->mBeginTimestamp = 0;
+    pOutData->mEndTimestamp = sumEncoderTimestamps;
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -5537,6 +5846,61 @@ void util_unset_debug_group(Cmd* pCmd)
         [pCmd->pBlitEncoder popDebugGroup];
     }
 #endif
+}
+
+id<MTLCounterSet> util_get_counterset(id<MTLDevice> device)
+{
+    if (IOS14_RUNTIME)
+    {
+        if (![device supportsCounterSampling:MTLCounterSamplingPointAtStageBoundary])
+        {
+            LOGF(eINFO, "Timestamp sampling not supported at Stage Boundaries.");
+            return nil;
+        }
+
+        id<MTLCounterSet> pCounterSet = nil;
+        for (id<MTLCounterSet> set in device.counterSets)
+        {
+            if ([MTLCommonCounterSetTimestamp isEqualToString:set.name])
+            {
+                pCounterSet = set;
+            }
+        }
+        if (!pCounterSet)
+            return nil;
+        for (id<MTLCounter> counter in pCounterSet.counters)
+        {
+            if ([MTLCommonCounterTimestamp isEqualToString:counter.name])
+            {
+                return pCounterSet;
+            }
+        }
+    }
+
+    return nil;
+}
+
+MTLCounterResultTimestamp* util_resolve_counter_sample_buffer(uint32_t startSample, uint32_t sampleCount,
+                                                              id<MTLCounterSampleBuffer> pSampleBuffer)
+{
+    NSRange range = NSMakeRange(startSample, sampleCount);
+
+    // Convert the contents of the counter sample buffer into the standard data format.
+    const NSData* data = [pSampleBuffer resolveCounterRange:range];
+    if (nil == data)
+    {
+        return nil;
+    }
+
+    const NSUInteger resolvedSampleCount = data.length / sizeof(MTLCounterResultTimestamp);
+    if (resolvedSampleCount < sampleCount)
+    {
+        LOGF(eWARNING, "Only %u out of %u timestamps resolved.", resolvedSampleCount, sampleCount);
+        return nil;
+    }
+
+    // Cast the data's bytes property to the counter's result type.
+    return (MTLCounterResultTimestamp*)(data.bytes);
 }
 
 void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, uint32_t pixelFormat,

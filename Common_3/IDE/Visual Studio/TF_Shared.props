@@ -16,6 +16,7 @@
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

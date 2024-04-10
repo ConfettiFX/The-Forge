@@ -1,10 +1,9 @@
-#version: 0.1
-#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+version: 0.2
+#Possible Classfications for Preset: ultra; high; medium; low; verylow; office
 #Sources:
-https://www.notebookcheck.net/Smartphone-Graphics-Cards-Benchmark-List.149363.0.html?type=&sort=&professional=0&showClassDescription=1&deskornote=3&or=1&showBars=1&3dmark13_ice_gpu=1&glbenchmark=1&gfxbench30=1&gfxbench31=1&basemarkx11_med=1&basemarkx11_high=1&gpu_fullname=1&architecture=1&pixelshaders=1&vertexshaders=1&corespeed=1&opengl=1  -> Classifies into Ultra; High; Medium; Low; Office
-#https://github.com/GameTechDev/gpudetect/blob/master/IntelGfx.cfg
-#https://www.techpowerup.com/vgabios
-#https://pci-ids.ucw.cz/
+#https://technical.city/en/video/rating
+#https://raw.githubusercontent.com/GameTechDev/gpudetect/master/IntelGfx.cfg
+#https://vulkan.gpuinfo.org/api/v2/getreportlist.php
 
 BEGIN_DEFAULT_CONFIGURATION;
 #if the gpu doesn't exist in the GPU_LIST use this instead
@@ -12,173 +11,134 @@ DefaultPresetLevel; Low;
 END_DEFAULT_CONFIGURATION;
 
 BEGIN_VENDOR_LIST;
-Qualcomm; 0x5143;
-Imagination Technologies; 0x1010;
-Samsung; 0x144D;
-ARM; 0x13B5;
-nvidia; 0x10DE; 
+amd; 0x1002;
+nvidia; 0x10de;
+imgtec; 0x1010;
+apple; 0x106b;
+arm; 0x13b5;
+samsung; 0x144d;
+qualcomm; 0x5143;
 END_VENDOR_LIST;
 
-#VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
+#VendorID ; DeviceID ; Preset ; #Device Details
+
 BEGIN_GPU_LIST;
-#Qualcomm
-Qualcomm ; Adreno 750 ; Medium
-Qualcomm ; Adreno 740 ; Medium
-Qualcomm ; Adreno 730 ; Medium
-Qualcomm ; Adreno 725 ; Medium
-Qualcomm ; Adreno 690 ; Medium
-Qualcomm ; Adreno 685 ; Medium
-Qualcomm ; Adreno 680 ; Medium
-Qualcomm ; Adreno 660 ; Medium
-Qualcomm ; Adreno 650 ; Low
-Qualcomm ; Adreno 644 ; Low
-Qualcomm ; Adreno 643 ; Low
-Qualcomm ; Adreno 642 ; Low
-Qualcomm ; Adreno 642L ; Low
-Qualcomm ; Adreno 710 ; Low
-Qualcomm ; Adreno 640 ; Low
-Qualcomm ; Adreno 630 ; Low
-Qualcomm ; Adreno 540 ; Low
-Qualcomm ; Adreno 530 ; Low
-Qualcomm ; Adreno 430 ; Low
-Qualcomm ; Adreno 420 ; Low
-Qualcomm ; Adreno 620 ; Low
-Qualcomm ; Adreno 619 ; VeryLow
-Qualcomm ; Adreno 619L ; VeryLow
-Qualcomm ; Adreno 618 ; VeryLow
-Qualcomm ; Adreno 616 ; VeryLow
-Qualcomm ; Adreno 612 ; VeryLow
-Qualcomm ; Adreno 610 ; VeryLow
-Qualcomm ; Adreno 512 ; VeryLow
-Qualcomm ; Adreno 510 ; VeryLow
-Qualcomm ; Adreno 418 ; VeryLow
-Qualcomm ; Adreno 330 ; Office
-Qualcomm ; Adreno 509 ; Office
-Qualcomm ; Adreno 508 ; Office
-Qualcomm ; Adreno 506 ; Office
-Qualcomm ; Adreno 505 ; Office
-Qualcomm ; Adreno 504 ; Office
-Qualcomm ; Adreno 405 ; Office
-Qualcomm ; Adreno 320 ; Office
-Qualcomm ; Adreno 308 ; Office
-Qualcomm ; Adreno 306 ; Office
-Qualcomm ; Adreno 305 ; Office
-Qualcomm ; Adreno 304 ; Office
-Qualcomm ; Adreno 302 ; Office
-Qualcomm ; Adreno 225 ; Office
-Qualcomm ; Adreno 220 ; Office
-Qualcomm ; Adreno 205 ; Office
-Qualcomm ; Adreno 203 ; Office
-Qualcomm ; Adreno 200 ; Office
+#amd
+0x1002; 0x15D8; verylow; #AMD; AMD Radeon(TM) RX Vega 10 Graphics
+0x1002; 0x687F; verylow; #AMD; Radeon RX Vega
 
-#Arm
-ARM ; Immortalis-G715 MP11 ; Medium
-ARM ; Immortalis-G715 ; Medium
-ARM ; Mali-G715 MP7 ; Medium
-ARM ; Mali-G715 ; Medium
-ARM ; Mali-G710 MP10 ; Medium
-ARM ; Mali-G710 MP7 ; Medium
-ARM ; Mali-G710 ; Medium
-ARM ; Mali-G78 MP24 ; Medium
-ARM ; Mali-G78 MP22 ; Medium
-ARM ; Mali-G78 MP20 ; Medium
-ARM ; Mali-G78 MP14 ; Medium
-ARM ; Mali-G78 ; Medium
-ARM ; Mali-G77 MP11 ; Low
-ARM ; Mali-G77 MP9 ; Low
-ARM ; Mali-G77 ; Low
-ARM ; Mali-G610 MP6 ; Low
-ARM ; Mali-G610 MP3 ; Low
-ARM ; Mali-G610 ; Low
-ARM ; Mali-G68 MP5 ; Low
-ARM ; Mali-G68 MP4 ; Low
-ARM ; Mali-G68 MP2 ; Low
-ARM ; Mali-G68 ; Low
-ARM ; Mali-G57 MP6 ; Low
-ARM ; Mali-G57 MP5 ; Low
-ARM ; Mali-G57 MP4 ; Low
-ARM ; Mali-G76 MP16 ; Low
-ARM ; Mali-G76 MP12 ; Low
-ARM ; Mali-G76 MP10 ; VeryLow
-ARM ; Mali-G76 MP4 ; VeryLow
-ARM ; Mali-G76 ; VeryLow
-ARM ; Mali-G72 MP18 ; VeryLow
-ARM ; Mali-G72 MP12 ; VeryLow
-ARM ; Mali-G72 MP3 ; VeryLow
-ARM ; Mali-G72 ; VeryLow
-ARM ; Mali-G71 MP20 ; VeryLow
-ARM ; Mali-G71 MP8 ; VeryLow
-ARM ; Mali-G71 MP2 ; VeryLow
-ARM ; Mali-G71 ; VeryLow
-ARM ; Mali-G57 MP3 ; VeryLow
-ARM ; Mali-G57 MP2 ; VeryLow
-ARM ; Mali-G57 MP1 ; VeryLow
-ARM ; Mali-G57 ; VeryLow
-ARM ; Mali-G52 MP6 ; VeryLow
-ARM ; Mali-G52 MP2 ; VeryLow
-ARM ; Mali-G52 MP1 ; VeryLow
-ARM ; Mali-G52 ; VeryLow
-ARM ; Mali-G51 MP4 ; VeryLow
-ARM ; Mali-G51 ; VeryLow
-ARM ; Mali-T880 MP4 ; VeryLow
-ARM ; Mali-T880 MP2 ; VeryLow
-ARM ; Mali-T880 MP1 ; VeryLow
-ARM ; Mali-T880 ; VeryLow
-ARM ; Mali-T860 MP2 ; VeryLow
-ARM ; Mali-T860 ; VeryLow
-ARM ; Mali-T830 MP3 ; VeryLow
-ARM ; Mali-T830 MP2 ; VeryLow
-ARM ; Mali-T830 MP1 ; VeryLow
-ARM ; Mali-T830 ; VeryLow
-ARM ; Mali-T760 MP8 ; VeryLow
-ARM ; Mali-T760 MP6 ; VeryLow
-ARM ; Mali-T760 MP4 ; VeryLow
-ARM ; Mali-T760 MP2 ; VeryLow
-ARM ; Mali-T760 ; VeryLow
-ARM ; Mali-T628 MP6 ; VeryLow
-ARM ; Mali-T628 MP4 ; VeryLow
-ARM ; Mali-T628 ; VeryLow
-ARM ; Mali-T604 MP4 ; VeryLow
-ARM ; Mali-T604 ; VeryLow
-ARM ; Mali-T720 MP4 ; Office
-ARM ; Mali-T720 MP2 ; Office
-ARM ; Mali-T720 ; Office
-ARM ; Mali-T624 ; Office
-ARM ; Mali-450 MP4 ; Office
-ARM ; Mali-400 MP4 ; Office
-ARM ; Mali-400 MP2 ; Office
-ARM ; Mali-400 ; Office
+#nvidia
+0x10DE; 0x1341; verylow; #NVIDIA; NVIDIA GeForce 840M
+0x10DE; 0x1B06; high; #NVIDIA; GeForce GTX 1080 Ti
+0x10DE; 0x1C60; medium; #NVIDIA; NVIDIA GeForce GTX 1060
+0x10DE; 0x1C82; low; #NVIDIA; NVIDIA GeForce GTX 1050 Ti
+0x10DE; 0x1D81; high; #NVIDIA; NVIDIA TITAN V
+0x10DE; 0x1F95; high; #NVIDIA; NVIDIA GeForce GTX 1650 Ti
+0x10DE; 0x21C4; medium; #NVIDIA; NVIDIA GeForce GTX 1660 SUPER
+0x10DE; 0x249C; high; #NVIDIA; NVIDIA GeForce RTX 3080 Laptop GPU
+0x10DE; 0x24DD; medium; #NVIDIA; NVIDIA GeForce RTX 3070 Laptop GPU
+0x10DE; 0x25A2; medium; #NVIDIA; NVIDIA GeForce RTX 3050 Laptop GPU
+0x10DE; 0x2786; high; #NVIDIA; NVIDIA GeForce RTX 4070
+0x10DE; 0x92BA03D7; verylow; #NVIDIA; NVIDIA Tegra X1
+0x10DE; 0x92EB03D7; verylow; #NVIDIA; NVIDIA Tegra X1 (rev B) (nvgpu)
 
-#Samsung:
-Samsung ; Xclipse 940; Medium
-Samsung ; Xclipse 920; Medium
+#imgtec
+0x1010; 0x22021016; verylow; #ImgTec; PowerVR Rogue GE8100
+0x1010; 0x22054030; verylow; #ImgTec; PowerVR Rogue GE8300
+0x1010; 0x22054038; verylow; #ImgTec; PowerVR Rogue GE8300
+0x1010; 0x22104018; verylow; #ImgTec; PowerVR Rogue GE8320
+0x1010; 0x22104218; verylow; #ImgTec; PowerVR Rogue GE8322
+0x1010; 0x24208504; verylow; #ImgTec; PowerVR Rogue GM9446
+0x1010; 0x35010101; verylow; #ImgTec; PowerVR BXM-8-256
+0x1010; 0x40233; verylow; #ImgTec; PowerVR Rogue GX6250
+0x1010; 0x5012E; verylow; #ImgTec; PowerVR Rogue G6110
+0x1010; 0x6250; verylow; #ImgTec; PowerVR Rogue GX6250
+0x1010; 0xA0419; verylow; #ImgTec; PowerVR Rogue GT7400 Plus
 
-#NVIDIA GPUs
-nvidia ; Tegra X1 Maxwell GPU ; Low
+#apple
+0x106B; 0x201; verylow; #Apple; Apple M1
 
-#Imagination Technologies
-Imagination Technologies ; PowerVR GM9446 ; VeryLow
-Imagination Technologies ; PowerVR GXA6850 ; VeryLow
-Imagination Technologies ; PowerVR GX6450 ; VeryLow
-Imagination Technologies ; PowerVR G6430 ; VeryLow
-Imagination Technologies ; PowerVR G6400 ; VeryLow
-Imagination Technologies ; PowerVR GX6250 ; Office
-Imagination Technologies ; PowerVR SGX554MP4 ; Office
-Imagination Technologies ; PowerVR GE8322  ; Office
-Imagination Technologies ; IMG8322 ; Office
-Imagination Technologies ; PowerVR G6200 ; Office
-Imagination Technologies ; PowerVR SGX543MP4 ; Office
-Imagination Technologies ; PowerVR GE8320 ; Office
-Imagination Technologies ; PowerVR GE8300 ; Office
-Imagination Technologies ; PowerVR GE8100 ; Office
-Imagination Technologies ; PowerVR SGX543MP3 ; Office
-Imagination Technologies ; PowerVR SGX543MP2 ; Office
-Imagination Technologies ; PowerVR SGX545 ; Office
-Imagination Technologies ; PowerVR SGX544MP2 ; Office
-Imagination Technologies ; PowerVR SGX544 ; Office
-Imagination Technologies ; PowerVR SGX540 ; Office
-Imagination Technologies ; PowerVR SGX535 ; Office
-Imagination Technologies ; PowerVR SGX531 ; Office
-Imagination Technologies ; PowerVR SGX530 ; Office
+#arm
+0x13B5; 0x60A00001; verylow; #ARM; Mali-G71
+0x13B5; 0x60A00002; verylow; #ARM; Mali-G71
+0x13B5; 0x62210001; verylow; #ARM; Mali-G72
+0x13B5; 0x62210010; verylow; #ARM; Mali-G72
+0x13B5; 0x62210030; verylow; #ARM; Mali-G72 MP3
+0x13B5; 0x70901010; verylow; #ARM; Mali-G51
+0x13B5; 0x72110000; verylow; #ARM; Mali-G76
+0x13B5; 0x72120000; verylow; #ARM; Mali-G52
+0x13B5; 0x74021000; verylow; #ARM; Mali-G52
+0x13B5; 0x7500011; verylow; #ARM; Mali-T760
+0x13B5; 0x8300010; verylow; #ARM; Mali-T830
+0x13B5; 0x8301000; verylow; #ARM; Mali-T830
+0x13B5; 0x8600020; verylow; #ARM; Mali-T860
+0x13B5; 0x8602000; verylow; #ARM; Mali-T860
+0x13B5; 0x8800020; verylow; #ARM; Mali-T880
+0x13B5; 0x8801008; verylow; #ARM; Mali-T880
+0x13B5; 0x8802000; verylow; #ARM; Mali-T880
+0x13B5; 0x90800011; verylow; #ARM; Mali-G57
+0x13B5; 0x90910000; verylow; #ARM; Mali-G57
+0x13B5; 0x90910010; verylow; #ARM; Mali-G57
+0x13B5; 0x90930000; verylow; #ARM; Mali-G57
+0x13B5; 0x90930010; verylow; #ARM; Mali-G57 MC2
+0x13B5; 0x92020000; low; #ARM; Mali-G78
+0x13B5; 0x92020010; low; #ARM; Mali-G78
+0x13B5; 0x92041010; low; #ARM; Mali-G68
+0x13B5; 0xA8620000; low; #ARM; Mali-G710
+0x13B5; 0xA8620004; low; #ARM; Mali-G710
+0x13B5; 0xA8670000; low; #ARM; Mali-G610
+0x13B5; 0xB8A20000; medium; #ARM; Mali-G715
+0x13B5; 0xB8A21010; medium; #ARM; Mali-G715-Immortalis MC11
+0x13B5; 0xB8A21020; medium; #ARM; Mali-G715
+0x13B5; 0xC8700000; medium; #ARM; Mali-G720-Immortalis MC12
+
+#samsung
+0x144D; 0x2600200; medium; #Samsung; Samsung Xclipse 940
+0x144D; 0x73A0; medium; #Samsung; Samsung Xclipse 920
+
+#qualcomm
+0x5143; 0x4010800; verylow; #Qualcomm; Adreno (TM) 418
+0x5143; 0x4030001; verylow; #Qualcomm; Adreno (TM) 430
+0x5143; 0x4030002; verylow; #Qualcomm; Adreno (TM) 430
+0x5143; 0x43050A00; medium; #Qualcomm; Adreno (TM) 740
+0x5143; 0x43050A01; medium; #Qualcomm; Adreno (TM) 740
+0x5143; 0x43050B00; medium; #Qualcomm; Adreno (TM) 740
+0x5143; 0x43051400; medium; #Qualcomm; Adreno (TM) 750
+0x5143; 0x43051401; medium; #Qualcomm; Adreno (TM) 750
+0x5143; 0x5000400; verylow; #Qualcomm; Adreno (TM) 504
+0x5143; 0x5000500; verylow; #Qualcomm; Adreno (TM) 505
+0x5143; 0x5000600; verylow; #Qualcomm; Adreno (TM) 506
+0x5143; 0x5000800; verylow; #Qualcomm; Adreno (TM) 508
+0x5143; 0x5000900; verylow; #Qualcomm; Adreno (TM) 509
+0x5143; 0x5010000; verylow; #Qualcomm; Adreno (TM) 510
+0x5143; 0x5010200; verylow; #Qualcomm; Adreno (TM) 512
+0x5143; 0x5030002; verylow; #Qualcomm; Adreno (TM) 530
+0x5143; 0x5030004; verylow; #Qualcomm; Adreno (TM) 530
+0x5143; 0x5040001; verylow; #Qualcomm; Adreno (TM) 540
+0x5143; 0x6010000; verylow; #Qualcomm; Adreno (TM) 610
+0x5143; 0x6010001; verylow; #Qualcomm; Adreno (TM) 610
+0x5143; 0x6010200; verylow; #Qualcomm; Adreno (TM) 612
+0x5143; 0x6010501; verylow; #Qualcomm; Adreno (TM) 615
+0x5143; 0x6010600; verylow; #Qualcomm; Adreno (TM) 616
+0x5143; 0x6010800; verylow; #Qualcomm; Adreno (TM) 618
+0x5143; 0x6010900; verylow; #Qualcomm; Adreno (TM) 619
+0x5143; 0x6010901; verylow; #Qualcomm; Adreno (TM) 619
+0x5143; 0x6020000; verylow; #Qualcomm; Adreno (TM) 620
+0x5143; 0x6020001; verylow; #Qualcomm; Adreno (TM) 620
+0x5143; 0x6030001; verylow; #Qualcomm; Adreno (TM) 630
+0x5143; 0x6030500; verylow; #Qualcomm; Adreno (TM) 642L
+0x5143; 0x6030501; verylow; #Qualcomm; Adreno (TM) 643
+0x5143; 0x6040001; verylow; #Qualcomm; Adreno (TM) 640
+0x5143; 0x6050001; low; #Qualcomm; Adreno (TM) 650
+0x5143; 0x6050002; low; #Qualcomm; Adreno (TM) 650
+0x5143; 0x6060000; low; #Qualcomm; Adreno (TM) 660
+0x5143; 0x6060001; low; #Qualcomm; Adreno (TM) 660
+0x5143; 0x6060010; verylow; #Qualcomm; Adreno (TM) 642
+0x5143; 0x6060201; verylow; #Qualcomm; Adreno (TM) 644
+0x5143; 0x7000200; verylow; #Qualcomm; Adreno (TM) 702
+0x5143; 0x7010000; verylow; #Qualcomm; Adreno (TM) 710
+0x5143; 0x7030001; low; #Qualcomm; Adreno (TM) 730
+0x5143; 0x7030002; low; #Qualcomm; Adreno (TM) 725
 
 END_GPU_LIST;
+

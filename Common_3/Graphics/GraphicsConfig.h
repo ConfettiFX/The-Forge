@@ -22,6 +22,8 @@
  * under the License.
  */
 
+#pragma once
+
 #ifndef FORGE_RENDERER_CONFIG_H
 #define FORGE_RENDERER_CONFIG_H
 
@@ -41,6 +43,8 @@
 #else
 
 #include "../Application/Config.h"
+
+// ------------------------------- renderer configuration ------------------------------- //
 
 // Comment/uncomment includes to disable/enable rendering APIs
 #if defined(_WINDOWS)
@@ -140,3 +144,59 @@ enum
 
 #endif
 #endif
+
+// ------------------------------- gpu configuration rules ------------------------------- //
+
+struct GPUSettings;
+struct GPUCapBits;
+
+typedef struct ExtendedSettings
+{
+    uint32_t     mNumSettings;
+    uint32_t*    pSettings;
+    const char** ppSettingNames;
+} ExtendedSettings;
+
+typedef enum GPUPresetLevel
+{
+    GPU_PRESET_NONE = 0,
+    GPU_PRESET_OFFICE,  // This means unsupported
+    GPU_PRESET_VERYLOW, // Mostly for mobile GPU
+    GPU_PRESET_LOW,
+    GPU_PRESET_MEDIUM,
+    GPU_PRESET_HIGH,
+    GPU_PRESET_ULTRA,
+    GPU_PRESET_COUNT
+} GPUPresetLevel;
+
+// read gpu.cfg and store all its content in specific structures
+FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);
+
+// free all specific gpu.cfg structures
+FORGE_API void removeGPUConfigurationRules();
+
+// set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
+FORGE_API void setDefaultGPUSettings(struct GPUSettings* pGpuSettings);
+
+// selects best gpu depending on the gpu comparison rules stored in gpu.cfg
+FORGE_API uint32_t util_select_best_gpu(struct GPUSettings* availableSettings, uint32_t gpuCount);
+
+// reads the gpu data and sets the preset level of all available gpu's
+FORGE_API GPUPresetLevel getDefaultPresetLevel();
+FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName);
+
+// apply the configuration rules stored in gpu.cfg to to a single GPUSettings
+FORGE_API void applyGPUConfigurationRules(struct GPUSettings* pGpuSettings, struct GPUCapBits* pCapBits);
+
+// apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
+FORGE_API void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GPUSettings* pGpuSettings);
+
+// return if the the GPUSettings validate the current driver rejection rules
+FORGE_API bool checkDriverRejectionSettings(const struct GPUSettings* pGpuSettings);
+
+// ------ utilities ------
+FORGE_API const char*    presetLevelToString(GPUPresetLevel preset);
+FORGE_API GPUPresetLevel stringToPresetLevel(const char* presetLevel);
+FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);
+FORGE_API const char*    getGPUVendorName(uint32_t modelId);
+FORGE_API uint32_t       getGPUVendorID(const char*);

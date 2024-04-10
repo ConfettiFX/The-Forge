@@ -364,6 +364,20 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "64E7CB552BA315F7001228C4"
+               BuildableName = "15a_VisibilityBufferOIT_iOS.app"
+               BlueprintName = "15a_VisibilityBufferOIT_iOS"
+               ReferencedContainer = "container:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "19_CodeHotReload_Main.app"
                BlueprintName = "19_CodeHotReload_Main"

@@ -61,7 +61,6 @@
 
 #include "../../Utilities/Math/AlgorithmsImpl.h"
 #include "../../Utilities/Math/MathTypes.h"
-#include "../GPUConfig.h"
 
 #include "Direct3D12CapBuilder.h"
 #include "Direct3D12Hooks.h"
@@ -1901,8 +1900,8 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
                             d3d12dll_CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&device));
                             hook_fill_gpu_desc(device, feature_levels[level], pGpuDesc);
                             // get preset for current gpu description
-                            pGpuDesc->mPreset = getGPUPresetLevel(getGPUVendorName(pGpuDesc->mVendorId), pGpuDesc->mName,
-                                                                  pGpuDesc->mDeviceId, pGpuDesc->mRevisionId);
+                            pGpuDesc->mPreset = getGPUPresetLevel(pGpuDesc->mVendorId, pGpuDesc->mDeviceId,
+                                                                  getGPUVendorName(pGpuDesc->mVendorId), pGpuDesc->mName);
                             SAFE_RELEASE(device);
                         }
                         else
@@ -1989,7 +1988,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mWaveOpsSupportedStageFlags = SHADER_STAGE_ALL_GRAPHICS | SHADER_STAGE_COMP;
 #endif
 
-    gpuSettings.mGpuBreadcrumbs = true;
+    gpuSettings.mGpuMarkers = true;
     gpuSettings.mHDRSupported = true;
     gpuSettings.mIndirectRootConstant = true;
     gpuSettings.mBuiltinDrawID = false;
@@ -2511,7 +2510,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
     QueryGPUSettings(device, &gpuDesc, &gpu->mSettings);
     d3d12CapsBuilder(device, &gpu->mCapBits);
     gpu->mDx.pDevice = device;
-    applyConfigurationSettings(&gpu->mSettings, &gpu->mCapBits);
+    applyGPUConfigurationRules(&gpu->mSettings, &gpu->mCapBits);
 #else
     InitCommon(pDesc, pContext);
 
@@ -2548,7 +2547,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
             gpuDesc[i].mFeatureDataOptions.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER::D3D12_RESOURCE_BINDING_TIER_1 ? 128
                                                                                                                              : 1000000;
 
-        applyConfigurationSettings(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
+        applyGPUConfigurationRules(&pContext->mGpus[i].mSettings, &pContext->mGpus[i].mCapBits);
 
         LOGF(LogLevel::eINFO, "GPU[%u] detected. Vendor ID: %#x, Model ID: %#x, Revision ID: %#x, Preset: %s, GPU Name: %s", i,
              pContext->mGpus[i].mSettings.mGpuVendorPreset.mVendorId, pContext->mGpus[i].mSettings.mGpuVendorPreset.mModelId,
@@ -3411,9 +3410,9 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     D3D12_RESOURCE_STATES res_states = util_to_dx12_resource_state(start_state);
 
     // Create resource
-    if (SUCCEEDED(hook_create_special_resource(pRenderer, &desc, NULL, res_states, pDesc->mFlags, &pBuffer->mDx.pResource)))
+    if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, NULL, res_states, pDesc->mFlags, pBuffer)))
     {
-        LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific RAM");
+        LOGF(LogLevel::eINFO, "Allocated memory in device-specific RAM");
     }
     // #TODO: This is not at all good but seems like virtual textures are using this
     // Remove as soon as possible
@@ -3434,7 +3433,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     {
         if (pDesc->pPlacement)
         {
-            CHECK_HRESULT(hook_create_placed_resource(pRenderer, pDesc->pPlacement, &desc, NULL, res_states, &pBuffer->mDx.pResource));
+            CHECK_HRESULT(hook_add_placed_resource(pRenderer, pDesc->pPlacement, &desc, NULL, res_states, &pBuffer->mDx.pResource));
         }
         else
         {
@@ -3532,7 +3531,17 @@ void d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
                                   handleCount);
     }
 
-    SAFE_RELEASE(pBuffer->mDx.pAllocation);
+#if !defined(XBOX)
+    if (pBuffer->mDx.mMarkerBuffer)
+    {
+        SAFE_RELEASE(pBuffer->mDx.pMarkerBufferHeap);
+        VirtualFree(pBuffer->pCpuMappedAddress, 0, MEM_DECOMMIT);
+    }
+    else
+#endif
+    {
+        SAFE_RELEASE(pBuffer->mDx.pAllocation);
+    }
     SAFE_RELEASE(pBuffer->mDx.pResource);
 
     SAFE_FREE(pBuffer);
@@ -3655,7 +3664,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         }
 
         // Create resource
-        if (SUCCEEDED(hook_create_special_resource(pRenderer, &desc, pClearValue, res_states, pDesc->mFlags, &pTexture->mDx.pResource)))
+        if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, pClearValue, res_states, pDesc->mFlags, pTexture)))
         {
             LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific RAM");
         }
@@ -3664,7 +3673,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
             if (pDesc->pPlacement)
             {
                 CHECK_HRESULT(
-                    hook_create_placed_resource(pRenderer, pDesc->pPlacement, &desc, pClearValue, res_states, &pTexture->mDx.pResource));
+                    hook_add_placed_resource(pRenderer, pDesc->pPlacement, &desc, pClearValue, res_states, &pTexture->mDx.pResource));
             }
             else
             {
@@ -7056,33 +7065,27 @@ void d3d12_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 #endif
 }
 
-uint32_t d3d12_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+void d3d12_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
 {
-    D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = pBuffer->mDx.mGpuAddress + offset * sizeof(uint32_t);
+    ASSERT(pCmd);
+    ASSERT(pDesc);
+    ASSERT(pDesc->pBuffer);
 
-    uint                                 count = MARKER_TYPE_IN_OUT == markerType ? 2 : 1;
-    D3D12_WRITEBUFFERIMMEDIATE_PARAMETER wbParam[2];
-    D3D12_WRITEBUFFERIMMEDIATE_MODE      wbMode[2];
-
-    if (count > 1)
+#if defined(XBOX)
+    extern void hook_cmd_write_marker(Cmd*, const MarkerDesc*);
+    hook_cmd_write_marker(pCmd, pDesc);
+#else
+    D3D12_GPU_VIRTUAL_ADDRESS            gpuAddress = pDesc->pBuffer->mDx.pResource->GetGPUVirtualAddress() + pDesc->mOffset;
+    D3D12_WRITEBUFFERIMMEDIATE_PARAMETER wbParam = {};
+    D3D12_WRITEBUFFERIMMEDIATE_MODE      wbMode = D3D12_WRITEBUFFERIMMEDIATE_MODE_DEFAULT;
+    if (pDesc->mFlags & MARKER_FLAG_WAIT_FOR_WRITE)
     {
-        wbParam[0].Dest = wbParam[1].Dest = gpuAddress;
-        wbParam[0].Value = markerValue | (useAutoFlags ? (MARKER_TYPE_IN << 30) : 0);
-        wbParam[1].Value = markerValue | (useAutoFlags ? (MARKER_TYPE_OUT << 30) : 0);
-
-        wbMode[0] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)MARKER_TYPE_IN;
-        wbMode[1] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)MARKER_TYPE_OUT;
+        wbMode = D3D12_WRITEBUFFERIMMEDIATE_MODE_MARKER_OUT;
     }
-    else
-    {
-        wbParam[0].Dest = gpuAddress;
-        wbParam[0].Value = markerValue | (useAutoFlags ? (markerType << 30) : 0);
-        wbMode[0] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)markerType;
-    }
-
-    ((ID3D12GraphicsCommandList2*)pCmd->mDx.pCmdList)->WriteBufferImmediate(count, wbParam, wbMode);
-
-    return markerValue;
+    wbParam.Dest = gpuAddress;
+    wbParam.Value = pDesc->mValue;
+    ((ID3D12GraphicsCommandList2*)pCmd->mDx.pCmdList)->WriteBufferImmediate(1, &wbParam, &wbMode);
+#endif
 }
 /************************************************************************/
 // Resource Debug Naming Interface

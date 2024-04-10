@@ -135,27 +135,6 @@ uint32_t gFontID = 0;
 
 QueryPool* pPipelineStatsQueryPool[gDataBufferCount] = {};
 
-/// Breadcrumb
-/* Markers to be used to pinpoint which command has caused GPU hang.
- * In this example, two markers get injected into the command list.
- * Pressing the crash button would result in a gpu hang.
- * In this sitatuion, the first marker would be written before the draw command, but the second one would stall for the draw command to
- * finish. Due to the infinite loop in the shader, the second marker won't be written, and we can reason that the draw command has caused
- * the GPU hang. We log the markers information to verify this. */
-bool bHasCrashed = false;
-bool bSimulateCrash = false;
-
-uint32_t       gCrashedFrame = 0;
-const uint32_t gMarkerCount = 2;
-const uint32_t gValidMarkerValue = 1U;
-
-Buffer*   pMarkerBuffer[gDataBufferCount] = { NULL };
-Shader*   pCrashShader = NULL;
-Pipeline* pCrashPipeline = NULL;
-
-DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
-
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1.tex",  "Skybox_left2.tex",  "Skybox_top3.tex",
                                         "Skybox_bottom4.tex", "Skybox_front5.tex", "Skybox_back6.tex" };
 
@@ -545,12 +524,6 @@ public:
             addResource(&ubDesc, NULL);
         }
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            // Initialize breadcrumb buffer to write markers in it.
-            initMarkers();
-        }
-
         // Load fonts
         FontDesc font = {};
         font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -598,15 +571,6 @@ public:
             statsWidget.pText = &gPipelineStats;
             statsWidget.pColor = &color;
             uiCreateComponentWidget(pGuiWindow, "Pipeline Stats", &statsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
-        }
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            ButtonWidget   crashButton;
-            UIWidget*      pCrashButton = uiCreateComponentWidget(pGuiWindow, "Simulate crash", &crashButton, WIDGET_TYPE_BUTTON);
-            WidgetCallback crashCallback = [](void* pUserData) { bSimulateCrash = true; };
-            uiSetWidgetOnEditedCallback(pCrashButton, nullptr, crashCallback);
-            REGISTER_LUA_WIDGET(pCrashButton);
         }
 
         const uint32_t numScripts = TF_ARRAY_COUNT(gWindowTestScripts);
@@ -850,11 +814,6 @@ public:
         // Exit profile
         exitProfiler();
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            exitMarkers();
-        }
-
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             removeResource(pProjViewUniformBuffer[i]);
@@ -1041,12 +1000,6 @@ public:
         if (fenceStatus == FENCE_STATUS_INCOMPLETE)
             waitForFences(pRenderer, 1, &elem.pFence);
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            // Check breadcrumb markers
-            checkMarkers();
-        }
-
         // Update uniform buffers
         BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
         beginUpdateResource(&viewProjCbv);
@@ -1091,12 +1044,6 @@ public:
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            // Reset markers values
-            resetMarkers(cmd);
-        }
-
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
         if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
         {
@@ -1110,6 +1057,8 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox/Planets");
+
         // simply record the screen cleaning command
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
@@ -1120,7 +1069,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         const uint32_t skyboxVbStride = sizeof(float) * 4;
-
         // draw skybox
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
@@ -1132,41 +1080,17 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-        ////// draw planets
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Planets");
 
-        Pipeline* pipeline = pSpherePipeline;
-
-        // Using the malfunctioned pipeline
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs && bSimulateCrash)
-        {
-            gCrashedFrame = gFrameIndex;
-            bSimulateCrash = false;
-            bHasCrashed = true;
-            pipeline = pCrashPipeline;
-            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation...");
-        }
-
-        cmdBindPipeline(cmd, pipeline);
+        cmdBindPipeline(cmd, pSpherePipeline);
         cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &gSphereVertexLayout.mBindings[0].mStride, nullptr);
         cmdBindIndexBuffer(cmd, pSphereIndexBuffer, INDEX_TYPE_UINT16, 0);
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            // Marker on top of the pip, won't wait for the following draw commands.
-            cmdWriteMarker(cmd, MARKER_TYPE_IN, gValidMarkerValue, pMarkerBuffer[gFrameIndex], 0, false);
-        }
-
         cmdDrawIndexedInstanced(cmd, gSphereIndexCount, 0, gNumPlanets, 0, 0);
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            // Marker on bottom of the pip, will wait for draw command to be executed.
-            cmdWriteMarker(cmd, MARKER_TYPE_OUT, gValidMarkerValue, pMarkerBuffer[gFrameIndex], 1, false);
-        }
-
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+        cmdEndGpuTimestampQuery(cmd, gGpuProfileToken); // Draw Skybox/Planets
+        cmdBindRenderTargets(cmd, NULL);
 
         if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
         {
@@ -1177,12 +1101,13 @@ public:
             cmdBeginQuery(cmd, pPipelineStatsQueryPool[gFrameIndex], &queryDesc);
         }
 
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
+
         bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+        bindRenderTargets.mDepthStencil = { NULL, LOAD_ACTION_DONTCARE };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
-
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
         gFrameTimeDraw.mFontColor = 0xff00ffff;
         gFrameTimeDraw.mFontSize = 18.0f;
@@ -1192,8 +1117,8 @@ public:
 
         cmdDrawUserInterface(cmd);
 
-        cmdBindRenderTargets(cmd, NULL);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+        cmdBindRenderTargets(cmd, NULL);
 
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
@@ -1223,6 +1148,7 @@ public:
         submitDesc.ppWaitSemaphores = waitSemaphores;
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
+
         QueuePresentDesc presentDesc = {};
         presentDesc.mIndex = swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
@@ -1292,16 +1218,10 @@ public:
 
     void addRootSignatures()
     {
-        Shader*  shaders[3];
-        uint32_t shadersCount = 2;
-        shaders[0] = pSphereShader;
-        shaders[1] = pSkyBoxDrawShader;
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            shaders[2] = pCrashShader;
-            shadersCount = 3;
-        }
+        Shader*  shaders[2];
+        uint32_t shadersCount = 0;
+        shaders[shadersCount++] = pSphereShader;
+        shaders[shadersCount++] = pSkyBoxDrawShader;
 
         const char*       pStaticSamplers[] = { "uSampler0" };
         RootSignatureDesc rootDesc = {};
@@ -1327,23 +1247,12 @@ public:
 
         addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
         addShader(pRenderer, &basicShader, &pSphereShader);
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            ShaderLoadDesc crashShader = {};
-            crashShader.mStages[0].pFileName = "crash.vert";
-            crashShader.mStages[1].pFileName = "basic.frag";
-            addShader(pRenderer, &crashShader, &pCrashShader);
-        }
     }
 
     void removeShaders()
     {
         removeShader(pRenderer, pSphereShader);
         removeShader(pRenderer, pSkyBoxDrawShader);
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-            removeShader(pRenderer, pCrashShader);
     }
 
     void addPipelines()
@@ -1376,12 +1285,6 @@ public:
         pipelineSettings.mVRFoveatedRendering = true;
         addPipeline(pRenderer, &desc, &pSpherePipeline);
 
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            pipelineSettings.pShaderProgram = pCrashShader;
-            addPipeline(pRenderer, &desc, &pCrashPipeline);
-        }
-
         // layout and pipeline for skybox draw
         VertexLayout vertexLayout = {};
         vertexLayout.mBindingCount = 1;
@@ -1404,11 +1307,6 @@ public:
     {
         removePipeline(pRenderer, pSkyBoxDrawPipeline);
         removePipeline(pRenderer, pSpherePipeline);
-
-        if (pRenderer->pGpu->mSettings.mGpuBreadcrumbs)
-        {
-            removePipeline(pRenderer, pCrashPipeline);
-        }
     }
 
     void prepareDescriptorSets()
@@ -1441,62 +1339,5 @@ public:
             updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
         }
     }
-
-    void initMarkers()
-    {
-        BufferLoadDesc breadcrumbBuffer = {};
-        breadcrumbBuffer.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNDEFINED;
-        breadcrumbBuffer.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-        breadcrumbBuffer.mDesc.mSize = (gMarkerCount + 3) / 4 * 4 * sizeof(uint32_t);
-        breadcrumbBuffer.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
-        breadcrumbBuffer.mDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-        breadcrumbBuffer.pData = NULL;
-
-        for (uint32_t i = 0; i < gDataBufferCount; ++i)
-        {
-            breadcrumbBuffer.ppBuffer = &pMarkerBuffer[i];
-            addResource(&breadcrumbBuffer, NULL);
-        }
-    }
-
-    void checkMarkers()
-    {
-        if (bHasCrashed)
-        {
-            ReadRange readRange = { 0, gMarkerCount * sizeof(uint32_t) };
-            mapBuffer(pRenderer, pMarkerBuffer[gCrashedFrame], &readRange);
-
-            uint32_t* markersValue = (uint32_t*)pMarkerBuffer[gCrashedFrame]->pCpuMappedAddress;
-
-            for (uint32_t m = 0; m < gMarkerCount; ++m)
-            {
-                if (gValidMarkerValue != markersValue[m])
-                {
-                    LOGF(LogLevel::eERROR, "[Breadcrumb] crashed frame: %u, marker: %u, value:%u", gCrashedFrame, m, markersValue[m]);
-                }
-            }
-
-            unmapBuffer(pRenderer, pMarkerBuffer[gCrashedFrame]);
-
-            bHasCrashed = false;
-        }
-    }
-
-    void resetMarkers(Cmd* pCmd)
-    {
-        for (uint32_t i = 0; i < gMarkerCount; ++i)
-        {
-            cmdWriteMarker(pCmd, MARKER_TYPE_DEFAULT, 0, pMarkerBuffer[gFrameIndex], i, false);
-        }
-    }
-
-    void exitMarkers()
-    {
-        for (uint32_t i = 0; i < gDataBufferCount; ++i)
-        {
-            removeResource(pMarkerBuffer[i]);
-        }
-    }
 };
-
 DEFINE_APPLICATION_MAIN(Transformations)

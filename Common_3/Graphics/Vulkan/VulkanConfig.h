@@ -107,6 +107,10 @@ extern void OnVkDeviceLost(struct Renderer*);
         }                                                              \
     }
 
+#if defined(ANDROID) && !defined(QUEST_VR)
+#define GFX_ENABLE_SWAPPY
+#endif
+
 // #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
 extern bool gEnableDynamicRenderingExtension;
 

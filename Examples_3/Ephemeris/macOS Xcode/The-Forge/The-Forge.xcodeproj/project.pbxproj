@@ -309,11 +309,10 @@
 		E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		ED2C4D3028756EF100D3CD40 /* CPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = ED2C4D2F28756EF100D3CD40 /* CPUConfig.h */; };
-		ED2C4D3228756EFF00D3CD40 /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = ED2C4D3128756EFF00D3CD40 /* GPUConfig.h */; };
 		ED2C4D3428756F9D00D3CD40 /* PickRenderingApi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED2C4D3328756F9D00D3CD40 /* PickRenderingApi.cpp */; };
 		ED2C4D3628756FA800D3CD40 /* IGraphics.h in Headers */ = {isa = PBXBuildFile; fileRef = ED2C4D3528756FA800D3CD40 /* IGraphics.h */; };
-		EDF77C0F287593F1003A3168 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C0E287593F1003A3168 /* GPUConfig.cpp */; };
-		EDF77C10287593F1003A3168 /* GPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C0E287593F1003A3168 /* GPUConfig.cpp */; };
+		EDF77C0F287593F1003A3168 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C0E287593F1003A3168 /* GraphicsConfig.cpp */; };
+		EDF77C10287593F1003A3168 /* GraphicsConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C0E287593F1003A3168 /* GraphicsConfig.cpp */; };
 		EDF77C1228759414003A3168 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C1128759414003A3168 /* CPUConfig.cpp */; };
 		EDF77C1328759414003A3168 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDF77C1128759414003A3168 /* CPUConfig.cpp */; };
 /* End PBXBuildFile section */
@@ -570,10 +569,9 @@
 		EA463CE71EF81FC5005AC8C7 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../../Common_3/Utilities/Log/Log.h; sourceTree = SOURCE_ROOT; };
 		EA463CEA1EF81FC5005AC8C7 /* Timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Timer.c; path = ../../../../Common_3/Utilities/Timer.c; sourceTree = SOURCE_ROOT; };
 		ED2C4D2F28756EF100D3CD40 /* CPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CPUConfig.h; path = ../OS/CPUConfig.h; sourceTree = "<group>"; };
-		ED2C4D3128756EFF00D3CD40 /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../Graphics/GPUConfig.h; sourceTree = "<group>"; };
 		ED2C4D3328756F9D00D3CD40 /* PickRenderingApi.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = PickRenderingApi.cpp; sourceTree = "<group>"; };
 		ED2C4D3528756FA800D3CD40 /* IGraphics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IGraphics.h; path = Interfaces/IGraphics.h; sourceTree = "<group>"; };
-		EDF77C0E287593F1003A3168 /* GPUConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GPUConfig.cpp; sourceTree = "<group>"; };
+		EDF77C0E287593F1003A3168 /* GraphicsConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GraphicsConfig.cpp; sourceTree = "<group>"; };
 		EDF77C1128759414003A3168 /* CPUConfig.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = CPUConfig.cpp; path = ../OS/CPUConfig.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1066,7 +1064,6 @@
 				B280ED4C2902962300E29778 /* Screenshot.cpp */,
 				2637517E2983B9EC006821BC /* ThreadSystem.c */,
 				EDF77C1128759414003A3168 /* CPUConfig.cpp */,
-				ED2C4D3128756EFF00D3CD40 /* GPUConfig.h */,
 				ED2C4D2F28756EF100D3CD40 /* CPUConfig.h */,
 				550F7AAB28007BC3007F29D2 /* Algorithms.c */,
 				550F7AA828007BC3007F29D2 /* Algorithms.h */,
@@ -1137,7 +1134,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
-				EDF77C0E287593F1003A3168 /* GPUConfig.cpp */,
+				EDF77C0E287593F1003A3168 /* GraphicsConfig.cpp */,
 				ED2C4D3528756FA800D3CD40 /* IGraphics.h */,
 				ED2C4D3328756F9D00D3CD40 /* PickRenderingApi.cpp */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
@@ -1272,7 +1269,6 @@
 				B26D705C2696322D00E24E41 /* ltm.h in Headers */,
 				B26D70902696322E00E24E41 /* lfunc.h in Headers */,
 				B2B33B50297FD7C400A5D377 /* zstd_decompress_internal.h in Headers */,
-				ED2C4D3228756EFF00D3CD40 /* GPUConfig.h in Headers */,
 				B26D70662696322D00E24E41 /* luaconf.h in Headers */,
 				B2B33B7B297FD7D400A5D377 /* xxhash.h in Headers */,
 				B2B33B78297FD7D400A5D377 /* debug.h in Headers */,
@@ -1485,7 +1481,7 @@
 				E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
 				B26D70442696322D00E24E41 /* lstrlib.c in Sources */,
 				B260BAFF299D8439005C6CAC /* UnixFileSystem.c in Sources */,
-				EDF77C10287593F1003A3168 /* GPUConfig.cpp in Sources */,
+				EDF77C10287593F1003A3168 /* GraphicsConfig.cpp in Sources */,
 				B26D70742696322E00E24E41 /* lgc.c in Sources */,
 				B26D704C2696322D00E24E41 /* lfunc.c in Sources */,
 				B26D6FFC2696320400E24E41 /* LuaManager.cpp in Sources */,
@@ -1598,7 +1594,7 @@
 				B26D706B2696322E00E24E41 /* llex.c in Sources */,
 				550F7AA128007BAA007F29D2 /* bstrlib.c in Sources */,
 				B2B3E4A9286236A100D71D88 /* (null) in Sources */,
-				EDF77C0F287593F1003A3168 /* GPUConfig.cpp in Sources */,
+				EDF77C0F287593F1003A3168 /* GraphicsConfig.cpp in Sources */,
 				B2B33B92297FD7E500A5D377 /* lz4.c in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* (null) in Sources */,

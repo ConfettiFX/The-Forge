@@ -581,6 +581,28 @@ struct VSMInputConstants
     float  mMinVariance = 0.00005f;
 };
 
+enum SSSDebugOutputMode
+{
+    DEBUG_OUTPUT_MODE_NONE,
+    DEBUG_OUTPUT_MODE_EDGE_MASK,
+    DEBUG_OUTPUT_MODE_THREAD_INDEX,
+    DEBUG_OUTPUT_MODE_WAVE_INDEX,
+    DEBUG_OUTPUT_MODES_COUNT
+};
+
+typedef struct SSSInputConstants
+{
+    float4   mLightCoordinate = float4(0.0f);
+    float4   mScreenSize = float4(0.0f);
+    float    mSurfaceThickness = 0.01f;
+    float    mBilinearThreshold = 0.035f;
+    float    mShadowContrast = 1.0f;
+    uint32_t mIgnoreEdgePixels = 0;
+    uint32_t mBilinearSamplingOffsetMode = 0;
+    uint32_t mDebugOutputMode = 0;
+    uint32_t mWaveLaneCount = 0;
+} SSSInputConstants;
+
 struct MSMInputConstants
 {
     float2 padding;
@@ -714,6 +736,8 @@ RenderTarget* pRenderTargetIntermediate = NULL;
 RenderTarget* pRenderTargetMSAA = NULL;
 
 Texture* pTextureSkybox = NULL;
+Texture* pTextureSSS = NULL;
+Buffer*  pBufferSSS = NULL;
 
 /************************************************************************/
 
@@ -796,9 +820,20 @@ Shader*   pShaderIndirectVSMAlphaDepthPass = NULL;
 Shader*   pShaderIndirectMSMAlphaDepthPass = NULL;
 Pipeline* pPipelineIndirectAlphaDepthPass = NULL;
 
-Pipeline*      pPipelineESMIndirectAlphaDepthPass = NULL;
-Pipeline*      pPipelineVSMIndirectAlphaDepthPass = NULL;
-Pipeline*      pPipelineMSMIndirectAlphaDepthPass = NULL;
+Pipeline* pPipelineESMIndirectAlphaDepthPass = NULL;
+Pipeline* pPipelineVSMIndirectAlphaDepthPass = NULL;
+Pipeline* pPipelineMSMIndirectAlphaDepthPass = NULL;
+/************************************************************************/
+// Screen Space Shadow Mapping
+/************************************************************************/
+Shader*   pShaderSSS[MSAA_LEVELS_COUNT];
+Shader*   pShaderSSSClear;
+Pipeline* pPipelineSSS;
+Pipeline* pPipelineSSSClear;
+
+RootSignature* pRootSignatureSSS;
+DescriptorSet* pDescriptorSetSSS;
+DescriptorSet* pDescriptorSetSSSClear;
 /************************************************************************/
 // ASM copy quads pass Shader Pack
 /************************************************************************/
@@ -919,6 +954,8 @@ Buffer* pBufferESMUniform[gDataBufferCount] = { NULL };
 Buffer* pBufferVSMUniform[gDataBufferCount] = { NULL };
 Buffer* pBufferMSMUniform[gDataBufferCount] = { NULL };
 Buffer* pBufferBlurWeights = NULL;
+Buffer* pBufferSSSUniform[gDataBufferCount] = { NULL };
+Buffer* pBufferSSSEnabled[gDataBufferCount] = { NULL };
 Buffer* pBufferRenderSettings[gDataBufferCount] = { NULL };
 Buffer* pBufferCameraUniform[gDataBufferCount] = { NULL };
 
@@ -938,8 +975,6 @@ Buffer* pBufferASMDataUniform[gDataBufferCount] = { NULL };
 
 Buffer* pBufferMeshConstants = NULL;
 Buffer* pBufferBlurConstants = NULL;
-
-Buffer* pBufferMaterialProperty = NULL;
 
 Buffer* pBufferQuadUniform[gDataBufferCount] = { NULL };
 Buffer* pBufferVBConstants[gDataBufferCount] = { NULL };
@@ -977,6 +1012,9 @@ struct
     uint32_t mFilterWidth = 2U;
     float    mEsmControl = 100.f;
 } gEsmCpuSettings;
+
+SSSInputConstants gSSSUniformData;
+uint32_t          gSSSEnabled = 1;
 
 struct
 {
@@ -1035,7 +1073,8 @@ vec3 gObjectsCenter = { SAN_MIGUEL_OFFSETX, 0, 0 };
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 
-FilterContainer* pFilterContainers = NULL;
+VBMeshInstance*  pVBMeshInstances = NULL;
+VBPreFilterStats gVBPreFilterStats[gDataBufferCount] = {};
 Geometry*        pGeom = NULL;
 uint32_t         gMeshCount = 0;
 uint32_t         gMaterialCount = 0;
@@ -1044,10 +1083,12 @@ uint32_t         gMaterialCount = 0;
 UIComponent* pGuiWindow = NULL;
 UIComponent* pUIASMDebugTexturesWindow = NULL;
 UIComponent* pLoadingGui = NULL;
+UIComponent* pSSSGui = NULL;
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
 ProfileToken gCurrentGpuProfileTokens[SHADOW_TYPE_COUNT];
 ProfileToken gCurrentGpuProfileToken;
+uint32_t     gSSSRootConstantIndex = 0;
 
 Renderer*         pRenderer = NULL;
 VisibilityBuffer* pVisibilityBuffer = NULL;
@@ -1060,6 +1101,11 @@ Semaphore* pImageAcquiredSemaphore = NULL;
 
 uint32_t gCurrentShadowType = SHADOW_TYPE_ASM;
 
+#ifdef METAL
+bool gSupportTextureAtomics = false;
+#else
+bool gSupportTextureAtomics = true;
+#endif
 struct Triangle
 {
     Triangle() = default;
@@ -4698,7 +4744,6 @@ public:
 
         GeometryLoadDesc geomLoadDesc = {};
         geomLoadDesc.pVertexLayout = &vertexLayout;
-        geomLoadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
 
         for (uint32_t i = 0; i < NUM_SDF_MESHES; ++i)
         {
@@ -4989,6 +5034,30 @@ public:
         ubBlurDesc.ppBuffer = &pBufferBlurConstants;
         addResource(&ubBlurDesc, &token);
 
+        BufferLoadDesc ubSSSDesc = {};
+        ubSSSDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        ubSSSDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+        ubSSSDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+        ubSSSDesc.mDesc.mSize = sizeof(SSSInputConstants);
+        ubSSSDesc.pData = &gSSSUniformData;
+        for (uint32_t i = 0; i < gDataBufferCount; i++)
+        {
+            ubSSSDesc.ppBuffer = &pBufferSSSUniform[i];
+            addResource(&ubSSSDesc, NULL);
+        }
+
+        BufferLoadDesc ubSSSEnabledDesc = {};
+        ubSSSEnabledDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        ubSSSEnabledDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+        ubSSSEnabledDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+        ubSSSEnabledDesc.mDesc.mSize = sizeof(uint32_t);
+        ubSSSEnabledDesc.pData = &gSSSEnabled;
+        for (uint32_t i = 0; i < gDataBufferCount; i++)
+        {
+            ubSSSEnabledDesc.ppBuffer = &pBufferSSSEnabled[i];
+            addResource(&ubSSSEnabledDesc, NULL);
+        }
+
         BufferLoadDesc quadUbDesc = {};
         quadUbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         quadUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -5218,7 +5287,7 @@ public:
 
         gMeshCount = pScene->geom->mDrawArgCount;
         gMaterialCount = pScene->geom->mDrawArgCount;
-        pFilterContainers = (FilterContainer*)tf_calloc(gMeshCount, sizeof(FilterContainer));
+        pVBMeshInstances = (VBMeshInstance*)tf_calloc(gMeshCount, sizeof(VBMeshInstance));
         pGeom = pScene->geom;
 
         gDiffuseMapsStorage = (Texture**)tf_malloc(sizeof(Texture*) * gMaterialCount);
@@ -5249,7 +5318,6 @@ public:
         /************************************************************************/
 
         VisibilityBufferDesc vbDesc = {};
-        vbDesc.mFilterBatchCount = FILTER_BATCH_COUNT;
         vbDesc.mNumFrames = gDataBufferCount;
         vbDesc.mNumBuffers = 1; // We don't use Async Compute for triangle filtering, 1 buffer is enough
         vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
@@ -5258,40 +5326,21 @@ public:
         vbDesc.mIndirectElementCount = INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
         vbDesc.mDrawArgCount = gMeshCount;
         vbDesc.mIndexCount = pGeom->mIndexCount;
-        vbDesc.mFilterBatchSize = FILTER_BATCH_SIZE;
+        vbDesc.mComputeThreads = VB_COMPUTE_THEADS;
         vbDesc.mMaxPrimitivesPerDrawIndirect = MAX_PRIMITIVES_PER_DRAW_INDIRECT;
         initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
 
         MeshConstants* meshConstants = (MeshConstants*)tf_malloc(gMeshCount * sizeof(MeshConstants));
-        uint32_t       iAlpha = 0, iNoAlpha = 0;
-
-        // Calculate clusters
+        // Calculate mesh constants and filter containers
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
             MaterialFlags materialFlag = pScene->materialFlags[i];
+            uint32_t      geomSet = materialFlag & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
 
-            FilterContainerDescriptor desc = {};
-            desc.mType = FILTER_CONTAINER_TYPE_CLUSTER;
-            desc.mMeshIndex = i;
-            desc.mIndexCount = (pScene->geom->pDrawArgs + i)->mIndexCount;
-            desc.mGeometrySet = GEOMSET_OPAQUE;
-            desc.mBaseIndex = (pScene->geom->pDrawArgs + i)->mStartIndex;
-            desc.mInstanceIndex = INSTANCE_INDEX_NONE;
-            desc.pPositions = (float3*)pScene->geomData->pShadow->pAttributes[SEMANTIC_POSITION];
-            desc.pIndices = (uint32_t*)pScene->geomData->pShadow->pIndices;
-            desc.mIsTwoSided = materialFlag & MATERIAL_FLAG_TWO_SIDED;
-
-            if (materialFlag & MATERIAL_FLAG_ALPHA_TESTED)
-            {
-                desc.mGeometrySet = GEOMSET_ALPHA_CUTOUT;
-                ++iAlpha;
-            }
-            else
-            {
-                ++iNoAlpha;
-            }
-
-            addVBFilterContainer(&desc, &pFilterContainers[i]);
+            pVBMeshInstances[i].mGeometrySet = geomSet;
+            pVBMeshInstances[i].mMeshIndex = i;
+            pVBMeshInstances[i].mTriangleCount = (pScene->geom->pDrawArgs + i)->mIndexCount / 3;
+            pVBMeshInstances[i].mInstanceIndex = INSTANCE_INDEX_NONE;
 
             meshConstants[i].indexOffset = pGeom->pDrawArgs[i].mStartIndex;
             meshConstants[i].vertexOffset = pGeom->pDrawArgs[i].mVertexOffset;
@@ -5314,32 +5363,20 @@ public:
         meshConstantDesc.mDesc.pName = "Mesh Constant desc";
         addResource(&meshConstantDesc, &token);
 
-        /************************************************************************/
-        // Indirect data for the scene
-        /************************************************************************/
-        uint32_t* materialAlphaData = (uint32_t*)tf_malloc(gMaterialCount * sizeof(uint32_t));
-
-        for (uint32_t i = 0; i < gMaterialCount; ++i)
+        UpdateVBMeshFilterGroupsDesc updateVBMeshFilterGroupsDesc = {};
+        updateVBMeshFilterGroupsDesc.mNumMeshInstance = gMeshCount;
+        updateVBMeshFilterGroupsDesc.pVBMeshInstances = pVBMeshInstances;
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            materialAlphaData[i] = (pScene->materialFlags[i] & MATERIAL_FLAG_ALPHA_TESTED) ? 1 : 0;
+            updateVBMeshFilterGroupsDesc.mFrameIndex = i;
+            gVBPreFilterStats[i] = updateVBMeshFilterGroups(pVisibilityBuffer, &updateVBMeshFilterGroupsDesc);
         }
-
-        BufferLoadDesc materialPropDesc = {};
-        materialPropDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-        materialPropDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        materialPropDesc.mDesc.mElementCount = gMaterialCount;
-        materialPropDesc.mDesc.mStructStride = sizeof(uint32_t);
-        materialPropDesc.mDesc.mSize = materialPropDesc.mDesc.mElementCount * materialPropDesc.mDesc.mStructStride;
-        materialPropDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        materialPropDesc.pData = materialAlphaData;
-        materialPropDesc.ppBuffer = &pBufferMaterialProperty;
-        materialPropDesc.mDesc.pName = "Material Prop Desc";
-        addResource(&materialPropDesc, &token);
 
         for (uint32_t frameIdx = 0; frameIdx < gDataBufferCount; ++frameIdx)
         {
-            gPerFrameData[frameIdx].gDrawCount[GEOMSET_OPAQUE] = iNoAlpha;
-            gPerFrameData[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] = iAlpha;
+            gPerFrameData[frameIdx].gDrawCount[GEOMSET_OPAQUE] = gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
+            gPerFrameData[frameIdx].gDrawCount[GEOMSET_ALPHA_CUTOUT] =
+                gVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
         }
 
         /************************************************************************/
@@ -5425,6 +5462,55 @@ public:
         ProgressBar.mMaxProgress = sSDFProgressMaxValue;
         luaRegisterWidget(
             uiCreateComponentWidget(pLoadingGui, "               [ProgressBar]               ", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
+
+        UIComponentDesc guiDesc3 = {};
+        guiDesc3.mStartPosition = vec2(mSettings.mWidth * 0.75f, mSettings.mHeight * 0.6f);
+        uiCreateComponent("Screen Space Shadows", &guiDesc3, &pSSSGui);
+
+        // Screen Space Shadows Controls UI
+        {
+            CheckboxWidget SSSEnabled = {};
+            SSSEnabled.pData = (bool*)&gSSSEnabled;
+
+            SliderFloatWidget surfaceThicknessControl = {};
+            surfaceThicknessControl.pData = &gSSSUniformData.mSurfaceThickness;
+            surfaceThicknessControl.mMin = 0.0f;
+            surfaceThicknessControl.mMax = 0.3f;
+            surfaceThicknessControl.mStep = 0.0001f;
+
+            SliderFloatWidget bilinearThresholdControl = {};
+            bilinearThresholdControl.pData = &gSSSUniformData.mBilinearThreshold;
+            bilinearThresholdControl.mMin = 0.0f;
+            bilinearThresholdControl.mMax = 0.5f;
+            bilinearThresholdControl.mStep = 0.001f;
+
+            SliderFloatWidget shadowContrastControl = {};
+            shadowContrastControl.pData = &gSSSUniformData.mShadowContrast;
+            shadowContrastControl.mMin = 0.0f;
+            shadowContrastControl.mMax = 16.0f;
+            shadowContrastControl.mStep = 0.1f;
+
+            CheckboxWidget IgnoreEdgePixels = {};
+            IgnoreEdgePixels.pData = (bool*)&gSSSUniformData.mIgnoreEdgePixels;
+
+            CheckboxWidget BilinearSamplingOffsetMode = {};
+            BilinearSamplingOffsetMode.pData = (bool*)&gSSSUniformData.mBilinearSamplingOffsetMode;
+
+            DropdownWidget debugOutputControl = {};
+            debugOutputControl.pData = &gSSSUniformData.mDebugOutputMode;
+            static const char* debugOutputNames[] = { "None", "Edge Mask", "Thread Index", "Wave Index" };
+            debugOutputControl.pNames = debugOutputNames;
+            debugOutputControl.mCount = 4;
+
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Enable Screen Space Shadows", &SSSEnabled, WIDGET_TYPE_CHECKBOX));
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Surface Thickness", &surfaceThicknessControl, WIDGET_TYPE_SLIDER_FLOAT));
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Bilinear Threshold", &bilinearThresholdControl, WIDGET_TYPE_SLIDER_FLOAT));
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Shadow Contrast", &shadowContrastControl, WIDGET_TYPE_SLIDER_FLOAT));
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Ignore Edge Pixels", &IgnoreEdgePixels, WIDGET_TYPE_CHECKBOX));
+            luaRegisterWidget(
+                uiCreateComponentWidget(pSSSGui, "Bilinear Sampling Offset Mode", &BilinearSamplingOffsetMode, WIDGET_TYPE_CHECKBOX));
+            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Debug Ouput Mode", &debugOutputControl, WIDGET_TYPE_DROPDOWN));
+        }
 
         GuiController::addGui();
 
@@ -5528,7 +5614,6 @@ public:
 
         waitForAllResourceLoads();
 
-        tf_free(materialAlphaData);
         tf_free(meshConstants);
 
         gFrameIndex = 0;
@@ -5641,6 +5726,14 @@ public:
         removeRenderTarget(pRenderer, pRenderTargetMSM[1]);
 
         removeResource(pTextureSDFMeshShadow);
+        if (gSupportTextureAtomics)
+        {
+            removeResource(pTextureSSS);
+        }
+        else
+        {
+            removeResource(pBufferSSS);
+        }
         removeRenderTarget(pRenderer, pRenderTargetSDFMeshVisualization);
         removeRenderTarget(pRenderer, pRenderTargetUpSampleSDFShadow);
     }
@@ -5740,18 +5833,18 @@ public:
         removeResource(pBufferBlurConstants);
         removeResource(pBufferBlurWeights);
 
-        removeResource(pBufferMaterialProperty);
+        for (uint32_t i = 0; i < gDataBufferCount; i++)
+        {
+            removeResource(pBufferSSSUniform[i]);
+            removeResource(pBufferSSSEnabled[i]);
+        }
         removeResource(pBufferMeshConstants);
         removeResource(pBufferQuadVertex);
         removeResource(pBufferSkyboxVertex);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
             removeResource(pBufferSkyboxUniform[i]);
 
-        for (uint32_t i = 0; i < gMeshCount; ++i)
-        {
-            removeVBFilterContainer(&pFilterContainers[i]);
-        }
-        tf_free(pFilterContainers);
+        tf_free(pVBMeshInstances);
 
         for (size_t i = 0; i < arrlenu(gSDFVolumeInstances); ++i)
         {
@@ -6216,6 +6309,235 @@ public:
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
     }
 
+    void computeScreenSpaceShadows(Cmd* cmd)
+    {
+        BufferUpdateDesc bufferUpdateSSSEnabled = { pBufferSSSEnabled[gFrameIndex] };
+        beginUpdateResource(&bufferUpdateSSSEnabled);
+        memcpy(bufferUpdateSSSEnabled.pMappedData, &gSSSEnabled, sizeof(gSSSEnabled));
+        endUpdateResource(&bufferUpdateSSSEnabled);
+
+        if (!gSSSEnabled)
+        {
+            return;
+        }
+
+        struct DispatchParams
+        {
+            int WaveCount[3];
+            int WaveOffset[2];
+        };
+
+        struct SSSRootConstantData
+        {
+            int2 WaveOffset;
+        } rootConstantData = {};
+
+        DispatchParams dispatchList[8] = {};
+        int            dispatchCount = 0;
+
+        vec3 lightDir = normalize(-gLightUniformData.mLightDir);
+        mat4 viewProject = gCameraUniformData.mViewProject;
+
+        vec4      lightProjection = viewProject * vec4(lightDir, 0.0f);
+        const int waveSize = 64;
+
+        float xy_light_w = lightProjection.getW();
+        float FP_limit = 0.000002f * (float)waveSize;
+        if (xy_light_w >= 0 && xy_light_w < FP_limit)
+            xy_light_w = FP_limit;
+        else if (xy_light_w < 0 && xy_light_w > -FP_limit)
+            xy_light_w = -FP_limit;
+
+        float4 mLightCoordinate;
+
+        mLightCoordinate[0] = ((lightProjection[0] / xy_light_w) * +0.5f + 0.5f) * (float)mSettings.mWidth;
+        mLightCoordinate[1] = ((lightProjection[1] / xy_light_w) * -0.5f + 0.5f) * (float)mSettings.mHeight;
+        mLightCoordinate[2] = lightProjection[3] == 0 ? 0.0f : (lightProjection[2] / lightProjection[3]);
+        mLightCoordinate[3] = lightProjection[3] > 0 ? 1.0f : -1.0f;
+
+        int light_xy[2] = { (int)(mLightCoordinate[0] + 0.5f), (int)(mLightCoordinate[1] + 0.5f) };
+
+        // Make the bounds relative to the light
+        const int biased_bounds[4] = {
+            -light_xy[0],
+            -(mSettings.mHeight - light_xy[1]),
+            mSettings.mWidth - light_xy[0],
+            light_xy[1],
+        };
+
+        // Process 4 quadrants around the light center,
+        // They each form a rectangle with one corner on the light XY coordinate
+        // If the rectangle isn't square, it will need breaking in two on the larger axis
+        // 0 = bottom left, 1 = bottom right, 2 = top left, 2 = top right
+        for (int q = 0; q < 4; q++)
+        {
+            // Quads 0 and 3 needs to be +1 vertically, 1 and 2 need to be +1 horizontally
+            bool vertical = q == 0 || q == 3;
+
+            // Bounds relative to the quadrant
+            const int bounds[4] = {
+                max(0, ((q & 1) ? biased_bounds[0] : -biased_bounds[2])) / waveSize,
+                max(0, ((q & 2) ? biased_bounds[1] : -biased_bounds[3])) / waveSize,
+                max(0, (((q & 1) ? biased_bounds[2] : -biased_bounds[0]) + waveSize * (vertical ? 1 : 2) - 1)) / waveSize,
+                max(0, (((q & 2) ? biased_bounds[3] : -biased_bounds[1]) + waveSize * (vertical ? 2 : 1) - 1)) / waveSize,
+            };
+
+            if ((bounds[2] - bounds[0]) > 0 && (bounds[3] - bounds[1]) > 0)
+            {
+                int bias_x = (q == 2 || q == 3) ? 1 : 0;
+                int bias_y = (q == 1 || q == 3) ? 1 : 0;
+
+                DispatchParams& disp = dispatchList[dispatchCount++];
+                disp.WaveCount[0] = waveSize;
+                disp.WaveCount[1] = bounds[2] - bounds[0];
+                disp.WaveCount[2] = bounds[3] - bounds[1];
+                disp.WaveOffset[0] = ((q & 1) ? bounds[0] : -bounds[2]) + bias_x;
+                disp.WaveOffset[1] = ((q & 2) ? -bounds[3] : bounds[1]) + bias_y;
+
+                // We want the far corner of this quadrant relative to the light,
+                // as we need to know where the diagonal light ray intersects with the edge of the bounds
+                int axis_delta = +biased_bounds[0] - biased_bounds[1];
+                if (q == 1)
+                    axis_delta = +biased_bounds[2] + biased_bounds[1];
+                if (q == 2)
+                    axis_delta = -biased_bounds[0] - biased_bounds[3];
+                if (q == 3)
+                    axis_delta = -biased_bounds[2] + biased_bounds[3];
+
+                axis_delta = (axis_delta + waveSize - 1) / waveSize;
+
+                if (axis_delta > 0)
+                {
+                    DispatchParams& disp2 = dispatchList[dispatchCount++];
+
+                    // Take copy of current volume
+                    disp2 = disp;
+
+                    if (q == 0)
+                    {
+                        // Split on Y, split becomes -1 larger on x
+                        disp2.WaveCount[2] = min(disp.WaveCount[2], axis_delta);
+                        disp.WaveCount[2] -= disp2.WaveCount[2];
+                        disp2.WaveOffset[1] = disp.WaveOffset[1] + disp.WaveCount[2];
+                        disp2.WaveOffset[0]--;
+                        disp2.WaveCount[1]++;
+                    }
+                    if (q == 1)
+                    {
+                        // Split on X, split becomes +1 larger on y
+                        disp2.WaveCount[1] = min(disp.WaveCount[1], axis_delta);
+                        disp.WaveCount[1] -= disp2.WaveCount[1];
+                        disp2.WaveOffset[0] = disp.WaveOffset[0] + disp.WaveCount[1];
+                        disp2.WaveCount[2]++;
+                    }
+                    if (q == 2)
+                    {
+                        // Split on X, split becomes -1 larger on y
+                        disp2.WaveCount[1] = min(disp.WaveCount[1], axis_delta);
+                        disp.WaveCount[1] -= disp2.WaveCount[1];
+                        disp.WaveOffset[0] += disp2.WaveCount[1];
+                        disp2.WaveCount[2]++;
+                        disp2.WaveOffset[1]--;
+                    }
+                    if (q == 3)
+                    {
+                        // Split on Y, split becomes +1 larger on x
+                        disp2.WaveCount[2] = min(disp.WaveCount[2], axis_delta);
+                        disp.WaveCount[2] -= disp2.WaveCount[2];
+                        disp.WaveOffset[1] += disp2.WaveCount[2];
+                        disp2.WaveCount[1]++;
+                    }
+
+                    // Remove if too small
+                    if (disp2.WaveCount[1] <= 0 || disp2.WaveCount[2] <= 0)
+                    {
+                        disp2 = dispatchList[--dispatchCount];
+                    }
+                    if (disp.WaveCount[1] <= 0 || disp.WaveCount[2] <= 0)
+                    {
+                        disp = dispatchList[--dispatchCount];
+                    }
+                }
+            }
+        }
+
+        // Scale the shader values by the wave count, the shader expects this
+        for (int i = 0; i < dispatchCount; i++)
+        {
+            dispatchList[i].WaveOffset[0] *= waveSize;
+            dispatchList[i].WaveOffset[1] *= waveSize;
+        }
+
+        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Clear Screen Space Shadows");
+
+        gSSSUniformData.mScreenSize = float4((float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 0.0f);
+        gSSSUniformData.mLightCoordinate = mLightCoordinate;
+
+        BufferUpdateDesc bufferUpdate = { pBufferSSSUniform[gFrameIndex] };
+        beginUpdateResource(&bufferUpdate);
+        memcpy(bufferUpdate.pMappedData, &gSSSUniformData, sizeof(gSSSUniformData));
+        endUpdateResource(&bufferUpdate);
+
+        RenderTargetBarrier rtb = { pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
+        if (gSupportTextureAtomics)
+        {
+            TextureBarrier tb = { pTextureSSS, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+            cmdResourceBarrier(cmd, 0, NULL, 1, &tb, 1, &rtb);
+        }
+        else
+        {
+            BufferBarrier bb = { pBufferSSS, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+            cmdResourceBarrier(cmd, 1, &bb, 0, NULL, 1, &rtb);
+        }
+
+        cmdBindPipeline(cmd, pPipelineSSSClear);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSClear);
+
+        uint32_t dispatchSizeX = (mSettings.mWidth + 7) / 8;
+        uint32_t dispatchSizeY = (mSettings.mHeight + 7) / 8;
+        cmdDispatch(cmd, dispatchSizeX, dispatchSizeY, 1);
+
+        if (gSupportTextureAtomics)
+        {
+            TextureBarrier tb = { pTextureSSS, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+            cmdResourceBarrier(cmd, 0, NULL, 1, &tb, 0, NULL);
+        }
+        else
+        {
+            BufferBarrier bb = { pBufferSSS, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+            cmdResourceBarrier(cmd, 1, &bb, 0, NULL, 0, NULL);
+        }
+
+        cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
+
+        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Compute Screen Space Shadows");
+
+        cmdBindPipeline(cmd, pPipelineSSS);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSS);
+
+        // Dispatch the compute shader
+        for (int i = 0; i < dispatchCount; i++)
+        {
+            rootConstantData.WaveOffset[0] = dispatchList[i].WaveOffset[0];
+            rootConstantData.WaveOffset[1] = dispatchList[i].WaveOffset[1];
+            cmdBindPushConstants(cmd, pRootSignatureSSS, gSSSRootConstantIndex, &rootConstantData);
+            cmdDispatch(cmd, dispatchList[i].WaveCount[0], dispatchList[i].WaveCount[1], dispatchList[i].WaveCount[2]);
+        }
+
+        rtb = { pRenderTargetDepth, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
+        if (gSupportTextureAtomics)
+        {
+            TextureBarrier tb = { pTextureSSS, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
+            cmdResourceBarrier(cmd, 0, NULL, 1, &tb, 1, &rtb);
+        }
+        else
+        {
+            BufferBarrier bb = { pBufferSSS, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
+            cmdResourceBarrier(cmd, 1, &bb, 0, NULL, 1, &rtb);
+        }
+        cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
+    }
+
     static void drawSDFVolumeTextureAtlas(Cmd* cmd, SDFVolumeTextureNode* node)
     {
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw update texture atlas");
@@ -6318,6 +6640,8 @@ public:
 
         const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 
+        cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "VB pass");
+
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
@@ -6348,7 +6672,7 @@ public:
                                indirectBufferByteOffset, pIndirectDrawBuffer, indirectBufferCounterByteOffset);
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
-
+        cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         cmdBindRenderTargets(cmd, NULL);
     }
 
@@ -6723,22 +7047,10 @@ public:
             gCurrentGpuProfileToken = gCurrentGpuProfileTokens[gCurrentShadowType];
 
             cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
-            uint32_t numCullingViewports = 2;
-            if (gCurrentShadowType == SHADOW_TYPE_ASM)
-            {
-                numCullingViewports = (uint32_t)pASM->m_cache->m_renderBatch.size() + 1;
-            }
 
             if (!gAppSettings.mHoldFilteredTriangles)
             {
                 TriangleFilteringPassDesc triangleFilteringDesc = {};
-                triangleFilteringDesc.pFilterContainers = pFilterContainers;
-                triangleFilteringDesc.mNumContainers = gMeshCount;
-                triangleFilteringDesc.mCullClusters = false;
-
-                triangleFilteringDesc.mNumCullingViewports = numCullingViewports;
-                triangleFilteringDesc.pViewportObjectSpace = gPerFrameData[gFrameIndex].gEyeObjectSpace;
-
                 triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
                 triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
                 triangleFilteringDesc.pPipelineBatchCompaction = pPipelineBatchCompaction;
@@ -6751,11 +7063,8 @@ public:
                 triangleFilteringDesc.mFrameIndex = gFrameIndex;
                 triangleFilteringDesc.mBuffersIndex = 0; // We don't use Async Compute for triangle filtering, we just have 1 buffer
                 triangleFilteringDesc.mGpuProfileToken = gCurrentGpuProfileToken;
-                triangleFilteringDesc.mClearThreadCount = CLEAR_THREAD_COUNT;
-                FilteringStats stats = cmdVisibilityBufferTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
-
-                gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE] = stats.mGeomsetDrawCounts[GEOMSET_OPAQUE];
-                gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_ALPHA_CUTOUT] = stats.mGeomsetDrawCounts[GEOMSET_ALPHA_CUTOUT];
+                triangleFilteringDesc.mVBPreFilterStats = gVBPreFilterStats[gFrameIndex];
+                cmdVBTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
             }
             {
                 const uint32_t numBarriers = NUM_CULLING_VIEWPORTS + 2;
@@ -6847,6 +7156,7 @@ public:
                 gCurrentShadowType == SHADOW_TYPE_MSM)
             {
                 drawVisibilityBufferPass(cmd);
+                computeScreenSpaceShadows(cmd);
                 drawVisibilityBufferShade(cmd, gFrameIndex);
             }
             else if (gCurrentShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
@@ -6868,6 +7178,7 @@ public:
                 }
 
                 drawVisibilityBufferPass(cmd);
+                computeScreenSpaceShadows(cmd);
                 if (volumeTextureNode || gBufferUpdateSDFMeshConstantFlags[gFrameIndex])
                 {
                     BufferUpdateDesc sdfMeshConstantsUniformCbv = { pBufferMeshSDFConstants[gFrameIndex] };
@@ -7188,6 +7499,47 @@ public:
         MSMRTDesc.pName = "MSM RT 1";
         addRenderTarget(pRenderer, &MSMRTDesc, &pRenderTargetMSM[1]);
 
+        /************************************************************************/
+        // Screen Space Shadow Map Render Target
+        /************************************************************************/
+        if (gSupportTextureAtomics)
+        {
+            TextureDesc SSSRTDesc = {};
+            SSSRTDesc.mWidth = mSettings.mWidth;
+            SSSRTDesc.mHeight = mSettings.mHeight;
+            SSSRTDesc.mDepth = 1;
+            SSSRTDesc.mArraySize = 1;
+            SSSRTDesc.mMipLevels = 1;
+            SSSRTDesc.mSampleCount = SAMPLE_COUNT_1;
+            SSSRTDesc.mFormat = TinyImageFormat_R32_UINT;
+            SSSRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+            SSSRTDesc.mClearValue.r = 1.0f;
+            SSSRTDesc.mClearValue.g = 1.0f;
+            SSSRTDesc.mClearValue.b = 1.0f;
+            SSSRTDesc.mClearValue.a = 1.0f;
+            SSSRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+            SSSRTDesc.pName = "Screen Space Shadows Texture";
+
+            TextureLoadDesc SSSTextureLoadDesc = {};
+            SSSTextureLoadDesc.pDesc = &SSSRTDesc;
+            SSSTextureLoadDesc.ppTexture = &pTextureSSS;
+            addResource(&SSSTextureLoadDesc, NULL);
+        }
+        else
+        {
+            BufferLoadDesc SSSRTDesc = {};
+            SSSRTDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+            SSSRTDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
+            SSSRTDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+            SSSRTDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+            SSSRTDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+            SSSRTDesc.mDesc.mStructStride = sizeof(uint);
+            SSSRTDesc.mDesc.mSize = (uint64_t)SSSRTDesc.mDesc.mElementCount * SSSRTDesc.mDesc.mStructStride;
+            SSSRTDesc.mDesc.pName = "Screen Space Shadows Buffer";
+            SSSRTDesc.ppBuffer = &pBufferSSS;
+            addResource(&SSSRTDesc, NULL);
+        }
+
         /*************************************/
         // SDF mesh visualization render target
         /*************************************/
@@ -7498,6 +7850,12 @@ public:
         setDesc = { pRootSignatureASMFillIndirection, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount * (gs_ASMMaxRefinement + 1) };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetASMFillIndirection[2]);
 
+        setDesc = { pRootSignatureSSS, DESCRIPTOR_UPDATE_FREQ_NONE, 3 };
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSS);
+
+        setDesc = { pRootSignatureSSS, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSClear);
+
         return true;
     }
 
@@ -7539,6 +7897,8 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSetASMFillIndirection[2]);
         removeDescriptorSet(pRenderer, pDescriptorSetBlurVSMCompute);
         removeDescriptorSet(pRenderer, pDescriptorSetBlurMSMCompute);
+        removeDescriptorSet(pRenderer, pDescriptorSetSSS);
+        removeDescriptorSet(pRenderer, pDescriptorSetSSSClear);
     }
 
     void prepareDescriptorSets()
@@ -7554,20 +7914,18 @@ public:
         }
         // Triangle Filtering
         {
-            DescriptorData filterParams[4] = {};
+            DescriptorData filterParams[3] = {};
             filterParams[0].pName = "vertexPositionBuffer";
             filterParams[0].ppBuffers = &pGeom->pVertexBuffers[0];
             filterParams[1].pName = "indexDataBuffer";
             filterParams[1].ppBuffers = &pGeom->pIndexBuffer;
             filterParams[2].pName = "meshConstantsBuffer";
             filterParams[2].ppBuffers = &pBufferMeshConstants;
-            filterParams[3].pName = "materialProps";
-            filterParams[3].ppBuffers = &pBufferMaterialProperty;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 3, filterParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData filterParams[3] = {};
+                DescriptorData filterParams[4] = {};
                 filterParams[0].pName = "filteredIndicesBuffer";
                 filterParams[0].mCount = NUM_CULLING_VIEWPORTS;
                 filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
@@ -7575,7 +7933,9 @@ public:
                 filterParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[0];
                 filterParams[2].pName = "PerFrameVBConstants";
                 filterParams[2].ppBuffers = &pBufferVBConstants[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 3, filterParams);
+                filterParams[3].pName = "filterDispatchGroupDataBuffer";
+                filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 4, filterParams);
             }
         }
         // Gaussian Blur
@@ -7637,7 +7997,7 @@ public:
                                              prerenderIndirectionTexMips[1]->pTexture, prerenderIndirectionTexMips[2]->pTexture,
                                              prerenderIndirectionTexMips[3]->pTexture, prerenderIndirectionTexMips[4]->pTexture };
 
-            DescriptorData vbShadeParams[16] = {};
+            DescriptorData vbShadeParams[18] = {};
             vbShadeParams[0].pName = "vbPassTexture";
             vbShadeParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
             vbShadeParams[1].pName = "diffuseMaps";
@@ -7675,6 +8035,19 @@ public:
             vbShadeParams[15].pName = "SDFShadowTexture";
             vbShadeParams[15].ppTextures = &sdfShadowTexture;
             updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 16, vbShadeParams);
+            vbShadeParams[16].pName = "SDFShadowTexture";
+            vbShadeParams[16].ppTextures = &sdfShadowTexture;
+
+            vbShadeParams[17].pName = "ScreenSpaceShadowTexture";
+            if (gSupportTextureAtomics)
+            {
+                vbShadeParams[17].ppTextures = &pTextureSSS;
+            }
+            else
+            {
+                vbShadeParams[17].ppBuffers = &pBufferSSS;
+            }
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 18, vbShadeParams);
 
             DescriptorDataRange dataRange = {};
             dataRange.mOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, 0, 0) * sizeof(uint32_t);
@@ -7707,7 +8080,9 @@ public:
                 vbShadeParams[10].pName = "indirectDrawArgs";
                 vbShadeParams[10].pRanges = &dataRange;
                 vbShadeParams[10].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], 11, vbShadeParams);
+                vbShadeParams[11].pName = "SSSEnabled";
+                vbShadeParams[11].ppBuffers = &pBufferSSSEnabled[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], 12, vbShadeParams);
             }
         }
         // Resolve
@@ -7918,6 +8293,36 @@ public:
                 updateDescriptorSet(pRenderer, i * (gs_ASMMaxRefinement + 1) + j, pDescriptorSetASMFillIndirection[2], 1, params);
             }
         }
+
+        // Screen Space Shadow Mapping
+        {
+            DescriptorData params[3] = {};
+
+            params[0].pName = "DepthTexture";
+            params[0].ppTextures = &pRenderTargetDepth->pTexture;
+            params[0].mCount = 1;
+
+            params[1].pName = "OutputTexture";
+            params[1].mCount = 1;
+            if (gSupportTextureAtomics)
+            {
+                params[1].ppTextures = &pTextureSSS;
+            }
+            else
+            {
+                params[1].ppBuffers = &pBufferSSS;
+            }
+
+            for (uint32_t i = 0; i < gDataBufferCount; i++)
+            {
+                params[2].pName = "SSSUniformData";
+                params[2].ppBuffers = &pBufferSSSUniform[i];
+                params[2].mCount = 1;
+
+                updateDescriptorSet(pRenderer, i, pDescriptorSetSSS, 3, params);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetSSSClear, 2, &params[1]);
+            }
+        }
     }
 
     void addRootSignatures()
@@ -8066,6 +8471,9 @@ public:
         finalShaderRootSigDesc.mStaticSamplerCount = 1;
         finalShaderRootSigDesc.ppStaticSamplerNames = &pRepeatBillinearSamplerName;
         finalShaderRootSigDesc.ppStaticSamplers = &pSamplerLinearRepeat;
+
+        RootSignatureDesc SSSRootDesc = { pShaderSSS, MSAA_LEVELS_COUNT };
+
         addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSignaturePresentPass);
 
         addRootSignature(pRenderer, &ASMCopyDepthQuadsRootDesc, &pRootSignatureASMCopyDepthQuadPass);
@@ -8086,6 +8494,8 @@ public:
 
         addRootSignature(pRenderer, &upSampleSDFShadowRootDesc, &pRootSignatureUpsampleSDFShadow);
 
+        addRootSignature(pRenderer, &SSSRootDesc, &pRootSignatureSSS);
+        gSSSRootConstantIndex = getDescriptorIndexFromName(pRootSignatureSSS, "DispatchRootConstants");
         uint32_t                   indirectArgCount = 0;
         IndirectArgumentDescriptor indirectArgs[2] = {};
         if (pRenderer->pGpu->mSettings.mIndirectRootConstant)
@@ -8128,7 +8538,7 @@ public:
         removeRootSignature(pRenderer, pRootSignatureBlurCompute);
 
         removeRootSignature(pRenderer, pRootSignatureVBShade);
-
+        removeRootSignature(pRenderer, pRootSignatureSSS);
         removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
     }
 
@@ -8276,6 +8686,9 @@ public:
             "resolve_SAMPLE_COUNT_4.frag",
         };
 
+        const char* ScreenSpaceShadows[] = { "screenSpaceShadows_SAMPLE_COUNT_1.comp", "screenSpaceShadows_SAMPLE_COUNT_2.comp",
+                                             "screenSpaceShadows_SAMPLE_COUNT_4.comp" };
+
         for (uint32_t i = 0; i < MSAA_LEVELS_COUNT; ++i)
         {
             ShaderLoadDesc meshSDFVisualizationShaderDesc = {};
@@ -8302,7 +8715,15 @@ public:
             resolvePass.mStages[0].pFileName = "resolve.vert";
             resolvePass.mStages[1].pFileName = resolve[i];
             addShader(pRenderer, &resolvePass, &pShaderResolve[i]);
+
+            ShaderLoadDesc screenSpaceShadowsShaderDesc = {};
+            screenSpaceShadowsShaderDesc.mStages[0].pFileName = ScreenSpaceShadows[i];
+            addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSS[i]);
         }
+
+        ShaderLoadDesc screenSpaceShadowsShaderDesc = {};
+        screenSpaceShadowsShaderDesc.mStages[0].pFileName = "clearScreenSpaceShadows.comp";
+        addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSSClear);
 
         ShaderLoadDesc presentShaderDesc = {};
         presentShaderDesc.mStages[0].pFileName = "display.vert";
@@ -8369,7 +8790,9 @@ public:
             removeShader(pRenderer, pShaderSDFMeshVisualization[i]);
             removeShader(pRenderer, pShaderSDFMeshShadow[i]);
             removeShader(pRenderer, pShaderUpsampleSDFShadow[i]);
+            removeShader(pRenderer, pShaderSSS[i]);
         }
+        removeShader(pRenderer, pShaderSSSClear);
     }
 
     void addPipelines()
@@ -8616,6 +9039,18 @@ public:
         sdfMeshShadowDesc.pShaderProgram = pShaderSDFMeshShadow[gAppSettings.mMsaaIndex];
         sdfMeshShadowDesc.pRootSignature = pRootSignatureSDFMeshShadow;
         addPipeline(pRenderer, &desc, &pPipelineSDFMeshShadow);
+
+        desc.mComputeDesc = {};
+        ComputePipelineDesc& screenSpaceShadowDesc = desc.mComputeDesc;
+        screenSpaceShadowDesc.pShaderProgram = pShaderSSS[gAppSettings.mMsaaIndex];
+        screenSpaceShadowDesc.pRootSignature = pRootSignatureSSS;
+        addPipeline(pRenderer, &desc, &pPipelineSSS);
+
+        desc.mComputeDesc = {};
+        ComputePipelineDesc& screenSpaceShadowClearDesc = desc.mComputeDesc;
+        screenSpaceShadowClearDesc.pShaderProgram = pShaderSSSClear;
+        screenSpaceShadowClearDesc.pRootSignature = pRootSignatureSSS;
+        addPipeline(pRenderer, &desc, &pPipelineSSSClear);
 
         /************************************************************************/
         // Setup Skybox pipeline
@@ -8874,6 +9309,8 @@ public:
         removePipeline(pRenderer, pPipelineSDFMeshVisualization);
         removePipeline(pRenderer, pPipelineSDFMeshShadow);
         removePipeline(pRenderer, pPipelineUpsampleSDFShadow);
+        removePipeline(pRenderer, pPipelineSSS);
+        removePipeline(pRenderer, pPipelineSSSClear);
     }
 };
 
@@ -8973,7 +9410,7 @@ void GuiController::addGui()
 
     SliderFloatWidget msmBleedingReductionFactorControlUI;
     msmBleedingReductionFactorControlUI.pData = &gMSMUniformData.mBleedingReduction;
-    msmBleedingReductionFactorControlUI.mMin = 0.0f;
+    msmBleedingReductionFactorControlUI.mMin = 0.01f;
     msmBleedingReductionFactorControlUI.mMax = 1.0f;
     msmBleedingReductionFactorControlUI.mStep = 0.01f;
 

@@ -41,7 +41,6 @@
 #include "../Interfaces/IGraphics.h"
 #include "../Interfaces/IRay.h"
 
-#include "../../Graphics/GPUConfig.h"
 #include "../../Utilities/Math/AlgorithmsImpl.h"
 #include "../../Utilities/RingBuffer.h"
 
@@ -1082,7 +1081,7 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	glCapsBuilder(&context.mGpus[0], glExtensions);
 	//apply rules from gpu.cfg
-	applyConfigurationSettings(&context.mGpus[0].mSettings, &context.mGpus[0].mCapBits);
+	applyGPUConfigurationRules(&context.mGpus[0].mSettings, &context.mGpus[0].mCapBits);
 	// set hard coded openGL limitation
 	gpuSettings.mUniformBufferAlignment = 4;
 	gpuSettings.mUploadBufferTextureAlignment = unpackAlignment;
@@ -1128,8 +1127,7 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	strncpy(gpuVendorPresets.mVendorName, glVendor, MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(gpuVendorPresets.mGpuName, glRenderer, MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(gpuVendorPresets.mGpuDriverVersion, glVersion, MAX_GPU_VENDOR_STRING_LENGTH);
-	gpuVendorPresets.mPresetLevel = getGPUPresetLevel(gpuVendorPresets.mVendorName,
-														gpuVendorPresets.mGpuName);
+	gpuVendorPresets.mPresetLevel = getGPUPresetLevel(gpuVendorPresets.mVendorId, gpuVendorPresets.mModelId, gpuVendorPresets.mVendorName, gpuVendorPresets.mGpuName);
 
 	pRenderer->pContext = &context;
 	pRenderer->pGpu = &context.mGpus[0];
@@ -4312,12 +4310,6 @@ void gl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pNam
 		CHECK_GLRESULT(glInsertEventMarkerEXT(strlen(pName), pName));
 #endif
 }
-
-uint32_t gl_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
-{
-	return 0;
-}
-
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
@@ -4509,7 +4501,6 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	cmdBeginDebugMarker = gl_cmdBeginDebugMarker;
 	cmdEndDebugMarker = gl_cmdEndDebugMarker;
 	cmdAddDebugMarker = gl_cmdAddDebugMarker;
-	cmdWriteMarker = gl_cmdWriteMarker;
 	/************************************************************************/
 	// Resource Debug Naming Interface
 	/************************************************************************/

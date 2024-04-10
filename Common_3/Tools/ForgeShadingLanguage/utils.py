@@ -80,6 +80,7 @@ class Features(Enum):
     NO_AB = 5,
     ICB = 6, # indirect command
     VDP, = 7, # Vertex Draw Parameters
+    INVARIANT = 8,
 
 feature_mask = { f: [] for f in Features }
 feature_mask[Features.MULTIVIEW] = [Platforms.QUEST]

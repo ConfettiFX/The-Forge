@@ -109,7 +109,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Scripting\LuaManagerImpl.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Scripting\LunaV.hpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />

@@ -35,11 +35,6 @@
 #define LIGHT_CLUSTER_COUNT_POS(ix, iy)    (((iy) * LIGHT_CLUSTER_WIDTH) + (ix))
 #define LIGHT_CLUSTER_DATA_POS(il, ix, iy) (LIGHT_CLUSTER_COUNT_POS(ix, iy) * LIGHT_COUNT + (il))
 
-// FILTER_BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
-// It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB - sizeof(FilterBatchData) * 2048 = 64KB
-#define FILTER_BATCH_COUNT 2048
-
 // This defines the amount of viewports that are going to be culled in parallel.
 // Overrides default VB defines
 #define NUM_CULLING_VIEWPORTS 5

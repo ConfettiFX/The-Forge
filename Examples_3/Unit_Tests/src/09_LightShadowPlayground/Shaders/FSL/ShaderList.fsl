@@ -237,3 +237,19 @@
 #include "visualizeSDFMesh.comp.fsl"
 #end
 
+#comp screenSpaceShadows_SAMPLE_COUNT_1.comp
+#define SAMPLE_COUNT 1
+#include "screenSpaceShadows.comp.fsl"
+#end
+#comp screenSpaceShadows_SAMPLE_COUNT_2.comp
+#define SAMPLE_COUNT 2
+#include "screenSpaceShadows.comp.fsl"
+#end
+#comp screenSpaceShadows_SAMPLE_COUNT_4.comp
+#define SAMPLE_COUNT 4
+#include "screenSpaceShadows.comp.fsl"
+#end
+
+#comp clearScreenSpaceShadows.comp
+#include "clearScreenSpaceShadows.comp.fsl"
+#end

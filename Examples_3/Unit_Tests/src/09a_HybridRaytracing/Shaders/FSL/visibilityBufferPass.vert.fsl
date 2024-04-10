@@ -44,6 +44,19 @@ PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId)
 	PsIn Out;
 	Out.Position = mul(Get(WorldViewProjMat), float4(In.Position.xyz, 1.0f));
 	SET_DRAW_ID(Out, drawId, instanceId);
+
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        Out.Position.xyz += float3(0.1, 0.2, 0.3);
+        counter += abs(Out.Position.r);
+		// Trick PlayStation compilers into thinking that the loop will finish
+		counter -= 0.00000001;
+    }
+#endif
+
 	RETURN(Out);
 }
 

@@ -2048,14 +2048,14 @@ public:
         barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Basic Draw");
+
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
-
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Basic Draw");
 
         cmdBindPipeline(cmd, pBasicPipeline);
         cmdBindIndexBuffer(cmd, pQuadIndexBuffer, INDEX_TYPE_UINT16, 0);

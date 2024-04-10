@@ -1,123 +1,342 @@
-#version: 0.1
-#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+version: 0.2
+#Possible Classfications for Preset: ultra; high; medium; low; verylow; office
 #Sources:
-#https://www.notebookcheck.net/Mobile-Graphics-Cards-Benchmark-List.844.0.html  -> Classifies into Ultra; High; Medium; Low; Office
-#https://gist.github.com/adamawolf/3048717
-#https://everymac.com/systems/by_capability/mac-specs-by-machine-model-machine-id.html
+#https://technical.city/en/video/rating
+#https://raw.githubusercontent.com/GameTechDev/gpudetect/master/IntelGfx.cfg
+#https://vulkan.gpuinfo.org/api/v2/getreportlist.php
 
 BEGIN_DEFAULT_CONFIGURATION;
 #if the gpu doesn't exist in the GPU_LIST use this instead
-DefaultPresetLevel; Low;
+DefaultPresetLevel; low;
 END_DEFAULT_CONFIGURATION;
 
 BEGIN_VENDOR_LIST;
+intel; 0x8086;
+amd; 0x1002;
+nvidia; 0x10de;
 apple; 0x106b;
-amd; 0x1002, 0x1022;
-intel; 0x163C, 0x8086, 0x8087;
-nvidia; 0x10DE
 END_VENDOR_LIST;
 
-#VendorName ; DeviceName ; Classification ; DeviceID (Can be null) ; Revision ID (Can be null) ; Codename (can be null)
+#VendorID; DeviceID; Preset; #Device comments
+
 BEGIN_GPU_LIST;
-#iOS GPUs
-apple ; Apple A8 GPU ; VeryLow
-apple ; Apple A9 GPU ; VeryLow
-apple ; Apple A10 GPU ; VeryLow
-apple ; Apple A11 GPU ; Low
-apple ; Apple A12 GPU ; Low
-apple ; Apple A13 GPU ; Low
-apple ; Apple A14 GPU ; Low
-apple ; Apple A15 GPU ; Low
-apple ; Apple A16 GPU ; Medium
-apple ; Apple A17 Pro GPU ; Medium
-
-#macOS
-
-#iMac
-#apple
-apple ; Apple M1 ; Low
-apple ; Apple M1 Pro ; Low
-apple ; Apple M1 Max ; Low
-apple ; Apple M1 Ultra ; Medium
-apple ; Apple M2 ; Medium
-apple ; Apple M2 Pro ; Medium
-apple ; Apple M2 Max ; High
-apple ; Apple M3 ; High
-apple ; Apple M3 Pro ; Ultra
-apple ; Apple M3 Max ; Ultra
-
-#Amd
-amd ; AMD Radeon Pro 5300 ; Medium
-amd ; AMD Radeon Pro 5500 ; Medium
-amd ; AMD Radeon R9 M380 ; Low
-amd ; AMD Radeon R9 M390 ; Low
-amd ; AMD Radeon R9 M395 ; Low
-amd ; AMD Radeon R9 M395X ; Low
-amd ; AMD Radeon R9 M290 ; Low
-amd ; AMD Radeon R9 M290X ; Low
-amd ; AMD Radeon R9 M295X ; Low
-amd ; AMD Radeon HD 6770M ; Low
-amd ; AMD Radeon HD 6970M ; Low
-amd ; AMD Radeon HD 6750M ; Low
-amd ; AMD Radeon Pro 580 ; Low
-amd ; AMD Radeon Pro 580X ; Medium
-amd ; AMD Radeon Pro W5500X ; Medium
-amd ; AMD Radeon Pro W5700X ; Medium
-amd ; AMD Radeon Pro Vega II ; Low
-amd ; AMD Radeon Pro Vega II Duo ; Low
-amd ; AMD Radeon Pro W6800X ; High
-amd ; AMD Radeon Pro W6900X ; High
-amd ; AMD Radeon Pro W6800X Duo ; High
-amd ; AMD Radeon Pro W6600X ; High
-amd ; Dual AMD FirePro D300 ; Low
-amd ; Dual AMD FirePro D500 ; Low
-amd ; Dual AMD FirePro D700 ; Low
-amd ; AMD Radeon Pro 5300M ; Low
-amd ; AMD Radeon Pro 5500M ; Low
-amd ; AMD Radeon Pro 5600M ; Low
-amd ; AMD Radeon R9 M370X ; Low
-amd ; AMD Radeon HD 6490M ; Low
-
 #intel
-intel ; Intel HD Graphics 3000 ; Office
-intel ; Intel HD Graphics 4000 ; Office
-intel ; Intel HD Graphics 5000 ; Office
-intel ; Intel HD Graphics 6000 ; Office
-intel ; Intel Iris Graphics 6100 ; Low
-intel ; Intel Iris Pro Graphics 6200 ; Low
-intel ; Intel Iris Pro ; Low
-intel ; Intel HD Graphics 615 ; Office
-intel ; Intel HD Graphics 515 ; Office
-intel ; Intel HD Graphics 5300 ; OfficeLow
-intel ; Intel UHD Graphics 617 ; Low
-intel ; Intel Iris Plus Graphics ; Low
-intel ; Intel UHD Graphics 630 ; Low
-intel ; Intel Iris Plus Graphics 645 ; Low
-intel ; Intel Iris Plus Graphics 655 ; Low
-intel ; Intel Iris Plus Graphics 655 ; Low
-intel ; Intel HD Graphics 630 ; Office
-intel ; Intel Iris Plus Graphics 650 ; Low
-intel ; Intel Iris Plus Graphics 640 ; Low
-intel ; Intel HD Graphics 530 ; Office
-intel ; Intel Iris Graphics 550 ; Low
-intel ; Intel Iris Graphics 540 ; Low
-intel ; Intel Iris Pro Graphics ; Low
-intel ; Intel Iris Graphics ; Low
-intel ; Intel HD Graphics ; Office
+0x8086; 0x0042; verylow; #Intel; Intel(R) HD Graphics - Core i3/i5 + Pentium G9650 Processors
+0x8086; 0x0046; verylow; #Intel; Intel(R) HD Graphics - Core i3/i5/i7 Mobile Processors
+0x8086; 0x0102; verylow; #Intel; Intel(R) HD Graphics 2000
+0x8086; 0x0106; verylow; #Intel; Intel(R) HD Graphics 2000
+0x8086; 0x010A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0112; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0116; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0122; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0126; verylow; #Intel; Intel(R) HD Graphics 3000
+0x8086; 0x0152; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x0156; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x015A; verylow; #Intel; Intel(R) HD Graphics 2500
+0x8086; 0x0162; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x0166; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x016A; verylow; #Intel; Intel(R) HD Graphics 4000
+0x8086; 0x0402; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0406; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x040E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0412; verylow; #Intel; Intel(R) HD Graphics 4600
+0x8086; 0x0416; verylow; #Intel; Intel(R) HD Graphics 4600
+0x8086; 0x041A; verylow; #Intel; Intel(R) HD Graphics P4600/P4700
+0x8086; 0x041B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x041E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0422; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x0426; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x042A; verylow; #Intel; Intel(R) HD Graphics 5000
+0x8086; 0x042B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x042E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0900; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0901; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0902; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0903; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0904; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x0A02; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD1; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD2; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD3; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0BD4; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C02; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C06; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C0A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C12; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C16; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C1A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C22; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C26; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0C2A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x0F30; verylow; #Intel; Intel(R) Vallyview Graphics
+0x8086; 0x0F31; verylow; #Intel; Intel(R) Vallyview Graphics
+0x8086; 0x1602; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1606; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x160E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1612; verylow; #Intel; Intel(R) HD Graphics 5600
+0x8086; 0x1616; verylow; #Intel; Intel(R) HD Graphics 5500
+0x8086; 0x161A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x161E; verylow; #Intel; Intel(R) HD Graphics 5300
+0x8086; 0x1622; verylow; #Intel; Intel(R) Iris(TM) Pro Graphics 6200
+0x8086; 0x1626; verylow; #Intel; Intel(R) HD Graphics 6000
+0x8086; 0x162A; verylow; #Intel; Intel(R) Iris(TM) Pro Graphics P6300
+0x8086; 0x162B; verylow; #Intel; Intel(R) Iris(TM) Graphics 6100
+0x8086; 0x162D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x162E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1632; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1636; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x163E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x1902; low; #Intel; Intel(R) HD Graphics 510
+0x8086; 0x1906; low; #Intel; Intel(R) HD Graphics 510
+0x8086; 0x190A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x190B; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x190E; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1912; low; #Intel; Intel(R) HD Graphics 530
+0x8086; 0x1913; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1916; low; #Intel; Intel(R) HD Graphics 520
+0x8086; 0x191A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x191B; low; #Intel; Intel(R) HD Graphics 530
+0x8086; 0x191D; low; #Intel; Intel(R) HD Graphics P530
+0x8086; 0x191E; low; #Intel; Intel(R) HD Graphics 515
+0x8086; 0x1921; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1923; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x1926; low; #Intel; Intel(R) Iris Graphics 540
+0x8086; 0x1927; low; #Intel; Intel(R) Iris Graphics 540
+0x8086; 0x192A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x192B; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x192D; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x193A; low; #Intel; Intel(R) HD Graphics
+0x8086; 0x193B; medium; #Intel; Intel(R) Iris Pro Graphics 580
+0x8086; 0x193D; medium; #Intel; Intel(R) Iris Pro Graphics P580
+0x8086; 0x22B0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B1; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B2; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x22B3; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x2982; verylow; #Intel; Intel(R) G35 Express Chipset Family
+0x8086; 0x2983; verylow; #Intel; Intel(R) G35 Express Chipset Family
+0x8086; 0x2A02; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A03; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A12; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A13; verylow; #Intel; Mobile Intel(R) 965 Express Chipset Family
+0x8086; 0x2A42; verylow; #Intel; Mobile Intel(R) 4 Series Express Chipset Family
+0x8086; 0x2A43; verylow; #Intel; Mobile Intel(R) 4 Series Express Chipset Family
+0x8086; 0x2E02; verylow; #Intel; Intel(R) 4 Series Express Chipset
+0x8086; 0x2E03; verylow; #Intel; Intel(R) 4 Series Express Chipset
+0x8086; 0x2E12; verylow; #Intel; Intel(R) Q45/Q43 Express Chipset
+0x8086; 0x2E13; verylow; #Intel; Intel(R) Q45/Q43 Express Chipset
+0x8086; 0x2E22; verylow; #Intel; Intel(R) G45/G43 Express Chipset
+0x8086; 0x2E23; verylow; #Intel; Intel(R) G45/G43 Express Chipset
+0x8086; 0x2E32; verylow; #Intel; Intel(R) G41 Express Chipset
+0x8086; 0x2E33; verylow; #Intel; Intel(R) G41 Express Chipset
+0x8086; 0x2E42; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E43; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E92; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x2E93; verylow; #Intel; Intel(R) B43 Express Chipset
+0x8086; 0x3184; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3185; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E90; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E91; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E92; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E93; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E94; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E96; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E98; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E99; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9A; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9B; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3E9C; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA0; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA1; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA2; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA3; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA4; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x3EA5; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA6; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA7; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA8; medium; #Intel; Intel(R) Iris Plus Graphics
+0x8086; 0x3EA9; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4626; low; #Intel; , Intel(R) Xe Graphics
+0x8086; 0x4680; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4682; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4688; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x468A; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x468B; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4690; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4692; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4693; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0x46A3; low; #Intel; , Intel(R) Xe Graphics
+0x8086; 0x46A6; low; #Intel; Intel(R) Xe Graphics
+0x8086; 0x4905; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4906; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4907; low; #Intel; Intel(R) Iris(R) Xe MAX Graphics
+0x8086; 0x4C8A; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4C8B; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x4C90; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x5690; medium; #Intel; Intel(R) Arc(TM) A770M Graphics
+0x8086; 0x5693; medium; #Intel; Intel(R) Arc(TM) A370M Graphics
+0x8086; 0x56A0; medium; #Intel; Intel(R) Arc(TM) A770 Graphics
+0x8086; 0x56A1; medium; #Intel; Intel(R) Arc(TM) A750 Graphics
+0x8086; 0x56A5; medium; #Intel; Intel(R) Arc(TM) A380 Graphics
+0x8086; 0x5902; verylow; #Intel; Intel(R) HD Graphics 610
+0x8086; 0x5906; verylow; #Intel; Intel(R) HD Graphics 610
+0x8086; 0x5908; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x590A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x590B; verylow; #Intel; Intel(R) HD Graphics P610
+0x8086; 0x590E; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5912; low; #Intel; Intel(R) HD Graphics 630
+0x8086; 0x5913; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5915; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5916; low; #Intel; Intel(R) HD Graphics 620
+0x8086; 0x5917; low; #Intel; Intel(R) UHD Graphics 620
+0x8086; 0x591A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x591B; low; #Intel; Intel(R) HD Graphics 630
+0x8086; 0x591C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x591D; low; #Intel; Intel(R) HD Graphics P630
+0x8086; 0x591E; verylow; #Intel; Intel(R) HD Graphics 615
+0x8086; 0x5921; low; #Intel; Intel(R) HD Graphics 620
+0x8086; 0x5923; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5926; medium; #Intel; Intel(R) Iris Plus Graphics 640
+0x8086; 0x5927; medium; #Intel; Intel(R) Iris Plus Graphics 650
+0x8086; 0x592A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x592B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5932; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593B; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x593D; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A40; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A41; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A42; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A44; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A49; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A4A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A4C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A50; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A51; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A52; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A54; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A59; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A5A; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x5A5C; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x87C0; verylow; #Intel; Intel(R) HD Graphics
+0x8086; 0x87CA; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x8A50; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A51; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A52; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A53; low; #Intel; Intel(R) Iris Plus Graphics (64 EUs)
+0x8086; 0x8A54; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A56; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A57; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A58; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A59; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5A; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5B; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A5C; low; #Intel; Intel(R) Iris Plus Graphics (48 EUs)
+0x8086; 0x8A5D; low; #Intel; Intel(R) Iris Plus Graphics (32 EUs)
+0x8086; 0x8A71; low; #Intel; Intel(R) Iris Plus Graphics (8 EUs)
+0x8086; 0x9A40; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A49; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A59; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A60; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A68; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A70; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A78; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9A7F; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AC0; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AC9; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AD9; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9AF8; low; #Intel; Intel(R) Iris(R) Xe Graphics
+0x8086; 0x9B21; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9B41; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA0; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA2; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA4; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA5; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BA8; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAA; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAB; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BAC; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC0; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC2; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC4; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC5; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BC8; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCA; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCB; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BCC; low; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BE6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0x9BF6; verylow; #Intel; Intel(R) UHD Graphics
+0x8086; 0xA780; medium; #Intel; Intel(R) Xe Graphics
+0x8086; 0xA788; medium; #Intel; Intel(R) Xe Graphics
+
+#amd
+0x1002; 0x6640; verylow; #AMD; AMD Radeon R9 M380
+0x1002; 0x6798; verylow; #AMD; AMD Radeon HD - FirePro D700
+0x1002; 0x679E; verylow; #AMD; AMD Radeon HD - FirePro D500
+0x1002; 0x67DF; low; #AMD; AMD Radeon Pro 570
+0x1002; 0x67EF; verylow; #AMD; AMD Radeon Pro 450
+0x1002; 0x6810; verylow; #AMD; AMD Radeon HD - FirePro D300
+0x1002; 0x6821; verylow; #AMD; AMD Radeon R9 M370X
+0x1002; 0x6867; medium; #AMD; AMD Radeon Pro Vega 56
+0x1002; 0x6869; medium; #AMD; AMD Radeon Pro Vega 48
+0x1002; 0x687F; medium; #AMD; AMD Radeon RX Vega 64
+0x1002; 0x69AF; low; #AMD; AMD Radeon Pro Vega 20
+0x1002; 0x7310; high; #AMD; AMD Radeon Pro W5700X
+0x1002; 0x7319; medium; #AMD; AMD Radeon Pro 5700 XT
+0x1002; 0x731F; high; #AMD; AMD Radeon RX 5700 XT
+0x1002; 0x7340; low; #AMD; AMD Radeon Pro 5300M
+0x1002; 0x7360; medium; #AMD; AMD Radeon Pro 5600M
+0x1002; 0x73BF; high; #AMD; AMD Radeon RX 6800 XT
+0x1002; 0x73FF; medium; #AMD; AMD Radeon RX 6600
 
 #nvidia
-nvidia ; NVIDIA GeForce 320M ; Office
-nvidia ; NVIDIA GeForce 9400M ; Office
-nvidia ; NVIDIA GeForce GT 755M ; Low
-nvidia ; NVIDIA GeForce GTX 775M ; Low
-nvidia ; NVIDIA GeForce GTX 780M ; Low
-nvidia ; NVIDIA GeForce GT 750M ; Low
-nvidia ; NVIDIA GeForce GT 640M ; Low
-nvidia ; NVIDIA GeForce GT 650M ; Low
-nvidia ; NVIDIA GeForce GT 120 ; Office
-nvidia ; NVIDIA GeForce GT 130 ; Office
-nvidia ; NVIDIA GeForce GT 330M ; Low
-nvidia ; NVIDIA GeForce 9600M GT ; Office
-nvidia ; NVIDIA GeForce 9600M ; Office
+0x10DE; 0x1180; low; #NVIDIA; NVIDIA GeForce GTX 680
+0x10DE; 0x1184; low; #NVIDIA; NVIDIA GeForce GTX 770
+0x10DE; 0x119D; verylow; #NVIDIA; NVIDIA GeForce GTX 775M
+0x10DE; 0x11A3; low; #NVIDIA; NVIDIA GeForce GTX 680MX
+0x10DE; 0x11B4; low; #NVIDIA; NVIDIA Quadro K4200
+0x10DE; 0xFC6; verylow; #NVIDIA; NVIDIA GeForce GTX 650
+0x10DE; 0xFD5; verylow; #NVIDIA; NVIDIA GeForce GT 650M
+0x10DE; 0xFD8; verylow; #NVIDIA; NVIDIA GeForce GT 640M
+0x10DE; 0xFE9; verylow; #NVIDIA; NVIDIA GeForce GT 750M
+
+#apple
+0x106B; 0x0001; low; Apple; Apple M1
+0x106B; 0x0002; low; Apple; Apple M1 Pro
+0x106B; 0x0003; low; Apple; Apple M1 Max
+0x106B; 0x0004; medium; Apple; Apple M1 Ultra
+0x106B; 0x0005; medium; Apple; Apple M2
+0x106B; 0x0006; medium; Apple; Apple M2 Pro
+0x106B; 0x0007; medium; Apple; Apple M2 Max
+0x106B; 0x0008; high; Apple; Apple M2 Ultra
+0x106B; 0x0009; high; Apple; Apple M3
+0x106B; 0x000A; ultra; Apple; Apple M3 Pro
+0x106B; 0x000B; ultra; Apple; Apple M3 Max
+0x106B; 0x1001; verylow; Apple; Apple A8 GPU
+0x106B; 0x1002; verylow; Apple; Apple A9 GPU
+0x106B; 0x1003; verylow; Apple; Apple A9X GPU
+0x106B; 0x1004; verylow; Apple; Apple A10 GPU
+0x106B; 0x1005; verylow; Apple; Apple A10X GPU
+0x106B; 0x1006; low; Apple; Apple A11 GPU
+0x106B; 0x1007; low; Apple; Apple A12 GPU
+0x106B; 0x1008; low; Apple; Apple A12X GPU
+0x106B; 0x1009; low; Apple; Apple A12Z GPU
+0x106B; 0x100A; low; Apple; Apple A13 GPU
+0x106B; 0x100B; low; Apple; Apple A14 GPU
+0x106B; 0x100C; low; Apple; Apple A15 GPU
+0x106B; 0x100D; medium; Apple; Apple A16 GPU
+0x106B; 0x100E; medium; Apple; Apple A17 Pro GPU
 
 END_GPU_LIST;
+

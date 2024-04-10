@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\EGLContextCreator.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\GLES.cpp" />
@@ -26,7 +26,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />

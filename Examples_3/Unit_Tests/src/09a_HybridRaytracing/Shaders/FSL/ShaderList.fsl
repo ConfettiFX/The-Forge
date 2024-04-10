@@ -16,8 +16,12 @@
 #end
 #endif
 
-
 #comp compositePass.comp
+#include "compositePass.comp.fsl"
+#end
+
+#comp compositePassCrash.comp
+#define GPU_CRASH
 #include "compositePass.comp.fsl"
 #end
 
@@ -49,6 +53,11 @@
 #include "visibilityBufferPass.vert.fsl"
 #end
 
+#vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassCrash.vert
+#define GPU_CRASH
+#include "visibilityBufferPass.vert.fsl"
+#end
+
 #vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.vert
 #include "visibilityBufferPassAlpha.vert.fsl"
 #end
@@ -60,3 +69,7 @@
 #include "raytracedShadowsPass.comp.fsl"
 #end
 
+#comp raytracedShadowsPassCrash.comp
+#define GPU_CRASH
+#include "raytracedShadowsPass.comp.fsl"
+#end

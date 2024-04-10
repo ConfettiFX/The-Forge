@@ -59,11 +59,13 @@ extern HRESULT hook_create_graphics_pipeline_state(ID3D12Device* pDevice, const 
                                                    void* pExtensions, uint32_t extensionCout, ID3D12PipelineState** ppPipeline);
 extern HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC* pDesc, void* pExtensions,
                                                   uint32_t extensionCout, ID3D12PipelineState** ppPipeline);
-extern HRESULT hook_create_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
-                                            D3D12_RESOURCE_STATES startState, uint32_t flags, ID3D12Resource** ppOutResource);
-extern HRESULT hook_create_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
-                                           const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState,
-                                           ID3D12Resource** ppOutResource);
+extern HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
+                                         D3D12_RESOURCE_STATES startState, uint32_t flags, Buffer* pOutBuffer);
+extern HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
+                                         D3D12_RESOURCE_STATES startState, uint32_t flags, Texture* pOutTexture);
+extern HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
+                                        const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState,
+                                        ID3D12Resource** ppOutResource);
 // HRESULT create_swap_chain(struct Renderer* pRenderer, struct SwapChain* pSwapChain, DXGI_SWAP_CHAIN_DESC1* desc, IDXGISwapChain1**
 // swapchain);
 extern void    hook_remove_pipeline(Pipeline* pPipeline);

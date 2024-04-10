@@ -56,6 +56,7 @@
 
 GroupShared(atomic_uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
 GroupShared(atomic_uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);
+GroupShared(FilterDispatchGroupData, filterDispatchGroupData);
 
 #define ENABLE_CULL_BACKFACE			1
 #define ENABLE_CULL_FRUSTUM				1

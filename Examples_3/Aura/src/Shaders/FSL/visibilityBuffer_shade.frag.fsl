@@ -124,7 +124,7 @@ float4 PS_MAIN(PsIn In)
 	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
 	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
 
-	// Apply wind tranform iuf mateiral ID matches cloth
+	// Apply wind transform if material ID matches cloth
 	if (materialID == CLOTH_ID)
 	{
 		v0pos.xyz = WindTransformWorldPosition(v0pos.xyz, Get(windData));
@@ -208,10 +208,12 @@ float4 PS_MAIN(PsIn In)
 	);
 
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
-
 	if (materialID == CLOTH_ID)
 	{
-		normal  = WindTransformWorldNormal(normal,  position, Get(windData));
+		// calculate normal from (transformed) world space vertex positions
+		float3 p1p0 = v1pos.xyz - v0pos.xyz;
+		float3 p2p0 = v2pos.xyz - v0pos.xyz;
+		normal = normalize(cross(p1p0, p2p0));
 	}
 
 	//Calculate pixel normal and tangent vectors

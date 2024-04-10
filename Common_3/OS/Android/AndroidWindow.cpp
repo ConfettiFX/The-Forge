@@ -292,6 +292,8 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
 
 void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, (int32_t)metrics.widthPixels, (int32_t)metrics.heightPixels }; }
 
+void getRecommendedWindowRect(WindowDesc*, RectDesc* rect) { getRecommendedResolution(rect); }
+
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
     // No-op

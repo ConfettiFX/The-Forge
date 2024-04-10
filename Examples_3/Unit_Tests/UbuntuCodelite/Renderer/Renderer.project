@@ -21,8 +21,7 @@
     <File Name="../../../../Common_3/Graphics/Interfaces/IShaderReflection.h"/>
     <File Name="../../../../Common_3/Graphics/PickRenderingAPI.cpp"/>
     <File Name="../../../../Common_3/Resources/ResourceLoader/ResourceLoader.cpp"/>
-    <File Name="../../../../Common_3/Graphics/GPUConfig.h"/>
-    <File Name="../../../../Common_3/Graphics/GPUConfig.cpp"/>
+    <File Name="../../../../Common_3/Graphics/GraphicsConfig.cpp"/>
     <File Name="../../../../Common_3/Graphics/ShaderUtilities.h.fsl"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">

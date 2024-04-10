@@ -262,7 +262,7 @@ float3 reconstructPositionCS(
 	float3 pos = float3(texCoord - float2(0.5f, 0.5f), 1.0f);
 	pos.y *= -1.0f;
 	pos.xy *= frustumPlaneSizeNormalized;
-	pos *= linearizeDepth(depth, nearPlane, farPlane);
+	pos *= linearizeDepthReverseZ(depth, nearPlane, farPlane);
 	return pos;
 }
 
@@ -414,7 +414,7 @@ float calculateAoContrib(
 
 	// Sample the center pixel for camera Z
 	float fDepth = sampleDepth(rtSize, f2TexCoord, pDepthTex, samplerState);
-	float fDepthLinear = linearizeDepth(fDepth, nearPlane, farPlane);
+	float fDepthLinear = linearizeDepthReverseZ(fDepth, nearPlane, farPlane);
 
 	float3 f3Position = reconstructPositionCS(f2TexCoord, fDepth, farPlane, nearPlane, frustumPlaneSizeNormalized);
 	float3 f3Normal = reconstructNormalCS(rtSize, f2InvRTSize, f2TexCoord, farPlane, nearPlane, frustumPlaneSizeNormalized, pDepthTex, samplerState);

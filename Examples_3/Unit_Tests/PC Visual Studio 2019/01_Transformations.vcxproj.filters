@@ -30,9 +30,6 @@
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.vert.fsl">
       <Filter>src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\01_Transformations\Shaders\FSL\crash.vert.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\resources.h.fsl">
       <Filter>src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>

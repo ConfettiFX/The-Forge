@@ -38,9 +38,8 @@ STRUCT(VSOutput)
 	DATA(FLAT(uint), ViewID, TEXCOORD1);
 #endif
 };
-#if !defined(ORBIS) && !defined(PROSPERO)
+
 EARLY_FRAGMENT_TESTS
-#endif
 void PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;

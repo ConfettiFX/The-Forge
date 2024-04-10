@@ -136,15 +136,15 @@ FSOutput PS_MAIN( PsIn In )
 	int2 ditherIdx = int2(fmod((In.texCoord) * float2(Get(screenWidth), Get(screenHeight)) * 0.5f, 4.0f));
 	float offset = ditherOffsets[ditherIdx.x * 4 + ditherIdx.y];
 
-	float3 samplePos = rayStart + offset * marchStep;
+	rayStart += offset * marchStep;
 
 	for(int j = 0; j < 10; j++)
 	{
+		float3 samplePos = rayStart + j * marchStep;
+
 		float shadowFactor = GetShadowFactor(samplePos);
 
 		color += Get(lightColor).rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
-
-		samplePos += marchStep;
 	}
 
 	color /= 10;

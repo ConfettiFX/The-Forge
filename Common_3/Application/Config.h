@@ -65,17 +65,7 @@
 #define QUOTE(x)  _QUOTE(x)
 #endif
 
-#if defined(__cplusplus) && (defined(__clang__) || _MSC_VER >= 1900)
-// Taken from https://randomascii.wordpress.com/2011/09/13/analyze-for-visual-studio-the-ugly-part-5/
-// "+ 0" avoids warning C6260: sizeof * sizeof is usually wrong.
-template<typename T, size_t N>
-char (*array_counter(const T (&)[N]))[N];
-#ifndef TF_ARRAY_COUNT
-#define TF_ARRAY_COUNT(array) (sizeof(*array_counter(array)) + 0)
-#endif
-#else
 #define TF_ARRAY_COUNT(array) (sizeof(array) / (sizeof(array[0]) * (sizeof(array) != PTR_SIZE || sizeof(array[0]) <= PTR_SIZE)))
-#endif
 
 #ifndef TF_MIN
 #define TF_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -292,6 +282,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 // #define ENABLE_MATH_CHECKS // Enables low level math library debug checks like SIMD variable alignment checks
 #define ENABLE_FORGE_SCRIPTING
+#define ENABLE_FORGE_RELOAD_SHADER
 #define ENABLE_FORGE_UI
 #define ENABLE_FORGE_FONTS
 #define ENABLE_FORGE_INPUT

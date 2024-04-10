@@ -267,14 +267,8 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         pGpuProfiler->pCurrentNode = node;
     }
 
-    // Metal only supports gpu timers on command buffer boundaries
-#if defined(METAL)
-    if (isRoot)
-#endif
-    {
-        QueryDesc desc = { node->mIndex };
-        cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
-    }
+    QueryDesc desc = { node->mIndex };
+    cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
 
     if (addMarker)
     {
@@ -289,15 +283,9 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool isRoot = false)
 {
-    // Metal only supports gpu timers on command buffer boundaries
-#if defined(METAL)
-    if (isRoot)
-#endif
-    {
-        // Record gpu time
-        QueryDesc desc = { pGpuProfiler->pCurrentNode->mIndex };
-        cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
-    }
+    // Record gpu time
+    QueryDesc desc = { pGpuProfiler->pCurrentNode->mIndex };
+    cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
 
     if (pGpuProfiler->pCurrentNode->mDebugMarker)
     {
