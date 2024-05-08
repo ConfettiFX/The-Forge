@@ -17,14 +17,6 @@ echo Pulling Art Assets
 echo Unzipping Art Assets...
 "Tools/7z" x %filename% -y > NUL
 
-:: Copy ZipFiles to the right location as they're big to be committed without lfs
-if exist "Art/ZipFilesDds" (
-	move /Y "Art/ZipFilesDds" "Examples_3/Unit_Tests/UnitTestResources"
-)
-if exist "Art/ZipFilesKtx" (
-	move /Y "Art/ZipFilesKtx" "Examples_3/Unit_Tests/UnitTestResources"
-)
-
 echo Finishing up...
 del %filename%
 
