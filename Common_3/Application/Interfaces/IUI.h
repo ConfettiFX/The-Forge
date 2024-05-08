@@ -403,7 +403,8 @@ enum GuiComponentFlags
     GUI_COMPONENT_FLAGS_NO_NAV_FOCUS =
         1 << 15, // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
     GUI_COMPONENT_FLAGS_START_COLLAPSED = 1 << 16,
-    GUI_COMPONENT_FLAGS_NO_DOCKING = 1 << 17
+    GUI_COMPONENT_FLAGS_NO_DOCKING = 1 << 17,
+    GUI_COMPONENT_FLAGS_NO_WINDOW = 1 << 18
 };
 
 typedef struct UIComponentDesc

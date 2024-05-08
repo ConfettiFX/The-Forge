@@ -143,6 +143,7 @@
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -193,6 +194,7 @@
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -252,6 +254,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ozz_base.lib" "$
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -306,6 +309,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ozz_base.lib" "$
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

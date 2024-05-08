@@ -2631,7 +2631,7 @@ void platformUpdateUserInterface(float deltaTime)
             UIComponent*          pComponent = guiUpdate.pUIComponents[compIndex];
             char                  title[MAX_TITLE_STR_LENGTH] = { 0 };
             int32_t               UIComponentFlags = pComponent->mFlags;
-            bool*                 pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
+            bool                  pCloseButtonActiveValue = pComponent->mHasCloseButton;
             const char* const*    contextualMenuLabels = pComponent->mContextualMenuLabels;
             const WidgetCallback* contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
             const size_t          contextualMenuCount = pComponent->mContextualMenuCount;
@@ -2687,38 +2687,8 @@ void platformUpdateUserInterface(float deltaTime)
             if (pComponent->pPreProcessCallback)
                 pComponent->pPreProcessCallback(pComponent->pUserData);
 
-            bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
-            if (result)
+            if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_WINDOW)
             {
-                // Setup the contextual menus
-                if (contextualMenuCount != 0 && ImGui::BeginPopupContextItem()) // <-- This is using IsItemHovered()
-                {
-                    for (size_t i = 0; i < contextualMenuCount; i++)
-                    {
-                        if (ImGui::MenuItem(contextualMenuLabels[i]))
-                        {
-                            if (contextualMenuCallbacks && contextualMenuCallbacks[i])
-                                contextualMenuCallbacks[i](pComponent->pUserData);
-                        }
-                    }
-                    ImGui::EndPopup();
-                }
-
-                bool overrideSize = false;
-                bool overridePos = false;
-
-                if ((UIComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) && !(UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
-                    overrideSize = true;
-
-                if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
-                    overridePos = true;
-
-                ImGui::SetWindowSize(float2(pWindowRect->z, pWindowRect->w), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
-                ImGui::SetWindowPos(float2(pWindowRect->x, pWindowRect->y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
-
-                if (UIComponentFlags & GUI_COMPONENT_FLAGS_START_COLLAPSED)
-                    ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
-
                 for (ptrdiff_t i = 0; i < propCount; ++i)
                 {
                     if (pProps[i] != nullptr)
@@ -2727,19 +2697,66 @@ void platformUpdateUserInterface(float deltaTime)
                     }
                 }
             }
+            else
+            {
+                bool result = ImGui::Begin(title, pComponent->mHasCloseButton ? &pCloseButtonActiveValue : nullptr, guiWinFlags);
+                if (result)
+                {
+                    if (pComponent->mHasCloseButton)
+                    {
+                        pComponent->mActive = pCloseButtonActiveValue;
+                    }
+                    
+                    // Setup the contextual menus
+                    if (contextualMenuCount != 0 && ImGui::BeginPopupContextItem()) // <-- This is using IsItemHovered()
+                    {
+                        for (size_t i = 0; i < contextualMenuCount; i++)
+                        {
+                            if (ImGui::MenuItem(contextualMenuLabels[i]))
+                            {
+                                if (contextualMenuCallbacks && contextualMenuCallbacks[i])
+                                    contextualMenuCallbacks[i](pComponent->pUserData);
+                            }
+                        }
+                        ImGui::EndPopup();
+                    }
 
-            float2 pos = ImGui::GetWindowPos();
-            float2 size = ImGui::GetWindowSize();
-            pCurrentWindowRect->x = pos.x;
-            pCurrentWindowRect->y = pos.y;
-            pCurrentWindowRect->z = size.x;
-            pCurrentWindowRect->w = size.y;
-            pUserInterface->mLastUpdateMin[compIndex] = pos;
-            pUserInterface->mLastUpdateMax[compIndex] = pos + size;
+                    bool overrideSize = false;
+                    bool overridePos = false;
 
-            // Need to call ImGui::End event if result is false since we called ImGui::Begin
-            ImGui::End();
+                    if ((UIComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) && !(UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
+                        overrideSize = true;
 
+                    if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+                        overridePos = true;
+
+                    ImGui::SetWindowSize(float2(pWindowRect->z, pWindowRect->w), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
+                    ImGui::SetWindowPos(float2(pWindowRect->x, pWindowRect->y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
+
+                    if (UIComponentFlags & GUI_COMPONENT_FLAGS_START_COLLAPSED)
+                        ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
+
+                    for (ptrdiff_t i = 0; i < propCount; ++i)
+                    {
+                        if (pProps[i] != nullptr)
+                        {
+                            processWidget(pProps[i]);
+                        }
+                    }
+                }
+
+                float2 pos = ImGui::GetWindowPos();
+                float2 size = ImGui::GetWindowSize();
+                pCurrentWindowRect->x = pos.x;
+                pCurrentWindowRect->y = pos.y;
+                pCurrentWindowRect->z = size.x;
+                pCurrentWindowRect->w = size.y;
+                pUserInterface->mLastUpdateMin[compIndex] = pos;
+                pUserInterface->mLastUpdateMax[compIndex] = pos + size;
+
+                // Need to call ImGui::End event if result is false since we called ImGui::Begin
+                ImGui::End();
+            }
             if (pComponent->pPostProcessCallback)
                 pComponent->pPostProcessCallback(pComponent->pUserData);
 

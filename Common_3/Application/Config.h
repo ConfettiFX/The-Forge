@@ -352,8 +352,8 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //                         This define allows to hide Renderer functionality to the Game, so that if someone tries to use it it'll get a
 //                         linker error.
 //   - FORGE_TOOL_API: is used to expose tool functionality, mostly tool filesystem.
-#define FORGE_API FORGE_EXPORT
-#define FORGE_RENDERER_API FORGE_EXPORT
+#define FORGE_API
+#define FORGE_RENDERER_API
 #define FORGE_TOOL_API
 
 #ifndef FORGE_DEBUG
