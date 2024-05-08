@@ -490,6 +490,7 @@ public:
             addResource(&textureDesc, NULL);
         }
 
+        // Dynamic sampler that is bound at runtime
         SamplerDesc samplerDesc = { FILTER_LINEAR,
                                     FILTER_LINEAR,
                                     MIPMAP_MODE_NEAREST,
@@ -1223,11 +1224,7 @@ public:
         shaders[shadersCount++] = pSphereShader;
         shaders[shadersCount++] = pSkyBoxDrawShader;
 
-        const char*       pStaticSamplers[] = { "uSampler0" };
         RootSignatureDesc rootDesc = {};
-        rootDesc.mStaticSamplerCount = 1;
-        rootDesc.ppStaticSamplerNames = pStaticSamplers;
-        rootDesc.ppStaticSamplers = &pSamplerSkyBox;
         rootDesc.mShaderCount = shadersCount;
         rootDesc.ppShaders = shaders;
         addRootSignature(pRenderer, &rootDesc, &pRootSignature);
@@ -1312,7 +1309,7 @@ public:
     void prepareDescriptorSets()
     {
         // Prepare descriptor sets
-        DescriptorData params[6] = {};
+        DescriptorData params[7] = {};
         params[0].pName = "RightText";
         params[0].ppTextures = &pSkyBoxTextures[0];
         params[1].pName = "LeftText";
@@ -1325,7 +1322,9 @@ public:
         params[4].ppTextures = &pSkyBoxTextures[4];
         params[5].pName = "BackText";
         params[5].ppTextures = &pSkyBoxTextures[5];
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 6, params);
+        params[6].pName = "uSampler0";
+        params[6].ppSamplers = &pSamplerSkyBox;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 7, params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {

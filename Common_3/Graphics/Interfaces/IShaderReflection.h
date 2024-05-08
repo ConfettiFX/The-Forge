@@ -154,6 +154,11 @@ struct ShaderReflection
 
     // number of tessellation control point
     uint32_t mNumControlPoint;
+
+#if defined(DIRECT3D12)
+    bool mCbvHeapIndexing;
+    bool mSamplerHeapIndexing;
+#endif
 };
 
 struct PipelineReflection

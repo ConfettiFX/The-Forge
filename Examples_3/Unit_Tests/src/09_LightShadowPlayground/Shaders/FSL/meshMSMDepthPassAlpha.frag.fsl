@@ -23,36 +23,27 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #define MESH_PASS
 #include "vb_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-	DATA(float4, Position, SV_Position);
-	DATA(float2, TexCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId, TEXCOORD1);
-#endif
-};
-
 STRUCT(PsOut)
 {
-	DATA(float4, Moments, SV_Target0);
+	DATA(float4, moments, SV_Target0);
 };
 
-PsOut PS_MAIN( PsIn In )
+PsOut PS_MAIN( PsInAlphaTested In )
 {
 	INIT_MAIN;
-	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_SHADOW); //1 is camera view, 0 is shadow map view
-	uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
-	float4 texColor;
-	BeginNonUniformResourceIndex(materialID, 256)
-    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.TexCoord, 0);
-	EndNonUniformResourceIndex()
+
+	uint materialID = In.materialID;
+	float4 texColor = f4(0);
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.texCoord, 0);
+	EndNonUniformResourceIndex();
+
 	clip(texColor.a < 0.5f ? -1 : 1);
-	float d = In.Position.z;
+	float d = In.position.z;
 	PsOut Out = {f4(0)};
-	Out.Moments = PackMoments(float4(d, d*d, d*d*d, d*d*d*d));
+	Out.moments = PackMoments(float4(d, d*d, d*d*d, d*d*d*d));
 	RETURN(Out);
 }

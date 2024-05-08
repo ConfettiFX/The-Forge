@@ -1197,9 +1197,7 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
                 id<MTLTexture> __strong* pUAVDescriptors;
                 id<MTLTexture>           pStencilTexture;
             };
-            id       mpsTextureAllocator;
-            uint32_t pPixelFormat;
-            uint32_t mRT : 1;
+            id mpsTextureAllocator;
         };
 #endif
 #if defined(DIRECT3D11)
@@ -1888,6 +1886,13 @@ typedef struct MarkerDesc
 #if !defined(PROSPERO) && !defined(XBOX)
 #define GPU_MARKER_SIZE                        sizeof(uint32_t)
 #define GPU_MARKER_VALUE(markerBuffer, offset) (*((uint32_t*)markerBuffer->pCpuMappedAddress) + ((offset) / GPU_MARKER_SIZE))
+#endif
+
+#if !defined(GFX_ESRAM_ALLOCATIONS)
+#define ESRAM_BEGIN_ALLOC(...)
+#define ESRAM_CURRENT_OFFSET(...) 0u
+#define ESRAM_END_ALLOC(...)
+#define ESRAM_RESET_ALLOCS(...)
 #endif
 
 typedef struct DEFINE_ALIGNED(Cmd, 64)
@@ -2956,6 +2961,7 @@ typedef struct GPUSettings
     uint32_t mRayQuerySupported : 1;
     uint32_t mSoftwareVRSSupported : 1;
     uint32_t mPrimitiveIdSupported : 1;
+    uint32_t m64BitAtomicsSupported : 1;
 #if defined(DIRECT3D11) || defined(DIRECT3D12)
     D3D_FEATURE_LEVEL mFeatureLevel;
 #endif
@@ -3171,6 +3177,7 @@ typedef struct GpuInfo
             uint32_t                    mAccelerationStructureExtension : 1;
             uint32_t                    mRayTracingPipelineExtension : 1;
             uint32_t                    mRayQueryExtension : 1;
+            uint32_t                    mShaderAtomicInt64Extension : 1;
             uint32_t                    mBufferDeviceAddressFeature : 1;
             uint32_t                    mShaderFloatControlsExtension : 1;
             uint32_t                    mSpirv14Extension : 1;

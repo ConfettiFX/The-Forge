@@ -22,31 +22,19 @@
  * under the License.
 */
 
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(VsInOpaque)
-{
-    DATA(float3, position, POSITION);
-};
-
-STRUCT(PsInOpaque)
-{
-	DATA(float4, position, SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
-PsInOpaque VS_MAIN( VsInOpaque In, SV_InstanceID(uint) instanceId )
+PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
 
-    float4x4 mvp = GetModelViewProj(GEOMSET_OPAQUE, VIEW_CAMERA, getDrawID());
-
 	PsInOpaque Out;
-	Out.position = mul(mvp, float4(In.position.xyz, 1.0f));
-    SET_DRAW_ID(Out, drawId, instanceId);
-	RETURN(Out);
+    uint vertID = vertexID;
+
+    float4x4 mvp = GetModelViewProj(GEOMSET_OPAQUE, VIEW_CAMERA, vertID);
+    float4 vertexPos = LoadVertex(vertID);
+    Out.position = mul(mvp, vertexPos);
+
+    RETURN(Out);
 }

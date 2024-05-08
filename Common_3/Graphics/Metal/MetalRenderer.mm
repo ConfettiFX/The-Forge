@@ -282,7 +282,7 @@ static inline MemoryType util_to_memory_type(ResourceMemoryUsage usage)
 void util_set_heaps_graphics(Cmd* pCmd);
 void util_set_heaps_compute(Cmd* pCmd);
 
-void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, uint32_t pixelFormat,
+void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, MTLPixelFormat pixelFormat,
                              MTLTextureDescriptor* textureDesc);
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT);
 
@@ -710,6 +710,23 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
         ShaderStage shaderStages =
             (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE ? SHADER_STAGE_COMP : (SHADER_STAGE_VERT | SHADER_STAGE_FRAG));
 
+#ifdef ENABLE_GRAPHICS_DEBUG
+        // to circumvent a metal validation bug which overwrites the arguments array, we make a local copy
+        NSMutableArray<MTLArgumentDescriptor*>* descriptorsCopy = [[NSMutableArray alloc] init];
+        for (MTLArgumentDescriptor* myArrayElement in descriptors)
+        {
+            MTLArgumentDescriptor* argDescriptor = [MTLArgumentDescriptor argumentDescriptor];
+            argDescriptor.access = myArrayElement.access;
+            argDescriptor.arrayLength = myArrayElement.arrayLength;
+            argDescriptor.constantBlockAlignment = myArrayElement.constantBlockAlignment;
+            argDescriptor.dataType = myArrayElement.dataType;
+            argDescriptor.index = myArrayElement.index;
+            argDescriptor.textureType = myArrayElement.textureType;
+            [descriptorsCopy addObject:argDescriptor];
+        }
+        descriptors = descriptorsCopy;
+#endif
+
         // create encoder
         pDescriptorSet->mArgumentEncoder = [pRenderer->pDevice newArgumentEncoderWithArguments:descriptors];
         ASSERT(pDescriptorSet->mArgumentEncoder);
@@ -1040,7 +1057,8 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
                             untracked = texture->pTexture;
                         }
 
-                        if (texture->mRT || texture->mUav || !texture->pAllocation)
+                        bool isRT = texture->pTexture.usage & MTLTextureUsageRenderTarget;
+                        if (isRT || texture->mUav || !texture->pAllocation)
                         {
                             TrackUntrackedResource(pDescriptorSet, index, pDesc->mUsage, untracked);
                         }
@@ -2184,6 +2202,12 @@ static void QueryGPUSettings(GpuInfo* gpuInfo, GPUSettings* pOutSettings)
     }
 #endif
 
+    pOutSettings->m64BitAtomicsSupported = [gpuInfo->pGPU supportsFamily:MTLGPUFamilyApple9];
+    if ([gpuInfo->pGPU supportsFamily:MTLGPUFamilyApple8] && [gpuInfo->pGPU supportsFamily:MTLGPUFamilyMac2])
+    {
+        pOutSettings->m64BitAtomicsSupported = true;
+    }
+
     // Get the supported counter set.
     // We only support timestamps at stage boundary..
     gpuInfo->pCounterSetTimestamp = util_get_counterset(gpu);
@@ -2287,11 +2311,6 @@ void mtl_initRendererContext(const char* appName, const RendererContextDesc* pDe
              pContext->mGpus[i].mSettings.mGpuVendorPreset.mVendorId, pContext->mGpus[i].mSettings.mGpuVendorPreset.mModelId,
              presetLevelToString(pContext->mGpus[i].mSettings.mGpuVendorPreset.mPresetLevel),
              pContext->mGpus[i].mSettings.mGpuVendorPreset.mGpuName);
-    }
-
-    if (IOS14_RUNTIME)
-    {
-        pContext->mMtl.mExtendedEncoderDebugReport = true;
     }
 
     *ppContext = pContext;
@@ -2405,6 +2424,15 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 
         // Renderer is good! Assign it to result!
         *(ppRenderer) = pRenderer;
+    }
+
+    if (IOS14_RUNTIME)
+    {
+#if defined(ENABLE_GRAPHICS_DEBUG)
+        pRenderer->pContext->mMtl.mExtendedEncoderDebugReport = true;
+#else
+        pRenderer->pContext->mMtl.mExtendedEncoderDebugReport = settings->mEnableGpuBasedValidation;
+#endif
     }
 }
 
@@ -2836,7 +2864,7 @@ void mtl_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, Reso
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(pOut);
-    const uint32_t pixelFormat = (uint32_t)TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
+    const MTLPixelFormat pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
 
     MTLTextureDescriptor* textureDesc = [[MTLTextureDescriptor alloc] init];
     initialize_texture_desc(pRenderer, pDesc, false, pixelFormat, textureDesc);
@@ -4124,11 +4152,12 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
                 renderPassDesc.depthAttachment.slice = desc->mArraySlice;
             }
 #ifndef TARGET_IOS
-            bool isStencilEnabled = desc->pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
+            bool isStencilEnabled = desc->pDepthStencil->pTexture->pTexture.pixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
 #else
             bool isStencilEnabled = false;
 #endif
-            isStencilEnabled = isStencilEnabled || desc->pDepthStencil->pTexture->pPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
+            isStencilEnabled =
+                isStencilEnabled || desc->pDepthStencil->pTexture->pTexture.pixelFormat == MTLPixelFormatDepth32Float_Stencil8;
             if (isStencilEnabled)
             {
                 renderPassDesc.stencilAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
@@ -4368,7 +4397,14 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
                     util_set_debug_group(pCmd);
                     if (pCmd->mDebugMarker[0])
                     {
-                        pCmd->pRenderEncoder.label = [NSString stringWithUTF8String:pCmd->mDebugMarker];
+                        if (pCmd->pRenderEncoder)
+                        {
+                            pCmd->pRenderEncoder.label = [NSString stringWithUTF8String:pCmd->mDebugMarker];
+                        }
+                        if (pCmd->pComputeEncoder)
+                        {
+                            pCmd->pComputeEncoder.label = [NSString stringWithUTF8String:pCmd->mDebugMarker];
+                        }
                     }
 #endif
 
@@ -5903,7 +5939,7 @@ MTLCounterResultTimestamp* util_resolve_counter_sample_buffer(uint32_t startSamp
     return (MTLCounterResultTimestamp*)(data.bytes);
 }
 
-void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, uint32_t pixelFormat,
+void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, const bool isRT, MTLPixelFormat pixelFormat,
                              MTLTextureDescriptor* textureDesc)
 {
     const MemoryType memoryType = isRT ? MEMORY_TYPE_GPU_ONLY_COLOR_RTS : MEMORY_TYPE_GPU_ONLY;
@@ -5913,7 +5949,7 @@ void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, cons
     if (!(pDesc->mFlags & (TEXTURE_CREATION_FLAG_FORCE_2D | TEXTURE_CREATION_FLAG_FORCE_3D)) && pDesc->mHeight == 1)
         mipLevels = 1;
 
-    textureDesc.pixelFormat = (MTLPixelFormat)pixelFormat;
+    textureDesc.pixelFormat = pixelFormat;
     textureDesc.width = pDesc->mWidth;
     textureDesc.height = pDesc->mHeight;
     textureDesc.depth = pDesc->mDepth;
@@ -6043,13 +6079,13 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
     if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
         pTexture->pUAVDescriptors = (id<MTLTexture> __strong*)mem;
 
-    pTexture->pPixelFormat = (uint32_t)TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
+    MTLPixelFormat pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
 
     if (pDesc->mFormat == TinyImageFormat_D24_UNORM_S8_UINT &&
         !(pRenderer->pGpu->mCapBits.mFormatCaps[pDesc->mFormat] & FORMAT_CAP_RENDER_TARGET))
     {
         internal_log(eWARNING, "Format D24S8 is not supported on this device. Using D32S8 instead", "addTexture");
-        pTexture->pPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+        pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
         ((TextureDesc*)pDesc)->mFormat = TinyImageFormat_D32_SFLOAT_S8_UINT;
     }
 
@@ -6090,7 +6126,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 
         // Create a MTLTextureDescriptor that matches our requirements.
         MTLTextureDescriptor* textureDesc = [[MTLTextureDescriptor alloc] init];
-        initialize_texture_desc(pRenderer, pDesc, isRT, pTexture->pPixelFormat, textureDesc);
+        initialize_texture_desc(pRenderer, pDesc, isRT, pixelFormat, textureDesc);
 
         // For memoryless textures, we dont need any backing memory
 #if defined(ENABLE_MEMORYLESS_TEXTURES)
@@ -6149,10 +6185,9 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
             if (TinyImageFormat_IsDepthAndStencil(pDesc->mFormat))
             {
 #ifndef TARGET_IOS
-                pTexture->pStencilTexture =
-                    [pTexture->pTexture newTextureViewWithPixelFormat:(pTexture->pPixelFormat == MTLPixelFormatDepth32Float_Stencil8
-                                                                           ? MTLPixelFormatX32_Stencil8
-                                                                           : MTLPixelFormatX24_Stencil8)];
+                pTexture->pStencilTexture = [pTexture->pTexture
+                    newTextureViewWithPixelFormat:(pixelFormat == MTLPixelFormatDepth32Float_Stencil8 ? MTLPixelFormatX32_Stencil8
+                                                                                                      : MTLPixelFormatX24_Stencil8)];
 #else
                 pTexture->pStencilTexture = [pTexture->pTexture newTextureViewWithPixelFormat:MTLPixelFormatX32_Stencil8];
 #endif
@@ -6188,7 +6223,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
         }
     }
 
-    pTexture->mRT = isRT;
     pTexture->mNodeIndex = pDesc->mNodeIndex;
     pTexture->mUav = pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE;
     pTexture->mMipLevels = pDesc->mMipLevels;

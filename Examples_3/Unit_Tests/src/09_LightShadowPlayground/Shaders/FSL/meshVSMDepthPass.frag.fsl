@@ -23,30 +23,25 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #define MESH_PASS
 #include "vb_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-    DATA(float4, Position, SV_Position);
-};
 
 STRUCT(PsOut)
 {
 #ifdef USE_FLOAT4_VSM_RT
-	DATA(float4, Moments, SV_Target0);
+	DATA(float4, moments, SV_Target0);
 #else
-	DATA(float2, Moments, SV_Target0);
+	DATA(float2, moments, SV_Target0);
 #endif
 };
 
-PsOut PS_MAIN( PsIn In )
+PsOut PS_MAIN( PsInOpaque In )
 {
 	INIT_MAIN;
-	float d = In.Position.z;
+	float d = In.position.z;
 	PsOut Out;
-	Out.Moments.x = d;
-	Out.Moments.y = d * d;
+	Out.moments.x = d;
+	Out.moments.y = d * d;
 	RETURN(Out);
 }

@@ -1,0 +1,317 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shader_defs.h.fsl"
+
+float2 unpack2Floats(uint p)
+{
+#if defined(VULKAN)
+	return unpackHalf2x16(p);
+#elif defined(METAL)
+	return float2(as_type<half2>(p));
+#else
+	return float2(f16tof32(p & 0xFFFF), f16tof32((p >> 16) & 0xFFFF));
+#endif
+}
+
+RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t1, binding = 4);
+RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t2, binding = 5);
+RES(Buffer(uint), materialProps, UPDATE_FREQ_NONE, t3, binding = 6);
+
+#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/triangle_filtering.h.fsl"
+
+RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_PER_FRAME, u0, binding = 10);
+RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
+
+#include "triangle_binning.h.fsl"
+#if defined(SHARED_FILTERING)
+GroupShared(uint, tileTriangleCount[NUM_CULLING_VIEWPORTS][TILE_COUNTX][TILE_COUNTY]);
+#endif
+
+#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 20);
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t6, binding = 21);
+#else
+RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], space4, t6, binding = 21);
+#endif
+
+NUM_THREADS(FILTER_BATCH_SIZE, 1, 1)
+void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
+{
+    INIT_MAIN;
+#if defined(SHARED_FILTERING)
+	if (inGroupId.x == 0)
+	{
+        UNROLL_N(NUM_CULLING_VIEWPORTS)
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			for (uint t = 0; t < TILE_COUNTX * TILE_COUNTY; ++t)
+			{
+				AtomicStore(tileTriangleCount[i][t / TILE_COUNTY][t % TILE_COUNTY], 0u);
+			}
+		}
+	}
+	uint threadOutputOffsets[NUM_CULLING_VIEWPORTS][TILE_COUNTX][TILE_COUNTY];
+ #endif
+
+    GroupMemoryBarrier();
+
+	// vgprs ...
+	bool cull[NUM_CULLING_VIEWPORTS];
+
+    UNROLL_N(NUM_CULLING_VIEWPORTS)
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		cull[i] = true;
+	}
+
+	uint batchMeshIndex = Get(filterBatchDataBuffer)[groupId.x].meshIndex;
+	uint batchInputIndexOffset = (Get(meshConstantsBuffer)[batchMeshIndex].indexOffset + Get(filterBatchDataBuffer)[groupId.x].indexOffset);
+	uint vertexOffset = Get(meshConstantsBuffer)[batchMeshIndex].vertexOffset;
+	vertexOffset = 0;
+	bool twoSided = (Get(meshConstantsBuffer)[batchMeshIndex].twoSided == 1);
+	uint matID = Get(meshConstantsBuffer)[batchMeshIndex].materialID;
+	uint geomSet = Get(materialProps)[matID];
+
+	// this is the triangle index, the fetched index still needs to be shifted though...
+	uint triangleIndex = inGroupId.x + batchInputIndexOffset / 3;
+
+	uint triangleData = packTriangleData(triangleIndex, geomSet, batchMeshIndex);
+
+	//if (triangleIndex > 4096*4) RETURN;
+
+	//uint  aabbWaveTileCnt[2];
+
+	uint indices[3] = { 0, 0, 0 };
+	if (inGroupId.x < Get(filterBatchDataBuffer)[groupId.x].faceCount)
+	{
+		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
+
+		float4 vert[3] =
+		{
+			LoadVertex(indices[0]),
+			LoadVertex(indices[1]),
+			LoadVertex(indices[2])
+		};
+
+        UNROLL_N(NUM_CULLING_VIEWPORTS)
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			float4x4 worldViewProjection = Get(transform)[i].mvp;
+			float4 vertices[3] =
+			{
+				mul(worldViewProjection, vert[0]),
+				mul(worldViewProjection, vert[1]),
+				mul(worldViewProjection, vert[2])
+			};
+
+			CullingViewPort viewport = Get(cullingViewports)[i];
+			float2 windowSize = viewport.windowSize;
+			float2 filterWindowSize = viewport.windowSize;
+			if (i == 0)
+			{
+				filterWindowSize /= 3;
+			}
+
+			// backface culling
+			float3x3 m = float3x3(vertices[0].xyw, vertices[1].xyw, vertices[2].xyw);
+			bool backfacing = !twoSided && determinant(m) >= 0.0f;
+			cull[i] = backfacing;
+			if (backfacing) continue;
+
+			// screen space vertices
+			float3 verticesSS[3];
+			int verticesInFrontOfNearPlane = 0;
+			for (int vi = 0; vi < 3; ++vi)
+			{
+				float4 position = vertices[vi];
+				if (position.w < 0)
+				{
+					verticesInFrontOfNearPlane++;
+					position.w *= -1.0f;
+				}
+				verticesSS[vi] = float3(round((float2(1, -1) * position.xy * (0.5f / position.w) + 0.5f) * float2(windowSize) * 256.0f) / 256.0f - 0.5f,
+					position.z / position.w);
+			}
+			bool clip = verticesInFrontOfNearPlane > 2;
+			float2 min_p = floor(min(min(verticesSS[0].xy, verticesSS[1].xy), verticesSS[2].xy));
+			float2 max_p = ceil(max(max(verticesSS[0].xy, verticesSS[1].xy), verticesSS[2].xy));
+			bool frustumCull = (max_p.x < 2) || (max_p.y < 1) || (min_p.x > windowSize.x - 1) || (min_p.y > windowSize.y - 1) || (verticesSS[0].z <= 0.0f);
+			float3 edge10 = verticesSS[1] - verticesSS[0];
+			float3 edge20 = verticesSS[2] - verticesSS[0];
+			min_p = clamp(min_p, float2(0.0f, 0.0f), float2(windowSize) - f2(2.0f));
+			max_p = clamp(max_p, float2(0.0f, 0.0f), float2(windowSize) - f2(2.0f));
+			float2 sizef = max_p - min_p;
+			float triBBArea = sizef.x * sizef.y;
+
+			bool isSmallTriangle = triBBArea < SMALL_TRIANGLE_THRESHOLD;
+			bool smallCull = triBBArea < 1.0f;
+			// subpixel test thing
+			cull[i] = clip || frustumCull || smallCull;
+			
+			if (!cull[i])
+			{
+
+				if (isSmallTriangle)
+				{
+					cull[i] = true;
+
+					if (Get(smallScaleRaster) == 0)
+						continue;
+
+#if defined(SMALL_SCALE_FILTER_RASTER)
+					float determinant = edge20.x * edge10.y - edge20.y * edge10.x;
+					float4 texCoordDxy = float4(-edge20.y, edge10.y, edge20.x, -edge10.x) / determinant;
+					float2 t = min_p - verticesSS[0].xy;
+					float4 texCoord = float4(texCoordDxy.xy * t.x, texCoordDxy.zw * t.y);
+
+					float2 uvs[3];
+					if (geomSet == 1)
+					{
+						uvs[0] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[0] << 2));
+						uvs[1] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[1] << 2));
+						uvs[2] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[2] << 2));
+					}
+					float2 uv10 = uvs[1] - uvs[0];
+					float2 uv20 = uvs[2] - uvs[0];
+
+					for (float iy = 0; iy <= sizef.y; iy += 1.0f)
+					{
+						float y = min_p.y + iy;
+						float2 texcoord = texCoord.xy + texCoord.zw;
+						for (float ix = 0; ix <= sizef.x; ix += 1.0f)
+						{
+							float x = min_p.x + ix;
+							if (texcoord.x >= 0.0f && texcoord.y >= 0.0f && texcoord.x + texcoord.y <= 1.0f)
+							{
+
+								float2 texCoord = uv10 * texcoord.x + uv20 * texcoord.y + uvs[0];
+								bool   visible = true;
+								if (visible && geomSet == 1) // needs alpha testing
+								{
+									float4 diffuseColor;
+									float  d = 1.5;// max(dot(texCoordDxy.xy, texCoordDxy.xy), dot(texCoordDxy.zw, texCoordDxy.zw));
+									float  lod = log2(d) * 4;// *0.5f;
+
+									BeginNonUniformResourceIndex(matID, MAX_TEXTURE_UNITS);
+									diffuseColor = SampleLvlTex2D(Get(diffuseMaps)[matID], Get(textureSampler), texCoord, lod);
+									EndNonUniformResourceIndex();
+									if (diffuseColor.a <= 0.5f)
+										visible = false;
+								}
+								if (visible)
+								{
+									uint index = VisibilityBufferOffset(i, windowSize.x, x, y);
+									float depth = edge10.z * texcoord.x + edge20.z * texcoord.y + verticesSS[0].z;
+									uint64_t packedDepthVBId = packDepthVBId(depth, triangleData);
+									AtomicMaxU64(Get(visibilityBuffer)[index], packedDepthVBId);
+								}
+
+							}
+							texcoord += texCoordDxy.xy;
+						}
+						texCoord.zw += texCoordDxy.zw;
+					}
+#endif
+					continue;
+				}
+
+				float2 viewportInTiles = (viewport.windowSize / float2(BIN_SIZE, BIN_SIZE));
+				float2 trAABBMin = (min_p / float2(windowSize)) * viewportInTiles;
+				float2 trAABBMax = (max_p / float2(windowSize)) * viewportInTiles;
+				uint2 aabbWaveMin = uint2(trAABBMin);
+				uint2 aabbWaveMax = uint2(trAABBMax);
+				uint2 aabbWaveSize = aabbWaveMax - aabbWaveMin + u2(1);
+
+				// broadcast triangle to all bins if straddling
+				if (verticesInFrontOfNearPlane > 0)
+				{
+					aabbWaveMin[0] = 0;
+					aabbWaveMin[1] = 0;
+					aabbWaveSize[0] = TILE_COUNTX - 1;
+					aabbWaveSize[1] = TILE_COUNTY - 1;
+				}
+
+				uint tcnt = min(TILE_COUNTX * TILE_COUNTY, aabbWaveSize[0] * aabbWaveSize[1]);
+				for (uint pi = 0; pi < tcnt; pi++)
+				{
+					uint tx = aabbWaveMin[0] + (pi / aabbWaveSize[1]), ty = aabbWaveMin[1] + (pi % aabbWaveSize[1]);
+					{
+#if defined(SHARED_FILTERING)
+						AtomicAdd(tileTriangleCount[i][tx][ty], 1, threadOutputOffsets[i][tx][ty]);
+#else                   
+                        uint offset = 0;
+                        AtomicAdd(Get(binBuffer)[BinBufferViewOffset(i) + TIDX(tx, ty)], 1, offset);
+						if (offset < TILE_CAPACITY)
+						{
+                            Get(binBuffer)[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
+						}
+#endif                  
+					}
+				}
+			}
+		}
+	}
+    
+#if defined(SHARED_FILTERING)
+    GroupMemoryBarrier();
+
+	if (inGroupId.x == 0)
+	{
+        UNROLL_N(NUM_CULLING_VIEWPORTS)
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			for (uint t = 0; t < TILE_COUNTX * TILE_COUNTY; ++t)
+			{
+				uint tx = t / TILE_COUNTY, ty = t % TILE_COUNTY;
+				uint triangleCount = AtomicLoad(tileTriangleCount[i][tx][ty]);
+				AtomicAdd(Get(binBuffer)[BinBufferViewOffset(i) + TIDX(tx, ty)], triangleCount, tileTriangleCount[i][tx][ty]);
+			}
+		}
+	}
+
+    GroupMemoryBarrier();
+
+    UNROLL_N(NUM_CULLING_VIEWPORTS)
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		if (cull[i]) continue;
+		uint tcnt = aabbWaveSize[i][0] * aabbWaveSize[i][1];
+		for (uint pi = 0; pi < tcnt; pi++)
+		{
+			uint tx = aabbWaveMin[i][0] + (pi / aabbWaveSize[i][1]), ty = aabbWaveMin[i][1] + (pi % aabbWaveSize[i][1]);
+			if (tx < TILE_COUNTX && ty < TILE_COUNTY) 
+			{
+				uint offset = tileTriangleCount[i][tx][ty] + threadOutputOffsets[i][tx][ty];
+				uint triangleData = packTriangleData(triangleIndex, geomSet, batchMeshIndex);
+				if (offset < TILE_CAPACITY)
+				Get(binBuffer)[BinBufferViewOffset(i) + BinOffset(tx, ty) + offset] = triangleData;
+			}
+		}
+	}
+ #endif
+}

@@ -26,29 +26,18 @@
 #define _VB_RESOURCES_H
 
 #ifdef _VB_CLEAR_BUFFERS_H
-// indirectDrawArgsBuffer Size NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS * MAX_DRAWS_INDIRECT_ELEMENTS * sizeof(uint32_t)
-RES(RWBuffer(atomic_uint), indirectDrawArgsBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
-RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW, UPDATE_FREQ_NONE, u1, binding = 1);
-#endif
-
-#ifdef _VB_BATCH_COMPACION_H
-RES(RWBuffer(atomic_uint), indirectDrawArgsBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
-RES(Buffer(UncompactedDrawArguments), uncompactedDrawArgs, UPDATE_FREQ_NONE, t0, binding = 1);
-
-#ifdef INDIRECT_COMMAND_BUFFER
-RES(COMMAND_BUFFER, icb, UPDATE_FREQ_NONE, u1, binding = 2);
-RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_NONE, u1, binding = 2);
-#endif
-
+RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_NONE, u0, binding = 0);
 #endif
 
 #ifdef _VB_TRIANGLE_FILTERING_H
-RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
-RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u1, binding = 8);
+RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
+RES(RWBuffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, u2, binding = 6);
+
+RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u3, binding = 8);
 
 RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t1, binding = 1);
 
-RES(Buffer(FilterDispatchGroupData), filterDispatchGroupDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 2);
+RES(Buffer(FilterDispatchGroupData), filterDispatchGroupDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 3);
 
 #endif
 

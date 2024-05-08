@@ -23,30 +23,13 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-	DATA(float4, Position,     SV_Position);
-	DATA(float4, currPosition, TEXCOORD0);
-	DATA(float4, prevPosition, TEXCOORD1);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId,   TEXCOORD2);
-#endif
-};
-
-STRUCT(PsOut)
-{
-	DATA(float4, VBData,       SV_Target0);
-	DATA(float2, MotionVector, SV_Target1);
-};
-
-PsOut PS_MAIN( PsIn In, SV_PrimitiveID(uint) primitiveID )
+PsOut PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveID )
 {
 	INIT_MAIN;
 	PsOut Out;
-	Out.VBData = unpackUnorm4x8(GET_OUTPUT_VB_ID(getDrawID(), primitiveID));
+	Out.VBData = unpackUnorm4x8( PACK_VB_DATA(GEOMSET_OPAQUE, primitiveID));
 	Out.MotionVector = In.currPosition.xy / In.currPosition.w - In.prevPosition.xy / In.prevPosition.w;
 	RETURN(Out);
 }

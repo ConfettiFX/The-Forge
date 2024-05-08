@@ -1,22 +1,3 @@
-
-#if defined(METAL)
-#comp clearVisibilityBuffers_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "clearVisibilityBuffers.comp.fsl"
-#end
-
-#comp triangleFiltering_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "triangleFiltering.comp.fsl"
-#end
-
-#comp batchCompaction_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "batchCompaction.comp.fsl"
-#end
-#endif
-
-
 #comp FT_MULTIVIEW bakedSDFMeshShadow_SAMPLE_COUNT_1.comp
 #define SAMPLE_COUNT 1
 #include "bakedSDFMeshShadow.comp.fsl"
@@ -36,10 +17,6 @@
 
 #comp triangleFiltering.comp
 #include "triangleFiltering.comp.fsl"
-#end
-
-#comp batchCompaction.comp
-#include "batchCompaction.comp.fsl"
 #end
 
 #frag copyDEMQuads.frag
@@ -87,37 +64,37 @@
 #include "generateAsmDEM.vert.fsl"
 #end
 
-#vert FT_ICB meshDepthPass.vert
+#vert meshDepthPass.vert
 #include "meshDepthPass.vert.fsl"
 #end
 
-#frag FT_ICB meshDepthPassAlpha.frag
+#frag meshDepthPassAlpha.frag
 #include "meshDepthPassAlpha.frag.fsl"
 #end
 
-#frag FT_ICB meshVSMDepthPass.frag
+#frag meshVSMDepthPass.frag
 #include "meshVSMDepthPass.frag.fsl"
 #end
 
-#frag FT_ICB meshVSMDepthPassAlpha.frag
+#frag meshVSMDepthPassAlpha.frag
 #include "meshVSMDepthPassAlpha.frag.fsl"
 #end
 
-#frag FT_ICB meshVSMDepthPass_F4_VSM.frag
+#frag meshVSMDepthPass_F4_VSM.frag
 #define USE_FLOAT4_VSM_RT 1
 #include "meshVSMDepthPass.frag.fsl"
 #end
 
-#frag FT_ICB meshVSMDepthPassAlpha_F4_VSM.frag
+#frag meshVSMDepthPassAlpha_F4_VSM.frag
 #define USE_FLOAT4_VSM_RT 1
 #include "meshVSMDepthPassAlpha.frag.fsl"
 #end
 
-#frag FT_ICB meshMSMDepthPass.frag
+#frag meshMSMDepthPass.frag
 #include "meshMSMDepthPass.frag.fsl"
 #end
 
-#frag FT_ICB meshMSMDepthPassAlpha.frag
+#frag meshMSMDepthPassAlpha.frag
 #include "meshMSMDepthPassAlpha.frag.fsl"
 #end
 
@@ -125,7 +102,7 @@
 #include "gaussianBlur.comp.fsl"
 #end
 
-#vert FT_ICB meshDepthPassAlpha.vert
+#vert meshDepthPassAlpha.vert
 #include "meshDepthPassAlpha.vert.fsl"
 #end
 
@@ -175,19 +152,19 @@
 #include "upsampleSDFShadow.vert.fsl"
 #end
 
-#vert FT_MULTIVIEW FT_PRIM_ID FT_ICB visibilityBufferPass.vert
+#vert FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.vert
 #include "visibilityBufferPass.vert.fsl"
 #end
 
-#frag FT_MULTIVIEW FT_PRIM_ID FT_ICB visibilityBufferPass.frag
+#frag FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.frag
 #include "visibilityBufferPass.frag.fsl"
 #end
 
 
-#vert FT_MULTIVIEW FT_PRIM_ID FT_ICB visibilityBufferPassAlpha.vert
+#vert FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.vert
 #include "visibilityBufferPassAlpha.vert.fsl"
 #end
-#frag FT_MULTIVIEW FT_PRIM_ID FT_ICB visibilityBufferPassAlpha.frag
+#frag FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.frag
 #include "visibilityBufferPassAlpha.frag.fsl"
 #end
 

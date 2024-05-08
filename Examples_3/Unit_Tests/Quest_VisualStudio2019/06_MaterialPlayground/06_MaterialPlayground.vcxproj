@@ -123,27 +123,27 @@
     </FSLShader>
     <PreLinkEvent>
       <Command>%(Command) :: Copy Art files
-
+set ART=$(ProjectDir)..\..\..\..\Art\
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
-xcopy $(ProjectDir)..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
-xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\LA_Helipad3D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\capsule.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+xcopy %ART%\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
+xcopy "%ART%\UnitTestResources\Textures\ktx\LA_Helipad3D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\capsule.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
+xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 
-xcopy "$(ProjectDir)..\..\..\..\Art\PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
-xcopy "$(ProjectDir)..\..\..\..\Art\PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "%ART%\PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "%ART%\PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
 
 "$(SolutionDir)..\src\$(ProjectName)\compile_materials.bat" "$(SolutionDir)..\..\..\" "$(ProjectDir)..\..\src\$(ProjectName)\Materials" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledMaterials"</Command>
     </PreLinkEvent>
@@ -188,27 +188,27 @@ xcopy "$(ProjectDir)..\..\..\..\Art\PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(
     <PreLinkEvent>
       <Command>%(Command) :: Copy Art files
 
-
+set ART=$(ProjectDir)..\..\..\..\Art\
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
-xcopy $(ProjectDir)..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
-xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\LA_Helipad3D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\capsule.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+xcopy %ART%\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
+xcopy "%ART%\UnitTestResources\Textures\ktx\LA_Helipad3D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\capsule.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
+xcopy "%ART%\UnitTestResources\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
+xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 
-xcopy "$(ProjectDir)..\..\..\..\Art\PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
-xcopy "$(ProjectDir)..\..\..\..\Art\PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "%ART%\PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "%ART%\PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
 
 "$(SolutionDir)..\src\$(ProjectName)\compile_materials.bat" "$(SolutionDir)..\..\..\" "$(ProjectDir)..\..\src\$(ProjectName)\Materials" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledMaterials"</Command>
     </PreLinkEvent>

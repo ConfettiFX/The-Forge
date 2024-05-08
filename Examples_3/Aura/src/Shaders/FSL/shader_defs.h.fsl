@@ -35,6 +35,8 @@
 #define LIGHT_CLUSTER_COUNT_POS(ix, iy)    (((iy) * LIGHT_CLUSTER_WIDTH) + (ix))
 #define LIGHT_CLUSTER_DATA_POS(il, ix, iy) (LIGHT_CLUSTER_COUNT_POS(ix, iy) * LIGHT_COUNT + (il))
 
+#define MAX_TEXTURE_UNITS 256
+
 // This defines the amount of viewports that are going to be culled in parallel.
 // Overrides default VB defines
 #define NUM_CULLING_VIEWPORTS 5

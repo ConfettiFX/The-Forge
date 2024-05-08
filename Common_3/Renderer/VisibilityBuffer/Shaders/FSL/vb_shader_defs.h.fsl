@@ -27,24 +27,13 @@
 
 #include "vb_structs.h.fsl"
 
-#ifndef SAMPLE_COUNT
-#define SAMPLE_COUNT 4
-#endif
+/************************************************************************/
+// Visibility Buffer
+/************************************************************************/
 
 #ifndef MAX_TEXTURE_UNITS
 #define MAX_TEXTURE_UNITS 256U
 #endif
-
-// Ammount of vertexes that will be processed in parallel by the compute shader in
-// the pre skin geometry step, transforming all vertexes by skinning matrixes and leaving them
-// ready to be processed by the triangle filtering stage.
-// Should be a multiple of the wavefront size
-#define SKIN_BATCH_SIZE 256
-
-// Limits the amount of skinning batches we can process on the GPU.
-// It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
-#define SKIN_BATCH_COUNT 2048
 
 // This defines the amount of viewports that are going to be culled in parallel.
 #ifndef NUM_CULLING_VIEWPORTS
@@ -53,21 +42,7 @@
 #define VIEW_CAMERA 1
 #endif
 
-// This value defines the amount of threads per group that will be used to clear the
-// indirect draw buffers, filter triangles and compact draw arguments.
-#ifndef VB_COMPUTE_THEADS
-#define VB_COMPUTE_THEADS 256
-#endif
-
-#if defined(DIRECT3D12)
-#define INDIRECT_ROOT_CONSTANT 1
-#define SET_DRAW_ID(o, drawId, instanceId)
-#else
-#define SET_DRAW_ID(o, drawId, instanceId) o.drawId = instanceId
-#endif
-
 // Define different geometry sets (opaque, alpha tested, and transparent geometry)
-
 #ifndef NUM_GEOMETRY_SETS
 #define NUM_GEOMETRY_SETS 3          // 1 - opaque, 2 - alpha cutout, 3 - alpha blend
 #define GEOMSET_OPAQUE 0
@@ -75,75 +50,23 @@
 #define GEOMSET_ALPHA_BLEND 2
 #endif
 
-#define NUM_SHADOW_GEOMETRY_SETS 2   // only opaque and alpha cutout, alpha blended geo does not cast shadows
-
-#if !defined(ALPH_IS_LOW_BIT) && !defined(DRAW_ID_LOW_BIT) && !defined(PRIM_ID_LOW_BIT)
-#define ALPH_IS_LOW_BIT 31 // 1  bit  for Alpha
-#define DRAW_ID_LOW_BIT 23 // 8  bits for DrawID
-#define PRIM_ID_LOW_BIT  0 // 23 bits for PrimitiveID
-
-#define ALPH_IS_MASK 0x80000000 // 1000 0000 0000 0000 0000 0000 0000 0000
-#define DRAW_ID_MASK 0x7F800000 // 0111 1111 1000 0000 0000 0000 0000 0000
-#define PRIM_ID_MASK 0x007FFFFF // 0000 0000 0111 1111 1111 1111 1111 1111
+// This value defines the amount of threads per group that will be used to clear the
+// indirect draw buffers, filter triangles and compact draw arguments.
+#ifndef VB_COMPUTE_THREADS
+#define VB_COMPUTE_THREADS 256
 #endif
 
-#define GET_OUTPUT_VB_ID(drawId, primitiveId) ((((drawId) << DRAW_ID_LOW_BIT) & DRAW_ID_MASK) | (((primitiveId) << PRIM_ID_LOW_BIT) & PRIM_ID_MASK))
-#define GET_ALPHA_OUTPUT_VB_ID(drawId, primitiveId) ((1 << ALPH_IS_LOW_BIT) | (((drawId) << DRAW_ID_LOW_BIT) & DRAW_ID_MASK) | (((primitiveId) << PRIM_ID_LOW_BIT) & PRIM_ID_MASK))
+#define GEOM_LOW_BIT		30		// 2  bit  for Geomset
+#define PRIM_ID_LOW_BIT	    0		// 30 bits for PrimitiveID
 
-// OIT
-#define OIT_HEAD_INVALID   0xFFFFFFFF
-#if defined(TARGET_ANDROID) || defined(ANDROID)
-#define OIT_MAX_FRAG_COUNT 4
-#else
-#define OIT_MAX_FRAG_COUNT 8
-#endif
+#define GEOM_MASK	  0x00000003
+#define PRIM_ID_MASK  0x3FFFFFFF
 
-#if defined(ORBIS)
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
-#else
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
-#endif
-#if defined(INDIRECT_ROOT_CONSTANT)
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   1
-#else
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   0
-#endif
-
-// The following value defines the maximum amount of indirect draw calls that will be
-// drawn at once. This value depends on the number of submeshes or individual objects
-// in the scene. Changing a scene will require to change this value accordingly.
-#ifndef MAX_DRAWS_INDIRECT
-#define MAX_DRAWS_INDIRECT 256   // Maximum value that can be represented with # bits DrawID
-#endif
-
- // Maximum value that can be represented with # bits PrimitiveID
-#ifndef MAX_PRIMITIVES_PER_DRAW_INDIRECT
-#define MAX_PRIMITIVES_PER_DRAW_INDIRECT (1 + (PRIM_ID_MASK >> PRIM_ID_LOW_BIT))
- #endif
-
-#define MAX_DRAWS_INDIRECT_ELEMENTS (MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
-
-// The following values point to the position in the indirect draw buffer that holds the
-// number of draw calls to draw after triangle filtering and batch compaction.
-// This value number is stored in the last position of the indirect draw buffer.
-// So it depends on MAX_DRAWS_INDIRECT
-#define DRAW_COUNTER_SLOT_POS ((MAX_DRAWS_INDIRECT - 1) * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
-#define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS * sizeof(uint))
-
-// Size for the instance buffer assuming each draw call uses one instance index.
-#define INSTANCE_BUFFER_SIZE (MAX_DRAWS_INDIRECT * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
-
-// This function is used to get the offset of the current material base index depending
-// on the type of geometry and on the culling view.
-#define BaseInstanceBuffer(set, viewID) ((((viewID) * NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
+#define PACK_VB_DATA(geomSet, primitiveID) ((((geomSet) & GEOM_MASK) << GEOM_LOW_BIT) | (((primitiveID) & PRIM_ID_MASK) << PRIM_ID_LOW_BIT))
 
 // This index means that the draw call doesn't have any instance data associated, can skip doing operations with it
 #ifndef INSTANCE_INDEX_NONE
 #define INSTANCE_INDEX_NONE uint(-1)
-#endif
-
-#ifndef PRE_SKINNED_VERTEX_OFFSET_NONE
-#define PRE_SKINNED_VERTEX_OFFSET_NONE uint(-1)
 #endif
 
 /*
@@ -156,29 +79,8 @@ typedef struct IndirectDrawIndexArguments
 	uint32_t mStartInstance;
 } IndirectDrawIndexArguments;
 */
-#define INDIRECT_DRAW_ARGUMENTS_INDEX_COUNT_OFFSET (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 0)
-#define INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2)
-#define INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 3)
-#define INDIRECT_DRAW_ARGUMENTS_START_INSTANCE_OFFSET (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 4)
-
-// This function is used to get the offset of the IndirectDrawArgsBuffer index depending
-// on the type of geometry and on the culling view.
-#define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW) * NUM_GEOMETRY_SETS) + (GEOM)) * MAX_DRAWS_INDIRECT_ELEMENTS)  + (ELEM))
-
-#define GET_UNCOMPACT_DRAW_INDEX(VIEW, DRAW_ID) (((VIEW) * MAX_DRAWS_INDIRECT) + (DRAW_ID))
-
-// Size for the IndirectDrawArgsBuffer
-#define INDIRECT_DRAW_ARGS_BUFFER_SIZE (MAX_DRAWS_INDIRECT_ELEMENTS * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
-
-
-// While processing animated instances we sometimes need to access VertexID, DirectX12 treats vertexID differently to other APIs
-#if defined(DIRECT3D12)
-// VertexID starts at 0 from the first drawn vertex, no matter the offset. If vertexOffset=X first VertexID=0
-#define VERTEX_ID_RELATIVE_TO_DRAW 1
-#else
-// VertexID is always the ID of the vertex in the entire mesh. If vertexOffset=X first VertexID=X
-#define VERTEX_ID_RELATIVE_TO_DRAW 0
-#endif
+#define INDIRECT_DRAW_ARGUMENTS_ELEMENTS 8
+#define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW) * NUM_GEOMETRY_SETS) + (GEOM)) * INDIRECT_DRAW_ARGUMENTS_ELEMENTS) + (ELEM))
 
 CBUFFER(PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
 {
@@ -186,4 +88,41 @@ CBUFFER(PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
 	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);
 	DATA(uint, numViewports, None);
 };
+
+CBUFFER(VBConstantBuffer, UPDATE_FREQ_NONE, b2, binding = 2)
+{
+    DATA(VBConstants, vbConstant[NUM_GEOMETRY_SETS], None);
+};
+
+#define INDEXBUFFER_OFFSET(GEOMSET) ( Get(vbConstant)[GEOMSET].indexOffset )
+
+/************************************************************************/
+// OIT
+/************************************************************************/
+#define OIT_HEAD_INVALID   0xFFFFFFFF
+#if defined(TARGET_ANDROID) || defined(ANDROID)
+#define OIT_MAX_FRAG_COUNT 4
+#else
+#define OIT_MAX_FRAG_COUNT 8
+#endif
+
+/************************************************************************/
+// Animations (TODO: Remove from vb_shader_defs.h.fsl)
+/************************************************************************/
+
+// Ammount of vertexes that will be processed in parallel by the compute shader in
+// the pre skin geometry step, transforming all vertexes by skinning matrixes and leaving them
+// ready to be processed by the triangle filtering stage.
+// Should be a multiple of the wavefront size
+#define SKIN_BATCH_SIZE 256
+
+// Limits the amount of skinning batches we can process on the GPU.
+// It depends on the amoutnt of data we need to store in the constant buffers, since
+// the max constant buffer size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
+#define SKIN_BATCH_COUNT 2048
+
+#ifndef PRE_SKINNED_VERTEX_OFFSET_NONE
+#define PRE_SKINNED_VERTEX_OFFSET_NONE uint(-1)
+#endif
+
 #endif

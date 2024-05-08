@@ -45,9 +45,6 @@ typedef struct VisibilityBufferSettings
     // Define different geometry sets (opaque and alpha tested geometry)
     uint32_t mNumGeomSets;
 
-    uint32_t mMaxDrawsIndirect;
-    uint32_t mMaxDrawsIndirectElements;
-    uint32_t mMaxPrimitivesPerDrawIndirect;
     uint32_t mNumFrames;
     uint32_t mNumBuffers;
     // The max amount of triangles that will be processed in parallel by the triangle filter shader
@@ -55,8 +52,8 @@ typedef struct VisibilityBufferSettings
     uint32_t mMaxFilterBatches;
 
     uint32_t mUniformBufferAlignment;
-    uint32_t mUseIndirectCommandBuffer : 1;
-    uint32_t mUseIndirectRootConstant : 1;
+
+    uint32_t mMaxBatches;
 
     bool     mEnablePreSkinPass;
     uint32_t mPreSkinBatchSize;
@@ -176,15 +173,18 @@ PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pV
     return stats;
 }
 
+/************************************************************************/
+// Visibility Buffer Filtering
+/************************************************************************/
+BufferBarrier* pFilterBufferBarrier;
+
 VBPreFilterStats updateVBMeshFilterGroups(VisibilityBuffer* pVisibilityBuffer, const UpdateVBMeshFilterGroupsDesc* pDesc)
 {
     ASSERT(pVisibilityBuffer);
     ASSERT(pDesc);
 
     VBPreFilterStats vbPreFilterStats = {};
-
-    uint32_t accumNumTriangles = 0;
-    uint32_t dispatchGroupCount = 0;
+    uint32_t         dispatchGroupCount = 0;
 
     BufferUpdateDesc updateDesc = { pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[pDesc->mFrameIndex], 0 };
     beginUpdateResource(&updateDesc);
@@ -192,12 +192,8 @@ VBPreFilterStats updateVBMeshFilterGroups(VisibilityBuffer* pVisibilityBuffer, c
 
     for (uint32_t i = 0; i < pDesc->mNumMeshInstance; ++i)
     {
-        uint32_t meshInstanceDispatchGroupStart = dispatchGroupCount;
-        uint32_t accumNumTrianglesAtStartOfBatch = accumNumTriangles;
-
         VBMeshInstance* pVBMeshInstance = &pDesc->pVBMeshInstances[i];
 
-        accumNumTriangles += pVBMeshInstance->mTriangleCount;
         uint32_t numDispatchGroups = (pVBMeshInstance->mTriangleCount + gVBSettings.mComputeThreads - 1) / gVBSettings.mComputeThreads;
 
         for (uint32_t groupIdx = 0; groupIdx < numDispatchGroups; ++groupIdx)
@@ -210,21 +206,14 @@ VBPreFilterStats updateVBMeshFilterGroups(VisibilityBuffer* pVisibilityBuffer, c
 
             // Fill GPU filter batch data
             ASSERT(trianglesInGroup <= gVBSettings.mComputeThreads && "Exceeds max face count!");
-            groupData.accumDrawIndex = vbPreFilterStats.mTotalMaxDrawCount;
             groupData.meshIndex = pVBMeshInstance->mMeshIndex;
             groupData.instanceDataIndex = pVBMeshInstance->mInstanceIndex;
             groupData.geometrySet_faceCount = ((trianglesInGroup << BATCH_FACE_COUNT_LOW_BIT) & BATCH_FACE_COUNT_MASK) |
                                               ((pVBMeshInstance->mGeometrySet << BATCH_GEOMETRY_LOW_BIT) & BATCH_GEOMETRY_MASK);
-            groupData._pad0 = 0;
 
             // Offset relative to the start of the mesh
             groupData.indexOffset = firstTriangle * 3;
-            groupData.outputIndexOffset = accumNumTrianglesAtStartOfBatch * 3;
-            groupData.meshDispatchGroupStart = meshInstanceDispatchGroupStart;
         }
-
-        ++vbPreFilterStats.mTotalMaxDrawCount;
-        ASSERT(vbPreFilterStats.mTotalMaxDrawCount < gVBSettings.mMaxDrawsIndirect && "Exceeds maximum possible indirect draws");
 
         ASSERT(pVBMeshInstance->mGeometrySet < TF_ARRAY_COUNT(vbPreFilterStats.mGeomsetMaxDrawCounts));
         ++vbPreFilterStats.mGeomsetMaxDrawCounts[pVBMeshInstance->mGeometrySet];
@@ -249,47 +238,27 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     ASSERT(pDesc->mBuffersIndex < gVBSettings.mNumBuffers);
     ASSERT(pDesc->mVBPreFilterStats.mNumDispatchGroups < gVBSettings.mMaxFilterBatches);
 
-    if (gVBSettings.mUseIndirectCommandBuffer)
-    {
-        CommandSignature resetCmd = {};
-        resetCmd.mDrawType = INDIRECT_COMMAND_BUFFER_RESET;
-        resetCmd.mStride = 1;
-        cmdExecuteIndirect(pCmd, &resetCmd, gVBSettings.mMaxDrawsIndirect * gVBSettings.mNumGeomSets * gVBSettings.mNumViews,
-                           pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[pDesc->mBuffersIndex], 0, NULL, 0);
-    }
-
-    BufferBarrier barrier[3] = {};
-
-    /************************************************************************/
-    // Barriers to transition uncompacted draw buffer to uav
-    /************************************************************************/
-    uint32_t bufferIndex = 0;
-    barrier[bufferIndex++] = { pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[pDesc->mBuffersIndex],
-                               RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
-    cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
     /************************************************************************/
     // Clear previous indirect arguments
     /************************************************************************/
-    cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear/Sync Buffers, Filter Triangles, Batch Compact");
-    cmdBindPipeline(pCmd, pDesc->pPipelineClearBuffers);
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Buffers");
+    cmdBindPipeline(pCmd, pDesc->pPipelineClearBuffers);
     cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
-    uint32_t numGroups = (pDesc->mVBPreFilterStats.mTotalMaxDrawCount + gVBSettings.mComputeThreads - 1) / gVBSettings.mComputeThreads;
-    cmdDispatch(pCmd, numGroups, 1, 1);
+    cmdDispatch(pCmd, 1, 1, 1);
     cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
 
     /************************************************************************/
     // Synchronization
     /************************************************************************/
+    uint32_t bufferIndex = 0;
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Buffers Synchronization");
     bufferIndex = 0;
-    barrier[bufferIndex++] = { pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[pDesc->mBuffersIndex],
-                               RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-    barrier[bufferIndex++] = { pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[pDesc->mBuffersIndex], RESOURCE_STATE_UNORDERED_ACCESS,
-                               RESOURCE_STATE_UNORDERED_ACCESS };
-    barrier[bufferIndex++] = { pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[pDesc->mFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS,
-                               RESOURCE_STATE_UNORDERED_ACCESS };
-    cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
+    pFilterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[pDesc->mFrameIndex],
+                                            RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+
+    pFilterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[pDesc->mBuffersIndex],
+                                            RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+    cmdResourceBarrier(pCmd, bufferIndex, pFilterBufferBarrier, 0, nullptr, 0, nullptr);
 
     cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
 
@@ -304,26 +273,6 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
         cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
         cmdDispatch(pCmd, pDesc->mVBPreFilterStats.mNumDispatchGroups, 1, 1);
     }
-    cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
-
-    /************************************************************************/
-    // Synchronization
-    /************************************************************************/
-    bufferIndex = 0;
-    barrier[bufferIndex++] = { pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[pDesc->mBuffersIndex], RESOURCE_STATE_UNORDERED_ACCESS,
-                               RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
-    cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
-
-    /************************************************************************/
-    // Batch compaction
-    /************************************************************************/
-    cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Batch Compaction");
-    cmdBindPipeline(pCmd, pDesc->pPipelineBatchCompaction);
-    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetBatchCompaction);
-    cmdDispatch(pCmd, numGroups, 1, 1);
-    cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
-    /************************************************************************/
-    /************************************************************************/
     cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
 }
 
@@ -489,30 +438,23 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
 {
     ASSERT(ppVisibilityBuffer);
     ASSERT(pDesc);
-    ASSERT(pDesc->mMaxPrimitivesPerDrawIndirect > 0);
-    ASSERT(pDesc->mMaxPrimitivesPerDrawIndirect >= pDesc->mComputeThreads);
-    ASSERT(pDesc->mMaxDrawsIndirect > 0);
     ASSERT(pDesc->mNumFrames > 0);
     ASSERT(pDesc->mNumBuffers > 0);
     ASSERT(pDesc->mNumGeometrySets > 0);
+    ASSERT(pDesc->pMaxIndexCountPerGeomSet);
     ASSERT(pDesc->mNumGeometrySets <= VISIBILITY_BUFFER_MAX_GEOMETRY_SETS &&
            "Please update the configuration macro named VISIBILITY_BUFFER_MAX_GEOMETRY_SETS to be of the proper value");
     ASSERT(pDesc->mNumViews > 0);
-    ASSERT(pDesc->mIndirectElementCount > 0);
     ASSERT(pDesc->mComputeThreads > 0);
 
     VisibilityBuffer* pVisibilityBuffer = (VisibilityBuffer*)tf_malloc(sizeof(VisibilityBuffer));
-    gVBSettings.mUseIndirectCommandBuffer = pRenderer->pGpu->mSettings.mIndirectCommandBuffer;
-    gVBSettings.mUseIndirectRootConstant = pRenderer->pGpu->mSettings.mIndirectRootConstant;
     gVBSettings.mUniformBufferAlignment = pRenderer->pGpu->mSettings.mUniformBufferAlignment;
     gVBSettings.mNumGeomSets = pDesc->mNumGeometrySets;
     gVBSettings.mNumViews = pDesc->mNumViews;
-    gVBSettings.mMaxPrimitivesPerDrawIndirect = pDesc->mMaxPrimitivesPerDrawIndirect;
-    gVBSettings.mMaxDrawsIndirect = pDesc->mMaxDrawsIndirect;
-    gVBSettings.mMaxDrawsIndirectElements = pDesc->mIndirectElementCount;
     gVBSettings.mNumFrames = pDesc->mNumFrames;
     gVBSettings.mNumBuffers = pDesc->mNumBuffers;
     gVBSettings.mComputeThreads = pDesc->mComputeThreads;
+    pFilterBufferBarrier = (BufferBarrier*)tf_malloc(sizeof(BufferBarrier) * (pDesc->mNumViews + 1));
 
     if (pDesc->mEnablePreSkinPass)
     {
@@ -528,24 +470,6 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
 
     SyncToken token = {};
 
-    // Create uncompacted draw argument buffers
-    pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers);
-    BufferLoadDesc uncompactedDesc = {};
-    uncompactedDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-    uncompactedDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    uncompactedDesc.mDesc.mElementCount = gVBSettings.mMaxDrawsIndirect * gVBSettings.mNumViews;
-    uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
-    uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
-    uncompactedDesc.mDesc.mStartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    uncompactedDesc.mDesc.pName = "UncompactedDrawArgumentsBuffer";
-    uncompactedDesc.pData = NULL;
-
-    for (uint32_t i = 0; i < pDesc->mNumBuffers; ++i)
-    {
-        uncompactedDesc.ppBuffer = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[i];
-        addResource(&uncompactedDesc, NULL);
-    }
-
     // Create filter batch data buffers
     pVisibilityBuffer->ppFilterDispatchGroupDataBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumFrames);
     BufferLoadDesc filterBatchDesc = {};
@@ -554,7 +478,13 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
     // Worst case 1 triangle in each mesh triangle batch.
     // Optimal each batch is filled with "gVBSettings.mComputeThreads" triangles.
     // Current based half of pDesc->mComputeThreads, expect at least half of all batches is filled.
-    gVBSettings.mMaxFilterBatches = (pDesc->mIndexCount / 3) / (pDesc->mComputeThreads >> 1);
+    uint32_t maxIndices = 0;
+    for (uint32_t geomSet = 0; geomSet < pDesc->mNumGeometrySets; ++geomSet)
+    {
+        maxIndices += pDesc->pMaxIndexCountPerGeomSet[geomSet];
+    }
+    gVBSettings.mMaxFilterBatches = (maxIndices / 3) / (pDesc->mComputeThreads >> 1);
+
     filterBatchDesc.mDesc.mElementCount = gVBSettings.mMaxFilterBatches;
     filterBatchDesc.mDesc.mStructStride = sizeof(FilterDispatchGroupData);
     filterBatchDesc.mDesc.mSize = filterBatchDesc.mDesc.mElementCount * filterBatchDesc.mDesc.mStructStride;
@@ -568,62 +498,29 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
         addResource(&filterBatchDesc, &token);
     }
 
-    // Create indirect argument buffers
-    pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers);
-    const uint32_t indirectArgumentsBufferElementCount =
-        gVBSettings.mMaxDrawsIndirect * pDesc->mIndirectElementCount * gVBSettings.mNumGeomSets * gVBSettings.mNumViews;
-    const uint32_t argOffset = pRenderer->pGpu->mSettings.mIndirectRootConstant ? 1 : 0;
-    uint32_t*      indirectArgsDwords = (uint32_t*)tf_malloc(indirectArgumentsBufferElementCount * sizeof(uint32_t));
-    memset(indirectArgsDwords, 0, indirectArgumentsBufferElementCount * sizeof(uint32_t));
-    for (uint32_t view = 0; view < gVBSettings.mNumViews; ++view)
+    // Create IndirectDataBuffers
+    pVisibilityBuffer->ppIndirectDataBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumFrames);
+    BufferLoadDesc indirectIbDesc = {};
+    indirectIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+    indirectIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    indirectIbDesc.mDesc.mElementCount = maxIndices;
+    indirectIbDesc.mDesc.mStructStride = sizeof(uint32_t);
+    indirectIbDesc.mDesc.mSize = indirectIbDesc.mDesc.mElementCount * indirectIbDesc.mDesc.mStructStride;
+    indirectIbDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+    indirectIbDesc.mDesc.pName = "IndirectDataBuffer";
+    indirectIbDesc.pData = NULL;
+    for (uint32_t i = 0; i < pDesc->mNumFrames; ++i)
     {
-        for (uint32_t geomset = 0; geomset < gVBSettings.mNumGeomSets; ++geomset)
-        {
-            for (uint32_t draw = 0; draw < gVBSettings.mMaxDrawsIndirect; ++draw)
-            {
-                uint32_t indirectArgsDwordsIndex =
-                    ((view * gVBSettings.mNumGeomSets) + geomset) * gVBSettings.mMaxDrawsIndirect * pDesc->mIndirectElementCount +
-                    draw * pDesc->mIndirectElementCount + argOffset;
-                IndirectDrawIndexArguments* arg = (IndirectDrawIndexArguments*)&indirectArgsDwords[indirectArgsDwordsIndex];
-                if (pRenderer->pGpu->mSettings.mIndirectRootConstant)
-                {
-                    indirectArgsDwords[indirectArgsDwordsIndex - argOffset] = draw;
-                }
-                else
-                {
-                    // No drawId or gl_DrawId but instance id works as expected so use that as the draw id
-                    arg->mStartInstance = draw;
-                }
-                arg->mInstanceCount = (draw < pDesc->mDrawArgCount) ? 1 : 0;
-            }
-        }
-    }
-
-    BufferLoadDesc filterIndirectDesc = {};
-    filterIndirectDesc.mDesc.mDescriptors =
-        DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER;
-    filterIndirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    filterIndirectDesc.mDesc.mElementCount = indirectArgumentsBufferElementCount;
-    filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
-    filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
-    filterIndirectDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-    filterIndirectDesc.mDesc.mICBDrawType = INDIRECT_DRAW_INDEX;
-    filterIndirectDesc.mDesc.mICBMaxCommandCount = gVBSettings.mMaxDrawsIndirect * gVBSettings.mNumViews * gVBSettings.mNumGeomSets;
-    filterIndirectDesc.mDesc.pName = "FilteredIndirectDrawArgumentsBuffer";
-    filterIndirectDesc.pData = indirectArgsDwords;
-    for (uint32_t i = 0; i < pDesc->mNumBuffers; ++i)
-    {
-        filterIndirectDesc.ppBuffer = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[i];
-        addResource(&filterIndirectDesc, &token);
+        indirectIbDesc.ppBuffer = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+        addResource(&indirectIbDesc, NULL);
     }
 
     // Create filteredIndexBuffers
     pVisibilityBuffer->ppFilteredIndexBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers * pDesc->mNumViews);
-
     BufferLoadDesc filterIbDesc = {};
     filterIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
     filterIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    filterIbDesc.mDesc.mElementCount = pDesc->mIndexCount;
+    filterIbDesc.mDesc.mElementCount = maxIndices;
     filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
     filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
     filterIbDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
@@ -636,23 +533,23 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
         addResource(&filterIbDesc, NULL);
     }
 
-    // Create filteredDataIndexBuffers
-    pVisibilityBuffer->ppIndirectDataIndexBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers);
+    // Create ppIndirectDrawArgBuffer
+    pVisibilityBuffer->ppIndirectDrawArgBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mNumBuffers);
 
-    BufferLoadDesc indirectDataDesc = {};
-    indirectDataDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-    indirectDataDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    indirectDataDesc.mDesc.mElementCount = pDesc->mMaxDrawsIndirect * pDesc->mNumGeometrySets * pDesc->mNumViews;
-    indirectDataDesc.mDesc.mStructStride = sizeof(uint32_t);
-    indirectDataDesc.mDesc.mSize = indirectDataDesc.mDesc.mElementCount * indirectDataDesc.mDesc.mStructStride;
-    indirectDataDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-    indirectDataDesc.mDesc.pName = "IndirectDataIndexBuffer";
-    indirectDataDesc.pData = nullptr;
+    BufferLoadDesc indirectDrawArgsDesc = {};
+    indirectDrawArgsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
+    indirectDrawArgsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    indirectDrawArgsDesc.mDesc.mElementCount = pDesc->mNumGeometrySets * pDesc->mNumViews * (8);
+    indirectDrawArgsDesc.mDesc.mStructStride = sizeof(uint32_t);
+    indirectDrawArgsDesc.mDesc.mSize = indirectDrawArgsDesc.mDesc.mElementCount * indirectDrawArgsDesc.mDesc.mStructStride;
+    indirectDrawArgsDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+    indirectDrawArgsDesc.mDesc.pName = "Indirect draw arg buffer";
+    indirectDrawArgsDesc.pData = nullptr;
 
     for (uint32_t i = 0; i < pDesc->mNumBuffers; ++i)
     {
-        indirectDataDesc.ppBuffer = &pVisibilityBuffer->ppIndirectDataIndexBuffer[i];
-        addResource(&indirectDataDesc, NULL);
+        indirectDrawArgsDesc.ppBuffer = &pVisibilityBuffer->ppIndirectDrawArgBuffer[i];
+        addResource(&indirectDrawArgsDesc, NULL);
     }
 
     if (pDesc->mEnablePreSkinPass)
@@ -663,8 +560,27 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
         addUniformGPURingBuffer(pRenderer, skinBatchRingBufferSizeTotal, &gPreSkinBatchDataBuffer);
     }
 
+    // Create VB constant buffer
+    pVisibilityBuffer->pVBConstants = (VBConstants*)tf_malloc(sizeof(VBConstants) * pDesc->mNumGeometrySets);
+    uint32_t indexOffset = 0;
+    for (uint32_t geomSet = 0; geomSet < pDesc->mNumGeometrySets; ++geomSet)
+    {
+        pVisibilityBuffer->pVBConstants[geomSet].indexOffset = indexOffset;
+        indexOffset += pDesc->pMaxIndexCountPerGeomSet[geomSet];
+    }
+
+    BufferLoadDesc constantDesc = {};
+    constantDesc.pData = pVisibilityBuffer->pVBConstants;
+    constantDesc.ppBuffer = &pVisibilityBuffer->pVBConstantBuffer;
+    constantDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    constantDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    constantDesc.mDesc.mElementCount = pDesc->mNumGeometrySets;
+    constantDesc.mDesc.mStructStride = sizeof(VBConstants);
+    constantDesc.mDesc.mSize = constantDesc.mDesc.mElementCount * constantDesc.mDesc.mStructStride;
+    constantDesc.mDesc.pName = "VBConstantBuffer";
+    addResource(&constantDesc, &token);
+
     waitForToken(&token);
-    tf_free(indirectArgsDwords);
 
     *ppVisibilityBuffer = pVisibilityBuffer;
     return true;
@@ -673,13 +589,13 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
 void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
 {
     ASSERT(pVisibilityBuffer);
+    removeResource(pVisibilityBuffer->pVBConstantBuffer);
+    tf_free(pVisibilityBuffer->pVBConstants);
+    pVisibilityBuffer->pVBConstants = NULL;
 
     for (uint32_t i = 0; i < gVBSettings.mNumBuffers; ++i)
     {
-        removeResource(pVisibilityBuffer->ppIndirectDataIndexBuffer[i]);
-        removeResource(pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[i]);
-        removeResource(pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[i]);
-
+        removeResource(pVisibilityBuffer->ppIndirectDrawArgBuffer[i]);
         for (uint32_t v = 0; v < gVBSettings.mNumViews; ++v)
         {
             removeResource(pVisibilityBuffer->ppFilteredIndexBuffer[i * gVBSettings.mNumViews + v]);
@@ -689,6 +605,7 @@ void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
     for (uint32_t i = 0; i < gVBSettings.mNumFrames; ++i)
     {
         removeResource(pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i]);
+        removeResource(pVisibilityBuffer->ppIndirectDataBuffer[i]);
     }
 
     if (gVBSettings.mEnablePreSkinPass)
@@ -698,14 +615,15 @@ void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
 
     tf_free(pVisibilityBuffer->ppFilterDispatchGroupDataBuffer);
     pVisibilityBuffer->ppFilterDispatchGroupDataBuffer = NULL;
-    tf_free(pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer);
-    pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer = NULL;
-    tf_free(pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers);
-    pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers = NULL;
     tf_free(pVisibilityBuffer->ppFilteredIndexBuffer);
     pVisibilityBuffer->ppFilteredIndexBuffer = NULL;
-    tf_free(pVisibilityBuffer->ppIndirectDataIndexBuffer);
-    pVisibilityBuffer->ppIndirectDataIndexBuffer = NULL;
+    tf_free(pVisibilityBuffer->ppIndirectDataBuffer);
+    pVisibilityBuffer->ppIndirectDataBuffer = NULL;
+    tf_free(pVisibilityBuffer->ppIndirectDrawArgBuffer);
+    pVisibilityBuffer->ppIndirectDrawArgBuffer = NULL;
+
+    tf_free(pFilterBufferBarrier);
+    pFilterBufferBarrier = NULL;
 
     tf_free(pVisibilityBuffer);
     pVisibilityBuffer = NULL;

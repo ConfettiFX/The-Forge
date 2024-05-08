@@ -1,0 +1,111 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD);
+};
+
+STRUCT(FSOutput)
+{
+	DATA(float4, FragmentOutput, SV_Target);
+};
+
+RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
+
+PUSH_CONSTANT(RootConstantSCurveInfo, b0)
+{
+	DATA(float, C1, None);
+	DATA(float, C2, None);
+	DATA(float, C3, None);
+	DATA(float, UseSCurve, None);
+    
+	DATA(float, ScurveSlope, None);
+	DATA(float, ScurveScale, None);
+	DATA(float, linearScale, None);
+	DATA(float, pad0, None);
+	DATA(uint, outputMode, None);
+};
+
+#define PQ_N  f3(0.1593017578125)
+#define PQ_M  f3(78.84375)
+#define PQ_c1 f3(0.8359375)
+#define PQ_c2 f3(18.8515625)
+#define PQ_c3 f3(18.6875)
+
+float3 L2PQ_float3(float3 color)
+{
+    float m1 = 2610.0 / 4096.0 / 4;
+    float m2 = 2523.0 / 4096.0 * 128;
+    float c1 = 3424.0 / 4096.0;
+    float c2 = 2413.0 / 4096.0 * 32;
+    float c3 = 2392.0 / 4096.0 * 32;
+    float3 cp = pow(abs(color), f3(m1));
+    return pow((c1 + c2 * cp) / (1 + c3 * cp), f3(m2));
+}
+
+float3 Rec709ToRec2020(float3 color)
+{
+	const float3x3 conversion = make_f3x3_row_elems(
+		0.627402, 0.329292, 0.043306,
+		0.069095, 0.919544, 0.011360,
+		0.016394, 0.088028, 0.895578
+	);
+	return mul(conversion, color);
+}
+
+float3 ApplyDolbySCurve(float3 Color, const float Scale, const float Slope)
+{
+	float3 pow_in = pow(abs(clamp(Color.rgb, f3(0.000061f), f3(65504.f)) / Scale), f3(Slope));
+	return (Get(C1) + Get(C2) * pow_in) / (1 + Get(C3) * pow_in);
+}
+
+FSOutput PS_MAIN( PsIn In )
+{
+    INIT_MAIN;
+    FSOutput Out;
+    float4 sceneColor = SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord);
+	float3 resultColor = float3(0.0, 0.0, 0.0);
+
+	if(Get(outputMode) == 0)
+	{
+		//SDR
+		//resultColor = pow(sceneColor.rgb, 0.45454545);
+		resultColor = sceneColor.rgb;
+	}
+	else
+	{
+		//HDR10
+
+		if(Get(UseSCurve) > 0.5f)
+			resultColor = L2PQ_float3(ApplyDolbySCurve(Rec709ToRec2020(sceneColor.rgb), Get(ScurveScale), Get(ScurveSlope)));	
+		else
+			resultColor = L2PQ_float3( min(Rec709ToRec2020(sceneColor.rgb) * Get(linearScale), 10000.0f));		
+	}
+
+    Out.FragmentOutput = float4(resultColor, 1.0);
+    RETURN(Out);
+}

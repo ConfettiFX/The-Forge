@@ -95,14 +95,14 @@
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
-        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/dds/skybox/ $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/dds/grid.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/UnitTestResources/Textures/dds/skybox/ $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Textures/dds/grid.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Fonts</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
         <Command Enabled="no"># Scripts</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="no"># Misc</Command>
         <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
@@ -174,14 +174,14 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
-        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/dds/skybox/ $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/dds/grid.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/UnitTestResources/Textures/dds/skybox/ $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Textures/dds/grid.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Fonts</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
         <Command Enabled="no"># Scripts</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="no"># Misc</Command>
         <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>

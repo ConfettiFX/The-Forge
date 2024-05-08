@@ -33,10 +33,10 @@
 #ifdef XBOX
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
-#include <d3d12.h>
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 
+#include "../ThirdParty/OpenSource/Direct3d12Agility/include/d3d12.h"
 #include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
 #endif
 

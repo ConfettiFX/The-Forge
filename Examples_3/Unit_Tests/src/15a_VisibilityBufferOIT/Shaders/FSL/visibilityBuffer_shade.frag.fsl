@@ -73,28 +73,26 @@ RES(Buffer(TransparentNodeOIT), vbDepthLinkedListSRV, UPDATE_FREQ_NONE, t31, bin
 RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t101, binding = 18);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t0, binding = 19);
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t1, binding = 19 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t2, binding = 19 + MAX_TEXTURE_UNITS * 2);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t0, binding = 21);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t1, binding = 21 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t2, binding = 21 + MAX_TEXTURE_UNITS * 2);
 #else
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  space4, t0, binding = 19);
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   space5, t0, binding = 19 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], space6, t0, binding = 19 + MAX_TEXTURE_UNITS * 2);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  space4, t0, binding = 21);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   space5, t0, binding = 21 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], space6, t0, binding = 21 + MAX_TEXTURE_UNITS * 2);
 #endif
 
 RES(ByteBuffer, vertexPos,           UPDATE_FREQ_NONE, t10, binding=0);
 RES(ByteBuffer, vertexTexCoord,      UPDATE_FREQ_NONE, t11, binding=1);
-RES(ByteBuffer, vertexNormal,        UPDATE_FREQ_NONE, t12, binding=2);
+RES(ByteBuffer, vertexNormal,        UPDATE_FREQ_NONE, t12, binding=20);
 RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t14, binding=4);
+RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t8, binding = 15);
 
-RES(Buffer(InstanceData), instanceData, UPDATE_FREQ_PER_FRAME, t22, binding = 14);
-RES(Buffer(uint), indirectInstanceIndexBuffer,       UPDATE_FREQ_PER_FRAME, t15, binding=5);
-RES(Buffer(uint), indirectDrawArgs,   UPDATE_FREQ_PER_FRAME, t17, binding=9);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t16, binding=6);
+RES(Buffer(MeshData), MeshDataBuffer, UPDATE_FREQ_PER_FRAME, t16, binding=6);
 RES(Buffer(LightData), lights,                  UPDATE_FREQ_NONE, t19, binding=11);
 
-RES(ByteBuffer, lightClustersCount, UPDATE_FREQ_PER_FRAME, t20, binding=12);
-RES(ByteBuffer, lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
+RES(Buffer(uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, t20, binding=12);
+RES(Buffer(uint), lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
 
 #if USE_VRS
 #if defined(METAL)
@@ -105,76 +103,45 @@ RES(ByteBuffer, lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
 RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
 RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s1, binding = 8);
 
-ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, uint triangleID, uint geomSet)
+ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint primitiveID, uint geomSet)
 {
-	// BaseInstanceBuffer returns constant offset values
-	// The following value defines the maximum amount of indirect draw calls that will be 
-	// drawn at once. This value depends on the number of submeshes or individual objects 
-	// in the scene. Changing a scene will require to change this value accordingly.
-	// #define MAX_DRAWS_INDIRECT 300 
-	//
-	// These values are offsets used to point to the material data depending on the 
-	// type of geometry and on the culling view
-	// #define MATERIAL_BASE_ALPHA0 0
-	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
-	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
-	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
-	uint geomSetBaseSlot = BaseInstanceBuffer(geomSet, VIEW_CAMERA);
-	uint drawIndex = geomSetBaseSlot + drawID; // Index into indirect buffers at which data for this specific draw is stored
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 0;
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 1;
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 2;
 
-	// This is the start vertex of the current draw batch
-	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
-	uint vertexOffsetOffset = INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET;
-	// View is always 0, since only CAMERA_VIEW sets are stored
-    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, geomSet, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
-	uint vertexOffsetIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, geomSet, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + vertexOffsetOffset);
-	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
-	uint drawVertexOffset = Get(indirectDrawArgs)[vertexOffsetIndex]; // vertexOffset written in the indirect draw arguments
+	uint indirectIndex0 = LoadByte(Get(filteredIndexBuffer), (triIdx0 << 2));
+	uint indirectIndex1 = LoadByte(Get(filteredIndexBuffer), (triIdx1 << 2));
+	uint indirectIndex2 = LoadByte(Get(filteredIndexBuffer), (triIdx2 << 2));
 
-	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
-	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
-	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
-
+	uint meshIndex = Get(indirectDataBuffer)[indirectIndex0];
+	MeshData meshConstant = Get(MeshDataBuffer)[meshIndex];
+	uint index0 = indirectIndex0 - meshConstant.indirectVertexOffset;
+	uint index1 = indirectIndex1 - meshConstant.indirectVertexOffset;
+	uint index2 = indirectIndex2 - meshConstant.indirectVertexOffset;
 	float4x4 mvp = Get(transform)[VIEW_CAMERA].mvp;
 
-	// If this triangle comes from an instance of an object we need to include model matrix
-	uint meshIndex = (Get(indirectInstanceIndexBuffer)[drawIndex] & INSTANCE_MESH_MASK) >> INSTANCE_MESH_LOW_BIT;
-	uint instanceIndex = (Get(indirectInstanceIndexBuffer)[drawIndex] & INSTANCE_INDEX_MASK) >> INSTANCE_INDEX_LOW_BIT;
-	
 	// If triangle belongs to an animated instance: drawVertexOffset contains the offset to the animated attributes, 
 	// we need a different offset to access the constant data.
-	// If triangle is not animated: drawVertexOffset contains the offset to the normal mesh, same as meshConstantsBuffer[meshIndex].vertexOffset
-	uint constAttrVertexOffset = drawVertexOffset;
-	uint animatedAttrVertexOffset = drawVertexOffset;
+	// If triangle is not animated: drawVertexOffset contains the offset to the normal mesh, same as MeshDataBuffer[meshIndex].vertexOffset
+	uint animatedAttrVertexOffset = 0;
+    mvp = mul(mvp, meshConstant.modelMtx);
 
-	if (instanceIndex != INSTANCE_INDEX_NONE)
-	{
-		mvp = mul(mvp, Get(instanceData)[instanceIndex].modelMtx);
+	uint preSkinnedVtxOffset = meshConstant.preSkinnedVertexOffset;
+    if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
+    {
+        // Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
+        //       therefore we don't need thi assignment.
+        animatedAttrVertexOffset = preSkinnedVtxOffset - meshConstant.vertexOffset;
+    }
 
-		uint preSkinnedVtxOffset = Get(instanceData)[instanceIndex].preSkinnedVertexOffset;
-		if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
-		{
-			// Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
-			//       therefore we don't need thi assignment.
-			//animatedAttrVertexOffset = preSkinnedVtxOffset;
-
-			// Read constant attributes from the main mesh data
-			constAttrVertexOffset = Get(meshConstantsBuffer)[meshIndex].vertexOffset;
-		}
-	}
-
-	uint constIndex0 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
-	uint constIndex1 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
-	uint constIndex2 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
-
-	uint animIndex0 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
-	uint animIndex1 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
-	uint animIndex2 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
+	uint animIndex0 = index0 - animatedAttrVertexOffset;
+	uint animIndex1 = index1 - animatedAttrVertexOffset;
+	uint animIndex2 = index2 - animatedAttrVertexOffset;
 
 	// Load vertex data of the 3 vertices
-	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), animIndex0 * 12)).xyz;
-	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), animIndex1 * 12)).xyz;
-	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), animIndex2 * 12)).xyz;
+	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
 
 	// Transform positions to clip space
 	float4 pos0 = mul(mvp, float4(v0pos, 1.0f));
@@ -201,9 +168,9 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 
 	// TEXTURE COORD INTERPOLATION
 	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex0 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex1 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex2 << 2)) 
+			unpack2Floats(LoadByte(Get(vertexTexCoord), animIndex0 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), animIndex1 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), animIndex2 << 2)) 
 	);
 
 	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP, pos0);
@@ -222,8 +189,8 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 	// 0 - 299 - shadow alpha
 	// 300 - 599 - shadow no alpha
 	// 600 - 899 - camera alpha
-	uint materialID = Get(meshConstantsBuffer)[meshIndex].materialID;
-
+	uint materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
+    
 	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
 	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);			
 
@@ -266,13 +233,9 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), animIndex1 << 2))) ,
 		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), animIndex2 << 2)))
 	);
+    
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
-
-	if (instanceIndex != INSTANCE_INDEX_NONE)
-	{
-		float4x4 modelMtx = Get(instanceData)[instanceIndex].modelMtx;
-		normal = normalize(mul(adjoint_float4x4(modelMtx), normal));
-	}
+    normal = normalize(mul(adjoint_float4x4(meshConstant.modelMtx), normal));
 
 	//Calculate pixel normal and tangent vectors
 	f3x3 wPositions = make_f3x3_cols(
@@ -293,7 +256,7 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 
 	float ao = 1.0f;
 
-	bool isTwoSided = (geomSet != GEOMSET_OPAQUE) && bool(Get(meshConstantsBuffer)[meshIndex].flags & MESH_CONSTANT_FLAG_TWO_SIDED);
+	bool isTwoSided = (geomSet != GEOMSET_OPAQUE) && bool(((meshConstant.materialID_flags >> FLAG_LOW_BIT) & FLAG_MASK) & MESH_CONSTANT_FLAG_TWO_SIDED);
 	bool isBackFace = false;
 
 	float3 ViewVec = normalize(Get(camPos).xyz - position.xyz);
@@ -355,12 +318,12 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
 
-	uint numLightsInCluster = LoadByte(Get(lightClustersCount), LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y) << 2);
+	uint numLightsInCluster = Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y)];
 
 	// Accumulate light contributions
 	for (uint j = 0; j < numLightsInCluster; ++j)
 	{
-		uint lightId = LoadByte(Get(lightClusters), LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y) << 2);
+		uint lightId = Get(lightClusters)[LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y)];
 
 		shadedColor += pointLightShade(
 		normal,
@@ -415,7 +378,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float4 visRaw = LoadTex2D(Get(vbTex), Get(depthSampler), uint2(In.position.xy), 0);
 #endif
 	// Unpack float4 render target data into uint to extract data
-	uint alphaBit_transBit_drawID_triID = packUnorm4x8(visRaw);
+	uint geomSetPrimID = packUnorm4x8(visRaw);
 
 	uint opaqueShaded = 0;
 	uint transparentShaded = 0; 
@@ -427,18 +390,15 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float2 screenPos = clamp(In.screenPos + step * samplePositions[i], -1.f, 1.f);
 #endif
 	// Early exit if this pixel doesn't contain triangle data
-	if (alphaBit_transBit_drawID_triID != ~0u)
+	if (geomSetPrimID != ~0u)
 	{
 		// Extract packed data
-		uint drawID = (alphaBit_transBit_drawID_triID & DRAW_ID_MASK) >> DRAW_ID_LOW_BIT;
-		uint triangleID = (alphaBit_transBit_drawID_triID & PRIM_ID_MASK) >> PRIM_ID_LOW_BIT;
-		uint alpha1_opaque0 = (alphaBit_transBit_drawID_triID & ALPH_IS_MASK) >> ALPH_IS_LOW_BIT;
-		uint geomSet = alpha1_opaque0; // GEOMSET_OPAQUE == 0, GEOMSET_ALPHA_CUTOUT == 1
-
+		uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+		uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
 #if USE_VRS
-		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, screenPos, drawID, triangleID, geomSet);
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, screenPos, primitiveID, geomSet);
 #else
-		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, In.screenPos, drawID, triangleID, geomSet);
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, In.screenPos, primitiveID, geomSet);
 #endif
 		OutColor = shadedFragment.color.rgb; // Alpha is 1 for GEOMSET_OPAQUE and GEOMSET_ALPHA_CUTOUT, we can ignore it
 		VisDepth = shadedFragment.depth;
@@ -482,12 +442,11 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 			uint nodeNextIdx = node.next;
 			uint nodeTriangleData = node.triangleData;
 
-			uint nodeDrawID = (nodeTriangleData & DRAW_ID_MASK) >> DRAW_ID_LOW_BIT;
-			uint nodeTriangleID = (nodeTriangleData & PRIM_ID_MASK) >> PRIM_ID_LOW_BIT;
+			uint nodePrimitiveID = (nodeTriangleData >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
 #if USE_VRS
-			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, screenPos, nodeDrawID, nodeTriangleID, GEOMSET_ALPHA_BLEND);
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, screenPos, nodePrimitiveID, GEOMSET_ALPHA_BLEND);
 #else
-			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodeDrawID, nodeTriangleID, GEOMSET_ALPHA_BLEND);
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodePrimitiveID, GEOMSET_ALPHA_BLEND);
 #endif
 
 			// Manual visbuf depth test

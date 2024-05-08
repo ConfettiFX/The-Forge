@@ -152,15 +152,14 @@ RES(Tex2DMS(float4, SAMPLE_COUNT), vbPassTexture, UPDATE_FREQ_NONE, t18, binding
 RES(Tex2D(float4), vbPassTexture, UPDATE_FREQ_NONE, t18, binding = 18);
 #endif
 
-RES(ByteBuffer, vertexPos,                      UPDATE_FREQ_NONE, t0, binding = 0);
-RES(ByteBuffer, vertexTexCoord,                 UPDATE_FREQ_NONE, t1, binding = 1);
-RES(ByteBuffer, vertexNormal,                   UPDATE_FREQ_NONE, t2, binding = 2);
+RES(ByteBuffer, vertexPos,                      UPDATE_FREQ_NONE, t0, binding = 35);
+RES(ByteBuffer, vertexTexCoord,                 UPDATE_FREQ_NONE, t1, binding = 36);
+RES(ByteBuffer, vertexNormal,                   UPDATE_FREQ_NONE, t2, binding = 37);
 RES(ByteBuffer, filteredIndexBuffer,            UPDATE_FREQ_PER_FRAME, t4, binding = 4);
-RES(Buffer(uint), indirectMaterialBuffer,         UPDATE_FREQ_PER_FRAME, t5, binding = 5);
+RES(Buffer(uint), indirectDataBuffer,         UPDATE_FREQ_PER_FRAME, t5, binding = 5);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t6, binding = 6);
 
 // Per frame descriptors
-RES(Buffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, t12, binding = 12);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t25, binding = 25);
@@ -564,28 +563,21 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float4 visRaw = LoadTex2D(Get(vbPassTexture), Get(clampMiplessLinearSampler), uint2(In.Position.xy), 0);
 #endif
 
-	uint alphaBitDrawIDTriID = packUnorm4x8(visRaw);
+	uint geomSetPrimID = packUnorm4x8(visRaw);
 
 	// Early exit if this pixel doesn't contain triangle data
-	if (alphaBitDrawIDTriID == ~0u)
+	if (geomSetPrimID == ~0u)
 	{
 		discard;
 	}
 
 	//extract packed data
-	uint drawID = (alphaBitDrawIDTriID >> DRAW_ID_LOW_BIT) & 0x000000FF;
-	uint triangleID = (alphaBitDrawIDTriID & PRIM_ID_MASK);
-	uint alpha1_opaque0 = (alphaBitDrawIDTriID >> ALPH_IS_LOW_BIT);
+	uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+	uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
 
-	//this is the start vertex of the current draw batch
-	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
-	// View is always 0, since only CAMERA_VIEW sets are stored
-    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, alpha1_opaque0, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
-	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
-
-	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
-	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
-	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 0);
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 1);
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 2);
 
 	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
 	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
@@ -636,26 +628,7 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 #endif
 
 	/////////////LOAD///////////////////////////////
-	// BaseInstanceBuffer returns constant offset values
-	// The following value defines the maximum amount of indirect draw calls that will be 
-	// drawn at once. This value depends on the number of submeshes or individual objects 
-	// in the scene. Changing a scene will require to change this value accordingly.
-	// #define MAX_DRAWS_INDIRECT 300 
-	//
-	// These values are offsets used to point to the material data depending on the 
-	// type of geometry and on the culling view
-	// #define MATERIAL_BASE_ALPHA0 0
-	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
-	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
-	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
-
-	uint materialBaseSlot = BaseInstanceBuffer(alpha1_opaque0, VIEW_CAMERA);
-
-	// potential results for materialBaseSlot + drawID are
-	// 0 - 299 - shadow alpha
-	// 300 - 599 - shadow no alpha
-	// 600 - 899 - camera alpha
-	uint materialID = Get(indirectMaterialBuffer)[materialBaseSlot + drawID];
+	uint materialID = Get(indirectDataBuffer)[index0];
 
 	// Interpolate texture coordinates and calculate the gradients for 
 	// texture sampling with mipmapping support
@@ -735,7 +708,7 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 
 	float3 ViewVec = normalize(camPos.xyz - WorldPos.xyz);
 
-	bool isTwoSided = (alpha1_opaque0 == 1) && (Get(meshConstantsBuffer)[materialID].twoSided == 1);
+	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && (Get(meshConstantsBuffer)[materialID].twoSided == 1);
 	bool isBackFace = false;
 
 	if(isTwoSided && dot(normal, ViewVec) < 0.0)

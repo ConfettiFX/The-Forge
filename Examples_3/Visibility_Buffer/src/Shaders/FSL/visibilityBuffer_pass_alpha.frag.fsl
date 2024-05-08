@@ -23,23 +23,20 @@
 */
 
 #include "shader_defs.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-float4 PS_MAIN( PsInVBAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveID )
 {
-    INIT_MAIN;
-    float4 Out;
-    uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
-    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+	INIT_MAIN;
+	uint materialID = In.materialID;
+	float4 texColor = f4(0);
 
     float alpha = 0.0f;
-    BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
-    EndNonUniformResourceIndex();
-    
-    //clip(texColor.a < 0.9 ? -1 : 1);
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+    	alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+	EndNonUniformResourceIndex();
+
     clip(alpha - 0.5f);
-    Out = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId));
-    RETURN(Out);
+
+	RETURN(unpackUnorm4x8(PACK_VB_DATA(GEOMSET_ALPHA_CUTOUT, primitiveID)));
 }

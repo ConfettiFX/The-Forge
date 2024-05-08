@@ -53,10 +53,9 @@
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
 
 RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t4, binding = 4);
-RES(Buffer(InstanceData), instanceData, UPDATE_FREQ_PER_FRAME, t5, binding = 5);
+RES(Buffer(MeshData), MeshDataBuffer, UPDATE_FREQ_PER_FRAME, t4, binding = 4);
 
-NUM_THREADS(VB_COMPUTE_THEADS, 1, 1)
+NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 {
     INIT_MAIN;
@@ -86,32 +85,24 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 
 	uint batchMeshIndex = filterDispatchGroupData.meshIndex;
 	uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
-	uint batchInstanceDataIndex = filterDispatchGroupData.instanceDataIndex; // instanceDataIndex that comes from CPU is not encoded
-	uint batchInputIndexOffset = (Get(meshConstantsBuffer)[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
-	uint vertexOffset = Get(meshConstantsBuffer)[batchMeshIndex].vertexOffset;
-	bool twoSided = (Get(meshConstantsBuffer)[batchMeshIndex].flags & MESH_CONSTANT_FLAG_TWO_SIDED) != 0;
-
-	if (batchInstanceDataIndex != INSTANCE_INDEX_NONE)
-	{
-		uint preSkinnedVtxOffset = Get(instanceData)[batchInstanceDataIndex].preSkinnedVertexOffset;
-		if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
-		{
-			// If this is an animated instance we don't use the offset in MeshConstants, that offset points to the mesh
-			// in bind-pose, we need to use the pre-transformed vertexes stored at offset InstanceData::animatedAttrVertexOffset
-			vertexOffset = preSkinnedVtxOffset;
-		}
-	}
+	uint batchInputIndexOffset = (Get(MeshDataBuffer)[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
+	uint vertexOffset = Get(MeshDataBuffer)[batchMeshIndex].vertexOffset;
+	uint indirectVertexOffset = Get(MeshDataBuffer)[batchMeshIndex].indirectVertexOffset;
+	bool twoSided = bool(((Get(MeshDataBuffer)[batchMeshIndex].materialID_flags >> FLAG_LOW_BIT) & FLAG_MASK) & MESH_CONSTANT_FLAG_TWO_SIDED);
+    
+	uint preSkinnedVtxOffset = Get(MeshDataBuffer)[batchMeshIndex].preSkinnedVertexOffset;
+    if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
+    {
+        // If this is an animated instance we don't use the offset in MeshData, that offset points to the mesh
+        // in bind-pose, we need to use the pre-transformed vertexes stored at offset InstanceData::animatedAttrVertexOffset
+        vertexOffset = preSkinnedVtxOffset;
+    }
 
 	float4x4 mvp[NUM_CULLING_VIEWPORTS];
 
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		mvp[i] = Get(transform)[i].mvp;
-
-		if (batchInstanceDataIndex != INSTANCE_INDEX_NONE)
-		{
-			mvp[i] = mul(mvp[i], Get(instanceData)[batchInstanceDataIndex].modelMtx);
-		}
+		mvp[i] = mul(Get(transform)[i].mvp, Get(MeshDataBuffer)[batchMeshIndex].modelMtx);
 	}
 
 	uint indices[3] = { 0, 0, 0 };
@@ -121,6 +112,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
 		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
 		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
+
+		// TODO: move to VisibilityBuffer.cpp 
+		Get(indirectDataBuffer)[indices[0] + indirectVertexOffset] = batchMeshIndex;
+		Get(indirectDataBuffer)[indices[1] + indirectVertexOffset] = batchMeshIndex;
+		Get(indirectDataBuffer)[indices[2] + indirectVertexOffset] = batchMeshIndex;
 
 		float4 vert[3] =
 		{
@@ -142,52 +138,39 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 			CullingViewPort viewport = Get(cullingViewports)[i];
 			cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
 			if (!cull[i])
+			{
                 AtomicAdd(workGroupIndexCount[i], 3, threadOutputSlot[i]);
+			}
 		}
 	}
 
     GroupMemoryBarrier();
-
-	uint accumBatchDrawIndex = filterDispatchGroupData.accumDrawIndex;
 
 	if (threadId.x == 0)
 	{
         UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-		    AtomicAdd(Get(uncompactedDrawArgsRW)[GET_UNCOMPACT_DRAW_INDEX(i,accumBatchDrawIndex)].numIndices, workGroupIndexCount[i], workGroupOutputSlot[i]);
+			uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(i, batchGeomSet, 0);
+            AtomicAdd(Get(indirectDrawArgs)[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);		
 		}
 	}
 
-    AllMemoryBarrier();
+    GroupMemoryBarrier();
 
     UNROLL_N(NUM_CULLING_VIEWPORTS)
 	for (uint j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
 	{
 		if (!cull[j])
 		{
-            uint index = AtomicLoad(workGroupOutputSlot[j]);
-
-			// We store indexes without vertexOffset because the offset is then stored in indirectDrawArgs and applied by the draw call
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 0) << 2, indices[0] - vertexOffset);
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 1) << 2, indices[1] - vertexOffset);
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 2) << 2, indices[2] - vertexOffset);
+			uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
+            
+			// Write index
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0] + indirectVertexOffset);
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1] + indirectVertexOffset);
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2] + indirectVertexOffset);
 		}
 	}
 
-	if (threadId.x == 0 && groupId.x == filterDispatchGroupData.meshDispatchGroupStart)
-	{
-        UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-		{
-		    uint uncompactIndex = GET_UNCOMPACT_DRAW_INDEX(i,accumBatchDrawIndex);
-            Get(uncompactedDrawArgsRW)[uncompactIndex].startIndex = filterDispatchGroupData.outputIndexOffset;
-			Get(uncompactedDrawArgsRW)[uncompactIndex].vertexOffset = vertexOffset;
-            Get(uncompactedDrawArgsRW)[uncompactIndex].geometrySet = batchGeomSet;
-            Get(uncompactedDrawArgsRW)[uncompactIndex].instanceDataIndex = 
-				((batchInstanceDataIndex << INSTANCE_INDEX_LOW_BIT) & INSTANCE_INDEX_MASK) | 
-				((batchMeshIndex << INSTANCE_MESH_LOW_BIT) & INSTANCE_MESH_MASK);
-		}
-	}
     RETURN();
 }

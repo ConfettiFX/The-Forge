@@ -174,13 +174,6 @@ Pipeline*      pPipelineTriangleFiltering = NULL;
 RootSignature* pRootSignatureTriangleFiltering = NULL;
 DescriptorSet* pDescriptorSetTriangleFiltering[2] = { NULL };
 /************************************************************************/
-// Batch compaction pipeline
-/************************************************************************/
-Shader*        pShaderBatchCompaction = NULL;
-Pipeline*      pPipelineBatchCompaction = NULL;
-RootSignature* pRootSignatureBatchCompaction = NULL;
-DescriptorSet* pDescriptorSetBatchCompaction = NULL;
-/************************************************************************/
 // VB pass pipeline
 /************************************************************************/
 // The last shader / pipeline in the array is used to simulate a crash
@@ -310,7 +303,6 @@ SwapChain* pSwapChain = NULL;
 Buffer* BVHBoundingBoxesBuffer;
 
 // The render passes used in the demo
-PerFrameData        gPerFrameData[gDataBufferCount] = {};
 CommonUniformBuffer gCommonUniformData;
 CameraUniform       gCameraUniformData;
 
@@ -887,14 +879,6 @@ luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Rotation Z", &light
 if (!LoadSanMiguel())
     return false;
 
-for (uint32_t frameIdx = 0; frameIdx < gDataBufferCount; ++frameIdx)
-{
-    // alpha tested materials can be split here
-    gPerFrameData[frameIdx].mDrawCount[GEOMSET_OPAQUE] = SanMiguelProp.mVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
-    gPerFrameData[frameIdx].mDrawCount[GEOMSET_ALPHA_CUTOUT] =
-        SanMiguelProp.mVBPreFilterStats[frameIdx].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
-}
-
 CreateBVHBuffers();
 tf_free(SanMiguelProp.mMaterialFlags);
 
@@ -1074,6 +1058,8 @@ void Exit()
 // Loads san miguel meshand textures
 bool LoadSanMiguel()
 {
+    uint32_t visibilityBufferFilteredIndexCount[NUM_GEOMETRY_SETS] = {};
+
     SyncToken        token = {};
     GeometryLoadDesc loadDesc = {};
     loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
@@ -1111,20 +1097,6 @@ bool LoadSanMiguel()
         addResource(&desc, NULL);
     }
 
-    // Cluster creation
-    VisibilityBufferDesc vbDesc = {};
-    vbDesc.mNumFrames = gDataBufferCount;
-    vbDesc.mNumBuffers = 1; // We don't use Async Compute for triangle filtering, 1 buffer is enough
-    vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
-    vbDesc.mNumViews = NUM_CULLING_VIEWPORTS;
-    vbDesc.mMaxDrawsIndirect = MAX_DRAWS_INDIRECT;
-    vbDesc.mIndirectElementCount = INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
-    vbDesc.mDrawArgCount = SanMiguelProp.mMeshCount;
-    vbDesc.mIndexCount = SanMiguelProp.pGeom->mIndexCount;
-    vbDesc.mComputeThreads = VB_COMPUTE_THEADS;
-    vbDesc.mMaxPrimitivesPerDrawIndirect = MAX_PRIMITIVES_PER_DRAW_INDIRECT;
-    initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
-
     // Calculate mesh constants and filter containers
     SanMiguelProp.mMaterialFlags = (MaterialFlags*)tf_calloc(SanMiguelProp.mMeshCount, sizeof(MaterialFlags));
     SanMiguelProp.pVBMeshInstances = (VBMeshInstance*)tf_calloc(SanMiguelProp.mMeshCount, sizeof(VBMeshInstance));
@@ -1135,6 +1107,7 @@ bool LoadSanMiguel()
         MaterialFlags materialFlag = pScene->materialFlags[i];
         SanMiguelProp.mMaterialFlags[i] = materialFlag;
         uint32_t geomSet = materialFlag & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
+        visibilityBufferFilteredIndexCount[geomSet] += (pScene->geom->pDrawArgs + i)->mIndexCount;
 
         SanMiguelProp.pVBMeshInstances[i].mGeometrySet = geomSet;
         SanMiguelProp.pVBMeshInstances[i].mMeshIndex = i;
@@ -1146,6 +1119,16 @@ bool LoadSanMiguel()
         meshConstants[i].materialID = i;
         meshConstants[i].twoSided = (pScene->materialFlags[i] & MATERIAL_FLAG_TWO_SIDED) ? 1 : 0;
     }
+
+    // Init visibility buffer
+    VisibilityBufferDesc vbDesc = {};
+    vbDesc.mNumFrames = gDataBufferCount;
+    vbDesc.mNumBuffers = 1; // We don't use Async Compute for triangle filtering, 1 buffer is enough
+    vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
+    vbDesc.pMaxIndexCountPerGeomSet = visibilityBufferFilteredIndexCount;
+    vbDesc.mNumViews = NUM_CULLING_VIEWPORTS;
+    vbDesc.mComputeThreads = VB_COMPUTE_THREADS;
+    initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
 
     BufferLoadDesc meshConstantDesc = {};
     meshConstantDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -1468,8 +1451,6 @@ void drawVisibilityBufferPass(Cmd* cmd)
     Buffer* pIndexBuffer = pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
     cmdBindIndexBuffer(cmd, pIndexBuffer, INDEX_TYPE_UINT32, 0);
 
-    Buffer* pVertexBuffersPosTex[] = { SanMiguelProp.pGeom->pVertexBuffers[0], SanMiguelProp.pGeom->pVertexBuffers[1] };
-
     for (uint32_t i = 0; i < gNumGeomSets; ++i)
     {
         Pipeline* pipeline = pPipelineVBBufferPass[i];
@@ -1486,13 +1467,10 @@ void drawVisibilityBufferPass(Cmd* cmd)
         cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
-        cmdBindVertexBuffer(cmd, i == GEOMSET_OPAQUE ? 1 : 2, pVertexBuffersPosTex, SanMiguelProp.pGeom->mVertexStrides, NULL);
 
         uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
-        uint64_t indirectBufferCounterByteOffset = indirectBufferByteOffset + DRAW_COUNTER_SLOT_OFFSET_IN_BYTES;
-        Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrameData[gFrameIndex].mDrawCount[i], pIndirectDrawBuffer,
-                           indirectBufferByteOffset, pIndirectDrawBuffer, indirectBufferCounterByteOffset);
+        Buffer*  pIndirectBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, pIndirectBuffer, indirectBufferByteOffset, NULL, 0);
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
     }
@@ -1529,12 +1507,6 @@ void Draw()
             return;
         }
     }
-
-    gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_CAMERA] = (gCameraUniformData.mInvView * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
-    gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_SHADOW] = gPerFrameData[gFrameIndex].mEyeObjectSpace[VIEW_CAMERA];
-
-    gVBConstants[gFrameIndex].transform[VIEW_SHADOW].mvp = gVBConstants[gFrameIndex].transform[VIEW_CAMERA].mvp;
-    gVBConstants[gFrameIndex].cullingViewports[VIEW_SHADOW] = gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA];
 
     /************************************************************************/
     // Update uniform buffers
@@ -1585,12 +1557,10 @@ void Draw()
         TriangleFilteringPassDesc triangleFilteringDesc = {};
         triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
         triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
-        triangleFilteringDesc.pPipelineBatchCompaction = pPipelineBatchCompaction;
 
         triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetClearBuffers;
         triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
         triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
-        triangleFilteringDesc.pDescriptorSetBatchCompaction = pDescriptorSetBatchCompaction;
 
         triangleFilteringDesc.mFrameIndex = gFrameIndex;
         triangleFilteringDesc.mBuffersIndex = 0; // We don't use Async Compute for triangle filtering, we just have 1 buffer
@@ -1598,23 +1568,21 @@ void Draw()
         triangleFilteringDesc.mVBPreFilterStats = SanMiguelProp.mVBPreFilterStats[gFrameIndex];
         cmdVBTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
 
-        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_OPAQUE] =
-            SanMiguelProp.mVBPreFilterStats[gFrameIndex].mGeomsetMaxDrawCounts[GEOMSET_OPAQUE];
-        gPerFrameData[gFrameIndex].mDrawCount[GEOMSET_ALPHA_CUTOUT] =
-            SanMiguelProp.mVBPreFilterStats[gFrameIndex].mGeomsetMaxDrawCounts[GEOMSET_ALPHA_CUTOUT];
         {
             const uint32_t numBarriers = NUM_CULLING_VIEWPORTS + 2;
             BufferBarrier  barriers2[numBarriers] = {};
-            barriers2[0] = { pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0], RESOURCE_STATE_UNORDERED_ACCESS,
-                             RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+            uint32_t       barrierCount = 0;
+            barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0], RESOURCE_STATE_UNORDERED_ACCESS,
+                                          RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+            barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS,
+                                          RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
             for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
             {
-                barriers2[i + 1] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
-                                     RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+                barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
+                                              RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
             }
-            barriers2[numBarriers - 1] = { pVisibilityBuffer->ppIndirectDataIndexBuffer[0], RESOURCE_STATE_UNORDERED_ACCESS,
-                                           RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            cmdResourceBarrier(cmd, numBarriers, barriers2, 0, NULL, 0, NULL);
+
+            cmdResourceBarrier(cmd, barrierCount, barriers2, 0, NULL, 0, NULL);
         }
 
         drawVisibilityBufferPass(cmd);
@@ -1755,16 +1723,19 @@ void Draw()
         const uint32_t      numBarriers = NUM_CULLING_VIEWPORTS + 2;
         RenderTargetBarrier barrierPresent = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         BufferBarrier       barriers2[numBarriers] = {};
-        barriers2[0] = { pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0],
-                         RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+        uint32_t            barrierCount = 0;
+        barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0],
+                                      RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+        barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex],
+                                      RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                                      RESOURCE_STATE_UNORDERED_ACCESS };
+
         for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
         {
-            barriers2[i + 1] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE,
-                                 RESOURCE_STATE_UNORDERED_ACCESS };
+            barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i],
+                                          RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
         }
-        barriers2[numBarriers - 1] = { pVisibilityBuffer->ppIndirectDataIndexBuffer[0],
-                                       RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-                                       RESOURCE_STATE_UNORDERED_ACCESS };
+
         cmdResourceBarrier(cmd, numBarriers, barriers2, 0, NULL, 1, &barrierPresent);
     }
 
@@ -1804,88 +1775,70 @@ void prepareDescriptorSets()
     // Clear Buffers
     {
         DescriptorData clearParams[2] = {};
-        clearParams[0].pName = "indirectDrawArgsBuffer";
-        clearParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-        clearParams[1].pName = "uncompactedDrawArgsRW";
-        clearParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[0];
+        clearParams[0].pName = "indirectDrawArgs";
+        clearParams[0].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+        clearParams[1].pName = "VBConstantBuffer";
+        clearParams[1].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetClearBuffers, 2, clearParams);
     }
     // Triangle Filtering
     {
-        DescriptorData filterParams[3] = {};
+        DescriptorData filterParams[4] = {};
         filterParams[0].pName = "vertexPositionBuffer";
         filterParams[0].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
         filterParams[1].pName = "indexDataBuffer";
         filterParams[1].ppBuffers = &SanMiguelProp.pGeom->pIndexBuffer;
         filterParams[2].pName = "meshConstantsBuffer";
         filterParams[2].ppBuffers = &pBufferMeshConstants;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 3, filterParams);
+        filterParams[3].pName = "VBConstantBuffer";
+        filterParams[3].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData filterParams[4] = {};
+            DescriptorData filterParams[5] = {};
             filterParams[0].pName = "filteredIndicesBuffer";
             filterParams[0].mCount = NUM_CULLING_VIEWPORTS;
             filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
-            filterParams[1].pName = "uncompactedDrawArgsRW";
-            filterParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[0];
+            filterParams[1].pName = "indirectDataBuffer";
+            filterParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
             filterParams[2].pName = "PerFrameVBConstants";
             filterParams[2].ppBuffers = &pBufferVBConstants[i];
             filterParams[3].pName = "filterDispatchGroupDataBuffer";
             filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 4, filterParams);
+            filterParams[4].pName = "indirectDrawArgs";
+            filterParams[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParams);
         }
-    }
-    // Batch Compaction
-    {
-        uint32_t       paramsCount = 3;
-        DescriptorData compactParams[4] = {};
-        compactParams[0].pName = "indirectDrawArgsBuffer";
-        compactParams[0].mBindICB = true;
-        compactParams[0].pICBName = "icb";
-        compactParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-        compactParams[1].pName = "uncompactedDrawArgs";
-        compactParams[1].ppBuffers = &pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[0];
-        compactParams[2].pName = "indirectMaterialBuffer";
-        compactParams[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataIndexBuffer[0];
-        if (pRenderer->pGpu->mSettings.mIndirectCommandBuffer)
-        {
-            // Required to generate ICB (to bind index buffer)
-            compactParams[3].pName = "filteredIndicesBuffer";
-            compactParams[3].mCount = NUM_CULLING_VIEWPORTS;
-            compactParams[3].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
-            paramsCount++;
-        }
-
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetBatchCompaction, paramsCount, compactParams);
     }
 
     // VB Pass
     {
-        DescriptorData objectParams[1] = {};
+        DescriptorData objectParams[3] = {};
 
         objectParams[0].pName = "diffuseMaps";
         objectParams[0].mCount = SanMiguelProp.mMaterialCount;
         objectParams[0].ppTextures = SanMiguelProp.pTextureStorage;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 1, objectParams);
+        objectParams[1].pName = "vertexPositionBuffer";
+        objectParams[1].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
+        objectParams[2].pName = "vertexTexCoordBuffer";
+        objectParams[2].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[1];
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 3, objectParams);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData objectParams[2] = {};
             objectParams[0].pName = "objectUniformBlock";
             objectParams[0].ppBuffers = &pBufferMeshTransforms[0][i];
-            objectParams[1].pName = "indirectMaterialBuffer";
-            objectParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataIndexBuffer[0];
+            objectParams[1].pName = "indirectDataBuffer";
+            objectParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
             updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 2, objectParams);
         }
     }
 
-    DescriptorDataRange dataRange = { GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, 0, 0) * sizeof(uint32_t),
-                                      MAX_DRAWS_INDIRECT_ELEMENTS * NUM_GEOMETRY_SETS * sizeof(uint32_t), sizeof(uint32_t) };
-
     // Raytraced Shadows
     {
-        DescriptorData params[8] = {};
+        DescriptorData params[9] = {};
         params[0].pName = "depthBuffer";
         params[0].ppTextures = &pRenderTargetDepth->pTexture;
         params[1].pName = "vbPassTexture";
@@ -1903,28 +1856,27 @@ void prepareDescriptorSets()
         params[6].ppBuffers = &BVHBoundingBoxesBuffer;
         params[7].pName = "outputShadowRT";
         params[7].ppTextures = &pTextures[Texture_RaytracedShadows];
-        updateDescriptorSet(pRenderer, Texture_RaytracedShadows, pDescriptorSetCompNonFreq, 8, params);
+        params[8].pName = "VBConstantBuffer";
+        params[8].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
+        updateDescriptorSet(pRenderer, Texture_RaytracedShadows, pDescriptorSetCompNonFreq, 9, params);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData params[5] = {};
+            DescriptorData params[4] = {};
             params[0].pName = "cbPerPass";
             params[0].ppBuffers = &pCommonUniformBuffer[i];
             params[1].pName = "cameraUniformBlock";
             params[1].ppBuffers = &pBufferCameraUniform[i];
-            params[2].pName = "indirectMaterialBuffer";
-            params[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataIndexBuffer[0];
+            params[2].pName = "indirectDataBuffer";
+            params[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
             params[3].pName = "filteredIndexBuffer";
             params[3].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-            params[4].pName = "indirectDrawArgs";
-            params[4].pRanges = &dataRange;
-            params[4].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-            updateDescriptorSet(pRenderer, Texture_RaytracedShadows * gDataBufferCount + i, pDescriptorSetCompFreq, 5, params);
+            updateDescriptorSet(pRenderer, Texture_RaytracedShadows * gDataBufferCount + i, pDescriptorSetCompFreq, 4, params);
         }
     }
 
     // Composite
     {
-        DescriptorData params[7] = {};
+        DescriptorData params[8] = {};
         params[0].pName = "vbPassTexture";
         params[0].ppTextures = &pRenderTargetVBPass->pTexture;
         params[1].pName = "diffuseMaps";
@@ -1940,22 +1892,21 @@ void prepareDescriptorSets()
         params[5].ppTextures = &pTextures[Texture_RaytracedShadows];
         params[6].pName = "outputRT";
         params[6].ppTextures = &pTextures[Texture_Composite];
-        updateDescriptorSet(pRenderer, Texture_Composite, pDescriptorSetCompNonFreq, 7, params);
+        params[7].pName = "VBConstantBuffer";
+        params[7].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
+        updateDescriptorSet(pRenderer, Texture_Composite, pDescriptorSetCompNonFreq, 8, params);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData params[5] = {};
+            DescriptorData params[4] = {};
             params[0].pName = "cbPerPass";
             params[0].ppBuffers = &pCommonUniformBuffer[i];
             params[1].pName = "cameraUniformBlock";
             params[1].ppBuffers = &pBufferCameraUniform[i];
-            params[2].pName = "indirectMaterialBuffer";
-            params[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataIndexBuffer[0];
+            params[2].pName = "indirectDataBuffer";
+            params[2].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
             params[3].pName = "filteredIndexBuffer";
             params[3].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-            params[4].pName = "indirectDrawArgs";
-            params[4].pRanges = &dataRange;
-            params[4].ppBuffers = &pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0];
-            updateDescriptorSet(pRenderer, Texture_Composite * gDataBufferCount + i, pDescriptorSetCompFreq, 5, params);
+            updateDescriptorSet(pRenderer, Texture_Composite * gDataBufferCount + i, pDescriptorSetCompFreq, 4, params);
         }
     }
 
@@ -1995,9 +1946,6 @@ void addDescriptorSets()
     addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[0]);
     setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
     addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[1]);
-    // Batch compaction
-    setDesc = { pRootSignatureBatchCompaction, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-    addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBatchCompaction);
 
     // vb pass
     setDesc = { pRootSignatureVBPass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
@@ -2022,7 +1970,6 @@ void removeDescriptorSets()
     removeDescriptorSet(pRenderer, pDescriptorSetClearBuffers);
     removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[0]);
     removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[1]);
-    removeDescriptorSet(pRenderer, pDescriptorSetBatchCompaction);
     removeDescriptorSet(pRenderer, pDescriptorSetVBPass[0]);
     removeDescriptorSet(pRenderer, pDescriptorSetVBPass[1]);
 
@@ -2039,9 +1986,6 @@ void addRootSignatures()
 
     RootSignatureDesc triangleFilteringRootDesc = { &pShaderTriangleFiltering, 1 };
     addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
-
-    RootSignatureDesc batchCompactionRootDesc = { &pShaderBatchCompaction, 1 };
-    addRootSignature(pRenderer, &batchCompactionRootDesc, &pRootSignatureBatchCompaction);
 
     const char*       vbPassSamplerNames[] = { "nearClampSampler" };
     Sampler*          vbPassSamplers[] = { pSamplerMiplessNear };
@@ -2062,17 +2006,9 @@ void addRootSignatures()
     rootDesc.ppShaders = &pShader[CopyToBackbuffer];
     addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-    uint32_t                   indirectArgCount = 0;
-    IndirectArgumentDescriptor indirectArgs[2] = {};
-    if (pRenderer->pGpu->mSettings.mIndirectRootConstant)
-    {
-        indirectArgs[0].mType = INDIRECT_CONSTANT;
-        indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
-        indirectArgs[0].mByteSize = sizeof(uint32_t);
-        ++indirectArgCount;
-    }
-    indirectArgs[indirectArgCount++].mType = INDIRECT_DRAW_INDEX;
-    CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, indirectArgCount };
+    IndirectArgumentDescriptor indirectArg = {};
+    indirectArg.mType = INDIRECT_DRAW_INDEX;
+    CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, &indirectArg, 1 };
     addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 
     Sampler*    compSamplers[] = { pSamplerTrilinearAniso, pSamplerMiplessLinear };
@@ -2096,7 +2032,6 @@ void removeRootSignatures()
     removeRootSignature(pRenderer, pRootSignatureComp);
     removeRootSignature(pRenderer, pRootSignatureClearBuffers);
     removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
-    removeRootSignature(pRenderer, pRootSignatureBatchCompaction);
 
     removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
 }
@@ -2105,19 +2040,12 @@ void addShaders()
 {
     // Load shaders for Vis Buffer
     ShaderLoadDesc clearBuffersShaderDesc = {};
-    clearBuffersShaderDesc.mStages[0].pFileName =
-        pRenderer->pGpu->mSettings.mIndirectCommandBuffer ? "clearVisibilityBuffers_icb.comp" : "clearVisibilityBuffers.comp";
+    clearBuffersShaderDesc.mStages[0].pFileName = "clearVisibilityBuffers.comp";
     addShader(pRenderer, &clearBuffersShaderDesc, &pShaderClearBuffers);
 
     ShaderLoadDesc triangleFilteringShaderDesc = {};
-    triangleFilteringShaderDesc.mStages[0].pFileName =
-        pRenderer->pGpu->mSettings.mIndirectCommandBuffer ? "triangleFiltering_icb.comp" : "triangleFiltering.comp";
+    triangleFilteringShaderDesc.mStages[0].pFileName = "triangleFiltering.comp";
     addShader(pRenderer, &triangleFilteringShaderDesc, &pShaderTriangleFiltering);
-
-    ShaderLoadDesc batchCompactionShaderDesc = {};
-    batchCompactionShaderDesc.mStages[0].pFileName =
-        pRenderer->pGpu->mSettings.mIndirectCommandBuffer ? "batchCompaction_icb.comp" : "batchCompaction.comp";
-    addShader(pRenderer, &batchCompactionShaderDesc, &pShaderBatchCompaction);
 
 #if defined(VULKAN)
     // Some vulkan driver doesn't generate glPrimitiveID without a geometry pass (steam deck as 03/30/2023)
@@ -2179,7 +2107,6 @@ void removeShaders()
 {
     removeShader(pRenderer, pShaderClearBuffers);
     removeShader(pRenderer, pShaderTriangleFiltering);
-    removeShader(pRenderer, pShaderBatchCompaction);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_OPAQUE]);
     removeShader(pRenderer, pShaderVBBufferPass[GEOMSET_ALPHA_CUTOUT]);
     removeShader(pRenderer, pShaderVBBufferPass[gNumGeomSets]);
@@ -2194,7 +2121,6 @@ void addPipelines()
 {
     // Create rasteriser state objects
     RasterizerStateDesc rasterStateCullNoneDesc = { CULL_MODE_NONE };
-    RasterizerStateDesc rasterStateDesc = { CULL_MODE_FRONT, 0, -3.0f };
 
     // Create depth state objects
     DepthStateDesc depthStateDesc = {};
@@ -2206,27 +2132,6 @@ void addPipelines()
     depthStateNoneDesc.mDepthTest = false;
     depthStateNoneDesc.mDepthWrite = false;
     depthStateNoneDesc.mDepthFunc = CMP_ALWAYS;
-
-    VertexLayout vertexLayoutPositionOnly = {};
-    vertexLayoutPositionOnly.mBindingCount = 1;
-    vertexLayoutPositionOnly.mAttribCount = 1;
-    vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-    vertexLayoutPositionOnly.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-    vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
-    vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
-    vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
-
-    VertexLayout vertexLayoutPosAndTex = {};
-    vertexLayoutPosAndTex.mBindingCount = 2;
-    vertexLayoutPosAndTex.mAttribCount = 2;
-    vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-    vertexLayoutPosAndTex.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-    vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
-    vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
-    vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-    vertexLayoutPosAndTex.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
-    vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
-    vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
 
     // add vis buffer pipeline
     {
@@ -2245,11 +2150,10 @@ void addPipelines()
         vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mSampleQuality;
         vbPassPipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
         vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
-        vbPassPipelineSettings.mSupportIndirectCommandBuffer = true;
+        vbPassPipelineSettings.pVertexLayout = NULL;
+        vbPassPipelineSettings.pRasterizerState = &rasterStateCullNoneDesc;
         for (uint32_t i = 0; i < gNumGeomSets; ++i)
         {
-            vbPassPipelineSettings.pVertexLayout = (i == GEOMSET_ALPHA_CUTOUT) ? &vertexLayoutPosAndTex : &vertexLayoutPositionOnly;
-            vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHA_CUTOUT ? &rasterStateCullNoneDesc : &rasterStateDesc;
             vbPassPipelineSettings.pShaderProgram = pShaderVBBufferPass[i];
 
 #if defined(XBOX)
@@ -2271,8 +2175,6 @@ void addPipelines()
             desc.mExtensionCount = 0;
         }
 
-        vbPassPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
-        vbPassPipelineSettings.pRasterizerState = &rasterStateDesc;
         vbPassPipelineSettings.pShaderProgram = pShaderVBBufferPass[gNumGeomSets];
         addPipeline(pRenderer, &desc, &pPipelineVBBufferPass[gNumGeomSets]);
 
@@ -2290,12 +2192,6 @@ void addPipelines()
         triangleFilteringPipelineSettings.pShaderProgram = pShaderTriangleFiltering;
         triangleFilteringPipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
         addPipeline(pRenderer, &desc, &pPipelineTriangleFiltering);
-
-        desc.mComputeDesc = {};
-        ComputePipelineDesc& batchCompactionPipelineSettings = desc.mComputeDesc;
-        batchCompactionPipelineSettings.pShaderProgram = pShaderBatchCompaction;
-        batchCompactionPipelineSettings.pRootSignature = pRootSignatureBatchCompaction;
-        addPipeline(pRenderer, &desc, &pPipelineBatchCompaction);
     }
 
     // create shadows pipeline
@@ -2347,7 +2243,6 @@ void removePipelines()
 {
     removePipeline(pRenderer, pPipelineClearBuffers);
     removePipeline(pRenderer, pPipelineTriangleFiltering);
-    removePipeline(pRenderer, pPipelineBatchCompaction);
     for (uint32_t i = 0; i <= gNumGeomSets; ++i)
     {
         removePipeline(pRenderer, pPipelineVBBufferPass[i]);

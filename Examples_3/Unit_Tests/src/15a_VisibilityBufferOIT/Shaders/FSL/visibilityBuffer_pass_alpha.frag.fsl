@@ -23,19 +23,13 @@
 */
 
 #include "shader_defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 #include "vrs_resources.h.fsl"
 
-STRUCT(PsOut)
-{
-	DATA(float4, VBData,       SV_Target0);
-};
-
-PsOut PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleIndex(uint) i  )
+float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleIndex(uint) i )
 {
     INIT_MAIN;
-    PsOut Out;
+    float4 Out;
 
     uint materialID = In.materialID;
 
@@ -55,9 +49,9 @@ PsOut PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleIn
     EndNonUniformResourceIndex();
 #endif
     
-    //clip(texColor.a < 0.9 ? -1 : 1);
     clip(alpha - 0.5f);
-    Out.VBData = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId));
+
+    Out = unpackUnorm4x8(PACK_VB_DATA(GEOMSET_ALPHA_CUTOUT, primitiveId));
 
     RETURN(Out);
 }

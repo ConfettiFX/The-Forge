@@ -14,19 +14,11 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-STRUCT(PsIn)
+float4 PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveId )
 {
-	DATA(float4,     position,  SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawID,   TEXCOORD0);
-#endif
-};
-
-float4 PS_MAIN(PsIn In, SV_PrimitiveID(uint) primitiveID)
-{
-	INIT_MAIN;
-
-    RETURN(unpackUnorm4x8(GET_OUTPUT_VB_ID(getDrawID(), primitiveID)));
+    INIT_MAIN;
+    float4 Out;
+    Out = unpackUnorm4x8( PACK_VB_DATA(GEOMSET_OPAQUE, primitiveId));
+    RETURN(Out);
 }

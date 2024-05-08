@@ -39,11 +39,6 @@
 #define GEOMSET_OPAQUE 0
 #define GEOMSET_ALPHA_CUTOUT 1
 
-STRUCT(RootConstant)
-{
-	DATA(uint, drawId, None);
-};
-
 STRUCT(MeshConstants)
 {
 	DATA(uint, indexOffset, None);

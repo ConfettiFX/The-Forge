@@ -299,6 +299,10 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_KHR_MAINTENANCE3_EXTENSION_NAME,
 	// Required by raytracing and the new bindless descriptor API if we use it in future
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+    /************************************************************************/
+    // Shader Atomic Int 64 Extension
+    /************************************************************************/
+    VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME,
 	/************************************************************************/
 	// Raytracing
 	/************************************************************************/
@@ -2704,6 +2708,8 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
                             pGpu->mVk.mAccelerationStructureExtension = true;
                         if (strcmp(wantedDeviceExtensions[k], VK_KHR_SPIRV_1_4_EXTENSION_NAME) == 0)
                             pGpu->mVk.mSpirv14Extension = true;
+                        if (strcmp(wantedDeviceExtensions[k], VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME) == 0)
+                            pGpu->mVk.mShaderAtomicInt64Extension = true;
                         if (strcmp(wantedDeviceExtensions[k], VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) == 0)
                             pGpu->mVk.mRayTracingPipelineExtension = true;
                         if (strcmp(wantedDeviceExtensions[k], VK_KHR_RAY_QUERY_EXTENSION_NAME) == 0)
@@ -2769,6 +2775,11 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
     };
     ADD_TO_NEXT_CHAIN(pGpu->mVk.mDynamicRenderingExtension, dynamicRenderingFeatures);
 
+    VkPhysicalDeviceShaderAtomicInt64Features shaderAtomicInt64Features = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR
+    };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mShaderAtomicInt64Extension, shaderAtomicInt64Features);
+
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES
     };
@@ -2813,6 +2824,8 @@ static bool QueryGpuSettings(const RendererContextDesc* pDesc, RendererContext* 
 
     const bool bufferDeviceAddressFeature = bufferDeviceAddressFeatures.bufferDeviceAddress;
     pGpu->mVk.mBufferDeviceAddressSupported = bufferDeviceAddressFeature;
+
+    pGpu->mSettings.m64BitAtomicsSupported = shaderAtomicInt64Features.shaderBufferInt64Atomics;
 
     const bool rayTracingPipelineFeature = rayTracingPipelineFeatures.rayTracingPipeline;
     const bool accelerationStructureFeature = accelerationStructureFeatures.accelerationStructure;
@@ -3705,6 +3718,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     };
     ADD_TO_NEXT_CHAIN(pGpu->mVk.mDynamicRenderingExtension, dynamicRenderingFeatures);
 
+    VkPhysicalDeviceShaderAtomicInt64Features shaderAtomicInt64Features = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR
+    };
+    ADD_TO_NEXT_CHAIN(pGpu->mVk.mShaderAtomicInt64Extension, shaderAtomicInt64Features);
+
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES
     };
@@ -3890,6 +3908,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     if (pGpu->mSettings.mRayQuerySupported)
     {
         LOGF(LogLevel::eINFO, "Successfully loaded Khronos Ray Query extensions");
+    }
+
+    if (pGpu->mSettings.m64BitAtomicsSupported)
+    {
+        LOGF(LogLevel::eINFO, "Successfully loaded 64 bit Shader Atomic extension");
     }
 
     if (pGpu->mSettings.mDynamicRenderingSupported)

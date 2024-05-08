@@ -33,13 +33,16 @@
 /************************************************************************/
 // Visibility Buffer Interface
 /************************************************************************/
+struct VBConstants;
 typedef struct VisibilityBuffer
 {
-    Buffer** ppUncompactedDrawArgumentsBuffer;
-    Buffer** ppFilteredIndirectDrawArgumentsBuffers;
+    Buffer*  pVBConstantBuffer;
     Buffer** ppFilteredIndexBuffer;
-    Buffer** ppFilterDispatchGroupDataBuffer;
-    Buffer** ppIndirectDataIndexBuffer;
+    Buffer** ppIndirectDataBuffer;
+    Buffer** ppFilterDispatchGroupDataBuffer; // Per batch indirection data, uint32_t per each batch. Stores material id, geometry set and
+                                              // the maximum number of triangles in a batch.
+    Buffer** ppIndirectDrawArgBuffer;
+    VBConstants* pVBConstants;
 } VisibilityBuffer;
 
 typedef struct VisibilityBufferDesc
@@ -53,17 +56,12 @@ typedef struct VisibilityBufferDesc
     // This is used to allocate GPU only buffers for data we generate on the GPU for Triangle Filtering and Batch Compaction stages.
     uint32_t mNumBuffers;
 
-    uint32_t mIndirectElementCount;
-    uint32_t mDrawArgCount;
-    uint32_t mIndexCount;
-
-    uint32_t mMaxDrawsIndirect;
-    uint32_t mMaxPrimitivesPerDrawIndirect;
-    uint32_t mComputeThreads; // Set as VB_COMPUTE_THEADS, this should be equal to the amount of triangles that will be processed in
+    uint32_t mComputeThreads; // Set as VB_COMPUTE_THREADS, this should be equal to the amount of triangles that will be processed in
                               // parallel by the triangle filter shader
 
-    uint32_t mNumGeometrySets;
-    uint32_t mNumViews;
+    uint32_t  mNumGeometrySets;
+    uint32_t* pMaxIndexCountPerGeomSet;
+    uint32_t  mNumViews;
 
     bool     mEnablePreSkinPass;
     uint32_t mPreSkinBatchSize;
@@ -96,12 +94,10 @@ typedef struct TriangleFilteringPassDesc
 {
     Pipeline* pPipelineClearBuffers;
     Pipeline* pPipelineTriangleFiltering;
-    Pipeline* pPipelineBatchCompaction;
 
     DescriptorSet* pDescriptorSetTriangleFiltering;
     DescriptorSet* pDescriptorSetTriangleFilteringPerFrame;
     DescriptorSet* pDescriptorSetClearBuffers;
-    DescriptorSet* pDescriptorSetBatchCompaction;
 
     uint64_t mGpuProfileToken;
 

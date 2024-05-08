@@ -25,27 +25,16 @@
 #ifndef vb_resources_h
 #define vb_resources_h
 
-RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
-RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t1, binding = 4);
-RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding=3);
-// RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t1, binding=4 + MAX_TEXTURE_UNITS * 3);
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-#if defined(INDIRECT_ROOT_CONSTANT)
-	PUSH_CONSTANT(indirectRootConstant, b1)
-	{
-		DATA(uint, indirectDrawId, None);
-	};
-	#define getDrawID() indirectDrawId
-#else
-    #define getDrawID() In.drawId
-#endif
+RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 4);
+RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t1, binding = 5);
+RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t2, binding = 6);
+RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t3, binding = 7);
 
-STRUCT(VsInShadowOpaque)
-{
-    DATA(float3, position, POSITION);
-};
+RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t4, binding=8);
 
-STRUCT(PsInShadowOpaque)
+STRUCT(PsInOpaque)
 {
 	DATA(float4, position, SV_Position);
 };
@@ -56,13 +45,11 @@ STRUCT(VsInShadowAlphaTested)
     DATA(uint, texCoord, TEXCOORD);
 };
 
-STRUCT(PsInShadowAlphaTested)
+STRUCT(PsInAlphaTested)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
+    DATA(FLAT(uint), materialID, TEXCOORD1);
 };
 
 STRUCT(VsInVBOpaque)
@@ -70,27 +57,14 @@ STRUCT(VsInVBOpaque)
     DATA(float3, position, POSITION);
 };
 
-STRUCT(PsInVBOpaque)
+float4 LoadVertex(uint index)
 {
-	DATA(float4, position, SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
+    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1);
+}
 
-STRUCT(VsInVBAlphaTested)
+float2 LoadTexCoord(uint index)
 {
-    DATA(float3, position, POSITION);
-    DATA(uint, texCoord, TEXCOORD);
-};
-
-STRUCT(PsInVBAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
+	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
+}
 
 #endif /* vb_resources_h */

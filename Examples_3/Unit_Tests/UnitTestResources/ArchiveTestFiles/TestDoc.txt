@@ -1,1 +1,0 @@
-Hello World! This is an example for the The Forge's Zip FileSystem.

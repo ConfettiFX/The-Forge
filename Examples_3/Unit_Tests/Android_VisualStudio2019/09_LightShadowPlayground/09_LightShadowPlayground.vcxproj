@@ -86,9 +86,9 @@
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua" />
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua" />
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua" />
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_0.lua" />
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_2.lua" />
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_4.lua" />
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_0.lua" />
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_2.lua" />
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_4.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A99DA1E5-B36E-41E3-88D1-0154F0B60A29}</ProjectGuid>
@@ -143,16 +143,16 @@
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "%ART%\..\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
@@ -202,16 +202,16 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "%ART%\..\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
