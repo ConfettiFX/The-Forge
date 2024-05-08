@@ -24,10 +24,9 @@
 
 #define NO_MATERIALID_ON_PIXEL_SHADER_INPUT
 #include "shader_defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-void PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+void PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId)
 {
 	INIT_MAIN;
 
@@ -47,7 +46,7 @@ void PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
 			uint bufferIdx = screenPos.y * screenSize.x + screenPos.x; 
 			AtomicExchange(Get(headIndexBufferUAV)[bufferIdx], nodeIdx, prevHeadIdx);
 
-			Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId);
+			Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = PACK_VB_DATA(GEOMSET_ALPHA_BLEND, primitiveId);
 			Get(vbDepthLinkedListUAV)[nodeIdx].next = prevHeadIdx;
 		}
 	}

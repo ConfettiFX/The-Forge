@@ -65,6 +65,7 @@ def EndNonUniformResourceIndex(index):
 def get_format_qualifier(name):
     elem_type = getMacroFirstArg(name)
     _map = {
+        'uint64_t' : 'r64ui',
         'float4': 'rgba32f',
         'float2': 'rg32f',
         'float' : 'r32f',

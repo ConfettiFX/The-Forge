@@ -91,7 +91,8 @@
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
@@ -137,7 +138,8 @@ xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionD
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 

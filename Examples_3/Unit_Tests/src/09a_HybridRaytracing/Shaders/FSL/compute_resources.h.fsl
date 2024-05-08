@@ -31,10 +31,10 @@
 
 // UPDATE_FREQ_NONE
 RES(Tex2D(float),    depthBuffer,    UPDATE_FREQ_NONE, t1, binding = 15);
-RES(Buffer(float4),  BVHTree,        UPDATE_FREQ_NONE, t2, binding = 2);
-RES(Tex2D(float),    shadowbuffer,   UPDATE_FREQ_NONE, t3, binding = 3);
-RES(WTex2D(float4), outputRT,       UPDATE_FREQ_NONE, u4, binding = 4);
-RES(WTex2D(float),  outputShadowRT, UPDATE_FREQ_NONE, u9, binding = 5);
+RES(Buffer(float4),  BVHTree,        UPDATE_FREQ_NONE, t2, binding = 3);
+RES(Tex2D(float),    shadowbuffer,   UPDATE_FREQ_NONE, t3, binding = 4);
+RES(WTex2D(float4), outputRT,       UPDATE_FREQ_NONE, u4, binding = 5);
+RES(WTex2D(float),  outputShadowRT, UPDATE_FREQ_NONE, u9, binding = 6);
 
 RES(Tex2D(float4), vbPassTexture, UPDATE_FREQ_NONE, t5, binding = 24);
 
@@ -66,8 +66,6 @@ CBUFFER(cbPerPass, UPDATE_FREQ_PER_FRAME, b1, binding = 14)
 	DATA(float4, lightDir, None);
 };
 
-RES(Buffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, t11, binding = 16);
-
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t25, binding = 25);
 #else
@@ -75,7 +73,7 @@ RES(Buffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, t11, binding = 16);
 #endif
 
 RES(ByteBuffer, filteredIndexBuffer,            UPDATE_FREQ_PER_FRAME, t12, binding = 17);
-RES(Buffer(uint), indirectMaterialBuffer,         UPDATE_FREQ_PER_FRAME, t13, binding = 18);
+RES(Buffer(uint), indirectDataBuffer,         UPDATE_FREQ_PER_FRAME, t13, binding = 18);
 
 RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s0, binding = 19);
 RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s1, binding = 20);

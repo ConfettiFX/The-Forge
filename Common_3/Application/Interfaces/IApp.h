@@ -162,6 +162,12 @@ public:
     static const char** argv;
 };
 
+#if defined(TARGET_IOS)
+#define SetContentScaleFactor(F) (mSettings.mContentScaleFactor = (F))
+#else
+#define SetContentScaleFactor(F)
+#endif
+
 #if defined(XBOX)
 FORGE_API extern int DurangoMain(int argc, char** argv, IApp* app);
 #define RUN_APPLICATION_MAIN(argc, argv, appInstance, customPtr) DurangoMain(argc, argv, &(appInstance))
@@ -180,15 +186,20 @@ FORGE_API extern int DurangoMain(int argc, char** argv, IApp* app);
 FORGE_API extern int WindowsMain(int argc, char** argv, IApp* app);
 #define RUN_APPLICATION_MAIN(argc, argv, appInstance, customPtr) WindowsMain(argc, argv, &(appInstance))
 
-#define DEFINE_APPLICATION_MAIN(appClass)                     \
-    extern int WindowsMain(int argc, char** argv, IApp* app); \
-                                                              \
-    int main(int argc, char** argv)                           \
-    {                                                         \
-        IApp::argc = argc;                                    \
-        IApp::argv = (const char**)argv;                      \
-        static appClass app = {};                             \
-        return WindowsMain(argc, argv, &app);                 \
+#define DEFINE_APPLICATION_MAIN(appClass)                                                    \
+    int WindowsMain(int argc, char** argv, IApp* app);                                       \
+    extern "C"                                                                               \
+    {                                                                                        \
+        __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_AGILITY_SDK_VERSION; \
+        __declspec(dllexport) extern const char* D3D12SDKPath = u8"";                        \
+    }                                                                                        \
+                                                                                             \
+    int main(int argc, char** argv)                                                          \
+    {                                                                                        \
+        IApp::argc = argc;                                                                   \
+        IApp::argv = (const char**)argv;                                                     \
+        static appClass app = {};                                                            \
+        return WindowsMain(argc, argv, &app);                                                \
     }
 #elif defined(TARGET_IOS)
 FORGE_API extern int iOSMain(int argc, char** argv, IApp* app);

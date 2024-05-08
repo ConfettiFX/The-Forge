@@ -22,23 +22,23 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
 PS_ZORDER_EARLYZ()
 
-void PS_MAIN( PsInShadowAlphaTested In )
+void PS_MAIN( PsInAlphaTested In)
 {
-    INIT_MAIN;
-    uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_SHADOW); //1 is camera view, 0 is shadow map view
-    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+	INIT_MAIN;
+	uint materialID = In.materialID;
+	float4 texColor = f4(0);
 
     float alpha = 0.0f;
-    BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
-    EndNonUniformResourceIndex();
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+    	alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+	EndNonUniformResourceIndex();
 
     clip(alpha - 0.5f);
-    RETURN();
+
+	RETURN();
 }

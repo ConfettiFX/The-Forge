@@ -13,45 +13,28 @@
 */
 
 #include "shader_defs.h.fsl"
+#define USE_NORMAL
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "wind.h.fsl"
 
-STRUCT(VsIn)
-{
-	DATA(float3, position, POSITION);
-	DATA(uint,   texCoord, TEXCOORD0);
-	DATA(uint,   normal,   NORMAL);
-};
-
-STRUCT(VsOut)
-{
-	DATA(float4,      position,   SV_Position);
-	DATA(float2,      texCoord,   TEXCOORD0);
-	DATA(float3,      normal,     TEXCOORD1);
-	DATA(FLAT(float), materialID, TEXCOORD2);
-};
-
-VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
+PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
+	PsInAlphaTested Out;
+    float4 vertexPos = LoadVertex(vertexID);
+	float3 vertexNormal = LoadNormal(vertexID);
+	uint materialID = Get(indirectDataBuffer)[vertexID];
 
-	VsOut Out;
-
-	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, Get(viewID));
-	Out.materialID   = float(Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()]);
-
-	float4 pos = float4(In.position.xyz, 1.0f);
-	Out.normal = decodeDir(unpackUnorm2x16(In.normal));
-
-	if (Out.materialID == CLOTH_ID)
+	if (materialID == CLOTH_ID)
 	{ 
-		Out.normal = WindTransformWorldNormal(Out.normal, pos.xyz, Get(windData));
-		pos.xyz    = WindTransformWorldPosition(pos.xyz, Get(windData));
+		vertexNormal = WindTransformWorldNormal(vertexNormal, vertexPos.xyz, Get(windData));
+		vertexPos.xyz = WindTransformWorldPosition(vertexPos.xyz, Get(windData));
 	}
 
-	Out.position = mul(Get(transform)[Get(viewID)].mvp, pos);
-	Out.texCoord = unpack2Floats(In.texCoord);
+	Out.position = mul(Get(transform)[Get(viewID)].mvp, vertexPos);
+    Out.texCoord = LoadTexCoord(vertexID);
+	Out.normal = vertexNormal;
+	Out.materialID = materialID;
 
-	RETURN(Out);
+    RETURN(Out);
 }

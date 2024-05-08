@@ -54,7 +54,7 @@ RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t13, binding = 4);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t14, binding = 5);
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
 
-NUM_THREADS(VB_COMPUTE_THEADS, 1, 1)
+NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 {
 	INIT_MAIN;
@@ -90,6 +90,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
 		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
 		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
+		
+		// TODO: move to VisibilityBuffer.cpp 
+		Get(indirectDataBuffer)[indices[0]] = batchMeshIndex;
+		Get(indirectDataBuffer)[indices[1]] = batchMeshIndex;
+		Get(indirectDataBuffer)[indices[2]] = batchMeshIndex;
 
 		float4 vert[3] =
 		{
@@ -117,44 +122,29 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 
 	GroupMemoryBarrier();
 
-	uint accumBatchDrawIndex = filterDispatchGroupData.accumDrawIndex;
-
 	if (inGroupId.x == 0)
 	{
 		for (uint i = 0; i < Get(numViewports); ++i)
 		{
-			AtomicAdd(Get(uncompactedDrawArgsRW)[GET_UNCOMPACT_DRAW_INDEX(i,accumBatchDrawIndex)].numIndices, workGroupIndexCount[i], workGroupOutputSlot[i]);
+			uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(i, batchGeomSet, 0);
+			AtomicAdd(Get(indirectDrawArgs)[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);		
 		}
 	}
 
-	AllMemoryBarrier();
+	GroupMemoryBarrier();
 
 	for (uint j = 0; j < Get(numViewports); ++j)
 	{
 		if (!cull[j])
 		{
-            uint index = AtomicLoad(workGroupOutputSlot[j]);
-			
-			// We store indexes without vertexOffset because the offset is then stored in indirectDrawArgs and applied by the draw call
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 0) << 2, indices[0] - vertexOffset);
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 1) << 2, indices[1] - vertexOffset);
-			StoreByte(Get(filteredIndicesBuffer)[j], (index + filterDispatchGroupData.outputIndexOffset + threadOutputSlot[j] + 2) << 2, indices[2] - vertexOffset);
+			uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
+
+			// Write index
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
+			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
 		}
 	}
 
-	if (inGroupId.x == 0 && groupId.x == filterDispatchGroupData.meshDispatchGroupStart)
-	{
-		uint outIndexOffset = filterDispatchGroupData.outputIndexOffset;
-		uint matID = Get(meshConstantsBuffer)[batchMeshIndex].materialID;
-
-		for (uint i = 0; i < Get(numViewports); ++i)
-		{
-			uint uncompactIndex = GET_UNCOMPACT_DRAW_INDEX(i,accumBatchDrawIndex);
-            Get(uncompactedDrawArgsRW)[uncompactIndex].startIndex = outIndexOffset;
-			Get(uncompactedDrawArgsRW)[uncompactIndex].vertexOffset = vertexOffset;
-            Get(uncompactedDrawArgsRW)[uncompactIndex].geometrySet = batchGeomSet;
-            Get(uncompactedDrawArgsRW)[uncompactIndex].instanceDataIndex = matID;
-		}
-	}
 	RETURN();
 }

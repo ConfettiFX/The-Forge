@@ -14,29 +14,14 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-STRUCT(VsIn)
-{
-	DATA(float3, position, POSITION);
-};
-
-STRUCT(VsOut)
-{
-	DATA(float4,     position, SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawID,   TEXCOORD0);
-#endif
-};
-
-VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
+PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
 
-	VsOut Out;
-
-    Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.position, 1.0f));
-	SET_DRAW_ID(Out, drawID, InstanceID);
+	PsInOpaque Out;
+    float4 vertexPos = LoadVertex(vertexID);
+    Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, vertexPos);
 
     RETURN(Out);
 }

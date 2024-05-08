@@ -25,6 +25,8 @@
 #include "vrs_resources.h.fsl"
 #include "shader_defs.h.fsl"
 
+#define SAMPLE_COUNT 4
+
 RES(Tex2D(float4), prevFrameTex, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(Tex2DMS(uint, SAMPLE_COUNT), prevHistoryTex, UPDATE_FREQ_NONE, t2, binding = 1);
 

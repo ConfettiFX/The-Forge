@@ -22,7 +22,17 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup />
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64'">
+    <ClCompile>
+      <!-- When updating the sdk, you should only need to change the values in this file, and to copy the DLLs in the game/pc/D3D12 directory -->
+      <!-- General -->
+      <PreprocessorDefinitions>
+        D3D12_AGILITY_SDK=1;
+        D3D12_AGILITY_SDK_VERSION=611;
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ImportGroup Label="PropertySheets">
     <Import Condition="$(ProjectDir.Contains('Quest_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Unit_Tests\Quest_VisualStudio2019\Quest-arm64-v8a.props" />
     <Import Condition="$(ProjectDir.Contains('Android_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Unit_Tests\Android_VisualStudio2019\Android-arm64-v8a.props" />

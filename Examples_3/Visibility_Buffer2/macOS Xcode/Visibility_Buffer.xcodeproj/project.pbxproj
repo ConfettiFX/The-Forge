@@ -1,0 +1,796 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		399521CE2BC8B68300BD2F6F /* VisibilityBuffer2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 399521CD2BC8B68300BD2F6F /* VisibilityBuffer2.cpp */; };
+		399521CF2BC8B68300BD2F6F /* VisibilityBuffer2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 399521CD2BC8B68300BD2F6F /* VisibilityBuffer2.cpp */; };
+		510CB5762BD0775500B19CD1 /* bin_rasterizer.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 510CB5752BD0775500B19CD1 /* bin_rasterizer.comp.fsl */; };
+		510CB5772BD0775500B19CD1 /* bin_rasterizer.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 510CB5752BD0775500B19CD1 /* bin_rasterizer.comp.fsl */; };
+		510CB5792BD0788600B19CD1 /* triangle_binning.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 510CB5782BD0788600B19CD1 /* triangle_binning.h.fsl */; };
+		510CB57A2BD0788600B19CD1 /* triangle_binning.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 510CB5782BD0788600B19CD1 /* triangle_binning.h.fsl */; };
+		651017B522253A5E009A1174 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */; };
+		7F6E01A12A940EA600981E7B /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01A02A940EA600981E7B /* CoreVideo.framework */; };
+		7F6E01A32A940EAB00981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01A22A940EAB00981E7B /* QuartzCore.framework */; };
+		994BB7A9289A3A680076DA97 /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
+		994BB7AA289A3A680076DA97 /* Visibility_Buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */; };
+		994BB7B7289A3A680076DA97 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
+		994BB7C1289A3ABF0076DA97 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */; };
+		994BB7D0289A3C770076DA97 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43923233DD588005BF1C7 /* libThe-Forge_iOS.a */; };
+		994BB7D2289A3C7C0076DA97 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 994BB7D1289A3C7C0076DA97 /* UIKit.framework */; };
+		994BB7D4289A3C800076DA97 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 994BB7D3289A3C800076DA97 /* Metal.framework */; };
+		994BB7D6289A3C880076DA97 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 994BB7D5289A3C880076DA97 /* CoreHaptics.framework */; };
+		994BB7D8289A3C8F0076DA97 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 994BB7D7289A3C8F0076DA97 /* GameController.framework */; };
+		994BB7D9289A3C980076DA97 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E94B94B8234C35BC006EA1F3 /* iOSAppDelegate.m */; };
+		994BB7DB289A3DF60076DA97 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 994BB7DA289A3DF60076DA97 /* MetalPerformanceShaders.framework */; };
+		997EE5442A380A9700FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5432A380A9700FB75C1 /* GameController.framework */; };
+		997EE5462A380A9B00FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5452A380A9B00FB75C1 /* CoreHaptics.framework */; };
+		AC2CA4772B6A44D200F1B761 /* light_cull_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45A2B6A44D200F1B761 /* light_cull_resources.h.fsl */; };
+		AC2CA4782B6A44D200F1B761 /* light_cull_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45A2B6A44D200F1B761 /* light_cull_resources.h.fsl */; };
+		AC2CA4792B6A44D200F1B761 /* rasterizer.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45B2B6A44D200F1B761 /* rasterizer.h.fsl */; };
+		AC2CA47A2B6A44D200F1B761 /* rasterizer.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45B2B6A44D200F1B761 /* rasterizer.h.fsl */; };
+		AC2CA47B2B6A44D200F1B761 /* CurveConversion.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45C2B6A44D200F1B761 /* CurveConversion.frag.fsl */; };
+		AC2CA47C2B6A44D200F1B761 /* CurveConversion.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45C2B6A44D200F1B761 /* CurveConversion.frag.fsl */; };
+		AC2CA47F2B6A44D200F1B761 /* cluster_lights.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45E2B6A44D200F1B761 /* cluster_lights.comp.fsl */; };
+		AC2CA4802B6A44D200F1B761 /* cluster_lights.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45E2B6A44D200F1B761 /* cluster_lights.comp.fsl */; };
+		AC2CA4812B6A44D200F1B761 /* triangle_filtering.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45F2B6A44D200F1B761 /* triangle_filtering.comp.fsl */; };
+		AC2CA4822B6A44D200F1B761 /* triangle_filtering.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA45F2B6A44D200F1B761 /* triangle_filtering.comp.fsl */; };
+		AC2CA4832B6A44D200F1B761 /* vb_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4602B6A44D200F1B761 /* vb_resources.h.fsl */; };
+		AC2CA4842B6A44D200F1B761 /* vb_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4602B6A44D200F1B761 /* vb_resources.h.fsl */; };
+		AC2CA4852B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4612B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl */; };
+		AC2CA4862B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4612B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl */; };
+		AC2CA48B2B6A44D200F1B761 /* display.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4642B6A44D200F1B761 /* display.vert.fsl */; };
+		AC2CA48C2B6A44D200F1B761 /* display.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4642B6A44D200F1B761 /* display.vert.fsl */; };
+		AC2CA48D2B6A44D200F1B761 /* ShaderList.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4652B6A44D200F1B761 /* ShaderList.fsl */; };
+		AC2CA48E2B6A44D200F1B761 /* ShaderList.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4652B6A44D200F1B761 /* ShaderList.fsl */; };
+		AC2CA4912B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4672B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl */; };
+		AC2CA4922B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4672B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl */; };
+		AC2CA4932B6A44D200F1B761 /* godray.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4682B6A44D200F1B761 /* godray.frag.fsl */; };
+		AC2CA4942B6A44D200F1B761 /* godray.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4682B6A44D200F1B761 /* godray.frag.fsl */; };
+		AC2CA4952B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4692B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl */; };
+		AC2CA4962B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4692B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl */; };
+		AC2CA4972B6A44D200F1B761 /* clear_render_target.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46A2B6A44D200F1B761 /* clear_render_target.comp.fsl */; };
+		AC2CA4982B6A44D200F1B761 /* clear_render_target.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46A2B6A44D200F1B761 /* clear_render_target.comp.fsl */; };
+		AC2CA4992B6A44D200F1B761 /* display.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46B2B6A44D200F1B761 /* display.frag.fsl */; };
+		AC2CA49A2B6A44D200F1B761 /* display.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46B2B6A44D200F1B761 /* display.frag.fsl */; };
+		AC2CA49B2B6A44D200F1B761 /* shading.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46C2B6A44D200F1B761 /* shading.h.fsl */; };
+		AC2CA49C2B6A44D200F1B761 /* shading.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46C2B6A44D200F1B761 /* shading.h.fsl */; };
+		AC2CA49F2B6A44D200F1B761 /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46E2B6A44D200F1B761 /* skybox.frag.fsl */; };
+		AC2CA4A02B6A44D200F1B761 /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA46E2B6A44D200F1B761 /* skybox.frag.fsl */; };
+		AC2CA4A32B6A44D200F1B761 /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4702B6A44D200F1B761 /* skybox.vert.fsl */; };
+		AC2CA4A42B6A44D200F1B761 /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4702B6A44D200F1B761 /* skybox.vert.fsl */; };
+		AC2CA4A52B6A44D200F1B761 /* clear_buffers.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4712B6A44D200F1B761 /* clear_buffers.comp.fsl */; };
+		AC2CA4A62B6A44D200F1B761 /* clear_buffers.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4712B6A44D200F1B761 /* clear_buffers.comp.fsl */; };
+		AC2CA4A72B6A44D200F1B761 /* shader_defs.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4722B6A44D200F1B761 /* shader_defs.h.fsl */; };
+		AC2CA4A82B6A44D200F1B761 /* shader_defs.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4722B6A44D200F1B761 /* shader_defs.h.fsl */; };
+		AC2CA4A92B6A44D200F1B761 /* clear_light_clusters.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4732B6A44D200F1B761 /* clear_light_clusters.comp.fsl */; };
+		AC2CA4AA2B6A44D200F1B761 /* clear_light_clusters.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = AC2CA4732B6A44D200F1B761 /* clear_light_clusters.comp.fsl */; };
+		B235DC7D20EC387500592362 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7B20EC387500592362 /* Metal.framework */; };
+		B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7C20EC387500592362 /* MetalKit.framework */; };
+		B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7F20EC387C00592362 /* ModelIO.framework */; };
+		D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */; };
+		D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
+		E94B94B5234C3589006EA1F3 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */; };
+		E9A43924233DD590005BF1C7 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43921233DD588005BF1C7 /* libThe-Forge.a */; };
+		E9A43928233DD6B0005BF1C7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */; };
+		E9A4392A233DD6BE005BF1C7 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43929233DD6BE005BF1C7 /* IOKit.framework */; };
+		E9A4392C233DD6CC005BF1C7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4392B233DD6CC005BF1C7 /* AppKit.framework */; };
+		E9A4392D233DD6DE005BF1C7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */; };
+		E9A4392F233DD6FA005BF1C7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */; };
+		EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
+		EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		994BB7C5289A3C6F0076DA97 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		B28DC97C2523F28E009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		E9A43920233DD588005BF1C7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		E9A43922233DD588005BF1C7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		399521CD2BC8B68300BD2F6F /* VisibilityBuffer2.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = VisibilityBuffer2.cpp; path = ../../../../Common_3/Renderer/VisibilityBuffer2/VisibilityBuffer2.cpp; sourceTree = "<group>"; };
+		510CB5752BD0775500B19CD1 /* bin_rasterizer.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bin_rasterizer.comp.fsl; path = ../src/Shaders/FSL/bin_rasterizer.comp.fsl; sourceTree = "<group>"; };
+		510CB5782BD0788600B19CD1 /* triangle_binning.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = triangle_binning.h.fsl; path = ../src/Shaders/FSL/triangle_binning.h.fsl; sourceTree = "<group>"; };
+		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		7F6E016F2A940B9500981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E01702A940B9500981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E01712A940B9600981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6E01722A940B9600981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01732A940B9600981E7B /* CommonSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettings.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettings.xcconfig"; sourceTree = "<group>"; };
+		7F6E01742A940B9600981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E01752A940B9700981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01762A940B9700981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01772A940B9700981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01A02A940EA600981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		7F6E01A22A940EAB00981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
+		994BB7BE289A3A680076DA97 /* Visibility_Buffer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Visibility_Buffer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		994BB7D1289A3C7C0076DA97 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		994BB7D3289A3C800076DA97 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		994BB7D5289A3C880076DA97 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
+		994BB7D7289A3C8F0076DA97 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		994BB7DA289A3DF60076DA97 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		997EE5432A380A9700FB75C1 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		997EE5452A380A9B00FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
+		AC2CA45A2B6A44D200F1B761 /* light_cull_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = light_cull_resources.h.fsl; path = ../src/Shaders/FSL/light_cull_resources.h.fsl; sourceTree = "<group>"; };
+		AC2CA45B2B6A44D200F1B761 /* rasterizer.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rasterizer.h.fsl; path = ../src/Shaders/FSL/rasterizer.h.fsl; sourceTree = "<group>"; };
+		AC2CA45C2B6A44D200F1B761 /* CurveConversion.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CurveConversion.frag.fsl; path = ../src/Shaders/FSL/CurveConversion.frag.fsl; sourceTree = "<group>"; };
+		AC2CA45E2B6A44D200F1B761 /* cluster_lights.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cluster_lights.comp.fsl; path = ../src/Shaders/FSL/cluster_lights.comp.fsl; sourceTree = "<group>"; };
+		AC2CA45F2B6A44D200F1B761 /* triangle_filtering.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = triangle_filtering.comp.fsl; path = ../src/Shaders/FSL/triangle_filtering.comp.fsl; sourceTree = "<group>"; };
+		AC2CA4602B6A44D200F1B761 /* vb_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = vb_resources.h.fsl; path = ../src/Shaders/FSL/vb_resources.h.fsl; sourceTree = "<group>"; };
+		AC2CA4612B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_shade.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.vert.fsl; sourceTree = "<group>"; };
+		AC2CA4642B6A44D200F1B761 /* display.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.vert.fsl; path = ../src/Shaders/FSL/display.vert.fsl; sourceTree = "<group>"; };
+		AC2CA4652B6A44D200F1B761 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../src/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
+		AC2CA4672B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_blitDepth.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_blitDepth.frag.fsl; sourceTree = "<group>"; };
+		AC2CA4682B6A44D200F1B761 /* godray.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = godray.frag.fsl; path = ../src/Shaders/FSL/godray.frag.fsl; sourceTree = "<group>"; };
+		AC2CA4692B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_shade.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.frag.fsl; sourceTree = "<group>"; };
+		AC2CA46A2B6A44D200F1B761 /* clear_render_target.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_render_target.comp.fsl; path = ../src/Shaders/FSL/clear_render_target.comp.fsl; sourceTree = "<group>"; };
+		AC2CA46B2B6A44D200F1B761 /* display.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.frag.fsl; path = ../src/Shaders/FSL/display.frag.fsl; sourceTree = "<group>"; };
+		AC2CA46C2B6A44D200F1B761 /* shading.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shading.h.fsl; path = ../src/Shaders/FSL/shading.h.fsl; sourceTree = "<group>"; };
+		AC2CA46E2B6A44D200F1B761 /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../src/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
+		AC2CA4702B6A44D200F1B761 /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../src/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
+		AC2CA4712B6A44D200F1B761 /* clear_buffers.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_buffers.comp.fsl; path = ../src/Shaders/FSL/clear_buffers.comp.fsl; sourceTree = "<group>"; };
+		AC2CA4722B6A44D200F1B761 /* shader_defs.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shader_defs.h.fsl; path = ../src/Shaders/FSL/shader_defs.h.fsl; sourceTree = "<group>"; };
+		AC2CA4732B6A44D200F1B761 /* clear_light_clusters.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_light_clusters.comp.fsl; path = ../src/Shaders/FSL/clear_light_clusters.comp.fsl; sourceTree = "<group>"; };
+		B235DC7B20EC387500592362 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B235DC7C20EC387500592362 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B235DC7F20EC387C00592362 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
+		C97EC02E2010BED00044D188 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/ModelIO.framework; sourceTree = DEVELOPER_DIR; };
+		C97EC0302010BED90044D188 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
+		C97EC0322010BEE80044D188 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		D26E80621F471B2300C043F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D26E80651F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D26E80671F471B2300C043F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Visibility_Buffer_iOS/Info.plist; sourceTree = SOURCE_ROOT; };
+		D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Visibility_Buffer.cpp; path = ../src/Visibility_Buffer.cpp; sourceTree = SOURCE_ROOT; };
+		D2C8A3CC1F1394F10099B68D /* Geometry.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp.preprocessed; fileEncoding = 4; name = Geometry.cpp; path = ../../../Visibility_Buffer/src/SanMiguel.cpp; sourceTree = "<group>"; };
+		D2C8A3CD1F1394F10099B68D /* Geometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Geometry.h; path = ../../../Visibility_Buffer/src/SanMiguel.h; sourceTree = "<group>"; };
+		E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		E94B94B8234C35BC006EA1F3 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../../Unit_Tests/macOS Xcode/The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		E9A43925233DD6A5005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		E9A43929233DD6BE005BF1C7 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		E9A4392B233DD6CC005BF1C7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		EA463C8B1EF81E8F005AC8C7 /* Visibility_Buffer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Visibility_Buffer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA463C951EF81E8F005AC8C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EA463CA71EF81E8F005AC8C7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		EA463CA91EF81E8F005AC8C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		994BB7AB289A3A680076DA97 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F6E01A32A940EAB00981E7B /* QuartzCore.framework in Frameworks */,
+				7F6E01A12A940EA600981E7B /* CoreVideo.framework in Frameworks */,
+				994BB7DB289A3DF60076DA97 /* MetalPerformanceShaders.framework in Frameworks */,
+				994BB7D8289A3C8F0076DA97 /* GameController.framework in Frameworks */,
+				994BB7D6289A3C880076DA97 /* CoreHaptics.framework in Frameworks */,
+				994BB7D4289A3C800076DA97 /* Metal.framework in Frameworks */,
+				994BB7D2289A3C7C0076DA97 /* UIKit.framework in Frameworks */,
+				994BB7D0289A3C770076DA97 /* libThe-Forge_iOS.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				651017B522253A5E009A1174 /* MetalPerformanceShaders.framework in Frameworks */,
+				B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */,
+				B235DC7D20EC387500592362 /* Metal.framework in Frameworks */,
+				E9A4392F233DD6FA005BF1C7 /* QuartzCore.framework in Frameworks */,
+				E9A4392A233DD6BE005BF1C7 /* IOKit.framework in Frameworks */,
+				E9A43928233DD6B0005BF1C7 /* CoreGraphics.framework in Frameworks */,
+				997EE5442A380A9700FB75C1 /* GameController.framework in Frameworks */,
+				E9A4392C233DD6CC005BF1C7 /* AppKit.framework in Frameworks */,
+				B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */,
+				E9A4392D233DD6DE005BF1C7 /* CoreGraphics.framework in Frameworks */,
+				997EE5462A380A9B00FB75C1 /* CoreHaptics.framework in Frameworks */,
+				E9A43924233DD590005BF1C7 /* libThe-Forge.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7F6E016E2A940B8400981E7B /* XcodeBuildConfigs */ = {
+			isa = PBXGroup;
+			children = (
+				7F6E01732A940B9600981E7B /* CommonSettings.xcconfig */,
+				7F6E01712A940B9600981E7B /* CommonSettingsDebug.xcconfig */,
+				7F6E01742A940B9600981E7B /* CommonSettingsRelease.xcconfig */,
+				7F6E01762A940B9700981E7B /* Debug_iOS.xcconfig */,
+				7F6E01722A940B9600981E7B /* Debug_MacOS.xcconfig */,
+				7F6E01752A940B9700981E7B /* Release_iOS.xcconfig */,
+				7F6E01772A940B9700981E7B /* Release_MacOS.xcconfig */,
+				7F6E016F2A940B9500981E7B /* TF_App_Shared.xcconfig */,
+				7F6E01702A940B9500981E7B /* TF_Lib_Shared.xcconfig */,
+			);
+			name = XcodeBuildConfigs;
+			sourceTree = "<group>";
+		};
+		D26E80521F471B2300C043F1 /* Visibility_Buffer_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				E94B94B8234C35BC006EA1F3 /* iOSAppDelegate.m */,
+				D26E80621F471B2300C043F1 /* Assets.xcassets */,
+				D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */,
+				D26E80671F471B2300C043F1 /* Info.plist */,
+			);
+			path = Visibility_Buffer_iOS;
+			sourceTree = "<group>";
+		};
+		D2C8A3D21F13CD650099B68D /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				510CB5782BD0788600B19CD1 /* triangle_binning.h.fsl */,
+				510CB5752BD0775500B19CD1 /* bin_rasterizer.comp.fsl */,
+				AC2CA4712B6A44D200F1B761 /* clear_buffers.comp.fsl */,
+				AC2CA4732B6A44D200F1B761 /* clear_light_clusters.comp.fsl */,
+				AC2CA46A2B6A44D200F1B761 /* clear_render_target.comp.fsl */,
+				AC2CA45E2B6A44D200F1B761 /* cluster_lights.comp.fsl */,
+				AC2CA45C2B6A44D200F1B761 /* CurveConversion.frag.fsl */,
+				AC2CA46B2B6A44D200F1B761 /* display.frag.fsl */,
+				AC2CA4642B6A44D200F1B761 /* display.vert.fsl */,
+				AC2CA4682B6A44D200F1B761 /* godray.frag.fsl */,
+				AC2CA45A2B6A44D200F1B761 /* light_cull_resources.h.fsl */,
+				AC2CA45B2B6A44D200F1B761 /* rasterizer.h.fsl */,
+				AC2CA4722B6A44D200F1B761 /* shader_defs.h.fsl */,
+				AC2CA4652B6A44D200F1B761 /* ShaderList.fsl */,
+				AC2CA46C2B6A44D200F1B761 /* shading.h.fsl */,
+				AC2CA46E2B6A44D200F1B761 /* skybox.frag.fsl */,
+				AC2CA4702B6A44D200F1B761 /* skybox.vert.fsl */,
+				AC2CA45F2B6A44D200F1B761 /* triangle_filtering.comp.fsl */,
+				AC2CA4602B6A44D200F1B761 /* vb_resources.h.fsl */,
+				AC2CA4672B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl */,
+				AC2CA4692B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl */,
+				AC2CA4612B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl */,
+			);
+			name = Shaders;
+			sourceTree = SOURCE_ROOT;
+		};
+		D2D307F01F475F720086ED2E /* Meshes */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Meshes;
+			sourceTree = "<group>";
+		};
+		D2D30A171F4772740086ED2E /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Fonts;
+			sourceTree = "<group>";
+		};
+		E9A4391A233DD588005BF1C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E9A43921233DD588005BF1C7 /* libThe-Forge.a */,
+				E9A43923233DD588005BF1C7 /* libThe-Forge_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA463C821EF81E8F005AC8C7 = {
+			isa = PBXGroup;
+			children = (
+				7F6E016E2A940B8400981E7B /* XcodeBuildConfigs */,
+				D2D30A171F4772740086ED2E /* Fonts */,
+				D2D307F01F475F720086ED2E /* Meshes */,
+				D2C8A3D21F13CD650099B68D /* Shaders */,
+				E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */,
+				EA463C941EF81E8F005AC8C7 /* Visibility_Buffer */,
+				D26E80521F471B2300C043F1 /* Visibility_Buffer_iOS */,
+				EA463C8D1EF81E8F005AC8C7 /* Frameworks */,
+				EA463C8C1EF81E8F005AC8C7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA463C8C1EF81E8F005AC8C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA463C8B1EF81E8F005AC8C7 /* Visibility_Buffer.app */,
+				994BB7BE289A3A680076DA97 /* Visibility_Buffer_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA463C8D1EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7F6E01A22A940EAB00981E7B /* QuartzCore.framework */,
+				7F6E01A02A940EA600981E7B /* CoreVideo.framework */,
+				997EE5452A380A9B00FB75C1 /* CoreHaptics.framework */,
+				997EE5432A380A9700FB75C1 /* GameController.framework */,
+				994BB7DA289A3DF60076DA97 /* MetalPerformanceShaders.framework */,
+				994BB7D7289A3C8F0076DA97 /* GameController.framework */,
+				994BB7D5289A3C880076DA97 /* CoreHaptics.framework */,
+				994BB7D3289A3C800076DA97 /* Metal.framework */,
+				994BB7D1289A3C7C0076DA97 /* UIKit.framework */,
+				E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */,
+				E9A4392B233DD6CC005BF1C7 /* AppKit.framework */,
+				E9A43929233DD6BE005BF1C7 /* IOKit.framework */,
+				E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */,
+				E9A43925233DD6A5005BF1C7 /* libbz2.tbd */,
+				651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */,
+				B235DC7F20EC387C00592362 /* ModelIO.framework */,
+				B235DC7B20EC387500592362 /* Metal.framework */,
+				B235DC7C20EC387500592362 /* MetalKit.framework */,
+				C97EC0322010BEE80044D188 /* Metal.framework */,
+				C97EC0302010BED90044D188 /* MetalKit.framework */,
+				C97EC02E2010BED00044D188 /* ModelIO.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		EA463C941EF81E8F005AC8C7 /* Visibility_Buffer */ = {
+			isa = PBXGroup;
+			children = (
+				399521CD2BC8B68300BD2F6F /* VisibilityBuffer2.cpp */,
+				E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */,
+				D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */,
+				EA463C951EF81E8F005AC8C7 /* Assets.xcassets */,
+				EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */,
+				EA463CA91EF81E8F005AC8C7 /* Info.plist */,
+				D2C8A3CC1F1394F10099B68D /* Geometry.cpp */,
+				D2C8A3CD1F1394F10099B68D /* Geometry.h */,
+			);
+			path = Visibility_Buffer;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		994BB7A4289A3A680076DA97 /* Visibility_Buffer_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 994BB7BB289A3A680076DA97 /* Build configuration list for PBXNativeTarget "Visibility_Buffer_iOS" */;
+			buildPhases = (
+				994BB7A7289A3A680076DA97 /* Sources */,
+				994BB7AB289A3A680076DA97 /* Frameworks */,
+				994BB7B6289A3A680076DA97 /* Resources */,
+				994BB7B9289A3A680076DA97 /* ShellScript */,
+				994BB7BA289A3A680076DA97 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				994BB7C6289A3C6F0076DA97 /* PBXTargetDependency */,
+			);
+			name = Visibility_Buffer_iOS;
+			productName = 02_Texture;
+			productReference = 994BB7BE289A3A680076DA97 /* Visibility_Buffer_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA463C8A1EF81E8F005AC8C7 /* Visibility_Buffer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "Visibility_Buffer" */;
+			buildPhases = (
+				EA463C871EF81E8F005AC8C7 /* Sources */,
+				EA463C881EF81E8F005AC8C7 /* Frameworks */,
+				EA463C891EF81E8F005AC8C7 /* Resources */,
+				5C13A50524D1F7490023D339 /* ShellScript */,
+				09F9CC63284FD6BB0064E142 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B28DC97D2523F28E009B5FEF /* PBXTargetDependency */,
+			);
+			name = Visibility_Buffer;
+			productName = 02_Texture;
+			productReference = EA463C8B1EF81E8F005AC8C7 /* Visibility_Buffer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA463C831EF81E8F005AC8C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = Confetti;
+				TargetAttributes = {
+					EA463C8A1EF81E8F005AC8C7 = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Visibility_Buffer" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA463C821EF81E8F005AC8C7;
+			productRefGroup = EA463C8C1EF81E8F005AC8C7 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = E9A4391A233DD588005BF1C7 /* Products */;
+					ProjectRef = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				EA463C8A1EF81E8F005AC8C7 /* Visibility_Buffer */,
+				994BB7A4289A3A680076DA97 /* Visibility_Buffer_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		E9A43921233DD588005BF1C7 /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = E9A43920233DD588005BF1C7 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E9A43923233DD588005BF1C7 /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = E9A43922233DD588005BF1C7 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		994BB7B6289A3A680076DA97 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC2CA4A62B6A44D200F1B761 /* clear_buffers.comp.fsl in Resources */,
+				AC2CA48E2B6A44D200F1B761 /* ShaderList.fsl in Resources */,
+				AC2CA49C2B6A44D200F1B761 /* shading.h.fsl in Resources */,
+				AC2CA4782B6A44D200F1B761 /* light_cull_resources.h.fsl in Resources */,
+				AC2CA4822B6A44D200F1B761 /* triangle_filtering.comp.fsl in Resources */,
+				AC2CA4962B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl in Resources */,
+				994BB7C1289A3ABF0076DA97 /* LaunchScreen.storyboard in Resources */,
+				AC2CA4A02B6A44D200F1B761 /* skybox.frag.fsl in Resources */,
+				AC2CA4842B6A44D200F1B761 /* vb_resources.h.fsl in Resources */,
+				AC2CA47C2B6A44D200F1B761 /* CurveConversion.frag.fsl in Resources */,
+				AC2CA4862B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl in Resources */,
+				AC2CA49A2B6A44D200F1B761 /* display.frag.fsl in Resources */,
+				AC2CA4A42B6A44D200F1B761 /* skybox.vert.fsl in Resources */,
+				AC2CA48C2B6A44D200F1B761 /* display.vert.fsl in Resources */,
+				AC2CA4922B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl in Resources */,
+				AC2CA4982B6A44D200F1B761 /* clear_render_target.comp.fsl in Resources */,
+				AC2CA4802B6A44D200F1B761 /* cluster_lights.comp.fsl in Resources */,
+				510CB57A2BD0788600B19CD1 /* triangle_binning.h.fsl in Resources */,
+				510CB5772BD0775500B19CD1 /* bin_rasterizer.comp.fsl in Resources */,
+				994BB7B7289A3A680076DA97 /* Assets.xcassets in Resources */,
+				AC2CA47A2B6A44D200F1B761 /* rasterizer.h.fsl in Resources */,
+				AC2CA4942B6A44D200F1B761 /* godray.frag.fsl in Resources */,
+				AC2CA4A82B6A44D200F1B761 /* shader_defs.h.fsl in Resources */,
+				AC2CA4AA2B6A44D200F1B761 /* clear_light_clusters.comp.fsl in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C891EF81E8F005AC8C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC2CA4A52B6A44D200F1B761 /* clear_buffers.comp.fsl in Resources */,
+				AC2CA48D2B6A44D200F1B761 /* ShaderList.fsl in Resources */,
+				AC2CA49B2B6A44D200F1B761 /* shading.h.fsl in Resources */,
+				AC2CA4772B6A44D200F1B761 /* light_cull_resources.h.fsl in Resources */,
+				AC2CA4812B6A44D200F1B761 /* triangle_filtering.comp.fsl in Resources */,
+				AC2CA4952B6A44D200F1B761 /* visibilityBuffer_shade.frag.fsl in Resources */,
+				EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */,
+				AC2CA49F2B6A44D200F1B761 /* skybox.frag.fsl in Resources */,
+				AC2CA4832B6A44D200F1B761 /* vb_resources.h.fsl in Resources */,
+				AC2CA47B2B6A44D200F1B761 /* CurveConversion.frag.fsl in Resources */,
+				AC2CA4852B6A44D200F1B761 /* visibilityBuffer_shade.vert.fsl in Resources */,
+				AC2CA4992B6A44D200F1B761 /* display.frag.fsl in Resources */,
+				AC2CA4A32B6A44D200F1B761 /* skybox.vert.fsl in Resources */,
+				AC2CA48B2B6A44D200F1B761 /* display.vert.fsl in Resources */,
+				AC2CA4912B6A44D200F1B761 /* visibilityBuffer_blitDepth.frag.fsl in Resources */,
+				AC2CA4972B6A44D200F1B761 /* clear_render_target.comp.fsl in Resources */,
+				AC2CA47F2B6A44D200F1B761 /* cluster_lights.comp.fsl in Resources */,
+				510CB5792BD0788600B19CD1 /* triangle_binning.h.fsl in Resources */,
+				510CB5762BD0775500B19CD1 /* bin_rasterizer.comp.fsl in Resources */,
+				EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */,
+				AC2CA4792B6A44D200F1B761 /* rasterizer.h.fsl in Resources */,
+				AC2CA4932B6A44D200F1B761 /* godray.frag.fsl in Resources */,
+				AC2CA4A72B6A44D200F1B761 /* shader_defs.h.fsl in Resources */,
+				AC2CA4A92B6A44D200F1B761 /* clear_light_clusters.comp.fsl in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		09F9CC63284FD6BB0064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../src/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+		};
+		5C13A50524D1F7490023D339 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nART=\"$SRCROOT/../../../Art/SanMiguel_3\"\nASSETS=\"$SRCROOT/../Resources\"\nSRC=\"$SRCROOT/../src\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/../Resources/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/dds/\" \"$DST/Textures/\"\n# Camera Path\nrsync -u -r \"$ASSETS/cameraPath.bin\" \"$DST\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+		994BB7B9289A3A680076DA97 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nART=\"$SRCROOT/../../../Art/SanMiguel_3\"\nASSETS=\"$SRCROOT/../Resources\"\nSRC=\"$SRCROOT/../src\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/../Resources/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nrsync -u \"$SRCROOT/../../Unit_Tests/UnitTestResources/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/\" \"$DST/Textures/\"\n# Camera Path\nrsync -u -r \"$ASSETS/cameraPath.bin\" \"$DST\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+		994BB7BA289A3A680076DA97 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../src/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		994BB7A7289A3A680076DA97 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				994BB7D9289A3C980076DA97 /* iOSAppDelegate.m in Sources */,
+				399521CF2BC8B68300BD2F6F /* VisibilityBuffer2.cpp in Sources */,
+				994BB7A9289A3A680076DA97 /* Geometry.cpp in Sources */,
+				994BB7AA289A3A680076DA97 /* Visibility_Buffer.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C871EF81E8F005AC8C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E94B94B5234C3589006EA1F3 /* macOSAppDelegate.m in Sources */,
+				399521CE2BC8B68300BD2F6F /* VisibilityBuffer2.cpp in Sources */,
+				D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */,
+				D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		994BB7C6289A3C6F0076DA97 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = 994BB7C5289A3C6F0076DA97 /* PBXContainerItemProxy */;
+		};
+		B28DC97D2523F28E009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = B28DC97C2523F28E009B5FEF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D26E80651F471B2300C043F1 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EA463CA71EF81E8F005AC8C7 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		994BB7BC289A3A680076DA97 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E01762A940B9700981E7B /* Debug_iOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.Examples.VisibilityBuffer2";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		994BB7BD289A3A680076DA97 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E01752A940B9700981E7B /* Release_iOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.Examples.VisibilityBuffer2";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E016F2A940B9500981E7B /* TF_App_Shared.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E016F2A940B9500981E7B /* TF_App_Shared.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E01722A940B9600981E7B /* Debug_MacOS.xcconfig */;
+			buildSettings = {
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.Examples.VisibilityBuffer";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E01772A940B9700981E7B /* Release_MacOS.xcconfig */;
+			buildSettings = {
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.Examples.VisibilityBuffer";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		994BB7BB289A3A680076DA97 /* Build configuration list for PBXNativeTarget "Visibility_Buffer_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				994BB7BC289A3A680076DA97 /* Debug */,
+				994BB7BD289A3A680076DA97 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Visibility_Buffer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAA1EF81E8F005AC8C7 /* Debug */,
+				EA463CAB1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "Visibility_Buffer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAD1EF81E8F005AC8C7 /* Debug */,
+				EA463CAE1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA463C831EF81E8F005AC8C7 /* Project object */;
+}

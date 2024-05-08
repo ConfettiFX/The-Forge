@@ -162,6 +162,7 @@ class Shader(object):
 
 
 def get_host_ip():
+    ips = None
     try:
         (_, _, ips) = socket.gethostbyname_ex(socket.gethostname())
         for ip in sorted(ips):

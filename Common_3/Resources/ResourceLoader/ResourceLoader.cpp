@@ -1630,6 +1630,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
             vertexBufferDesc.mStructStride = geom->mVertexStrides[i];
             vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
             vertexBufferDesc.mStartState = gUma ? gVertexBufferState : RESOURCE_STATE_COPY_DEST;
+            vertexBufferDesc.pName = "VertexBuffer";
             addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
 
             vertexUpdateDesc[i].pBuffer = geom->pVertexBuffers[bufferCounter];

@@ -51,7 +51,7 @@ ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_SHUFFLE_BIT)
 
 RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(RWTex2D(float), g_downsampled_depth_buffer[13], UPDATE_FREQ_NONE, u0, binding = 1);
-RES(RWBuffer(atomic_uint), g_global_atomic, UPDATE_FREQ_NONE, u13, binding = 2); // Single atomic counter that stores the number of remaining threadgroups to process.
+RES(RWBuffer(uint), g_global_atomic, UPDATE_FREQ_NONE, u13, binding = 2); // Single atomic counter that stores the number of remaining threadgroups to process.
 
 GroupShared(float, g_group_shared_depth_values[16][16]);
 GroupShared(uint, g_group_shared_counter);

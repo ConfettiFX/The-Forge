@@ -14,39 +14,24 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "wind.h.fsl"
 
-STRUCT(VsIn)
-{
-	DATA(float3, position, POSITION);
-	DATA(uint,   texCoord, TEXCOORD0);
-};
-
-STRUCT(VsOut)
-{
-	DATA(float4,     position, SV_Position);
-	DATA(float2,     texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawID,   TEXCOORD1);
-#endif
-};
-
-VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
+PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
+	PsInAlphaTested Out;
+    float4 vertexPos = LoadVertex(vertexID);
 
-	VsOut Out;
-
-	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_CAMERA); 
-	uint materialID  = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+	uint materialID = Get(indirectDataBuffer)[vertexID];
 
 	if (materialID == CLOTH_ID)
-		In.position.xyz = WindTransformWorldPosition(In.position.xyz, Get(windData));
+		vertexPos.xyz = WindTransformWorldPosition(vertexPos.xyz, Get(windData));
 
-	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.position, 1.0f));
-	Out.texCoord = unpack2Floats(In.texCoord);
-	SET_DRAW_ID(Out, drawID, InstanceID);
+	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, vertexPos);
+    Out.texCoord = LoadTexCoord(vertexID);
+	Out.materialID = materialID;
 
-	RETURN(Out);
+    RETURN(Out);
 }
+
+

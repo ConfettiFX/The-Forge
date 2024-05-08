@@ -22,22 +22,19 @@
  * under the License.
 */
 
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-PsInAlphaTested VS_MAIN( VsInAlphaTested In, SV_InstanceID(uint) instanceId )
+PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
-    
-    uint materialID;
-    float4x4 mvp = GetModelViewProjAndMaterialID(GEOMSET_ALPHA_CUTOUT, VIEW_SHADOW, getDrawID(), materialID);
-
 	PsInAlphaTested Out;
-    Out.position = mul(mvp, float4(In.position, 1.0f));
-    Out.texCoord = unpack2Floats(In.texCoord);
-    Out.materialID = materialID;
+    uint vertID = vertexID;
+    float4x4 mvp = GetModelViewProjAndMaterialID(GEOMSET_ALPHA_CUTOUT, VIEW_SHADOW, vertID, Out.materialID);  
+    float4 vertexPos = LoadVertex(vertID);
+    Out.position = mul(mvp, vertexPos);
+    Out.texCoord = LoadTexCoord(vertID);
 
-    SET_DRAW_ID(Out, drawId, instanceId);
     RETURN(Out);
 }
+

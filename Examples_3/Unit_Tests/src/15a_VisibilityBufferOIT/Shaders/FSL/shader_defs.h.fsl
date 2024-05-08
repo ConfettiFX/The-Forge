@@ -46,49 +46,24 @@
 
 #define MESH_CONSTANT_FLAG_TWO_SIDED (1u << 0)
 
-STRUCT(MeshConstants)
+STRUCT(MeshData)
 {
+    DATA(float4x4, modelMtx, None);
 	DATA(uint, indexOffset, None);
 	DATA(uint, vertexOffset, None);
-	DATA(uint, materialID, None);
-	DATA(uint, flags, None); // combination of MESH_CONSTANT_FLAG_*
-};
-
-STRUCT(InstanceData)
-{
-	DATA(float4x4, modelMtx, None);
-
-	// We could store meshIndex (into MeshConstants buffer) here but we don't do it because that would require us to have an InstanceData entry for all,
-	// objects. If an object has it's geometry already premultiplied in world space we would be wasting memory to store an identity modelMtx.
-	// Instead we are storing the meshIndex encoded into 'instanceDataIndex', this first happens in triangle_filtering shader, we store it in 
-	// UncompactedDrawArguments::instanceDataIndex and then it gets passed along the rest of the steps.
-	// DATA(uint, meshIndex);
-	// 
-	// If we want the same mesh with a different material we would add it as a new entry into MeshConstants buffer,
-	// the vertex data would be reused (same faceCount and indexOffset in MeshConstants) but each MeshConstants entry
-	// would have a different materialID. So we don't need to store materialID here either.
-	// DATA(uint, materialID);
-
-
+    DATA(uint, indirectVertexOffset, None);
+	DATA(uint, materialID_flags, None); // combination of MESH_CONSTANT_FLAG_* and materialID
 	DATA(uint, preSkinnedVertexOffset, None);
-	DATA(uint, pad0, None);
-	DATA(uint, pad1, None);
-	DATA(uint, pad2, None);
+    DATA(uint, pad0, None);
+    DATA(uint, pad1, None);
+    DATA(uint, pad2, None);
 };
 
-// We use the 'uint instanceDataIndex' varialbe to encode two variables:
-//   - InstanceData Index: index insto InstanceData buffer
-//   - Mesh Index: index into MeshConstants buffer
-// The number of bits we use for each depends on the setup: max supported number of meshes and max supported number of instances.
-//
-// See comment above in InstanceData for more information
-#define INSTANCE_INDEX_NONE 0x000FFFFF // Max InstanceIndex value
+#define MATERIAL_ID_LOW_BIT 0   // 16 bits for materialID
+#define FLAG_LOW_BIT  16        // 16 bits for flags
 
-#define INSTANCE_INDEX_LOW_BIT 0   // 20 bits for instance index
-#define INSTANCE_MESH_LOW_BIT  20  // 12 bits for mesh index into MeshConstants buffer
-
-#define INSTANCE_INDEX_MASK  0x000FFFFF // 0000 0000 0000 1111 1111 1111 1111 1111
-#define INSTANCE_MESH_MASK   0xFFF00000 // 1111 1111 1111 0000 0000 0000 0000 0000
+#define MATERIAL_ID_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
+#define FLAG_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
 
 CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0) 
 {

@@ -16,18 +16,12 @@
 #include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/clear_buffers.h.fsl"
 
 
-NUM_THREADS(VB_COMPUTE_THEADS, 1, 1)
+NUM_THREADS(1, 1, 1)
 void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 {
 	INIT_MAIN;
-    if (threadID.x >= MAX_DRAWS_INDIRECT - 1)
-        return;
 
-	ClearUncompactedDrawArgsBuffer(threadID.x);
+    ClearIndirectDrawArgsBuffers(threadID.x);
 
-    if (threadID.x == 0)
-    {
-	   ClearIndirectDrawArgsBuffer();
-    }
-	RETURN();
+    RETURN();
 }

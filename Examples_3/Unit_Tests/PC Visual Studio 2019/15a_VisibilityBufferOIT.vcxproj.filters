@@ -36,9 +36,6 @@
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h">
       <Filter>Visibility_Buffer\src</Filter>
     </ClInclude>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\batch_compaction.comp.fsl">
-      <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_buffers.comp.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>

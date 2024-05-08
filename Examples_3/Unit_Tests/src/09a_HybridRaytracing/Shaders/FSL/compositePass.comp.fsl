@@ -30,9 +30,9 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 	INIT_MAIN;
 	float4 outputColor = f4(0);
 	// calculate albedo from the visibility buffer
-	uint drawID = 0;
-	uint alpha1_opaque0 = 0;
-	const uint3 indices = GetVertexIndicesFromVB(DTid.xy, drawID, alpha1_opaque0);
+	uint primitiveID = 0;
+	uint geomSet = 0;
+	const uint3 indices = GetVertexIndicesFromVB(DTid.xy, primitiveID, geomSet);
 
 	if (indices[0] != ~0u)
 	{
@@ -60,7 +60,7 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 		const float3 lightColour = float3(1, 1, 0.5);
 		float3 diffuse = (lightIntensity * shadowFactor * NdotL) *  lightColour + ambient;
 
-		uint materialID = GetMaterialIdFromIndirectMaterialBuffer(drawID, alpha1_opaque0);
+		uint materialID = Get(indirectDataBuffer)[indices[0]];
 
 		float2 texCoord = results.interp;
 		float2 texCoordDX = results.dx;

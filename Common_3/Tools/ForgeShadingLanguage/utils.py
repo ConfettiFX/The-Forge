@@ -81,6 +81,8 @@ class Features(Enum):
     ICB = 6, # indirect command
     VDP, = 7, # Vertex Draw Parameters
     INVARIANT = 8,
+    ATOMICS_64 = 9,
+    DYNAMIC_RESOURCES = 10,
 
 feature_mask = { f: [] for f in Features }
 feature_mask[Features.MULTIVIEW] = [Platforms.QUEST]
@@ -754,7 +756,7 @@ def isBaseType(dtype):
         'void',
         'int',
         'uint',
-        'atomic_uint',
+        'uint64_t',
         'float',
         'float2',
         'float3',

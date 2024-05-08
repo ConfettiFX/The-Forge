@@ -235,7 +235,7 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
 
     if (!success)
     {
-        LOGF(eERROR, "Failed to create socket address from `%s:%s`: %s", hostname, port, socketLastErrorMessage());
+        LOGF(eERROR, "Failed to create socket address from `%s:%s`: %s", hostname, portStr, socketLastErrorMessage());
     }
     else
     {

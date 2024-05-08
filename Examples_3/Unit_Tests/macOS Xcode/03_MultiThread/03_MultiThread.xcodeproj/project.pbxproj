@@ -443,7 +443,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
 		};
 		5CC501C324D21975003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -460,7 +460,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

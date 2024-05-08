@@ -22,15 +22,16 @@
  * under the License.
 */
 
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-PsInVBOpaque VS_MAIN( VsInVBOpaque In, SV_InstanceID(uint) instanceId )
+PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
-	PsInVBOpaque Out;
-	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.position.xyz, 1.0f));
-	SET_DRAW_ID(Out, drawId, instanceId);
-	RETURN(Out);
+
+	PsInOpaque Out;
+    float4 vertexPos = LoadVertex(vertexID);
+
+	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, vertexPos);
+    RETURN(Out);
 }

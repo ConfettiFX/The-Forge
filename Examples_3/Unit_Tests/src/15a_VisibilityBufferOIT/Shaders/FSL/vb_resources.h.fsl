@@ -24,6 +24,7 @@
 
 #ifndef vb_resources_h
 #define vb_resources_h
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
 STRUCT(GeometryCountOIT)
 {
@@ -36,76 +37,61 @@ STRUCT(TransparentNodeOIT)
 	DATA(uint, next, None); 
 };
 
-RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Buffer(uint), indirectInstanceIndexBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 4);
-RES(Buffer(InstanceData), instanceData, UPDATE_FREQ_PER_FRAME, t1, binding = 5);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t2, binding = 6);
+RES(Buffer(MeshData), MeshDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 4);
+RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t8, binding = 15);
 
-RES(RWBuffer(atomic_uint),    headIndexBufferUAV, UPDATE_FREQ_NONE, u2, binding = 7); 
-RES(RWBuffer(TransparentNodeOIT), vbDepthLinkedListUAV, UPDATE_FREQ_NONE, u3, binding = 8); 
-RES(RWBuffer(GeometryCountOIT), geometryCountBuffer, UPDATE_FREQ_NONE, u50, binding = 11);
+RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t6, binding = 8);
+RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t7, binding = 9);
 
-#if defined(INDIRECT_ROOT_CONSTANT)
-	PUSH_CONSTANT(indirectRootConstant, b1)
-	{
-		DATA(uint, indirectDrawId, None);
-	};
-	#define getDrawID() indirectDrawId
-#else
-#if defined(STAGE_VERT)
-	#define getDrawID() instanceId
-#elif defined(STAGE_FRAG)
-	#define getDrawID() In.drawId
-#endif
-#endif
+RES(RWBuffer(uint),    headIndexBufferUAV, UPDATE_FREQ_NONE, u2, binding = 10); 
+RES(RWBuffer(TransparentNodeOIT), vbDepthLinkedListUAV, UPDATE_FREQ_NONE, u3, binding = 11); 
+RES(RWBuffer(GeometryCountOIT), geometryCountBuffer, UPDATE_FREQ_NONE, u4, binding = 12);
 
-STRUCT(VsInAlphaTested)
+RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 13);
+RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t9, binding = 14);
+
+STRUCT(PsInOpaque)
 {
-    // TODO (Animations): This is problematic for animated meshes, position is pre-transformed but texture coord isn't (we take the one from the mesh).
-    //                   Currently we'll get correct position here (index we store points to the index of the pre-transformed mesh), but texture coord will read garbage
-    DATA(float3, position, POSITION);
-    DATA(uint, texCoord, TEXCOORD);
+	DATA(float4, position, SV_Position);
 };
 
 STRUCT(PsInAlphaTested)
 {
-    DATA(float4, position, SV_Position);
-    DATA(float2, texCoord, TEXCOORD0);
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD0);
 #if !defined(NO_MATERIALID_ON_PIXEL_SHADER_INPUT)
-	DATA(FLAT(uint), materialID, TEXCOORD1);
-#endif
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD2);
+    DATA(FLAT(uint), materialID, TEXCOORD1);
 #endif
 };
 
-float4x4 GetModelViewProj(uint geomSet, uint view, uint drawId)
+float4 LoadVertex(uint index)
 {
-    uint instanceBaseSlot = BaseInstanceBuffer(geomSet, view);
-    uint instanceIndexPacked = Get(indirectInstanceIndexBuffer)[instanceBaseSlot + drawId];
-    uint instanceIndex = (instanceIndexPacked & INSTANCE_INDEX_MASK) >> INSTANCE_INDEX_LOW_BIT;
-
-    float4x4 mvp = Get(transform)[view].mvp;
-    if(instanceIndex != INSTANCE_INDEX_NONE)
-        mvp = mul(mvp, Get(instanceData)[instanceIndex].modelMtx);
-
-	return mvp;
+    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1);
 }
 
-float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, uint drawId, out(uint) materialID)
+float2 LoadTexCoord(uint index)
 {
-    uint instanceBaseSlot = BaseInstanceBuffer(geomSet, view);
-    uint instanceIndexPacked = Get(indirectInstanceIndexBuffer)[instanceBaseSlot + drawId];
-    uint instanceIndex = (instanceIndexPacked & INSTANCE_INDEX_MASK) >> INSTANCE_INDEX_LOW_BIT;
-    uint meshIndex = (instanceIndexPacked & INSTANCE_MESH_MASK) >> INSTANCE_MESH_LOW_BIT;
-
-    float4x4 mvp = Get(transform)[view].mvp;
-    if(instanceIndex != INSTANCE_INDEX_NONE)
-        mvp = mul(mvp, Get(instanceData)[instanceIndex].modelMtx);
-
-	materialID = Get(meshConstantsBuffer)[meshIndex].materialID;
-	return mvp;
+	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
 }
+
+float4x4 GetModelViewProj(uint geomSet, uint view, inout(uint) vertID)
+{
+    uint indirectData = Get(indirectDataBuffer)[vertID];
+    MeshData meshConstant = Get(MeshDataBuffer)[indirectData];
+    vertID = vertID - meshConstant.indirectVertexOffset;
+
+    return mul(Get(transform)[view].mvp, meshConstant.modelMtx);
+}
+
+float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, inout(uint) vertID, out(uint) materialID)
+{
+    uint indirectData =  Get(indirectDataBuffer)[vertID];
+    MeshData meshConstant = Get(MeshDataBuffer)[indirectData];
+    vertID = vertID - meshConstant.indirectVertexOffset;
+	materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
+
+    return mul(Get(transform)[view].mvp, meshConstant.modelMtx);
+}
+
 
 #endif /* vb_resources_h */

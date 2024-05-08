@@ -335,8 +335,6 @@ EXPR(uint) \
 EXPR(half) \
 EXPR(float)
 
-#define atomic_uint uint
-
 #if defined(DIRECT3D12) || defined(DIRECT3D11)
 #define GetRes(X) X
 #else
@@ -692,6 +690,11 @@ _DECL_AtomicMin2D(uint)
 inline void AtomicMax2D(RWTexture2D<TYPE> tex, int2 p, TYPE val, out TYPE original_val) \
 { InterlockedMax(tex[p], val, original_val); }
 _DECL_AtomicMax2D(uint)
+
+#if defined(FT_ATOMICS_64)
+#define AtomicMinU64(DST, VALUE) InterlockedMin(DST, VALUE)
+#define AtomicMaxU64(DST, VALUE) InterlockedMax(DST, VALUE)
+#endif
 
 // #define _DECL_AtomicMin2DArray(TYPE) \
 // inline void AtomicMin2DArray(RWTexture2DArray<TYPE> tex, int2 p, int layer, TYPE val, out TYPE original_val) \

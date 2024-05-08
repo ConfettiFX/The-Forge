@@ -84,12 +84,13 @@
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFilesDds\*.buny" "$(OutDir)ZipFiles\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\ZipFilesDds\*.buny" "$(OutDir)ZipFiles\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
@@ -140,12 +141,13 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFilesDds\*.buny" "$(OutDir)ZipFiles\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\ZipFilesDds\*.buny" "$(OutDir)ZipFiles\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D

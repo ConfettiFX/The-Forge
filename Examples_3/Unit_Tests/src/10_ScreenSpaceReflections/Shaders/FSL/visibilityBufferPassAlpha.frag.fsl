@@ -23,40 +23,21 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-	DATA(float4, Position,     SV_Position);
-	DATA(float4, currPosition, TEXCOORD0);
-	DATA(float4, prevPosition, TEXCOORD1);
-	DATA(float2, TexCoord,     TEXCOORD2);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId,   TEXCOORD3);
-#endif
-};
-
-STRUCT(PsOut)
-{
-	DATA(float4, VBData,       SV_Target0);
-	DATA(float2, MotionVector, SV_Target1);
-};
-
-PsOut PS_MAIN( PsIn In, SV_PrimitiveID(uint) primitiveID )
+PsOut PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveID )
 {
 	INIT_MAIN;
 	PsOut Out;
-	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
-    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
-
+	uint materialID = In.materialID;
 	float4 texColor = f4(0);
+
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.TexCoord, 0);
+    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.texCoord, 0);
 	EndNonUniformResourceIndex();
 
 	clip(texColor.a < 0.5f ? -1 : 1);
-	Out.VBData = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveID));
+	Out.VBData = unpackUnorm4x8(PACK_VB_DATA(GEOMSET_ALPHA_CUTOUT, primitiveID));
 	Out.MotionVector = In.currPosition.xy / In.currPosition.w - In.prevPosition.xy / In.prevPosition.w;
 	RETURN(Out);
 }

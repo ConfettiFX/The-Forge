@@ -35,9 +35,9 @@ STRUCT(PsIn)
 RES(Tex2D(float4), vbTex,     UPDATE_FREQ_NONE, t0, binding = 0);
 RES(Tex2D(float),  shadowMap, UPDATE_FREQ_NONE, t1, binding = 1);
 
-RES(ByteBuffer,            vertexPos,           UPDATE_FREQ_NONE, t2, binding = 2);
-RES(ByteBuffer,            vertexTexCoord,      UPDATE_FREQ_NONE, t3, binding = 3);
-RES(ByteBuffer,            vertexNormal,        UPDATE_FREQ_NONE, t4, binding = 4);
+RES(ByteBuffer,            vertexPos,           UPDATE_FREQ_NONE, t2, binding = 3);
+RES(ByteBuffer,            vertexTexCoord,      UPDATE_FREQ_NONE, t3, binding = 4);
+RES(ByteBuffer,            vertexNormal,        UPDATE_FREQ_NONE, t4, binding = 5);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t6, binding = 6);
 RES(Buffer(LightData),     lights,              UPDATE_FREQ_NONE, t7, binding = 7);
 RES(SamplerState,          textureSampler,      UPDATE_FREQ_NONE, s0, binding = 8);
@@ -45,22 +45,21 @@ RES(SamplerState,          depthSampler,        UPDATE_FREQ_NONE, s1, binding = 
 RES(SamplerState,          linearBorderSampler, UPDATE_FREQ_NONE, s2, binding = 10);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  UPDATE_FREQ_NONE, t0, binding = 10);
-	RES(Tex2D(float4), normalMaps[INSTANCE_BUFFER_SIZE],   UPDATE_FREQ_NONE, t1, binding = 10);
-	RES(Tex2D(float4), specularMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t2, binding = 10);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t0, binding = 11);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t1, binding = 11);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t2, binding = 11);
 #else
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  space4, t0, binding = 11);
-	RES(Tex2D(float4), normalMaps[INSTANCE_BUFFER_SIZE],   space5, t0, binding = 11 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[INSTANCE_BUFFER_SIZE], space6, t0, binding = 11 + MAX_TEXTURE_UNITS * 2);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  space4, t0, binding = 11);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   space5, t0, binding = 11 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], space6, t0, binding = 11 + MAX_TEXTURE_UNITS * 2);
 #endif
 
-RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 2);
-RES(Buffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, t2, binding=3);
-RES(ByteBuffer,   lightClustersCount,     UPDATE_FREQ_PER_FRAME, t4, binding = 5);
-RES(ByteBuffer,   lightClusters,          UPDATE_FREQ_PER_FRAME, t5, binding = 6);
-RES(ByteBuffer,   filteredIndexBuffer,    UPDATE_FREQ_PER_FRAME, t6, binding = 7);
+RES(Buffer(uint), indirectDataBuffer,     UPDATE_FREQ_PER_FRAME, t1, binding = 2);
+RES(ByteBuffer,   lightClustersCount,     UPDATE_FREQ_PER_FRAME, t4, binding = 3);
+RES(ByteBuffer,   lightClusters,          UPDATE_FREQ_PER_FRAME, t5, binding = 4);
+RES(ByteBuffer,   filteredIndexBuffer,    UPDATE_FREQ_PER_FRAME, t6, binding = 5);
 
-CBUFFER(auraApplyLightData, UPDATE_FREQ_PER_FRAME, b2, binding = 8)
+CBUFFER(auraApplyLightData, UPDATE_FREQ_PER_FRAME, b2, binding = 6)
 {
 	DATA(LightApplyData, lightApplyData, None);
 };
@@ -73,47 +72,21 @@ float4 PS_MAIN(PsIn In)
 	// Load Visibility Buffer raw packed float4 data from render target
 	float4 visRaw = LoadTex2D(Get(vbTex), Get(depthSampler), uint2(In.position.xy), 0);
 	// Unpack float4 render target data into uint to extract data
-	uint alphaBit_drawID_triID = packUnorm4x8(visRaw);
+	uint geomSetPrimID = packUnorm4x8(visRaw);
 
 	// Early exit if this pixel doesn't contain triangle data
-	if (alphaBit_drawID_triID == ~0u)
+	if (geomSetPrimID == ~0u)
 	{
 		discard;
 	}
 
 	// Extract packed data
-	uint drawID = (alphaBit_drawID_triID >> 23) & 0x000000FF;
-	uint triangleID = (alphaBit_drawID_triID & 0x007FFFFF);
-	uint alpha1_opaque0 = (alphaBit_drawID_triID >> 31);
+	uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+	uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
 
-	// This is the start vertex of the current draw batch
-	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
-    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, alpha1_opaque0, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
-	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
-
-	// BaseInstanceBuffer returns constant offset values
-	// The following value defines the maximum amount of indirect draw calls that will be 
-	// drawn at once. This value depends on the number of submeshes or individual objects 
-	// in the scene. Changing a scene will require to change this value accordingly.
-	// #define MAX_DRAWS_INDIRECT 300 
-	//
-	// These values are offsets used to point to the material data depending on the 
-	// type of geometry and on the culling view
-	// #define MATERIAL_BASE_ALPHA0 0
-	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
-	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
-	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
-	uint materialBaseSlot = BaseInstanceBuffer(alpha1_opaque0, VIEW_CAMERA);
-
-	// potential results for materialBaseSlot + drawID are
-	// 0 - 299 - shadow alpha
-	// 300 - 599 - shadow no alpha
-	// 600 - 899 - camera alpha
-	uint materialID = Get(indirectMaterialBuffer)[materialBaseSlot + drawID];
-
-	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
-	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
-	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 0;
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 1;
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 2;
 
 	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
 	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
@@ -124,6 +97,7 @@ float4 PS_MAIN(PsIn In)
 	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
 	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
 
+	uint materialID = Get(indirectDataBuffer)[index0];
 	// Apply wind transform if material ID matches cloth
 	if (materialID == CLOTH_ID)
 	{
@@ -233,7 +207,7 @@ float4 PS_MAIN(PsIn In)
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
 
-	bool isTwoSided = (alpha1_opaque0 == 1) && bool(Get(meshConstantsBuffer)[materialID].twoSided);
+	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && bool(Get(meshConstantsBuffer)[materialID].twoSided);
 	bool isBackFace = false;
 
 	float3 ViewVec = normalize(Get(camPos).xyz - position.xyz);

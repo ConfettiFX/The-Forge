@@ -27,7 +27,7 @@
 RES(RWBuffer(uint), indirectMaterialBuffer, UPDATE_FREQ_NONE, u40, binding = 40);
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/batch_compaction.h.fsl"
 
-NUM_THREADS(VB_COMPUTE_THEADS, 1, 1)
+NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;

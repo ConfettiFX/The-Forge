@@ -1,29 +1,29 @@
 
-#vert FT_ICB shadow_pass.vert
+#vert shadow_pass.vert
 #include "shadow_pass.vert.fsl"
 #end
 
-#vert FT_ICB shadow_pass_alpha.vert
+#vert shadow_pass_alpha.vert
 #include "shadow_pass_alpha.vert.fsl"
 #end
 
-#frag FT_ICB shadow_pass_alpha.frag
+#frag shadow_pass_alpha.frag
 #include "shadow_pass_alpha.frag.fsl"
 #end
 
-#vert FT_PRIM_ID FT_ICB visibilityBuffer_pass.vert
+#vert FT_PRIM_ID visibilityBuffer_pass.vert
 #include "visibilityBuffer_pass.vert.fsl"
 #end
 
-#frag FT_PRIM_ID FT_ICB visibilityBuffer_pass.frag
+#frag FT_PRIM_ID visibilityBuffer_pass.frag
 #include "visibilityBuffer_pass.frag.fsl"
 #end
 
-#vert FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.vert
+#vert FT_PRIM_ID visibilityBuffer_pass_alpha.vert
 #include "visibilityBuffer_pass_alpha.vert.fsl"
 #end
 
-#frag FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.frag
+#frag FT_PRIM_ID visibilityBuffer_pass_alpha.frag
 #include "visibilityBuffer_pass_alpha.frag.fsl"
 #end
 
@@ -59,30 +59,9 @@
 #include "triangle_filtering.comp.fsl"
 #end
 
-#comp batch_compaction.comp
-#include "batch_compaction.comp.fsl"
-#end
-
 #comp clear_buffers.comp
 #include "clear_buffers.comp.fsl"
 #end
-
-#if defined(METAL)
-#comp triangle_filtering_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "triangle_filtering.comp.fsl"
-#end
-
-#comp batch_compaction_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "batch_compaction.comp.fsl"
-#end
-
-#comp clear_buffers_icb.comp
-#define INDIRECT_COMMAND_BUFFER 1
-#include "clear_buffers.comp.fsl"
-#end
-#endif
 
 #comp clear_light_clusters.comp
 #include "clear_light_clusters.comp.fsl"
@@ -100,18 +79,18 @@
 #include "skybox.frag.fsl"
 #end
 
-#vert FT_ICB fill_rsm.vert
+#vert fill_rsm.vert
 #include "fill_rsm.vert.fsl"
 #end
 
-#frag FT_ICB fill_rsm.frag
+#frag fill_rsm.frag
 #include "fill_rsm.frag.fsl"
 #end
 
-#vert FT_ICB fill_rsm_alpha.vert
+#vert fill_rsm_alpha.vert
 #include "fill_rsm_alpha.vert.fsl"
 #end
 
-#frag FT_ICB fill_rsm_alpha.frag
+#frag fill_rsm_alpha.frag
 #include "fill_rsm_alpha.frag.fsl"
 #end

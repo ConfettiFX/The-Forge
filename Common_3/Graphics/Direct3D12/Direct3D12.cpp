@@ -1949,6 +1949,17 @@ static void QueryRaytracingSupport(ID3D12Device* pDevice, GPUSettings* pGpuSetti
 #endif
 }
 
+static void Query64BitAtomicsSupport(ID3D12Device* pDevice, GPUSettings* pGpuSettings)
+{
+    ASSERT(pDevice);
+    D3D12_FEATURE_DATA_D3D12_OPTIONS9 opts9 = {};
+    HRESULT                           hres = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &opts9, sizeof(opts9));
+    if (SUCCEEDED(hres))
+    {
+        pGpuSettings->m64BitAtomicsSupported = opts9.AtomicInt64OnTypedResourceSupported;
+    }
+}
+
 void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSettings* pSettings)
 {
     GPUSettings& gpuSettings = *pSettings;
@@ -2048,6 +2059,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.mMaxBoundTextures = UINT32_MAX;
 
     QueryRaytracingSupport(pDevice, pSettings);
+    Query64BitAtomicsSupport(pDevice, pSettings);
 }
 
 static void InitializeBufferDesc(Renderer* pRenderer, const BufferDesc* pDesc, D3D12_RESOURCE_DESC* desc)

@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common_3\Renderer\VisibilityBuffer2">
+      <UniqueIdentifier>{ef6ebb17-bce4-4726-89e0-804448c954bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer">
+      <UniqueIdentifier>{40fdb005-1c68-4910-baaf-7745df14eb80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{51e00c2d-55e6-4080-ac68-f1965cc5d950}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer\src">
+      <UniqueIdentifier>{95c941fa-50ca-495a-863a-8918e15c2964}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer">
+      <UniqueIdentifier>{7976fa8d-5efe-4742-a19e-2c6d5407cb73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{0c8c38f8-9b39-49ec-8b43-78af37584bc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer2\src">
+      <UniqueIdentifier>{2fb73a39-4b7a-4771-819a-9b3613e371f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer2">
+      <UniqueIdentifier>{a45e5ee4-5ff3-45c5-8867-0794357190fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer\Interfaces">
+      <UniqueIdentifier>{86449f21-b20d-436d-9501-71f7659130f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer2\src\Shaders\FSL">
+      <UniqueIdentifier>{8402ee4b-18b5-439d-a248-f3ebec8e51b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer2\src\Shaders">
+      <UniqueIdentifier>{4034cb69-66c5-45a9-b349-f6bf69b33638}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer\VisibilityBuffer2\Shaders\FSL">
+      <UniqueIdentifier>{d1790f7a-ec59-47b8-953c-401b6fca31c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer\VisibilityBuffer2\Shaders">
+      <UniqueIdentifier>{077931d4-f9db-4e0b-a9d6-c9c5eb3ce4ec}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\VisibilityBuffer2.cpp">
+      <Filter>Common_3\Renderer\VisibilityBuffer2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Visibility_Buffer\src\SanMiguel.cpp">
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Visibility_Buffer.cpp">
+      <Filter>Examples_3\Visibility_Buffer2\src</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer2.h">
+      <Filter>Common_3\Renderer\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h">
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+    </ClInclude>
+    <FSLShader Include="..\src\Shaders\FSL\triangle_binning.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_render_target.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\light_cull_resources.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\rasterizer.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\bin_rasterizer.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shader_defs.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shading.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\vb_resources.h.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_blitDepth.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+      <Filter>Examples_3\Visibility_Buffer2\src\Shaders\FSL</Filter>
+    </FSLShader>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl">
+      <Filter>Common_3\Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+    </None>
+  </ItemGroup>
+</Project>

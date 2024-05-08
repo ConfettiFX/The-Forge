@@ -90,13 +90,14 @@
       </Command>
     </PostBuildEvent>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\LA_Helipad3D.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\LA_Helipad3D.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Art\SanMiguel_3\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
+xcopy "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy %ART%\SanMiguel_3\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
 xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
@@ -139,13 +140,14 @@ xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionD
       </Command>
     </PostBuildEvent>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\LA_Helipad3D.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\LA_Helipad3D.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy $(ProjectDir)..\..\..\..\Art\SanMiguel_3\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
+xcopy "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+xcopy %ART%\SanMiguel_3\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
 xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
