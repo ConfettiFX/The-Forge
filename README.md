@@ -68,6 +68,67 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+
+## Release 1.57 - May 8th, 2024 Visibility Buffer 2.0 Prototype | Visibility Buffer 1.0 One Draw call  
+
+### Visibility Buffer Research - I3D talk
+
+We are giving a talk about our latest Visibility Buffer research on I3D. Here is a short primer what it is about:
+
+The original idea of the Triangle Visibility Buffer is based on an article by [[burns2013]. [schied15] and [schied16] extended what was described in the original article. Christoph Schied implemented a modern version with an early version of OpenGL (supporting MultiDrawIndirect) into The Forge rendering framework in September 2015. 
+We ported this code to all platforms and simplified and extended it in the following years by adding a triangle filtering stage following [chajdas] and [wihlidal17] and a new way of shading.
+Our on-going improvements simplified the approach incrementally and the architecture started to resemble what was described in the original article by [burns2013] again, leveraging the modern tools of the newer graphics APIs. 
+In contrast to [burns2013], the actual storage of triangles in our implementation of a Visibility Buffer happens due to the triangle removal and draw compaction step with an optimal “massaged” data set.
+By having removed overdraw in the Visibility Buffer and Depth Buffer, we run a shading approach that shades everything with one regular draw call. We called the shading stage Forward++ due to its resemblance to forward shading and its usage of a tiled light list for applying many lights. It was a step up from Forward+ that requires numerous draw calls.
+We described all this in several talks at game industry conferences, for example on GDCE 2016 [engel16] and during XFest 2018, showing considerable performance gains due to reduced memory bandwidth compared to traditional G-buffer based rendering architectures. 
+A blog post that was updated over the years for what we call now Triangle Visibility Buffer 1.0 (TVB 1.0) can be found here [engel18]. 
+
+Over the last years we extended this original idea with a Order-Independent Transparency approach (it is more efficient to sort triangle IDs in a per-pixel linked list compared to storing layers of a G-Buffer), software VRS and then we developed a Visibility Buffer approach that doesn't require draw calls to fill the depth and Visibility Buffer and one that requires much less draw calls in parallel. 
+This release offers -what we call- an updated Triangle Visibility Buffer 1.0 (TVB 1.0) and a prototype for the Triangle Visibility Buffer 2.0 (TVB 2.0).
+
+The changes to TVB 1.0 are evolutionary. We used to map each mesh to an indirect draw element. This reuqired the use of DrawID to map back to the per-mesh data. When working on a game engine with a very high amount of draw calls, it imposed a limitation on the number of "draws" we could do, due to having only a limited number of bits available in the VB.
+Additionally, instancing was implemented using a separate instanced draw for each instanced mesh. We refactored the data flow between the draws and the shade pass.
+There is now no reliance on DrawID and instances are handled transparently using the same unified draw. This both simplifies the flow of data and allows us to draw more "instanced" meshes.
+Apart from being able to use a very high-number of draw calls, the performance didn't change.
+
+The new TVB 2.0 approach is revolutionary in a sense that it doesn't use draw calls anymore to fill the depth and visibility buffer. There are two compute shader invocations that filter triangles and eventually fill the depth and visibility buffer. 
+Not using draw calls anymore, makes the whole code base more consistent and less convoluted -compared to TVB 1.0-. 
+
+You can find now the new Visibilty Buffer 2 approach in 
+
+The-Forge\Examples_3\Visibility_Buffer2
+
+This is still in an early stage of development. We only support a limited number of platforms: Windows D3D12, PS4/5, XBOX, and macOS / iOS.
+
+
+### Sanitized initRenderer
+we cleaned up the whole initRenderer code. Merged GPUConfig into GraphicsConfig and unified naming. 
+
+### Metal run-time improvements
+We improved the Metal Validation Support. 
+
+### Art
+Everything related to Art assets is now in the Art folder.
+
+### Bug fixes
+Lots of fixes everywhere.
+
+References:
+[burns2013] Christopher A. Burns, Warren A. Hunt, "The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading", 2013, Journal of Computer Graphics Techniques (JCGT) 2:2, Pages 55 - 69.
+
+[schied2015] Christoph Schied, Carsten Dachsbacher, "Deferred Attribute Interpolation for Memory-Efficient Deferred Shading" , Kit Publication Website: http://cg.ivd.kit.edu/publications/2015/dais/DAIS.pdf
+
+[schied16] Christoph Schied, Carsten Dachsbacher, "Deferred Attribute Interpolation Shading", 2016, GPU Pro 7, Pages 
+
+[chajdas] Matthaeus Chajdas, GeometryFX, 2016, AMD Developer Website http://gpuopen.com/gaming-product/geometryfx/
+
+[wihlidal17] Graham Wihlidal, "Optimizing the Graphics Pipeline with Compute", 2017, GPU Zen 1, Pages 277--320
+
+[engel16] Wolfgang Engel, "4K Rendering Breakthrough: The Filtered and Culled Visibility Buffer", 2016, GDC Vault: https://www.gdcvault.com/play/1023792/4K-Rendering-Breakthrough-The-Filtered
+
+[engel18] Wolfgang Engel, "Triangle Visibility Buffer", 2018, Wolfgang Engel's Diary of a Graphics Programmer Blog http://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html
+
+
 ## Release 1.56 - April 4th, 2024 I3D | Warzone Mobile | Visibility Buffer | Aura on macOS | Ephemeris on Switch | GPU breadcrumbs | Swappy in Android | Screen-space Shadows | Metal Debug Markers improved
 
 

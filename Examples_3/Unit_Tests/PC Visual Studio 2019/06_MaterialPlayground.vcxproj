@@ -128,23 +128,24 @@
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>%(Command) :: Copy Art files
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\dds\*.tex" "$(OutDir)Textures\PBR\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Particles\Textures\dds\*.tex" "$(OutDir)Textures\"
+set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\PBR\dds\*.tex" "$(OutDir)Textures\PBR\"
+xcopy /Y /S /D "%ART%\Particles\Textures\dds\*.tex" "$(OutDir)Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Hair\*.bin" "$(OutDir)Meshes\Hair\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\LA_Helipad3D.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\LA_Helipad3D.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
@@ -196,23 +197,24 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>%(Command) :: Copy Art files
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\dds\*.tex" "$(OutDir)Textures\PBR\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Particles\Textures\dds\*.tex" "$(OutDir)Textures\"
+set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\PBR\dds\*.tex" "$(OutDir)Textures\PBR\"
+xcopy /Y /S /D "%ART%\Particles\Textures\dds\*.tex" "$(OutDir)Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Hair\*.bin" "$(OutDir)Meshes\Hair\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\LA_Helipad3D.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\LA_Helipad3D.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D

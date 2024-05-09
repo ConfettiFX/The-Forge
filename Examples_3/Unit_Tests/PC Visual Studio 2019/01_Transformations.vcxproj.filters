@@ -1,58 +1,67 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="src\01_Transformations">
-      <UniqueIdentifier>{d4f3052c-9558-42ba-9c5f-371ad13a1e65}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations">
+      <UniqueIdentifier>{0d638e4c-c993-43f6-998f-5e0050a9029f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{9fef938b-42be-4dff-9474-04c4551a62c1}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{37c09429-ed51-4f97-af6b-d25b460f5559}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\01_Transformations\Shaders\FSL">
-      <UniqueIdentifier>{c2c1e520-03fe-4cb9-87b0-0f11945e98c4}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{d6f24f78-2a8b-41cc-ab2d-f2720202423f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\01_Transformations\Shaders">
-      <UniqueIdentifier>{6734346a-6efd-4eaf-95ea-23ada6d92232}</UniqueIdentifier>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{ea240009-5637-4f98-ac08-d79f0a4041b5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UnitTestResources\Scripts">
-      <UniqueIdentifier>{c5778d13-3750-41dc-be98-712a2a3183e1}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL">
+      <UniqueIdentifier>{fbdba627-3dd1-40d2-b0c8-4fec3b645bde}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UnitTestResources">
-      <UniqueIdentifier>{657f946c-1d94-4ca5-851a-710dc86c6ab0}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders">
+      <UniqueIdentifier>{b7472934-8f5b-4fee-a6d6-39874bf0e741}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\UnitTestResources\Scripts">
+      <UniqueIdentifier>{724577d8-6901-4b08-bb20-595c2073da14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\UnitTestResources">
+      <UniqueIdentifier>{4c928da5-8d31-4a06-a4ea-9115089dcc31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{77ba9ae2-938a-490a-b0b3-1efa3a8e535a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp">
-      <Filter>src\01_Transformations</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations</Filter>
     </ClCompile>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.frag.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.vert.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\resources.h.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\ShaderList.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
-      <Filter>src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\UnitTestResources\Scripts\TestBorderless.lua">
-      <Filter>UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestBorderless.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
-    <None Include="..\UnitTestResources\Scripts\TestCenteredWindow.lua">
-      <Filter>UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestCenteredWindow.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
-    <None Include="..\UnitTestResources\Scripts\TestFullScreen.lua">
-      <Filter>UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestFullScreen.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
-    <None Include="..\UnitTestResources\Scripts\TestNonCenteredWindow.lua">
-      <Filter>UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestNonCenteredWindow.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

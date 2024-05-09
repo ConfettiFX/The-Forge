@@ -14,25 +14,14 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-STRUCT(VsIn)
-{
-	DATA(float3, position, POSITION);
-};
-
-STRUCT(VsOut)
-{
-	DATA(float4, position, SV_Position);
-};
-
-VsOut VS_MAIN(VsIn In)
+PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
 
-	VsOut Out;
+	PsInOpaque Out;
+    float4 vertexPos = LoadVertex(vertexID);
+    Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, vertexPos);
 
-	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, float4(In.position, 1.0f));
-
-	RETURN(Out);
+    RETURN(Out);
 }

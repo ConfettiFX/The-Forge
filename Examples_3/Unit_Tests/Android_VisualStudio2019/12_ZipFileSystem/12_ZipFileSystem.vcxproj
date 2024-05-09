@@ -90,8 +90,9 @@
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
-      xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
@@ -136,8 +137,9 @@ xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionD
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\ZipFilesKtx\28-ArchiveFileSystem.buny $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 

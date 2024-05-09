@@ -23,30 +23,18 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(VsIn)
-{
-	DATA(float3, Position, POSITION);
-	DATA(uint, TexCoord, TEXCOORD);
-};
-
-STRUCT(PsIn)
-{
-	DATA(float4, Position, SV_Position);
-	DATA(float2, TexCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId, TEXCOORD1);
-#endif
-};
-
-PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId) 
+PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID ) 
 {
 	INIT_MAIN;
-	PsIn Out;
-	Out.Position = mul(Get(WorldViewProjMat), float4(In.Position.xyz, 1.0f));
-	Out.TexCoord = unpack2Floats(In.TexCoord);
-	SET_DRAW_ID(Out, drawId, instanceId);
+	PsInAlphaTested Out;
+    float4 vertexPos = LoadVertex(vertexID);
+
+	Out.position = mul(Get(worldViewProjMat), vertexPos);
+	Out.texCoord = LoadTexCoord(vertexID);
+	// IndirectDataBuffer stores mesh index, which in this case is the same as material ID
+	Out.materialID = Get(indirectDataBuffer)[vertexID]; 
+
 	RETURN(Out);
 }

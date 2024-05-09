@@ -14,22 +14,14 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-
-STRUCT(PsIn)
-{
-	DATA(float4, position,   SV_Position);
-	DATA(float2, texCoord,   TEXCOORD0);
-	DATA(float,  materialID, TEXCOORD1);
-};
 
 PS_ZORDER_EARLYZ()
 
-void PS_MAIN(PsIn In)
+void PS_MAIN(PsInAlphaTested In)
 {
 	INIT_MAIN;
 
-	uint matID = uint(floor(In.materialID));
+	uint matID = In.materialID;
 
 	float4 texColor;
     BeginNonUniformResourceIndex(matID, MAX_TEXTURE_UNITS);

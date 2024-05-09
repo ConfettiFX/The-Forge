@@ -54,8 +54,8 @@
 
 #include "vb_resources.h.fsl"
 
-GroupShared(atomic_uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
-GroupShared(atomic_uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);
+GroupShared(uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
+GroupShared(uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);
 GroupShared(FilterDispatchGroupData, filterDispatchGroupData);
 
 #define ENABLE_CULL_BACKFACE			1

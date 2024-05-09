@@ -39,6 +39,10 @@
 #define GEOMSET_OPAQUE 0
 #define GEOMSET_ALPHA_CUTOUT 1
 
+// Override default VB viewports
+#define NUM_CULLING_VIEWPORTS 1
+#define VIEW_CAMERA 0
+
 STRUCT(RootConstant)
 {
 	DATA(uint, drawId, None);

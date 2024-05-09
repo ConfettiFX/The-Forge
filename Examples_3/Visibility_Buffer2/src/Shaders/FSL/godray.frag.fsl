@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+
+#ifndef SAMPLE_COUNT
+    #define SAMPLE_COUNT 1
+#endif
+
+#include "shader_defs.h.fsl"
+
+STATIC const float PI = 3.1415926535897932384626422832795028841971f;
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD);
+};
+
+STRUCT(FSOutput)
+{
+	DATA(float4, result, SV_Target);
+};
+
+RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 2);
+
+#if SAMPLE_COUNT > 1
+	RES(Depth2DMS(float, SAMPLE_COUNT), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
+#else
+	RES(Depth2D(float), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
+#endif
+
+RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t1, binding = 4);
+
+PUSH_CONSTANT(GodRayRootConstant, b2)
+{
+	DATA(float, mScatterFactor, None);
+};
+
+float GetShadowFactor(float3 position)
+{
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	posLS /= posLS.w;
+	posLS.y *= -1;
+	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
+
+	float2 HalfGaps = float2(0.00048828125, 0.00048828125);
+
+	posLS.xy += HalfGaps;
+
+	float shadowFactor = 0.0f;
+
+	if( all(GreaterThan(posLS.xy, 0)) && all(LessThan(posLS.xy, 1)))
+	{
+		float CShadow = SampleLvlTex2D(Get(shadowMap), Get(uSampler0), posLS.xy, 0).r;
+
+		float esm = exp((CShadow - posLS.z) * Get(esmControl));
+		
+		shadowFactor = saturate(2.0 - esm);
+	}
+
+	return shadowFactor;
+}
+
+float PhaseHenyeyGreenstein(float VoL)
+{
+    float g = Get(mScatterFactor);
+    float nom = 1 - g * g;
+    float denom = 4 * PI * pow(1 + g * g - 2 * g * VoL, 1.5);
+    return nom / denom;
+}
+
+STATIC const float ditherOffsets[16] = 
+{
+	0.0f,   0.75f,  0.1875f, 0.9375f,
+	0.5f,   0.25f,  0.6875f, 0.4375f,
+	0.125f, 0.875f, 0.0625f, 0.8125f,
+	0.625f, 0.375f, 0.5625f, 0.3125f
+};
+
+FSOutput PS_MAIN( PsIn In )
+{
+    INIT_MAIN;
+    FSOutput Out;
+
+	float depth = 0.0f;
+#if SAMPLE_COUNT > 1
+	for(int i = 0; i < SAMPLE_COUNT; ++i)
+		depth += LoadTex2DMS(Get(depthTexture), Get(uSampler0), uint2(In.position.xy * 2), i).r;
+#else
+	depth = SampleLvlTex2D(Get(depthTexture), Get(uSampler0), In.texCoord, 0).r;
+#endif
+	depth /= SAMPLE_COUNT;
+
+	float3 color = float3(0.0f, 0.0f, 0.0f);
+
+	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+
+	float3 rayStart = Get(camPos).xyz;
+	float3 rayEnd = WorldPosW.xyz / WorldPosW.w;
+
+	float3 L = -Get(lightDir).xyz;
+
+	float3 marchDir = normalize(rayEnd - rayStart);
+	float3 marchStep = (rayEnd - rayStart) / 10;
+
+	int2 ditherIdx = int2(fmod((In.texCoord) / Get(twoOverRes), 4.0f));
+	float offset = ditherOffsets[ditherIdx.x * 4 + ditherIdx.y];
+
+	float3 samplePos = rayStart + offset * marchStep;
+
+	for(int j = 0; j < 10; j++)
+	{
+		float shadowFactor = GetShadowFactor(samplePos);
+
+		color += Get(lightColor).rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
+
+		samplePos += marchStep;
+	}
+
+	color /= 10;
+	Out.result = float4(color, 1.0f);
+	
+    RETURN(Out);
+}

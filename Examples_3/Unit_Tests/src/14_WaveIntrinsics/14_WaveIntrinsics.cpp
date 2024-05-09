@@ -522,7 +522,8 @@ public:
         if (pMovePosition)
             gSceneData.mousePosition = *pMovePosition;
 
-        gSceneData.mousePosition += float2(gMoveDelta.x, -gMoveDelta.y);
+        if (!uiIsFocused())
+            gSceneData.mousePosition += float2(gMoveDelta.x, -gMoveDelta.y);
     }
 
     void Draw()

@@ -88,15 +88,16 @@
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\sprites.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\sprites.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\vswhere_args.txt" "$(OutDir)"
 
@@ -148,15 +149,16 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\19_CodeHotReload\GPUCfg\gpu.cfg"
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\sprites.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\sprites.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\vswhere_args.txt" "$(OutDir)"
 

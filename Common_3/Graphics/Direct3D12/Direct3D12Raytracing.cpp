@@ -33,8 +33,6 @@
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
 #define IID_ARGS IID_PPV_ARGS
-#include <d3d12.h>
-#include <d3dcompiler.h>
 #endif
 
 // OS

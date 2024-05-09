@@ -18,7 +18,6 @@
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\batch_compaction.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_buffers.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_light_clusters.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.comp.fsl" />
@@ -125,18 +124,18 @@
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\Textures\dds\*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\cameraPath.bin" "$(OutDir)"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\dds\*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\animations\*" "$(OutDir)\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(OutDir)\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(OutDir)\Meshes\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)\Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\animations\*" "$(OutDir)\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(OutDir)\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(OutDir)\Meshes\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
@@ -192,18 +191,18 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\Textures\dds\*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\cameraPath.bin" "$(OutDir)"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\dds\*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\animations\*" "$(OutDir)\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(OutDir)\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(OutDir)\Meshes\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)\Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\animations\*" "$(OutDir)\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(OutDir)\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(OutDir)\Meshes\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"

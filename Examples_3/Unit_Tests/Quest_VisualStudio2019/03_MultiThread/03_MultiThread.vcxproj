@@ -88,18 +88,19 @@
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Skybox_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Palette_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Skybox_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Palette_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
 
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -136,18 +137,19 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionD
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Skybox_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Palette_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Skybox_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Palette_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
 
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data* /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

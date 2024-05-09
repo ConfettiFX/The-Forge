@@ -115,11 +115,12 @@
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\skybox\hw_sahara\sahara_*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\hw_sahara\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\grid.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\Textures\ktx\skybox\hw_sahara\sahara_*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\hw_sahara\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\grid.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
+xcopy %ART%\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
@@ -166,11 +167,12 @@ xcopy $(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data  $(SolutionD
       <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>%(Command) xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\skybox\hw_sahara\sahara_*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\hw_sahara\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Textures\ktx\grid.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
-xcopy $(ProjectDir)..\..\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+xcopy %ART%\UnitTestResources\Textures\ktx\skybox\hw_sahara\sahara_*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\hw_sahara\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\circlepad.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Textures\ktx\grid.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+xcopy %ART%\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
+xcopy %ART%\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d

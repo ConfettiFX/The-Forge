@@ -79,7 +79,7 @@
     </Manifest>
     <PostBuildEvent>
       <Command>%(Command)
-xcopy "$(ProjectDir)..\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
+xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>%(Command) 
@@ -127,7 +127,7 @@ xcopy "$(ProjectDir)..\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s 
     </Manifest>
     <PostBuildEvent>
       <Command>%(Command)
-xcopy "$(ProjectDir)..\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
+xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>%(Command) 

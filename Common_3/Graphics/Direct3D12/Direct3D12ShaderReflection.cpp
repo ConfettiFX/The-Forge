@@ -31,8 +31,7 @@
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
-#include <d3d12shader.h>
-
+#include "../ThirdParty/OpenSource/Direct3d12Agility/include/d3d12shader.h"
 #include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
 #endif
 
@@ -297,6 +296,9 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
     }
 
     fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
+
+    reflection.mCbvHeapIndexing = d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING;
+    reflection.mSamplerHeapIndexing = d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING;
 }
 
 // template<typename RefInterface = ID3D12LibraryReflection>

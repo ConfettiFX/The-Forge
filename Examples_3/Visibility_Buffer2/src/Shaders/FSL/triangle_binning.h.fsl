@@ -1,0 +1,113 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef TRIANGLE_BINNING_H
+#define TRIANGLE_BINNING_H
+
+#define RASTER_MAX_WIDTH 3840u
+#define RASTER_MAX_HEIGHT 2160u
+
+#define BIN_SIZE      128u
+#define BIN_SIZE_LOG2 7u
+#define SUB_BIN_SIZE (BIN_SIZE >> 1u)
+#define TILE_COUNTX (RASTER_MAX_WIDTH >> BIN_SIZE_LOG2)
+#define TILE_COUNTY (RASTER_MAX_HEIGHT >> BIN_SIZE_LOG2)
+
+
+// offset at which the tile data starts
+#define TILE_OFFSET (TILE_COUNTX * TILE_COUNTY)
+
+// max triangles per tile
+//#define TILE_CAPACITY (1 << 14) // 16384
+//#define TILE_CAPACITY 256
+#define TILE_CAPACITY 4096u
+
+#define TIDX(X, Y) ((X) + (Y) * TILE_COUNTX)
+
+// offset to tile from buffer start given xy indices
+#define BinOffset(tileX, tileY) (TILE_OFFSET + TILE_CAPACITY * TIDX(tileX, tileY))
+
+#define BIN_RASTER_THREADS_X 16
+#define BIN_RASTER_THREADS_Y 16
+#if defined(BIN_RASTER_LARGE_GROUPS)
+#define BIN_RASTER_THREADS_Z 4
+#define BIN_RASTER_GROUP_STRIDE 256
+#else
+#define BIN_RASTER_THREADS_Z 1
+#define BIN_RASTER_GROUP_STRIDE 0
+#endif
+#define BIN_RASTER_GROUP_SIZE (BIN_RASTER_THREADS_X * BIN_RASTER_THREADS_Y * BIN_RASTER_THREADS_Z)
+
+//uint TileOffsetUint(uint x, uint y) 
+//{
+//    return TILE_OFFSET + TILE_CAPACITY * TIDX(x, y);
+//}
+
+/*
+| | | // tile triangle counters
+| | |
+tile00 / tile01 / etc...
+*/
+
+#define INVALID_TRIANGLE_DATA (~0u)
+
+#define BinBufferViewOffset(VIEW) (VIEW << 24)
+
+// fetch a triangle for a given tile x/y and offset
+#define GetTriangleDataAt(view, bin_buffer, bin_x, bin_y, offset) \
+    ( offset < min(TILE_CAPACITY, bin_buffer[BinBufferViewOffset(view) + TIDX(bin_x, bin_y)]) ? \
+        bin_buffer[BinBufferViewOffset(view) + BinOffset(bin_x, bin_y) + offset] : \
+        INVALID_TRIANGLE_DATA )
+
+
+//#define SMALL_TRIANGLE_THRESHOLD (8*8)     // 11.8ms
+//#define SMALL_TRIANGLE_THRESHOLD (16*16)  // 7.6ms
+#define SMALL_TRIANGLE_THRESHOLD (32*32) // 6.8ms
+//#define SMALL_TRIANGLE_THRESHOLD (64*64)
+
+
+// features
+#define SMALL_SCALE_FILTER_RASTER
+#if defined(METAL)
+// disable all shared logic for metal
+// due to lack of atomic64 LDS operations
+#elif defined(PROSPERO)
+//#define SHARED_SUB_BIN_RASTER
+#else
+//#define SHARED_SUB_BIN_RASTER
+//#define SHARED_FILTERING
+#endif
+
+
+#define VisibilityBufferOffset(VIEW, WIDTH, X, Y) ((1 << 20)*uint(VIEW) + uint(WIDTH)*uint(Y) + uint(X))
+
+#define GetTriIndexFromTriData(triangleData) ( triangleData >> 10 )
+#define GetGeomSetFromTriData(triangleData) ( (triangleData >> 9) & 1 )
+#define GetBatchIdFromTriData(triangleData) ( (triangleData) & 0xFF )
+uint packTriangleData(uint triangleIndex, uint geomSet, uint batchMeshIndex)
+{
+    return (triangleIndex << 10) | (geomSet << 9) | ((batchMeshIndex) & 0xFF);
+}
+
+#endif

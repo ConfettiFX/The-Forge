@@ -1,70 +1,76 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Unit_Tests\src\09_LightShadowPlayground">
-      <UniqueIdentifier>{fffae95e-8e90-443c-a352-fb6539f1f75a}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground">
+      <UniqueIdentifier>{c0d16de0-7fa2-4b9b-b037-a26f7e57a3ed}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src">
-      <UniqueIdentifier>{6255985d-3932-415a-87c1-96a2f2e4b722}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{98380df5-7133-40f9-9ef5-5eacaf3921c0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests">
-      <UniqueIdentifier>{a8ef9367-1280-48d4-9c6c-7a1a43f76d9a}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{bc8e1112-3173-4a45-a19f-483f6236dcca}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Visibility_Buffer\src">
-      <UniqueIdentifier>{de0f63ec-c504-4a06-9a28-3c183f2b5872}</UniqueIdentifier>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{b18b65d5-e4f1-4b97-afc5-c2a67d7e79c5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Visibility_Buffer">
-      <UniqueIdentifier>{9ef4af16-612f-43fb-98e4-6e74283447cb}</UniqueIdentifier>
+    <Filter Include="Examples_3\Visibility_Buffer\src">
+      <UniqueIdentifier>{32aa8db5-c091-47f9-b43e-c000452e2541}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src\09_LightShadowPlayground\Scripts">
-      <UniqueIdentifier>{5b2cb9b3-226d-468d-9ba3-8af23a996d1b}</UniqueIdentifier>
+    <Filter Include="Examples_3\Visibility_Buffer">
+      <UniqueIdentifier>{e3b92a1f-71e5-459b-b226-405afb10ad89}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\UnitTestResources\Scripts">
-      <UniqueIdentifier>{ec6747ea-4a1b-4209-b475-d8cb6cb4be51}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts">
+      <UniqueIdentifier>{abb8ccea-8814-46c1-adcb-8b833d107c7a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\UnitTestResources">
-      <UniqueIdentifier>{04154fc1-5f89-451d-af48-c63e59352e00}</UniqueIdentifier>
+    <Filter Include="Art\UnitTestResources\Scripts">
+      <UniqueIdentifier>{933ec796-386f-43f8-86a7-1f278e91da79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\UnitTestResources">
+      <UniqueIdentifier>{94300ee2-955f-4a64-a387-2c4036f0759b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{a51f4acc-5c39-41c8-ba58-72277620e22f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguelSDF.cpp">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClCompile>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguelSDF.h">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClInclude>
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
     </None>
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
     </None>
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
     </None>
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
     </None>
     <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua">
-      <Filter>Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
     </None>
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_0.lua">
-      <Filter>Unit_Tests\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_0.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_2.lua">
-      <Filter>Unit_Tests\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_2.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
-    <None Include="..\..\UnitTestResources\Scripts\Test_MSAA_4.lua">
-      <Filter>Unit_Tests\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_4.lua">
+      <Filter>Art\UnitTestResources\Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

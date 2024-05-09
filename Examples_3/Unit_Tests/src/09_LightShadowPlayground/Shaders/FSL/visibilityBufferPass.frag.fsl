@@ -23,21 +23,12 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-	DATA(float4, Position, SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId, TEXCOORD0);
-#endif
-};
-
-float4 PS_MAIN( PsIn In, SV_PrimitiveID(uint) primitiveID )
+float4 PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveID )
 {
 	INIT_MAIN;
 	float4 Out;
-	Out = unpackUnorm4x8(GET_OUTPUT_VB_ID(getDrawID(), primitiveID));
+	Out = unpackUnorm4x8( PACK_VB_DATA(GEOMSET_OPAQUE, primitiveID));
 	RETURN(Out);
 }

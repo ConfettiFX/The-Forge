@@ -136,11 +136,13 @@ bvec2 LessThan(in(vec2) a, in(float) b)      { return lessThan(a, vec2(b)); }
 bvec2 LessThan(in(vec2) a, in(vec2) b)       { return lessThan(a, b);}
 bvec3 LessThan(in(vec3) X, in(float) Y)      { return lessThan(X, f3(Y)); }
 bvec3 LessThanEqual(in(vec3) X, in(float) Y) { return lessThanEqual(X, f3(Y)); }
+bvec2 LessThanEqual(in(vec2) a, in(vec2) b)  { return lessThanEqual(a, b);}
 
 bvec2 GreaterThan(in(vec2) a, in(float) b)      { return greaterThan(a, vec2(b)); }
 bvec3 GreaterThan(in(vec3) a, in(float) b)      { return greaterThan(a, f3(b)); }
 bvec2 GreaterThan(in(uvec2) a, in(uint) b)      { return greaterThan(a, uvec2(b)); }
 bvec2 GreaterThan(in(vec2) a, in(vec2) b)       { return greaterThan(a, b);}
+bvec2 GreaterThanEqual(in(vec2) a, in(vec2) b)  { return greaterThanEqual(a, b);}
 bvec4 GreaterThan(in(vec4) a, in(vec4) b)       { return greaterThan(a, b); }
 bvec3 GreaterThanEqual(in(vec3) a, in(float) b) { return greaterThanEqual(a, vec3(b)); }
 
@@ -166,6 +168,11 @@ bool allGreaterThan(const vec4 a, const vec4 b)
     discard;\
     return;\
 }
+#if defined(FT_ATOMICS_64)
+#extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_EXT_shader_atomic_int64 : enable
+#extension GL_EXT_shader_image_int64 : enable
+#endif
 
 #extension GL_ARB_shader_ballot : enable
 
@@ -407,6 +414,11 @@ ivec4 _to4(in(int)   x)  { return ivec4(x, 0, 0, 0); }
 #define AtomicMin(DST, VALUE) atomicMin(DST, VALUE)
 #define AtomicMax(DST, VALUE) atomicMax(DST, VALUE)
 
+#if defined(FT_ATOMICS_64)
+#define AtomicMinU64(DST, VALUE) atomicMin(DST, VALUE)
+#define AtomicMaxU64(DST, VALUE) atomicMax(DST, VALUE)
+#endif
+
 #define UNROLL_N(X)
 #define UNROLL
 #define LOOP
@@ -526,8 +538,6 @@ f2x2 setRow(inout(f2x2) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][
 #define setRow2(M, R) setRow(M, R, 2)
 #define setRow3(M, R) setRow(M, R, 3)
 
-
-#define atomic_uint uint
 #define packed_float3 vec3
 
 #define int2 ivec2
@@ -596,6 +606,10 @@ int3 imageSize(utexture2DArray TEX) { return textureSize(TEX, 0); }
 // int2 GetDimensions(writeonly iimage2D t, uint _NO_SAMPLER) { return imageSize(t); }
 // int2 GetDimensions(writeonly uimage2D t, uint _NO_SAMPLER) { return imageSize(t); }
 // int2 GetDimensions(writeonly image2D t, uint _NO_SAMPLER) { return imageSize(t); }
+
+#ifdef FT_ATOMICS_64
+#define VK_T_uint64_t(T)   u64 ## T
+#endif
 
 #define VK_T_uint(T)   u ## T
 #define VK_T_uint2(T)  u ## T
@@ -788,12 +802,13 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
 
     #ifdef WAVE_OPS_ARITHMETIC_BIT
         #define WaveActiveMax subgroupMax
+        #define WaveActiveMin subgroupMin
         #define WaveActiveSum subgroupAdd
         #define WavePrefixSum subgroupExclusiveAdd
     #endif
 
     #ifdef WAVE_OPS_BALLOT_BIT
-        #define WavePrefixCountBits(X) subgroupBallotInclusiveBitCount(subgroupBallot(X))
+        #define WavePrefixCountBits(X) subgroupBallotExclusiveBitCount(subgroupBallot(X))
         #define WaveActiveCountBits(X) subgroupBallotBitCount(subgroupBallot(X))
         
         #ifdef TARGET_ANDROID

@@ -25,33 +25,21 @@
 #include "Shader_Defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(VsIn)
-{
-    DATA(float3, Position, POSITION);
-};
-
-STRUCT(PsIn)
-{
-	DATA(float4, Position, SV_Position);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-	DATA(FLAT(uint), drawId, TEXCOORD0);
-#endif
-};
-
-PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId) 
+PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID ) 
 {
 	INIT_MAIN;
-	PsIn Out;
-	Out.Position = mul(Get(WorldViewProjMat), float4(In.Position.xyz, 1.0f));
-	SET_DRAW_ID(Out, drawId, instanceId);
+	PsInOpaque Out;
+
+	float4 vertexPos = LoadVertex(vertexID);
+	Out.position = mul(Get(worldViewProjMat), vertexPos);
 
 #ifdef GPU_CRASH
 	// Causing a GPU hang...
     float counter = 1.0;
     while (counter > 0.0)
     {
-        Out.Position.xyz += float3(0.1, 0.2, 0.3);
-        counter += abs(Out.Position.r);
+        Out.position.xyz += float3(0.1, 0.2, 0.3);
+        counter += abs(Out.position.r);
 		// Trick PlayStation compilers into thinking that the loop will finish
 		counter -= 0.00000001;
     }
@@ -59,4 +47,3 @@ PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId)
 
 	RETURN(Out);
 }
-

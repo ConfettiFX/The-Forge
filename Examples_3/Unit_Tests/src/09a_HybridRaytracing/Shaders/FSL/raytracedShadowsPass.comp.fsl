@@ -41,9 +41,9 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 	float depth   = LoadTex2D(Get(depthBuffer), NO_SAMPLER, DTid.xy, 0).x;
 
 	// calculate normal from the visibility buffer
-	uint drawID = 0;
-	uint alpha1_opaque0 = 0;
-	const uint3 indices = GetVertexIndicesFromVB(DTid.xy, drawID, alpha1_opaque0);
+	uint primitiveID = 0;
+	uint geomSet = 0;
+	const uint3 indices = GetVertexIndicesFromVB(DTid.xy, primitiveID, geomSet);
 	
 	if (indices[0] != ~0u)
 	{

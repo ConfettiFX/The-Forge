@@ -23,19 +23,19 @@
 */
 
 #define NO_MATERIALID_ON_PIXEL_SHADER_INPUT
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-PsInAlphaTested VS_MAIN( VsInAlphaTested In, SV_InstanceID(uint) instanceId )
+PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
-    
-    float4x4 mvp = GetModelViewProj(GEOMSET_ALPHA_BLEND, VIEW_CAMERA, getDrawID());
-    
 	PsInAlphaTested Out;
-    Out.position = mul(mvp, float4(In.position.xyz, 1.0f));
-    Out.texCoord = unpack2Floats(In.texCoord);
-    SET_DRAW_ID(Out, drawId, instanceId);
+    uint vertID = vertexID;
+
+    float4x4 mvp = GetModelViewProj(GEOMSET_ALPHA_BLEND, VIEW_CAMERA, vertID);
+    float4 vertexPos = LoadVertex(vertID);
+    Out.position = mul(mvp, vertexPos);
+    Out.texCoord = LoadTexCoord(vertID);
+
     RETURN(Out);
 }

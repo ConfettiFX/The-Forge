@@ -4691,6 +4691,7 @@ void GuiController::UpdateDynamicUI()
 
         if (gMaterialType != MATERIAL_HAIR)
         {
+            pGuiWindowHairSimulation->mActive = false;
             uiHideDynamicWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
             uiHideDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
@@ -4700,6 +4701,7 @@ void GuiController::UpdateDynamicUI()
 
         if (gMaterialType == MATERIAL_HAIR)
         {
+            pGuiWindowHairSimulation->mActive = true;
             uiShowDynamicWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
             uiShowDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
@@ -4897,6 +4899,8 @@ void GuiController::AddGui()
 
     // HAIR GUI
     {
+        pGuiWindowHairSimulation->mActive = false;
+
         static const char* hairColorNames[HAIR_COLOR_COUNT] = { "Brown", "Blonde", "Black", "Red" };
 
         // Hair shading widgets

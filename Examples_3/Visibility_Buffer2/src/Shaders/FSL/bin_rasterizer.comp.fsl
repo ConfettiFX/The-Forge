@@ -1,0 +1,288 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "shader_defs.h.fsl"
+#include "triangle_binning.h.fsl"
+
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+#define BINDLESS_SET UPDATE_FREQ_NONE
+#else
+#define BINDLESS_SET space4
+#endif
+RES(ByteBuffer,            vertexPositionBuffer,              UPDATE_FREQ_NONE,      t0, binding = 11);
+RES(ByteBuffer,            indexDataBuffer,                   UPDATE_FREQ_NONE,      t1, binding = 4);
+RES(Buffer(MeshConstants), meshConstantsBuffer,               UPDATE_FREQ_NONE,      t2, binding = 5);
+RES(ByteBuffer,            vertexTexCoordBuffer,              UPDATE_FREQ_NONE,      t5, binding = 18);
+RES(SamplerState,          textureSampler,                    UPDATE_FREQ_NONE,      s0, binding = 20);
+RES(Tex2D(float4),         diffuseMaps[INSTANCE_BUFFER_SIZE], BINDLESS_SET,          t6, binding = 21);
+
+RES(Buffer(uint),          binBuffer,                         UPDATE_FREQ_PER_FRAME, t1, binding = 12);
+RES(Buffer(uint),          indirectFilteredBatches,           UPDATE_FREQ_PER_FRAME, t2, binding = 13);
+RES(RWBuffer(uint64_t),    visibilityBuffer,                  UPDATE_FREQ_PER_FRAME, u1, binding = 10);
+
+PUSH_CONSTANT(RootConstantViewInfo, b0)
+{
+    DATA(uint, view, None);
+    DATA(int, targetWidth, None);
+    DATA(int, targetHeight, None);
+};
+
+#if defined(SHARED_SUB_BIN_RASTER)
+GroupShared(uint64_t, sharedSubBin[SUB_BIN_SIZE][SUB_BIN_SIZE]);
+#endif
+
+#define LoadVertex(I) float4(asfloat(LoadByte4(Get(vertexPositionBuffer), (I) * 12)).xyz, 1.0f)
+
+
+
+
+/* -- idea --
+* loop over chunks of 256 (16x16) triangles
+*   - each thread loads a triangle
+*   - loop over 64x64 vb sub-tile (quarter tile)
+*       - for each quad: raster into groupshared
+*           - could further bypass using wave intrinsics (for later)
+*       - flush the sub-tile back to memory
+*       - 64*64 / 256 == 16 pixels per thread
+*   - repeat until no triangles left in tile
+*/
+
+
+// each thread responsible for 1 triangle +  (4x4 pixels)
+NUM_THREADS(BIN_RASTER_THREADS_X, BIN_RASTER_THREADS_Y, BIN_RASTER_THREADS_Z)
+void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
+{
+    INIT_MAIN;
+
+    // load and raster triangle
+    uint2 binIndex          = groupId.xy;
+    uint  subBinLinearIndex = groupId.z % 4;
+    uint2 subBinIndex       = uint2(subBinLinearIndex / 2, subBinLinearIndex % 2);
+    uint2 binCoord          = BIN_SIZE * binIndex + SUB_BIN_SIZE * subBinIndex;
+
+    uint   binGroupOffset = (groupId.z >> 2) * BIN_RASTER_GROUP_SIZE; // each tile shared by 4 groups
+    uint   binOffset      = binGroupOffset + (threadId.x * BIN_RASTER_THREADS_Y + threadId.y + threadId.z * BIN_RASTER_GROUP_STRIDE);
+    float2 viewportSize   = float2(Get(targetWidth), Get(targetHeight));
+
+    // distributed shared clear
+#if defined(SHARED_SUB_BIN_RASTER)
+    uint2 threadOrigin = threadId.xy * 4;
+    if(threadId.z == 0)
+    for (int pi = 0; pi < 4 * 4; ++pi)
+    {
+        uint2 pt = threadOrigin + uint2(pi / 4, pi % 4);
+        sharedSubBin[pt.x][pt.y] = 0;
+    }
+    GroupMemoryBarrier();
+#endif
+
+
+    // load triangle data
+    uint triangleData = GetTriangleDataAt(Get(view), Get(binBuffer), binIndex.x, binIndex.y, binOffset);
+
+    if (INVALID_TRIANGLE_DATA != triangleData)
+    {
+        uint triangleIndex = GetTriIndexFromTriData(triangleData);
+        uint geomSet       = GetGeomSetFromTriData(triangleData);
+        uint batchID       = GetBatchIdFromTriData(triangleData);
+        uint materialID = Get(meshConstantsBuffer)[batchID].materialID;
+
+        float2 uvs[3];
+
+
+        uint indices[3] = {
+            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 0) << 2),
+            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 1) << 2),
+            LoadByte(Get(indexDataBuffer), (triangleIndex * 3 + 2) << 2),
+        };
+
+        float4 vertices[3] = { LoadVertex(indices[0]), LoadVertex(indices[1]), LoadVertex(indices[2]) };
+        float4x4 worldViewProjection = Get(transform)[Get(view)].mvp;
+
+
+        int verticesInFrontOfNearPlane = 0;
+        int baseIndex = 0;
+        int baseIndex2 = 0;
+        for (int i = 0; i < 3; ++i)
+        {
+            vertices[i] = mul(worldViewProjection, vertices[i]);
+            if (vertices[i].w < 0)
+            {
+                baseIndex = i;
+                verticesInFrontOfNearPlane++;
+            }
+        }
+        float4 extraVertex = vertices[0] + vertices[1];
+
+        //Liang - Barsky for 2 vertices
+        if (verticesInFrontOfNearPlane > 0)
+        {
+            for (int i = 0; i < 3; ++i)
+            {
+                int j = (i+1) % 3;
+                float4 p0 = vertices[i], p1 = vertices[j];
+                // only handle crossing edges
+                if (p0.w <= 0 && p1.w <= 0) continue;
+                if (p0.w >= 0 && p1.w >= 0) continue;
+
+                if (verticesInFrontOfNearPlane == 1)
+                {
+                    baseIndex2 = (j + 1) % 3;
+                    float4 p2 = vertices[baseIndex2];
+                    float4 d = vertices[baseIndex] - p2;
+                    float q = p2.w - p2.z, p = -d.w + d.z;
+                    float t = q / p;
+                    extraVertex = p2 + t * d;
+                }
+
+                float4 d = p1 - p0;
+                float q = p0.w - p0.z, p = -d.w + d.z;
+                if (abs(p) < 0.0000001f && q < 0)
+                    continue;
+                float t = q / p;
+                if (p < 0)
+                {
+                    vertices[i] = p0 + t * d;
+                }
+                else
+                {
+                    vertices[j] = p0 + t * d;
+                    i++;
+                }
+
+                if (verticesInFrontOfNearPlane == 1)
+                    break;
+            }
+        }
+        if (verticesInFrontOfNearPlane == 1)
+        {
+            extraVertex.xyz = float3(round((float2(1, -1) * extraVertex.xy * (0.5f / extraVertex.w) + 0.5f) * viewportSize * 256.0f) / 256.0f - 0.5f,
+                extraVertex.z / extraVertex.w);
+        }
+
+        for (int i = 0; i < 3; ++i)
+        {
+            float4 position = vertices[i];
+            vertices[i].xyz = float3(round((float2(1, -1) * position.xy * (0.5f / position.w) + 0.5f) * viewportSize * 256.0f) / 256.0f - 0.5f,
+                position.z / position.w);
+        }
+
+        //float2 uv10, uv20;
+        float4 uv1020;
+        if (geomSet == 1)
+        {
+            uvs[0] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[0] << 2));
+            uvs[1] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[1] << 2));
+            uvs[2] = unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), indices[2] << 2));
+            uv1020 = float4(uvs[1] - uvs[0], uvs[2] - uvs[0]);
+        }
+
+        // base triangle edges
+        float3 edge10 = vertices[(baseIndex + 1) % 3].xyz - vertices[baseIndex].xyz;
+        float3 edge20 = vertices[(baseIndex + 2) % 3].xyz - vertices[baseIndex].xyz;
+
+        float3 edge30 = extraVertex.xyz - vertices[baseIndex].xyz;
+        float3 edge40 = vertices[baseIndex2].xyz - vertices[baseIndex].xyz;
+
+        float determinant  = edge20.x * edge10.y - edge20.y * edge10.x;
+        float determinant2 = edge40.x * edge30.y - edge40.y * edge30.x;
+
+        float2 texCoordDeltaX = float2(-edge20.y, edge10.y) / determinant;
+        float2 texCoordDeltaY = float2(edge20.x, -edge10.x) / determinant;
+
+        float2 texCoordDeltaX2 = float2(-edge40.y, edge30.y) / determinant2;
+        float2 texCoordDeltaY2 = float2(edge40.x, -edge30.x) / determinant2;
+
+        float2 texCoordX = texCoordDeltaX * (binCoord.x - vertices[baseIndex].x);
+        float2 texCoordY = texCoordDeltaY * (binCoord.y - vertices[baseIndex].y);
+
+        float2 texCoordX2 = texCoordDeltaX2 * (binCoord.x - vertices[baseIndex].x);
+        float2 texCoordY2 = texCoordDeltaY2 * (binCoord.y - vertices[baseIndex].y);
+        for(uint y = 0; y < SUB_BIN_SIZE; ++y)
+        {
+            float2 texCoord = texCoordX + texCoordY;
+            float2 texCoord2 = texCoordX2 + texCoordY2;
+            for (uint x = 0; x < SUB_BIN_SIZE; ++x)
+            {
+                bool insideTriangle = texCoord.x >= 0.0f && texCoord.y >= 0.0f && texCoord.x + texCoord.y <= 1.0f;
+                if (verticesInFrontOfNearPlane == 1)
+                    insideTriangle = insideTriangle || (texCoord2.x >= 0.0f && texCoord2.y >= 0.0f && texCoord2.x + texCoord2.y <= 1.0f);
+
+                uint2 vbCoords = binCoord + uint2(x, y);
+                bool insideViewport = AllLessThan(vbCoords, uint2(viewportSize));
+
+                if (insideTriangle && insideViewport)
+                {
+                    float depth = max(0.0f, edge10.z * texCoord.x + edge20.z * texCoord.y + vertices[baseIndex].z);
+                    uint64_t packedDepthVBId = packDepthVBId(depth, triangleData);
+                    uint index = VisibilityBufferOffset(Get(view), viewportSize.x, vbCoords.x, vbCoords.y);
+                    bool visible = true;
+                    if (visible && geomSet == 1) // needs alpha testing
+                    {
+                        float4 diffuseColor;
+                        float  d = max(dot(texCoordDeltaX, texCoordDeltaX), dot(texCoordDeltaY, texCoordDeltaY));
+                        float  lod = log2(d)*2;// *0.5f;
+
+                        float2 uv = uv1020.xy * texCoord.x + uv1020.zw * texCoord.y + uvs[0];
+                        BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+                        diffuseColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(textureSampler), uv, lod);
+                        EndNonUniformResourceIndex();
+                        if (diffuseColor.a <= 0.5f)
+                            visible = false;
+                    }
+                    if (visible)
+                    {
+#if defined(SHARED_SUB_BIN_RASTER)
+                        AtomicMaxU64(sharedSubBin[y][x], packedDepthVBId);
+#else
+                        AtomicMaxU64(Get(visibilityBuffer)[index], packedDepthVBId);
+#endif
+                    }
+                }
+                texCoord += texCoordDeltaX;
+                texCoord2 += texCoordDeltaX2;
+            }
+            texCoordY += texCoordDeltaY;
+            texCoordY2 += texCoordDeltaY2;
+        }
+    }
+
+    // distributed flush of local vb to memory
+#if defined(SHARED_SUB_BIN_RASTER)
+    GroupMemoryBarrier();
+    if (threadId.z == 0)
+    for (int pi = 0; pi < 4 * 4; ++pi)
+    {
+        uint2 pt = threadOrigin + uint2(pi / 4, pi % 4);
+        uint2 c = binCoord + pt;
+        uint index = VisibilityBufferOffset(Get(view), viewportSize.x, c.x, c.y);
+        AtomicMaxU64(Get(visibilityBuffer)[index], sharedSubBin[pt.y][pt.x]);
+    }
+#endif
+
+    RETURN();
+}

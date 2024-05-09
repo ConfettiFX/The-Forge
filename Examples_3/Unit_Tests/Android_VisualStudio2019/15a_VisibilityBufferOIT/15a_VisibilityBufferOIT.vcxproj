@@ -132,20 +132,20 @@
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
@@ -195,20 +195,20 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
 
-xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
-xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"

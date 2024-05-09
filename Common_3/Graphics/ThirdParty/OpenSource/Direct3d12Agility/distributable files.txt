@@ -1,0 +1,5 @@
+You may distribute the following files:
+
+D3D12Core.dll
+d3d12SDKLayers.dll
+d3dconfig.exe

@@ -80,16 +80,12 @@ STRUCT(FilterDispatchGroupData)
 {
 	DATA(uint, meshIndex, None);	  // Index into meshConstants
 	DATA(uint, indexOffset, None);	  // Index relative to the meshConstants[meshIndex].indexOffset
-	DATA(uint, outputIndexOffset, None); // Offset into the output index buffer
-	DATA(uint, meshDispatchGroupStart, None);	// First slot for the current draw call
-	DATA(uint, accumDrawIndex, None);
     DATA(uint, instanceDataIndex, None);   // Instance specific data, usually an offset into instanceData buffer but could also contain more encoded data in different bits
 
 	//   - geometrySet: 2 bits (we have 3 geometry sets: OPAQUE, ALPHA_CUTOUT, ALPHA_BLEND)
-    //   - faceCount: 11 bits (this depends on VB_COMPUTE_THEADS, which has a max of 1024 so 11 bits are enough)
+    //   - faceCount: 11 bits (this depends on VB_COMPUTE_THREADS, which has a max of 1024 so 11 bits are enough)
 	//   - 19 bit free
 	DATA(uint, geometrySet_faceCount, None); 
-	DATA(uint, _pad0, None); 
 };
 
 STRUCT(CullingViewPort)
@@ -97,15 +93,6 @@ STRUCT(CullingViewPort)
 	DATA(float2, windowSize,  None);
 	DATA(uint,   sampleCount, None);
 	DATA(uint,   _pad0,       None);
-};
-
-STRUCT(UncompactedDrawArguments)
-{
-	DATA(uint, numIndices, None);
-	DATA(uint, startIndex, None);
-	DATA(uint, vertexOffset, None);
-	DATA(uint, geometrySet, None);
-	DATA(uint, instanceDataIndex, None);
 };
 
 STRUCT(Transform)
@@ -117,6 +104,14 @@ STRUCT(Transform)
 	DATA(float4x4, projection, None);
 	DATA(float2, cameraPlane, None); //x : near, y : far
     DATA(float2, _pad0, None);
+};
+
+STRUCT(VBConstants)
+{
+	DATA(uint, indexOffset, None);
+	DATA(uint, pad_0, None);
+	DATA(uint, pad_1, None);
+	DATA(uint, pad_2, None);
 };
 
 #endif //!_VB_STRUCTS_H

@@ -22,10 +22,10 @@
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\UnitTestResources\Scripts\TestBorderless.lua" />
-    <None Include="..\UnitTestResources\Scripts\TestCenteredWindow.lua" />
-    <None Include="..\UnitTestResources\Scripts\TestFullScreen.lua" />
-    <None Include="..\UnitTestResources\Scripts\TestNonCenteredWindow.lua" />
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestBorderless.lua" />
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestCenteredWindow.lua" />
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestFullScreen.lua" />
+    <None Include="..\..\..\Art\UnitTestResources\Scripts\TestNonCenteredWindow.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>
@@ -86,15 +86,16 @@
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+<Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
@@ -144,15 +145,16 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
 xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
 xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
 xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D

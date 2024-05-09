@@ -28,32 +28,25 @@
 ////////////////////////////
 // VB HELPER FUNCTIONS
 ////////////////////////////
-uint3 GetVertexIndicesFromVB(uint2 pos, out(uint) drawID, out(uint) alpha1_opaque0)
+uint3 GetVertexIndicesFromVB(uint2 pos, out(uint) primitiveID, out(uint) geomSet)
 {
 	float4 visRaw = LoadTex2D(Get(vbPassTexture), Get(clampMiplessLinearSampler), pos, 0);
 
-	uint alphaBitDrawIDTriID = packUnorm4x8(visRaw);
+	uint geomSetPrimID = packUnorm4x8(visRaw);
 
 	// Early exit if this pixel doesn't contain triangle data
-	if (alphaBitDrawIDTriID == ~0u)
+	if (geomSetPrimID == ~0u)
 	{
 		return uint3(~0u, ~0u, ~0u);
 	}
 
-	//extract packed data
-	drawID = (alphaBitDrawIDTriID >> DRAW_ID_LOW_BIT) & 0x000000FF;
-	uint triangleID = (alphaBitDrawIDTriID & PRIM_ID_MASK);
-	alpha1_opaque0 = (alphaBitDrawIDTriID >> ALPH_IS_LOW_BIT);
+	// Extract packed data
+	primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+	geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
 
-	//this is the start vertex of the current draw batch
-	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
-	// View is always 0, since only CAMERA_VIEW sets are stored
-    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, alpha1_opaque0, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
-	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
-
-	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
-	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
-	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 0);
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 1);
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 2);
 
 	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
 	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
@@ -134,31 +127,6 @@ float3 GetInterpolatedVertexTangentFromIndices(uint3 indices, BarycentricDeriv d
 
 	float3 tangent = normalize(InterpolateWithDeriv_float3x3(derivatives,tangents));;
 	return tangent;
-}
-
-uint GetMaterialIdFromIndirectMaterialBuffer(uint drawID, uint alpha1_opaque0)
-{
-	// BaseInstanceBuffer returns constant offset values
-	// The following value defines the maximum amount of indirect draw calls that will be 
-	// drawn at once. This value depends on the number of submeshes or individual objects 
-	// in the scene. Changing a scene will require to change this value accordingly.
-	// #define MAX_DRAWS_INDIRECT 300 
-	//
-	// These values are offsets used to point to the material data depending on the 
-	// type of geometry and on the culling view
-	// #define MATERIAL_BASE_ALPHA0 0
-	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
-	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
-	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
-
-	uint materialBaseSlot = BaseInstanceBuffer(alpha1_opaque0, VIEW_CAMERA);
-
-	// potential results for materialBaseSlot + drawID are
-	// 0 - 299 - shadow alpha
-	// 300 - 599 - shadow no alpha
-	// 600 - 899 - camera alpha
-	uint materialID = Get(indirectMaterialBuffer)[materialBaseSlot + drawID];
-	return materialID;
 }
 
 float3 GetInterpolatedNormal(uint3 indices, BarycentricDeriv derivatives)
