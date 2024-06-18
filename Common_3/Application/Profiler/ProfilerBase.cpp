@@ -508,11 +508,13 @@ vec2 profileUtilCalcWindowSize(int32_t width, int32_t height) { return vec2((flo
 // Callback functions.
 void profileCallbkDumpFramesToFile(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     dumpProfileData(pRendererRef->pName, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
 }
 
 void profileCallbkDumpFrames(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     // Dump fresh frames to detailed mode and clear any old data.
     gDumpFramesNow = true;
 
@@ -521,10 +523,15 @@ void profileCallbkDumpFrames(void* pUserData)
     arrsetlen(gDetailedModeDump, 0);
 }
 
-void profileCallbkPauseProfiler(void* pUserData) { ProfileTogglePause(); }
+void profileCallbkPauseProfiler(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    ProfileTogglePause();
+}
 
 void ProfileCallbkReferenceTimeUpdated(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (gProfileMode == PROFILE_MODE_PLOT)
     {
         gUpdatePlotModeGUI = true;
@@ -1700,9 +1707,9 @@ void profileUpdateWidgetUI(Profile& S)
                 strcpy(gGPUTimerTitle[i], S.GroupInfo[i].pName);
                 strcat(gGPUTimerTitle[i], ": Time[");
 
-                char buffer[MAX_TEMP_BUFFER_SIZE];
-                snprintf(buffer, MAX_TEMP_BUFFER_SIZE, "%f", gGPUFrameTime[i]);
-                strcat(gGPUTimerTitle[i], buffer);
+                char buf[MAX_TEMP_BUFFER_SIZE];
+                snprintf(buf, MAX_TEMP_BUFFER_SIZE, "%f", gGPUFrameTime[i]);
+                strcat(gGPUTimerTitle[i], buf);
 
                 strcat(gGPUTimerTitle[i], "ms]");
             }
@@ -1991,6 +1998,7 @@ void initProfiler(ProfilerDesc* pDesc)
     REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING)
+    extern uint64_t GetDriverMemoryAmount();
     if (GetDriverMemoryAmount())
     {
         CheckboxWidget driverMemoryCheckbox;
@@ -2000,8 +2008,8 @@ void initProfiler(ProfilerDesc* pDesc)
         uiSetWidgetOnEditedCallback(widget, NULL,
                                     [](void*) { pDriverMemTrackerUIComponent->mActive = !pDriverMemTrackerUIComponent->mActive; });
 
-        UIComponentDesc guiMenuDesc = {};
-        uiCreateComponent("Driver memory tracking", &guiMenuDesc, &pDriverMemTrackerUIComponent);
+        UIComponentDesc guiMenuDescMemTracking = {};
+        uiCreateComponent("Driver memory tracking", &guiMenuDescMemTracking, &pDriverMemTrackerUIComponent);
         pDriverMemTrackerUIComponent->mActive = gDriverMemoryWidgetUIEnabled;
         pDriverMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
         extern void  DrawDriverMemoryTrackingUI(void*);
@@ -2012,6 +2020,7 @@ void initProfiler(ProfilerDesc* pDesc)
 #endif
 
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
+    extern uint64_t GetDeviceMemoryAmount();
     if (GetDeviceMemoryAmount())
     {
         // Vulkan.cpp
@@ -2022,8 +2031,8 @@ void initProfiler(ProfilerDesc* pDesc)
         uiSetWidgetOnEditedCallback(widget, NULL,
                                     [](void*) { pDeviceMemTrackerUIComponent->mActive = !pDeviceMemTrackerUIComponent->mActive; });
 
-        UIComponentDesc guiMenuDesc = {};
-        uiCreateComponent("Device memory tracking", &guiMenuDesc, &pDeviceMemTrackerUIComponent);
+        UIComponentDesc guiMenuDescMemTracking = {};
+        uiCreateComponent("Device memory tracking", &guiMenuDescMemTracking, &pDeviceMemTrackerUIComponent);
         pDeviceMemTrackerUIComponent->mActive = gDeviceMemoryWidgetUIEnabled;
         pDeviceMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
         extern void  DrawDeviceMemoryReportUI(void*);
@@ -2288,11 +2297,11 @@ uint16_t ProfileGetGroup(const char* pGroup, ProfileTokenType Type)
     {
         if (!P_STRCASECMP(pGroup, S.GroupInfo[i].pName))
         {
-            return i;
+            return (uint16_t)i;
         }
     }
 
-    uint16_t nGroupIndex = S.nGroupCount++;
+    uint16_t nGroupIndex = (uint16_t)S.nGroupCount++;
     P_ASSERT(nGroupIndex < PROFILE_MAX_GROUPS);
 
     size_t nLen = strlen(pGroup);
@@ -2376,8 +2385,9 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
 {
 #ifdef ENABLE_PROFILER
     return ProfileGetToken(pGroup, pName, nColor);
-#endif
+#else
     return 0;
+#endif
 }
 
 ProfileToken ProfileGetLabelToken(const char* pGroup, ProfileTokenType Type)
@@ -2496,7 +2506,7 @@ int ProfileGetCounterTokenByParent(int nParent, const char* pName)
     uint32_t nPos = S.nCounterNamePos;
     S.nCounterNamePos += nLen;
     memcpy(&S.CounterNames[nPos], pName, nLen);
-    S.CounterInfo[nResult].nNameLen = nLen - 1;
+    S.CounterInfo[nResult].nNameLen = (uint16_t)(nLen - 1);
     S.CounterInfo[nResult].pName = &S.CounterNames[nPos];
     if (nParent >= 0)
     {
@@ -2744,6 +2754,7 @@ void ProfileLabelLiteral(ProfileToken nToken_, const char* pName)
 
 void ProfileMetaUpdate(ProfileToken nToken, int nCount, ProfileTokenType eTokenType)
 {
+    UNREF_PARAM(eTokenType);
     Profile& S = g_Profile;
     if ((P_DRAW_META_FIRST << nToken) & S.nActiveBars)
     {
@@ -3057,10 +3068,10 @@ void ProfileFlipCpu()
                             }
                         }
                     }
-                    for (uint32_t i = 0; i < PROFILE_MAX_GROUPS; ++i)
+                    for (uint32_t k = 0; k < PROFILE_MAX_GROUPS; ++k)
                     {
-                        pLog->nGroupTicks[i] += nGroupTicks[i];
-                        pFrameGroup[i] += nGroupTicks[i];
+                        pLog->nGroupTicks[k] += nGroupTicks[k];
+                        pFrameGroup[k] += nGroupTicks[k];
                     }
                     pLog->nStackPos = nStackPos;
                 }
@@ -3188,7 +3199,7 @@ void ProfileFlipCpu()
             S.nAggregateFlipCount = 0;
             S.nFlipAggregate = 0;
             S.nFlipMax = 0;
-            S.nFlipMin = -1;
+            S.nFlipMin = (uint64_t)-1;
 
             S.nAggregateFlipTick = P_TICK();
         }
@@ -3547,7 +3558,7 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
             {
                 int nDigit = nCounter % 10;
                 nCounter /= 10;
-                *pTmp++ = '0' + nDigit;
+                *pTmp++ = (char)('0' + nDigit);
             }
         }
         if (nNegative)
@@ -4327,6 +4338,7 @@ void ProfileWriteFile(void* Handle, size_t nSize, const char* pData)
 
 void ProfileDumpToFile(Renderer* pRenderer)
 {
+    UNREF_PARAM(pRenderer);
     if (!g_Profile.nRunning)
         return;
 

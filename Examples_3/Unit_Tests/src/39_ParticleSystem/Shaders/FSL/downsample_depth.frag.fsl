@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shader_defs.h.fsl"
+
+RES(SamplerState, pointClampSampler, UPDATE_FREQ_NONE, s2, binding = 28);
+RES(Tex2D(float), depthBuffer, UPDATE_FREQ_NONE, t4, binding = 29);
+
+STRUCT(PsIn)
+{
+    DATA(float4, position, SV_Position);
+	DATA(float2, screenPos, TEXCOORD0);
+};
+
+PUSH_CONSTANT(downsampleRootConstants, b0)
+{
+	DATA(uint2, size, None);
+};
+
+
+float2 PS_MAIN( PsIn In )
+{
+	INIT_MAIN;
+
+	uint2 screenCoords = uint2(In.position.xy);
+	uint2 otherCoords = screenCoords * 2;
+
+	float minDepth = 1.0;
+	float maxDepth = 0.0;
+
+	float2 uv = float2(otherCoords) / float2(Get(size) * 2);
+	float2 texelSize = 1.0 / float2(Get(size) * 2);
+
+	for (uint y=0; y<2; y++) 
+	{
+		for (uint x=0; x<2; x++)
+		{
+			float depth = SampleTex2D(Get(depthBuffer), Get(pointClampSampler), uv + float2(x, y) * texelSize).x;
+			minDepth = min(minDepth, depth);
+			maxDepth = max(maxDepth, depth);
+		}
+	}
+
+	float2 Out = float2(minDepth, maxDepth);
+    RETURN(Out);
+}

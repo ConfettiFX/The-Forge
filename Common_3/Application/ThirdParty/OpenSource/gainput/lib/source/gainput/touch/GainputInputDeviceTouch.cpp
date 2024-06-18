@@ -25,6 +25,7 @@ InputDeviceTouch::InputDeviceTouch(InputManager& manager, DeviceId device, unsig
 	InputDevice(manager, device, index == InputDevice::AutoIndex ? manager.GetDeviceCountByType(DT_TOUCH) : 0),
 	impl_(0)
 {
+	UNREF_PARAM(variant); 
 	state_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), TouchPointCount*TouchDataElems);
 	GAINPUT_ASSERT(state_);
 	previousState_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), TouchPointCount*TouchDataElems);
@@ -63,6 +64,8 @@ InputDeviceTouch::~InputDeviceTouch()
 
 void InputDeviceTouch::AddGestureMapping(const unsigned gestureID, const gainput::GestureConfig &config)
 {
+    UNREF_PARAM(gestureID); 
+UNREF_PARAM(config); 
 #if !defined(ANDROID) || defined(QUEST_VR)
 	return;
 #else

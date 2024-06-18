@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="Visibility_Buffer2" Database="Visibility_Buffer.tags" Version="10.0.0">
+  <Project Name="Visibility_Buffer2" Path="Visibility_Buffer2/Visibility_Buffer2.project" Active="Yes"/>
+  <Project Name="SpirVTools" Path="../../Unit_Tests/UbuntuCodelite/SpirVTools/SpirVTools.project" Active="No"/>
+  <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
+  <Project Name="OSBase" Path="../../Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
+  <Project Name="gainput" Path="../../../Common_3/Application/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug">
+      <Environment/>
+      <Project Name="Visibility_Buffer2" ConfigName="Debug"/>
+      <Project Name="SpirVTools" ConfigName="Debug"/>
+      <Project Name="Renderer" ConfigName="Debug"/>
+      <Project Name="OS" ConfigName="Debug"/>
+      <Project Name="gainput" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release">
+      <Environment/>
+      <Project Name="Visibility_Buffer2" ConfigName="Release"/>
+      <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="Renderer" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
+      <Project Name="gainput" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

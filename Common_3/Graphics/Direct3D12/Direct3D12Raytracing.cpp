@@ -147,6 +147,7 @@ bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS5 opts5 = {};
     HRESULT hres = pRenderer->mDx.pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &opts5, sizeof(opts5));
+    ASSERT(SUCCEEDED(hres));
     pRaytracing->mTier = opts5.RaytracingTier;
 
     *ppRaytracing = pRaytracing;
@@ -399,6 +400,7 @@ void d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, Accelerat
 /************************************************************************/
 void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
+    UNREF_PARAM(pRaytracing);
     ASSERT(pDesc);
 
     ID3D12GraphicsCommandList4* dxrCmd = NULL;

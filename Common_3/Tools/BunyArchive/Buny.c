@@ -217,19 +217,19 @@ static bool bunyArLibComputeEntryName(char*** strings, const struct BunyArLibEnt
 
     if (strncmp(*outPath, "../", 3) == 0)
     {
-        char path[FS_MAX_PATH];
-        fsAppendPathComponent(fsGetResourceDirectory(entry->inputRd), entry->inputPath, path);
+        char buf[FS_MAX_PATH];
+        fsAppendPathComponent(fsGetResourceDirectory(entry->inputRd), entry->inputPath, buf);
 
-        LOGF(eERROR, "Entry name '%s' contains backlinks. Source path is '%s'", *outPath, path);
+        LOGF(eERROR, "Entry name '%s' contains backlinks. Source path is '%s'", *outPath, buf);
         return false;
     }
 
     if (length > BUNYAR_FILE_NAME_LENGTH_MAX)
     {
-        char path[FS_MAX_PATH];
-        fsAppendPathComponent(fsGetResourceDirectory(entry->inputRd), entry->inputPath, path);
+        char buf[FS_MAX_PATH];
+        fsAppendPathComponent(fsGetResourceDirectory(entry->inputRd), entry->inputPath, buf);
 
-        LOGF(eERROR, "Entry name '%s' is longer than limit of %i. Source path is '%s'", *outPath, BUNYAR_FILE_NAME_LENGTH_MAX, path);
+        LOGF(eERROR, "Entry name '%s' is longer than limit of %i. Source path is '%s'", *outPath, BUNYAR_FILE_NAME_LENGTH_MAX, buf);
         return false;
     }
 
@@ -1412,8 +1412,6 @@ static void fileAssemblyReadTask(void* data, uint64_t thid)
             goto ERROR_RETURN;
         }
     }
-
-    ASSERTFAIL("Logic flow issue");
 
     if (0)
     {

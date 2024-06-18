@@ -53,8 +53,8 @@ typedef struct Scene
     uint32_t       materialCount;
 } Scene;
 
-Scene* loadSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool transparentFlags);
-void   unloadSanMiguel(Scene* scene);
+Scene* initSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool transparentFlags);
+void   exitSanMiguel(Scene* scene);
 
 void createCubeBuffers(Renderer* pRenderer, Buffer** outVertexBuffer, Buffer** outIndexBuffer);
 

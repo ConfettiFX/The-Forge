@@ -12,8 +12,10 @@ class InputDevicePadImplHID : public InputDevicePadImpl
 {
 public:
 	InputDevicePadImplHID(InputManager& manager, InputDevice& device, unsigned devId) :
-		devId_(devId)
+		devId_((uint8_t)devId)
 	{
+	UNREF_PARAM(manager); 
+	UNREF_PARAM(device); 
 	}
 
 	InputDevice::DeviceVariant GetVariant() const
@@ -23,12 +25,14 @@ public:
 
 	void Update(InputDeltaState* delta)
 	{
+		UNREF_PARAM(delta); 
 		// NOTE: Currently handled via HIDUpdateDevices
 		//HIDUpdate(devId_, delta);
 	}
 
 	bool IsValidButton(DeviceButtonId deviceButton) const
 	{
+		UNREF_PARAM(deviceButton); 
 		// Needed? Buttons should be handled via the change events
 		return false;
 	}
@@ -57,6 +61,7 @@ public:
 
 	void SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char*, bool added, int controllerIndex))
 	{
+		UNREF_PARAM(onDeviceChange); 
 		// handled by InputSystem
 	}
 

@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shading.h.fsl"
+#include "light_cull_resources.h.fsl"
+
+// This compute shader determines if a light of index groupId overlaps
+// the cluster (thread.x,thread.y). Then the light is added to the cluster.
+
+NUM_THREADS(DEPTH_BOUNDS_GROUP_AMOUNT_X, DEPTH_BOUNDS_GROUP_AMOUNT_Y, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
+{
+	INIT_MAIN;
+
+	float minDepth = 1;
+	float maxDepth = 0;
+	float2 windowSize = Get(cullingViewports)[VIEW_CAMERA].windowSize;
+	float2 subclusterSize = windowSize / float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
+	    
+	uint2 coords = threadInDispatch.xy * 2;
+	if (coords.x >= windowSize.x || coords.y >= windowSize.y)
+	{
+		RETURN();
+	}
+	
+	coords.y = uint(windowSize.y) - coords.y;
+
+	uint2 subclusterCoords = uint2(float2(coords) / subclusterSize);
+
+	float2 depth = LoadTex2D(Get(DownsampledDepthBuffer), NO_SAMPLER, threadInDispatch.xy, 0).xy;
+	depth.x = (linearizeDepthReverseZ(depth.x, CAMERA_NEAR, CAMERA_FAR) - CAMERA_NEAR)/(CAMERA_FAR-CAMERA_NEAR);
+	depth.y = (linearizeDepthReverseZ(depth.y, CAMERA_NEAR, CAMERA_FAR) - CAMERA_NEAR)/(CAMERA_FAR-CAMERA_NEAR);
+	
+	minDepth = min(minDepth, depth.x);
+	maxDepth = max(maxDepth, depth.y);
+
+	uint clusterId = subclusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT + subclusterCoords.x;
+	if (clusterId >= LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT * LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)
+	{
+		RETURN();
+	}
+
+	// Clamp in the same direction, better to be pessimistic (add an unnecessary light )
+	// than optimistic (don't render a light only for a tile)
+	uint minDepthInt = uint(floor(minDepth * float(INT_MAX)));
+	uint maxDepthInt = uint(ceil(maxDepth * float(INT_MAX)));
+
+	AtomicMin(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE], minDepthInt);
+	AtomicMax(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1], maxDepthInt);
+	
+	RETURN();
+}

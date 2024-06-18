@@ -32,6 +32,11 @@ PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 	PsInOpaque Out;
     float4 vertexPos = LoadVertex(vertexID);
 
-	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, vertexPos);
+#if defined (TARGET_QUEST)
+	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp.mat[0], vertexPos);
+#else
+	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp.mat, vertexPos);
+#endif
+
     RETURN(Out);
 }

@@ -144,6 +144,7 @@ uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -376,6 +377,7 @@ uint32_t gCurrentAnimationIndex = 0;
 // Hard set the controller's time ratio via callback when it is set in the UI
 void ShatterClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (gUIData.mGeneralSettings.mDrawBakedPhysics)
     {
         gShatterClipContoller.SetTimeRatioHard(0.0f);
@@ -390,6 +392,7 @@ void ShatterClipTimeChangeCallback(void* pUserData)
 
 void AnimatedCameraChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (!gUIData.mGeneralSettings.mDrawBakedPhysics)
     {
         gUIData.mGeneralSettings.mAnimatedCamera = false;
@@ -399,6 +402,7 @@ void AnimatedCameraChangeCallback(void* pUserData)
 // StandClip Callbacks
 void StandClipPlayCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -415,6 +419,7 @@ void StandClipPlayCallback(void* pUserData)
 }
 void StandClipLoopCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -431,6 +436,7 @@ void StandClipLoopCallback(void* pUserData)
 }
 void StandClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -444,6 +450,7 @@ void StandClipTimeChangeCallback(void* pUserData)
 }
 void StandClipPlaybackSpeedChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -460,6 +467,7 @@ void StandClipPlaybackSpeedChangeCallback(void* pUserData)
 }
 void SetStandClipJointsWeightWithUIValues(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     gStandClipMask.DisableAllJoints();
     gStandClipMask.SetAllChildrenOf(gUIData.mUpperBodyJointIndex, gUIData.mPartialBlendingParams.mStandJointsWeight);
 }
@@ -478,6 +486,7 @@ void StandClipJointsWeightCallback(void* pUserData)
 }
 void StandClipWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
     {
@@ -498,6 +507,7 @@ void StandClipWeightCallback(void* pUserData)
 // WalkClip Callbacks
 void WalkClipPlayCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -514,6 +524,7 @@ void WalkClipPlayCallback(void* pUserData)
 }
 void WalkClipLoopCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -530,6 +541,7 @@ void WalkClipLoopCallback(void* pUserData)
 }
 void WalkClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -543,6 +555,7 @@ void WalkClipTimeChangeCallback(void* pUserData)
 }
 void WalkClipPlaybackSpeedChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -564,6 +577,7 @@ void SetWalkClipJointsWeightWithUIValues()
 }
 void WalkClipJointsWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -577,6 +591,7 @@ void WalkClipJointsWeightCallback(void* pUserData)
 }
 void WalkClipWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
     {
@@ -612,6 +627,7 @@ void WalkClipWeightCallback(void* pUserData)
 // JogClip Callbacks
 void JogClipPlayCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -628,6 +644,7 @@ void JogClipPlayCallback(void* pUserData)
 }
 void JogClipLoopCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -644,6 +661,7 @@ void JogClipLoopCallback(void* pUserData)
 }
 void JogClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -657,6 +675,7 @@ void JogClipTimeChangeCallback(void* pUserData)
 }
 void JogClipPlaybackSpeedChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -673,6 +692,7 @@ void JogClipPlaybackSpeedChangeCallback(void* pUserData)
 }
 void JogClipJointsWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
     {
@@ -685,6 +705,7 @@ void JogClipJointsWeightCallback(void* pUserData)
 }
 void JogClipWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
     {
@@ -708,6 +729,7 @@ void JogClipWeightCallback(void* pUserData)
 // RunClip Callbacks
 void RunClipPlayCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -724,6 +746,7 @@ void RunClipPlayCallback(void* pUserData)
 }
 void RunClipLoopCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -740,6 +763,7 @@ void RunClipLoopCallback(void* pUserData)
 }
 void RunClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -753,6 +777,7 @@ void RunClipTimeChangeCallback(void* pUserData)
 }
 void RunClipPlaybackSpeedChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -769,6 +794,7 @@ void RunClipPlaybackSpeedChangeCallback(void* pUserData)
 }
 void RunClipWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
     {
@@ -792,6 +818,7 @@ void RunClipWeightCallback(void* pUserData)
 // NeckClip Callbacks
 void NeckClipPlayCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -808,6 +835,7 @@ void NeckClipPlayCallback(void* pUserData)
 }
 void NeckClipLoopCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -824,6 +852,7 @@ void NeckClipLoopCallback(void* pUserData)
 }
 void NeckCrackClipTimeChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     for (size_t i = 0; i < gNumRigs; i++)
     {
         gNeckCrackClipController[i].SetTimeRatioHard(gUIData.mNeckCrackClip.mAnimationTime);
@@ -831,6 +860,7 @@ void NeckCrackClipTimeChangeCallback(void* pUserData)
 }
 void NeckClipPlaybackSpeedChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
         (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
         (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
@@ -852,6 +882,7 @@ void SetNeckCrackClipJointsWeightWithUIValues()
 }
 void NeckCrackClipJointsWeightCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (gUIData.mUpperBodyMask.mEnableMask)
     {
         SetNeckCrackClipJointsWeightWithUIValues();
@@ -861,6 +892,7 @@ void NeckCrackClipJointsWeightCallback(void* pUserData)
 // When the mask is enabled and disabled
 void EnableMaskCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (gUIData.mUpperBodyMask.mEnableMask)
     {
         SetNeckCrackClipJointsWeightWithUIValues();
@@ -985,6 +1017,7 @@ void ResetAnimations()
 
 void RunAnimation(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     // this resets all values to the defaults
     ResetAnimations();
 
@@ -1003,6 +1036,7 @@ void RunAnimation(void* pUserData)
 
 void RandomTimeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     for (size_t i = 0; i < gNumRigs; i++)
     {
         float randomTime = randomFloat(0.0f, 1.0f);
@@ -1012,6 +1046,7 @@ void RandomTimeCallback(void* pUserData)
 
 void ThresholdChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (gCurrentAnimationIndex == 1)
     {
         for (size_t i = 0; i < gNumRigs; i++)
@@ -1037,6 +1072,7 @@ void ThresholdChangeCallback(void* pUserData)
 
 void BlendRatioChangeCallback(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     for (size_t i = 0; i < gNumRigs; i++)
     {
         gAnimations[1][i].mBlendRatio = gUIData.mBlendingParams.mBlendRatio;
@@ -2401,6 +2437,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -2456,6 +2493,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -2816,7 +2854,7 @@ public:
 
     void Draw() override
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2959,11 +2997,11 @@ public:
         //// draw the object attached to the rig
         if (gUIData.mGeneralSettings.mDrawAttachedObject)
         {
-            const uint32_t stride = sizeof(float) * 6;
+            const uint32_t strideVb = sizeof(float) * 6;
             cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Cuboid");
             cmdBindPipeline(cmd, pCubePipeline);
             cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSet);
-            cmdBindVertexBuffer(cmd, 1, &pCuboidVertexBuffer, &stride, NULL);
+            cmdBindVertexBuffer(cmd, 1, &pCuboidVertexBuffer, &strideVb, NULL);
             cmdDrawInstanced(cmd, gNumberOfCuboidPoints / 6, 0, 1, 0);
             cmdEndDebugMarker(cmd);
         }
@@ -3018,7 +3056,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;

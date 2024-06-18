@@ -179,8 +179,8 @@ bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port)
 
     // IPV6 addresses contain `:`, and IPV4 addresses do not
     // If no host is provided, then we default to IPV4
-    int hasColon = host && host > SOCKET_HOST_ANY6 && memchr(host, ':', strnlen(host, SOCKET_HOST_MAX_SIZE));
-    int family = (host == SOCKET_HOST_ANY6 || hasColon) ? AF_INET6 : AF_INET;
+    int     hasColon = host && host > SOCKET_HOST_ANY6 && memchr(host, ':', strnlen(host, SOCKET_HOST_MAX_SIZE));
+    int16_t family = (host == SOCKET_HOST_ANY6 || hasColon) ? AF_INET6 : AF_INET;
 
     *addrPSaFamily(addr) = family;
     *addrPSinPort(addr) = htons(port);
@@ -210,7 +210,6 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
     memset(addr, 0, sizeof(SocketAddr));
 
     bool             success = true;
-    struct hostent*  remoteHost = NULL;
     struct addrinfo* result;
 
     int family = AF_INET;
@@ -218,7 +217,7 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
     if (hostname == 0)
     {
         // Just set the family and port
-        *addrPSaFamily(addr) = family;
+        *addrPSaFamily(addr) = (int16_t)family;
         *addrPSinPort(addr) = htons(port);
         return true;
     }
@@ -241,7 +240,7 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
     {
         family = result->ai_family;
 
-        *addrPSaFamily(addr) = family;
+        *addrPSaFamily(addr) = (int16_t)family;
         *addrPSinPort(addr) = ((struct sockaddr_in*)result->ai_addr)->sin_port;
 
         // IPV6 requires we initialize wildcard addresses with `in6addr_any`

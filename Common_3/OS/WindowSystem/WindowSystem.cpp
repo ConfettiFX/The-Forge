@@ -84,24 +84,35 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 
 void wndSetWindowed(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     setWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
-void wndSetFullscreen(void* pUserData) { setFullscreen(pWindowRef); }
+void wndSetFullscreen(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    setFullscreen(pWindowRef);
+}
 
 void wndSetBorderless(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     setBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
 void wndMaximizeWindow(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     WindowDesc* pWindow = pWindowRef;
 
     maximizeWindow(pWindow);
 }
 
-void wndMinimizeWindow(void* pUserData) { pWindowRef->mMinimizeRequested = true; }
+void wndMinimizeWindow(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    pWindowRef->mMinimizeRequested = true;
+}
 
 void wndHideWindow()
 {
@@ -119,6 +130,7 @@ void wndShowWindow()
 
 void wndUpdateResolution(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     uint32_t monitorCount = getMonitorCount();
     for (uint32_t i = 0; i < monitorCount; ++i)
     {
@@ -179,6 +191,7 @@ void wndShowCursor()
 
 void wndUpdateCaptureCursor(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
 #ifdef ENABLE_FORGE_INPUT
     setEnableCaptureInput(pWindowRef->mCursorCaptured);
 #endif
@@ -187,6 +200,7 @@ void wndUpdateCaptureCursor(void* pUserData)
 #if defined(AUTOMATED_TESTING)
 void wndTakeScreenshot(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     char screenShotName[256];
     snprintf(screenShotName, sizeof(screenShotName), "%s_%s", gAppName, gScriptNameBuffer);
 

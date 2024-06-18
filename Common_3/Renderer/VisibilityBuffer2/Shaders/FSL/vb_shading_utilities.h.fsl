@@ -247,6 +247,11 @@ uint64_t packDepthVBId(float depth, uint vbID)
 
 void unpackDepthVBId(uint64_t packedU64, out(float) depth, out(uint) vbID)
 {
-	depth = asfloat(uint(packedU64 >> 32));
+#if defined(PROSPERO)
+	uint shifted = asuint(packedU64 >> 32);
+#else
+	uint shifted = uint(packedU64 >> 32);
+#endif
+	depth = asfloat(shifted);
 	vbID = uint(packedU64);
 }

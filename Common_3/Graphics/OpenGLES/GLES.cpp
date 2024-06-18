@@ -969,6 +969,8 @@ DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTe
 #if defined(VULKAN) && defined(ANDROID)
 #include "../../../Common_3/Graphics/ThirdParty/OpenSource/volk/volk.h"
 
+extern VkAllocationCallbacks* GetAllocationCallbacks(VkObjectType objType);
+
 // temporarily initializes vulkan to verify that gpu is whitelisted
 static bool verifyGPU()
 {

@@ -65,6 +65,7 @@ void updateCamera(GamePlugin* plugin, float deltaTime)
 
 void updateWorldBounds(WorldBoundsComponent* pWorldBounds, float deltaTime)
 {
+    UNREF_PARAM(deltaTime);
     const float screenSizeX = 20.f;
     const float screenSizeY = 20.f;
 
@@ -101,6 +102,8 @@ void updateWorldBounds(WorldBoundsComponent* pWorldBounds, float deltaTime)
 
 void updateSprite(SpriteComponent* sprite, float deltaTime)
 {
+    UNREF_PARAM(sprite);
+    UNREF_PARAM(deltaTime);
     // TRY_CODE_RELOAD
     // Enable to see all sprites rotate!
     // You can also change the rotation speed
@@ -142,10 +145,15 @@ int onCodeUnload(struct cr_plugin* ctx)
     return 0;
 }
 
-int onCodeClose(struct cr_plugin* ctx) { return 0; }
+int onCodeClose(struct cr_plugin* ctx)
+{
+    UNREF_PARAM(ctx);
+    return 0;
+}
 
 int onCodeUpdate(struct cr_plugin* ctx)
 {
+    UNREF_PARAM(ctx);
     // GamePlugin* gamePlugin = (GamePlugin*)ctx->userdata;
 
     return 0;

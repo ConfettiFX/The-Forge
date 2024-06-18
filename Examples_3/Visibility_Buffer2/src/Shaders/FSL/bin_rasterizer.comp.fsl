@@ -24,7 +24,7 @@
 
 
 #include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "triangle_binning.h.fsl"
 

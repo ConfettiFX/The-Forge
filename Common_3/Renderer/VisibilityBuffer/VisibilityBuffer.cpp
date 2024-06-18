@@ -22,6 +22,7 @@
  * under the License.
  */
 
+#include "../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../Common_3/Graphics/Interfaces/IGraphics.h"
 #include "../../../Common_3/Utilities/Interfaces/ILog.h"
@@ -30,7 +31,6 @@
 
 #include "../../../Common_3/Utilities/RingBuffer.h"
 
-#define NO_FSL_DEFINITIONS
 #include "../VisibilityBuffer/Shaders/FSL/vb_structs.h.fsl"
 
 #include "../../../Common_3/Utilities/Interfaces/IMemory.h"
@@ -94,6 +94,7 @@ static void DispatchPreSkinVertexes(Cmd* pCmd, PreSkinBatchChunk* pBatchChunk, D
 
 PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, PreSkinVertexesPassDesc* pDesc)
 {
+    UNREF_PARAM(pVisibilityBuffer);
     ASSERT(gVBSettings.mEnablePreSkinPass);
     ASSERT(gVBSettings.mPreSkinBatchSize > 0);
     ASSERT(gVBSettings.mPreSkinBatchCount > 0);
@@ -279,6 +280,7 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
 static void addPreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACVertexBuffersDesc* pDesc, ResourceHeap* pHeap, uint64_t heapOffset,
                                       uint64_t vbSize, PreSkinACAliasedBuffer* pOut, uint32_t attrStride, const char* pPreSkinBufferName)
 {
+    UNREF_PARAM(pRenderer);
     // Placement for the VertexBuffers
     pOut->mVBSize = vbSize;
     pOut->mVBPlacement.pHeap = pHeap;
@@ -320,6 +322,7 @@ static void addPreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACVertexBuffer
 
 static void removePreSkinACAliasedBuffer(Renderer* pRenderer, PreSkinACAliasedBuffer* pBuffers)
 {
+    UNREF_PARAM(pRenderer);
     for (uint32_t i = 0; i < gVBSettings.mNumBuffers; ++i)
         removeResource(pBuffers->pPreSkinBuffers[i]);
 }

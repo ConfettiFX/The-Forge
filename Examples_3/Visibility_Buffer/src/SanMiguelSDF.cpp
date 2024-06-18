@@ -31,6 +31,7 @@
 void loadBakedSDFData(SDFMesh* outMesh, uint32_t startIdx, bool generateSDFVolumeData, SDFVolumeData** sdfVolumeInstances,
                       GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 {
+    UNREF_PARAM(generateSDFVolumeData);
     uint32_t idxFirstMeshInGroup = 0;
 
     // for each submesh group.

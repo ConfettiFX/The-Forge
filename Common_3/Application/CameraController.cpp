@@ -281,10 +281,10 @@ public:
         moveTo(startPosition);
         lookAt(startLookAt);
     }
-    void onMove(const float2& vec) override {}
-    void onMoveY(float y) override {}
-    void onRotate(const float2& vec) override {}
-    void onZoom(const float2& vec) override {}
+    void onMove(const float2& vec) override { UNREF_PARAM(vec); }
+    void onMoveY(float y) override { UNREF_PARAM(y); }
+    void onRotate(const float2& vec) override { UNREF_PARAM(vec); }
+    void onZoom(const float2& vec) override { UNREF_PARAM(vec); }
 
     // We put viewRotation at first becuase viewPosition is 16 bytes aligned. We have vtable pointer 8 bytes + vec2(8 bytes). This avoids
     // unnecessary padding.
@@ -321,8 +321,6 @@ CameraMatrix::CameraMatrix(const CameraMatrix& mat)
     mRightEye = mat.mRightEye;
 #endif
 }
-
-mat4 CameraMatrix::getPrimaryMatrix() const { return mCamera; }
 
 void CameraMatrix::applyProjectionSampleOffset(float xOffset, float yOffset)
 {

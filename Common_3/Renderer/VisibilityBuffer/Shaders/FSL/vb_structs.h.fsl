@@ -25,7 +25,7 @@
 #ifndef _VB_STRUCTS_H
 #define _VB_STRUCTS_H
 
-#ifdef NO_FSL_DEFINITIONS
+#if !defined(__fsl)
 	#define STATIC static
 	#define STRUCT(NAME) struct NAME
 	#define DATA(TYPE, NAME, SEM) TYPE NAME
@@ -95,15 +95,23 @@ STRUCT(CullingViewPort)
 	DATA(uint,   _pad0,       None);
 };
 
+#if defined(__fsl)
+struct CameraMatrix
+{
+#if defined(TARGET_QUEST)
+	float4x4 mat[2];
+#else
+	float4x4 mat;
+#endif
+};
+#endif
+
 STRUCT(Transform)
 {
-	DATA(float4x4, mvp, None);
-	DATA(float4x4, invVP, None);
-	DATA(float4x4, vp, None);
-	DATA(float4x4, view, None);
-	DATA(float4x4, projection, None);
-	DATA(float2, cameraPlane, None); //x : near, y : far
-    DATA(float2, _pad0, None);
+	DATA(CameraMatrix, vp, None);
+	DATA(CameraMatrix, mvp, None);
+	DATA(CameraMatrix, projection, None);
+	DATA(CameraMatrix, invVP, None);
 };
 
 STRUCT(VBConstants)

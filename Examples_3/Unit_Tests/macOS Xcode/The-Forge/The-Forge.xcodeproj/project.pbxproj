@@ -104,6 +104,8 @@
 		5C55830C21413D550019960B /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C55831121413D550019960B /* Timer.c in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.c */; };
 		5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */; };
+		641F524F2AE66819005B8EC1 /* ParticleSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */; };
+		641F52992AE6796E005B8EC1 /* ParticleSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */; };
 		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
@@ -413,6 +415,18 @@
 		5C5582E021413D180019960B /* libThe-Forge.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libThe-Forge.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CABF32C214151F500EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalAvailabilityMacros.h; path = ../Graphics/Metal/MetalAvailabilityMacros.h; sourceTree = "<group>"; };
+		641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ParticleSystem.cpp; path = ../../Renderer/ParticleSystem/ParticleSystem.cpp; sourceTree = "<group>"; };
+		641F52E12AE68DB6005B8EC1 /* particle.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle.frag.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle.frag.fsl; sourceTree = "<group>"; };
+		641F52E22AE68DB6005B8EC1 /* particle_sets.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_sets.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_sets.h.fsl; sourceTree = "<group>"; };
+		641F52E32AE68DB6005B8EC1 /* particle_random.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_random.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_random.h.fsl; sourceTree = "<group>"; };
+		641F52E42AE68DB6005B8EC1 /* particle_boids.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_boids.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_boids.h.fsl; sourceTree = "<group>"; };
+		641F52E52AE68DB6005B8EC1 /* particle_shared.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_shared.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_shared.h.fsl; sourceTree = "<group>"; };
+		641F52E72AE68DB6005B8EC1 /* particle_utils.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_utils.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_utils.h.fsl; sourceTree = "<group>"; };
+		641F52E82AE68DB6005B8EC1 /* particle.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle.vert.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle.vert.fsl; sourceTree = "<group>"; };
+		641F52E92AE68DB6005B8EC1 /* particle_packing.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_packing.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_packing.h.fsl; sourceTree = "<group>"; };
+		641F52EA2AE68DB6005B8EC1 /* particle_defs.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_defs.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_defs.h.fsl; sourceTree = "<group>"; };
+		641F52EB2AE68DB6005B8EC1 /* particle_simulate.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_simulate.comp.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl; sourceTree = "<group>"; };
+		641F52ED2AE68DB6005B8EC1 /* particle_clear_sorting_structs.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_clear_sorting_structs.comp.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_clear_sorting_structs.comp.fsl; sourceTree = "<group>"; };
 		650E6C1F21667E2C00F511AB /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
 		650E6C2021667E2D00F511AB /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		650E6C2121667E2D00F511AB /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
@@ -717,6 +731,33 @@
 				5C32AEDE246453F40066E921 /* ParallelPrimitives.h */,
 			);
 			name = ParallelPrimitives;
+			sourceTree = "<group>";
+		};
+		641F524D2AE66809005B8EC1 /* ParticleSystem */ = {
+			isa = PBXGroup;
+			children = (
+				641F52502AE66825005B8EC1 /* Shaders */,
+				641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */,
+			);
+			path = ParticleSystem;
+			sourceTree = "<group>";
+		};
+		641F52502AE66825005B8EC1 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				641F52E42AE68DB6005B8EC1 /* particle_boids.h.fsl */,
+				641F52ED2AE68DB6005B8EC1 /* particle_clear_sorting_structs.comp.fsl */,
+				641F52E92AE68DB6005B8EC1 /* particle_packing.h.fsl */,
+				641F52E22AE68DB6005B8EC1 /* particle_sets.h.fsl */,
+				641F52E72AE68DB6005B8EC1 /* particle_utils.h.fsl */,
+				641F52EA2AE68DB6005B8EC1 /* particle_defs.h.fsl */,
+				641F52E32AE68DB6005B8EC1 /* particle_random.h.fsl */,
+				641F52E52AE68DB6005B8EC1 /* particle_shared.h.fsl */,
+				641F52EB2AE68DB6005B8EC1 /* particle_simulate.comp.fsl */,
+				641F52E12AE68DB6005B8EC1 /* particle.frag.fsl */,
+				641F52E82AE68DB6005B8EC1 /* particle.vert.fsl */,
+			);
+			path = Shaders;
 			sourceTree = "<group>";
 		};
 		654D978521E922C800113964 /* Animation */ = {
@@ -1188,6 +1229,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				641F524D2AE66809005B8EC1 /* ParticleSystem */,
 				E6B91E702B71BC730041B100 /* apple_gpu.data */,
 				B2D10F85299A49040089617D /* ShaderUtilities.h.fsl */,
 				EDA02B87291D01570067A459 /* IVisibilityBuffer.h */,
@@ -1493,6 +1535,8 @@
 				ACA65F0F2B63EF57001C0602 /* RemoteControl.cpp in Sources */,
 				B2FB4D6C28C273D70030DD9E /* impl_x86_macos.c in Sources */,
 				B23498BB2693B83600504010 /* lctype.c in Sources */,
+				641F52992AE6796E005B8EC1 /* ParticleSystem.cpp in Sources */,
+				B285F7FE276CA3FF00D015CE /* indexcodec.cpp in Sources */,
 				B23498A52693B83600504010 /* lfunc.c in Sources */,
 				B21B0D952876E2B700C0DB69 /* imgui_tables.cpp in Sources */,
 				B2DE327B27ACBD5300FB8676 /* WindowSystem.cpp in Sources */,
@@ -1656,6 +1700,10 @@
 				654D979F21E922F400113964 /* AnimatedObject.cpp in Sources */,
 				B23498CA2693B83600504010 /* ldo.c in Sources */,
 				B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */,
+				641F524F2AE66819005B8EC1 /* ParticleSystem.cpp in Sources */,
+				B285F7F9276CA3FF00D015CE /* vcacheoptimizer.cpp in Sources */,
+				B285F7F7276CA3FF00D015CE /* spatialorder.cpp in Sources */,
+				B285F810276CA3FF00D015CE /* vfetchoptimizer.cpp in Sources */,
 				B23498B62693B83600504010 /* lstring.c in Sources */,
 				B2432510287480BC00B1A081 /* GraphicsConfig.cpp in Sources */,
 				2683449C29783D9B00F4F318 /* zstd_decompress.c in Sources */,

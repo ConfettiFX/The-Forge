@@ -27,6 +27,9 @@ STRUCT(VSOutput)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, screenPos, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 // Vertex shader
@@ -42,5 +45,8 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 	result.position.y = (vertexId == 0 ? -3.0 : 1.0);
 	result.position.zw = float2(0, 1);
 	result.screenPos = result.position.xy;
+#if FT_MULTIVIEW
+	result.ViewID = VR_VIEW_ID;
+#endif
 	RETURN(result);
 }

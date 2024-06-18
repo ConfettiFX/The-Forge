@@ -28,7 +28,7 @@
 #define SHADOW_PCF 0
 #define SHADOW_ESM 1
 #define SHADOW SHADOW_PCF
-#ifdef TARGET_ANDROID
+#if defined(TARGET_ANDROID) || defined(TARGET_QUEST)
 // GPU hang with 32 samples
 #define NUM_SHADOW_SAMPLES 16
 #else
@@ -239,16 +239,24 @@ float sampleDepth(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
+#if FT_MULTIVIEW
+	Tex2DArray(float) pDepthTex,
+#else
 	Tex2D(float) pDepthTex,
-#endif
-	SamplerState samplerState)
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/	
+SamplerState samplerState)
 {
 #if SAMPLE_COUNT > 1
 	uint2 loc = uint2(texCoord * rtSize);
 	return LoadTex2DMS(pDepthTex, samplerState, loc, 0).x;
 #else
+#if FT_MULTIVIEW
+	return SampleLvlTex2DArray(pDepthTex, samplerState, float3(texCoord, 0), 0).x;
+#else
 	return SampleLvlTex2D(pDepthTex, samplerState, texCoord, 0).x;
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/	
 }
 
 // Camera space position reconstruction from depth
@@ -285,11 +293,16 @@ float3 reconstructNormalCS(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
+#if FT_MULTIVIEW
+	Tex2DArray(float) pDepthTex,
+#else
 	Tex2D(float) pDepthTex,
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/
 	SamplerState samplerState)
 {
-	float c0 = sampleDepth(rtSize, texCoord, pDepthTex, samplerState);
+
+	float c0 = sampleDepth(rtSize, texCoord, pDepthTex,  samplerState);
 	float l1 = sampleDepth(rtSize, texCoord + float2(-1.0f * invRTSize.x, 0.0f), pDepthTex, samplerState);
 	float l2 = sampleDepth(rtSize, texCoord + float2(-2.0f * invRTSize.x, 0.0f), pDepthTex, samplerState);
 	float r1 = sampleDepth(rtSize, texCoord + float2(1.0f * invRTSize.x, 0.0f), pDepthTex, samplerState);
@@ -322,9 +335,13 @@ float4 gatherDepthSamples(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
+#if FT_MULTIVIEW
+	Tex2DArray(float) pDepthTex,
+#else
 	Tex2D(float) pDepthTex,
-#endif
-	SamplerState samplerState)
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/	
+SamplerState samplerState)
 {
     float4 f4Ret = f4(0);
 
@@ -335,8 +352,12 @@ float4 gatherDepthSamples(
     f4Ret.z = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(1,0), 0).x;
     f4Ret.w = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(0,0), 0).x;
 #else
+#if FT_MULTIVIEW
+	f4Ret = GatherRedTex3D(pDepthTex, samplerState, float3(texCoord, 0));
+#else
     f4Ret = GatherRedTex2D(pDepthTex, samplerState, texCoord);
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/	
 
     return f4Ret;
 }
@@ -400,8 +421,12 @@ float calculateAoContrib(
 #if(SAMPLE_COUNT > 1)
 	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
 #else
+#if FT_MULTIVIEW
+	Tex2DArray(float) pDepthTex,
+#else
 	Tex2D(float) pDepthTex,
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/
 	SamplerState samplerState)
 {
 	if (aoQuality == 0)

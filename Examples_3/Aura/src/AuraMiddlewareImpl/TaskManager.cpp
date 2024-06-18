@@ -160,6 +160,8 @@ void TaskManager::Shutdown()
 bool TaskManager::CreateTaskSet(uint32_t uGroup, TASKSETFUNC pFunc, void* pArg, uint32_t uTaskCount, TASKSETHANDLE* pInDepends,
                                 uint32_t uInDepends, const char* szSetName, TASKSETHANDLE* pOutHandle)
 {
+    UNREF_PARAM(szSetName);
+    UNREF_PARAM(szSetName);
     TASKSETHANDLE  hSet;
     TASKSETHANDLE  hSetParent = TASKSETHANDLE_INVALID;
     TASKSETHANDLE* pDepends = pInDepends;
@@ -304,12 +306,12 @@ void TaskManager::WaitForSet(TASKSETHANDLE hSet)
     //  deadlock if waited on again.
     if (!mSets[hSet]->mbHasBeenWaitedOn)
     {
-        mScheduler.WaitGroup(mSets[hSet]->mTaskGroup, -1);
+        mScheduler.WaitGroup(mSets[hSet]->mTaskGroup, (uint32_t)-1);
         mSets[hSet]->mbHasBeenWaitedOn = true;
     }
 }
 
-void TaskManager::WaitAll() { mScheduler.WaitAll(-1); }
+void TaskManager::WaitAll() { mScheduler.WaitAll((uint32_t)-1); }
 
 TASKSETHANDLE
 TaskManager::AllocateTaskSet()

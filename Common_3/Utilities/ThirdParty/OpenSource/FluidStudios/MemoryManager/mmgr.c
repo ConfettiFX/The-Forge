@@ -196,8 +196,7 @@ static const unsigned int paddingSize = 4;
     __debugbreak()
 #else
 #define m_assert(x)   \
-    if ((x) == false) \
-    __debugbreak()
+    x ? (void)0 : __debugbreak();
 #endif
 #elif defined(__BEOS__)
 #ifdef DEBUG
@@ -276,9 +275,9 @@ static sAllocUnit*  reservoir;
 static unsigned int currentAllocationCount = 0;
 static unsigned int breakOnAllocationCount = 0;
 static sMStats      stats;
-static const char*  sourceFile = "??";
-static const char*  sourceFunc = "??";
-static unsigned int sourceLine = 0;
+static const char*  gSourceFile = "??";
+static const char*  gSourceFunc = "??";
+static unsigned int gSourceLine = 0;
 static sAllocUnit** reservoirBuffer = NULL;
 static unsigned int reservoirBufferSize = 0;
 // static const char*  memoryLogFile = "memory.log";
@@ -1073,20 +1072,21 @@ void mmgrSetOwner(const char* file, const unsigned int line, const char* func)
     //
     // Thanks to J. Woznack (from Kodiak Interactive Software Studios -- www.kodiakgames.com) for pointing this out.
 
-    if (sourceLine && alwaysLogAll)
+    if (gSourceLine && alwaysLogAll)
     {
-        Log("[I] NOTE! Possible destructor chain: previous owner is %s", ownerString(sourceFile, sourceLine, sourceFunc));
+        Log("[I] NOTE! Possible destructor chain: previous owner is %s", ownerString(gSourceFile, gSourceLine, gSourceFunc));
     }
 
     // Okay... save this stuff off so we can keep track of the caller
 
-    sourceFile = file;
-    sourceLine = line;
-    sourceFunc = func;
+    gSourceFile = file;
+    gSourceLine = line;
+    gSourceFunc = func;
 }
 
 void memSetStackSkipCount(int stackDepth)
 {
+    UNREF_PARAM(stackDepth); 
 #if MMGR_BACKTRACE
     // Only set if another call hasn't set this previously
     if (!stackSkipCount)
@@ -1100,9 +1100,9 @@ void memSetStackSkipCount(int stackDepth)
 
 static void resetGlobals(void)
 {
-    sourceFile = "??";
-    sourceLine = 0;
-    sourceFunc = "??";
+    gSourceFile = "??";
+    gSourceLine = 0;
+    gSourceFunc = "??";
 
 #if MMGR_BACKTRACE
     stackSkipCount = 0;
@@ -1510,8 +1510,8 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
         if (offset != au->offset)
         {
             // Copy old data
-            size_t minReportedSize = oldReportedSize < reportedSize ? oldReportedSize : reportedSize;
-            memcpy(au->reportedAddress, oldData, minReportedSize);
+            size_t size = oldReportedSize < reportedSize ? oldReportedSize : reportedSize;
+            memcpy(au->reportedAddress, oldData, size);
             au->offset = offset;
         }
 
@@ -1544,7 +1544,7 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
         {
             // Remove this allocation unit from the hash table
             {
-                size_t hashIndex = (((size_t)oldReportedAddress) >> 4) & (hashSize - 1);
+                hashIndex = (((size_t)oldReportedAddress) >> 4) & (hashSize - 1);
                 if (hashTable[hashIndex] == au)
                 {
                     hashTable[hashIndex] = hashTable[hashIndex]->next;

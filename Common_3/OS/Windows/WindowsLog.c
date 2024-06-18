@@ -89,7 +89,7 @@ void _FailedAssertImpl(const char* file, int line, const char* statement, const 
         }
 
         const HWND hwnd = (gLogWindowHandle && isMainThread()) ? *gLogWindowHandle : NULL;
-
+        UNREF_PARAM(hwnd);
 #ifndef AUTOMATED_TESTING
         if (IsDebuggerPresent())
         {

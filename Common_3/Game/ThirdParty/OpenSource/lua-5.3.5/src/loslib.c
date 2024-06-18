@@ -306,7 +306,9 @@ static const char *checkoption (lua_State *L, const char *conv,
   }
   luaL_argerror(L, 1,
     lua_pushfstring(L, "invalid conversion specifier '%%%s'", conv));
+#if !defined(NDEBUG) || defined(__clang__) || defined(__GNUC__)
   return conv;  /* to avoid warnings */
+#endif
 }
 
 

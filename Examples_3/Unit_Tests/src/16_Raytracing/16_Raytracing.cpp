@@ -83,6 +83,7 @@ struct PropData
 };
 
 PropData SanMiguelProp;
+Scene*   pScene;
 
 uint32_t gFontID = 0;
 
@@ -247,7 +248,6 @@ public:
         uiCreateDynamicWidgets(&mDynamicWidgets[0], "Raytracing technique is not supported on this GPU", &notSupportedLabel,
                                WIDGET_TYPE_LABEL);
 
-        Scene* pScene = NULL;
         if (gRaytracingTechniqueSupported[RAY_QUERY])
         {
             SliderFloatWidget lightDirXSlider;
@@ -308,7 +308,7 @@ public:
             GeometryLoadDesc loadDesc = {};
             loadDesc.pVertexLayout = &vertexLayout;
             loadDesc.mFlags = GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT;
-            pScene = loadSanMiguel(&loadDesc, token, false);
+            pScene = initSanMiguel(&loadDesc, token, false);
 
             SanMiguelProp.mMaterialCount = pScene->geom->mDrawArgCount;
             SanMiguelProp.pGeom = pScene->geom;
@@ -336,13 +336,15 @@ public:
 
             for (uint32_t i = 0; i < SanMiguelProp.mMaterialCount; ++i)
             {
-                TextureLoadDesc desc = {};
-                desc.pFileName = pScene->textures[i];
-                desc.ppTexture = &SanMiguelProp.pTextureStorage[i];
+                TextureLoadDesc texDesc = {};
+                texDesc.pFileName = pScene->textures[i];
+                texDesc.ppTexture = &SanMiguelProp.pTextureStorage[i];
                 // Textures representing color should be stored in SRGB or HDR format
-                desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
-                addResource(&desc, NULL);
+                texDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+                addResource(&texDesc, NULL);
             }
+
+            waitForAllResourceLoads();
 
             /************************************************************************/
             // Raytracing setup
@@ -488,6 +490,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -543,6 +546,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -554,13 +558,6 @@ public:
         mFrameIdx = 0;
 
         waitForAllResourceLoads();
-
-        if (pScene)
-        {
-            removeResource(pScene->geomData);
-            pScene->geomData = NULL;
-            unloadSanMiguel(pScene);
-        }
 
         return true;
     }
@@ -579,6 +576,13 @@ public:
         exitUserInterface();
 
         exitFontSystem();
+
+        if (pScene)
+        {
+            removeResource(pScene->geomData);
+            pScene->geomData = NULL;
+            exitSanMiguel(pScene);
+        }
 
         if (gRaytracingTechniqueSupported[RAY_QUERY])
         {
@@ -803,7 +807,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1054,7 +1058,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;
@@ -1387,10 +1391,10 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData params[1] = {};
-                params[0].pName = "gSettings";
-                params[0].ppBuffers = &pRayGenConfigBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms[t], 1, params);
+                DescriptorData uParams[1] = {};
+                uParams[0].pName = "gSettings";
+                uParams[0].ppBuffers = &pRayGenConfigBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms[t], 1, uParams);
             }
         }
 

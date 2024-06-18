@@ -826,8 +826,8 @@ namespace MT
 
 	bool TaskScheduler::IsWorkerThread() const
 	{
-		int32 threadsCount = GetWorkersCount();
-		for (int32 i = 0; i < threadsCount; i++)
+		int32 workersCount = GetWorkersCount();
+		for (int32 i = 0; i < workersCount ; i++)
 		{
 			if (threadContext[i].threadId.IsEqual(ThreadId::Self()))
 			{

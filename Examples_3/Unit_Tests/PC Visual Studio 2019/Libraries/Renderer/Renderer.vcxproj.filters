@@ -2,28 +2,31 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Graphics">
-      <UniqueIdentifier>{bbe65c2b-4c19-4b25-a6b2-44dd24a64803}</UniqueIdentifier>
+      <UniqueIdentifier>{46a614b4-24fa-47df-96ab-557a2457a6b9}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\Direct3D11">
-      <UniqueIdentifier>{54a318b5-440b-466a-9492-c0a205ad581f}</UniqueIdentifier>
+      <UniqueIdentifier>{984c26a0-92d9-4e68-a066-21830857fa52}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\Direct3D12">
-      <UniqueIdentifier>{1a5f6b1c-c780-4453-91c3-090d41f6819a}</UniqueIdentifier>
+      <UniqueIdentifier>{a5df5e4b-d6a0-478f-84bd-1a4014d0d7c7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\Vulkan">
-      <UniqueIdentifier>{812cc3a5-aab2-42f6-b1d8-82ab4c16cef7}</UniqueIdentifier>
+      <UniqueIdentifier>{54215b11-2c59-4cc5-aa48-ceae5b26158d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Renderer\VisibilityBuffer">
-      <UniqueIdentifier>{a7b826e6-b691-446a-beb8-602d92d3416e}</UniqueIdentifier>
+    <Filter Include="Renderer\ParticleSystem">
+      <UniqueIdentifier>{38bed0f8-5081-411f-a5ce-bad082260097}</UniqueIdentifier>
     </Filter>
     <Filter Include="Renderer">
-      <UniqueIdentifier>{e54f1672-a52f-4a40-b679-41bb637dbd4e}</UniqueIdentifier>
+      <UniqueIdentifier>{cf297b59-ef37-45ed-bf54-e0a2cff4655f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\VisibilityBuffer">
+      <UniqueIdentifier>{9b69ba04-b4e8-4536-9095-1c3ab7169a3b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\ResourceLoader">
-      <UniqueIdentifier>{288ebe25-9d17-4b7d-9e68-404d7cc31e34}</UniqueIdentifier>
+      <UniqueIdentifier>{714a6e19-3aa3-4e62-8106-f13a2b7bf482}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources">
-      <UniqueIdentifier>{fada182c-3c20-4d5c-aed2-d56d0ce4180e}</UniqueIdentifier>
+      <UniqueIdentifier>{797cd6a4-06a9-4cc4-b956-b6469f3d825c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Tools\Network">
       <UniqueIdentifier>{0448af72-9b85-4820-bdc4-adc964493500}</UniqueIdentifier>
@@ -35,34 +38,37 @@
       <UniqueIdentifier>{29d1ed1f-3cdb-4ee9-b899-0e84f432f2a2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\Interfaces">
-      <UniqueIdentifier>{30c490e4-aa55-4620-800d-9ae607301f9d}</UniqueIdentifier>
+      <UniqueIdentifier>{6c91134f-2873-4a32-b5ed-7dbbeca74fa7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty\OpenSource\ags">
-      <UniqueIdentifier>{d5180583-31ae-4056-88a0-b7902c1ff551}</UniqueIdentifier>
+      <UniqueIdentifier>{fb51f5be-8a6e-408f-ad57-63585e8173d4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty\OpenSource">
-      <UniqueIdentifier>{a04a9320-74b7-4d48-a268-a67b80d2b5e2}</UniqueIdentifier>
+      <UniqueIdentifier>{6fd08a4a-0c0c-42bf-a529-46fceb016d0e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty">
-      <UniqueIdentifier>{b0193e30-5424-4a17-8029-b58f6bd6b04f}</UniqueIdentifier>
+      <UniqueIdentifier>{21dedcd9-e45f-4c51-b174-5ea2368a86fd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty\OpenSource\nvapi">
-      <UniqueIdentifier>{198c19e5-1ec6-4af4-a8ac-c43e744d072a}</UniqueIdentifier>
+      <UniqueIdentifier>{ed8dc9a0-e459-4028-8af1-10d3181253a5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator">
-      <UniqueIdentifier>{1894ed84-87c3-43b7-9e7d-63ea1e219567}</UniqueIdentifier>
+      <UniqueIdentifier>{62f8c0df-fc1f-43f3-be2a-097522c38690}</UniqueIdentifier>
     </Filter>
     <Filter Include="Renderer\Interfaces">
-      <UniqueIdentifier>{68b255f5-fc15-4e31-8743-6ee5c2996b60}</UniqueIdentifier>
+      <UniqueIdentifier>{e0d2fc00-d830-4cbe-99df-b72a4ab151b1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\ResourceLoader\Interfaces">
-      <UniqueIdentifier>{442a9b52-4095-49f7-a462-6aa6c24443c1}</UniqueIdentifier>
+      <UniqueIdentifier>{82e75121-045d-4d9c-ac54-08c74746b493}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\ParticleSystem\Shaders">
+      <UniqueIdentifier>{accd8527-ac08-4877-aea2-23451031acbe}</UniqueIdentifier>
     </Filter>
     <Filter Include="Renderer\VisibilityBuffer\Shaders\FSL">
-      <UniqueIdentifier>{07f8b7d0-1946-40aa-91f8-4d43d5c0ba59}</UniqueIdentifier>
+      <UniqueIdentifier>{c5e24b2c-e36d-4983-87c3-cebf61268c26}</UniqueIdentifier>
     </Filter>
     <Filter Include="Renderer\VisibilityBuffer\Shaders">
-      <UniqueIdentifier>{cdbed282-cd5c-4176-bf4a-1a617a600ee6}</UniqueIdentifier>
+      <UniqueIdentifier>{f6ab0fee-23e0-41ff-8392-712a02a51008}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -101,6 +107,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
       <Filter>Graphics\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\ParticleSystem.cpp">
+      <Filter>Renderer\ParticleSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp">
       <Filter>Renderer\VisibilityBuffer</Filter>
@@ -156,6 +165,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h">
       <Filter>Graphics\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IParticleSystem.h">
+      <Filter>Renderer\Interfaces</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer.h">
       <Filter>Renderer\Interfaces</Filter>
     </ClInclude>
@@ -171,6 +183,42 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
       <Filter>Tools\ReloadServer</Filter>
     </ClInclude>
+    <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl">
+      <Filter>Graphics</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_clear_sorting_structs.comp.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_utils.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>

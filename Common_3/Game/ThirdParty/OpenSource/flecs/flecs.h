@@ -8569,7 +8569,7 @@ void _ecs_parser_errorv(
 /** Check
  * goto error if condition is false. */
 #if defined(FLECS_NDEBUG) && !defined(FLECS_KEEP_ASSERT)
-#define ecs_check(condition, error_code, ...) ecs_dummy_check
+#define ecs_check(condition, error_code, ...)
 #else
 #ifdef FLECS_SOFT_ASSERT
 #define ecs_check(condition, error_code, ...)\
@@ -8578,15 +8578,14 @@ void _ecs_parser_errorv(
     }
 #else // FLECS_SOFT_ASSERT
 #define ecs_check(condition, error_code, ...)\
-    ecs_assert(condition, error_code, __VA_ARGS__);\
-    ecs_dummy_check
+    ecs_assert(condition, error_code, __VA_ARGS__)
 #endif
 #endif // FLECS_NDEBUG
 
 /** Panic
  * goto error when FLECS_SOFT_ASSERT is defined, otherwise abort */
 #if defined(FLECS_NDEBUG) && !defined(FLECS_KEEP_ASSERT)
-#define ecs_throw(error_code, ...) ecs_dummy_check
+#define ecs_throw(error_code, ...)
 #else
 #ifdef FLECS_SOFT_ASSERT
 #define ecs_throw(error_code, ...)\
@@ -8594,8 +8593,7 @@ void _ecs_parser_errorv(
     goto error;
 #else
 #define ecs_throw(error_code, ...)\
-    ecs_abort(error_code, __VA_ARGS__);\
-    ecs_dummy_check
+    ecs_abort(error_code, __VA_ARGS__)
 #endif
 #endif // FLECS_NDEBUG
 

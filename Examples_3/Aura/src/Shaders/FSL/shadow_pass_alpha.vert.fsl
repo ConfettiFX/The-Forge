@@ -28,7 +28,7 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 	if (materialID == CLOTH_ID)
 		vertexPos.xyz = WindTransformWorldPosition(vertexPos.xyz, Get(windData));
 
-	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, vertexPos);
+	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp.mat, vertexPos);
     Out.texCoord = LoadTexCoord(vertexID);
 	Out.materialID = materialID;
 

@@ -31,8 +31,8 @@
 #define BIN_SIZE      128u
 #define BIN_SIZE_LOG2 7u
 #define SUB_BIN_SIZE (BIN_SIZE >> 1u)
-#define TILE_COUNTX (RASTER_MAX_WIDTH >> BIN_SIZE_LOG2)
-#define TILE_COUNTY (RASTER_MAX_HEIGHT >> BIN_SIZE_LOG2)
+#define TILE_COUNTX (1 + (RASTER_MAX_WIDTH >> BIN_SIZE_LOG2))
+#define TILE_COUNTY (1 + (RASTER_MAX_HEIGHT >> BIN_SIZE_LOG2))
 
 
 // offset at which the tile data starts

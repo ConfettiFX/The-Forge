@@ -10,7 +10,7 @@
 #include "shadow_pass_alpha.frag.fsl"
 #end
 
-#vert FT_PRIM_ID visibilityBuffer_pass.vert
+#vert FT_PRIM_ID FT_MULTIVIEW visibilityBuffer_pass.vert
 #include "visibilityBuffer_pass.vert.fsl"
 #end
 
@@ -18,7 +18,7 @@
 #include "visibilityBuffer_pass.frag.fsl"
 #end
 
-#vert FT_PRIM_ID visibilityBuffer_pass_alpha.vert
+#vert FT_PRIM_ID FT_MULTIVIEW visibilityBuffer_pass_alpha.vert
 #include "visibilityBuffer_pass_alpha.vert.fsl"
 #end
 
@@ -42,21 +42,21 @@
 #include "cluster_lights.comp.fsl"
 #end
 
-#vert display.vert
+#vert FT_MULTIVIEW display.vert
 #include "display.vert.fsl"
 #end
 
-#frag godray_SAMPLE_COUNT_1.frag
+#frag FT_MULTIVIEW godray_SAMPLE_COUNT_1.frag
 #define SAMPLE_COUNT 1
 #include "godray.frag.fsl"
 #end
 
-#frag godray_SAMPLE_COUNT_2.frag
+#frag FT_MULTIVIEW godray_SAMPLE_COUNT_2.frag
 #define SAMPLE_COUNT 2
 #include "godray.frag.fsl"
 #end
 
-#frag godray_SAMPLE_COUNT_4.frag
+#frag FT_MULTIVIEW godray_SAMPLE_COUNT_4.frag
 #define SAMPLE_COUNT 4
 #include "godray.frag.fsl"
 #end
@@ -69,11 +69,11 @@
 #include "CurveConversion.frag.fsl"
 #end
 
-#frag display.frag
+#frag FT_MULTIVIEW display.frag
 #include "display.frag.fsl"
 #end
 
-#vert skybox.vert
+#vert FT_MULTIVIEW skybox.vert
 #include "skybox.vert.fsl"
 #end
 
@@ -81,7 +81,7 @@
 #include "skybox.frag.fsl"
 #end
 
-#vert visibilityBuffer_shade.vert
+#vert FT_MULTIVIEW visibilityBuffer_shade.vert
 #include "visibilityBuffer_shade.vert.fsl"
 #end
 
@@ -90,32 +90,32 @@
 #end
 
 // We should have a better way of generating these
-#frag visibilityBuffer_shade_SAMPLE_1.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_1.frag
 #define SAMPLE_COUNT 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
-#frag visibilityBuffer_shade_SAMPLE_1_AO.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_1_AO.frag
 #define SAMPLE_COUNT 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
-#frag visibilityBuffer_shade_SAMPLE_2.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_2.frag
 #define SAMPLE_COUNT 2
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
-#frag visibilityBuffer_shade_SAMPLE_2_AO.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_2_AO.frag
 #define SAMPLE_COUNT 2
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
-#frag visibilityBuffer_shade_SAMPLE_4.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4.frag
 #define SAMPLE_COUNT 4
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
-#frag visibilityBuffer_shade_SAMPLE_4_AO.frag
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4_AO.frag
 #define SAMPLE_COUNT 4
 #include "visibilityBuffer_shade.frag.fsl"
 #end

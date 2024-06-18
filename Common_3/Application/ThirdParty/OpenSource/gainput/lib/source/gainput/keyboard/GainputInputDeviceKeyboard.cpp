@@ -35,6 +35,7 @@ InputDeviceKeyboard::InputDeviceKeyboard(InputManager& manager, DeviceId device,
 	impl_(0),
 	keyNames_(manager_.GetAllocator())
 {
+    UNREF_PARAM(variant);
 	state_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), KeyCount_);
 	GAINPUT_ASSERT(state_);
 	previousState_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), KeyCount_);

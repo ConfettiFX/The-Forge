@@ -75,8 +75,8 @@ bool FilterTriangle(uint indices[3], const float4 clipVertices[3], bool cullBack
 		//
 		// If the determinant is = 0, the triangle is being viewed edge-on or is degenerate, and has 0 screen-space area.
 		// If the determinant is > 0, the triangle is backfacing.
-		float3x3 m = float3x3(clipVertices[0].xyw, clipVertices[1].xyw, clipVertices[2].xyw);
-		if (determinant(m) >= 0)
+		float det = determinant(float3x3(clipVertices[0].xyw, clipVertices[1].xyw, clipVertices[2].xyw));
+		if (det >= 0)
 			return true;
 	}
 #endif

@@ -28,9 +28,9 @@ static NvAPI_Status nvapiInit()
 #if defined(NVAPI)
 	gNvStatus = NvAPI_Initialize();
 	return gNvStatus;
-#endif
-
+#else
 	return NvAPI_Status::NVAPI_OK;
+#endif
 }
 
 static void nvapiExit()

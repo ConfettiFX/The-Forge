@@ -55,8 +55,8 @@ RES(SamplerState,          linearBorderSampler, UPDATE_FREQ_NONE, s2, binding = 
 #endif
 
 RES(Buffer(uint), indirectDataBuffer,     UPDATE_FREQ_PER_FRAME, t1, binding = 2);
-RES(ByteBuffer,   lightClustersCount,     UPDATE_FREQ_PER_FRAME, t4, binding = 3);
-RES(ByteBuffer,   lightClusters,          UPDATE_FREQ_PER_FRAME, t5, binding = 4);
+RES(Buffer(uint), lightClustersCount,     UPDATE_FREQ_PER_FRAME, t4, binding = 3);
+RES(Buffer(uint), lightClusters,          UPDATE_FREQ_PER_FRAME, t5, binding = 4);
 RES(ByteBuffer,   filteredIndexBuffer,    UPDATE_FREQ_PER_FRAME, t6, binding = 5);
 
 CBUFFER(auraApplyLightData, UPDATE_FREQ_PER_FRAME, b2, binding = 6)
@@ -107,14 +107,14 @@ float4 PS_MAIN(PsIn In)
 	}
 
 	// Transform positions to clip space
-	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
-	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
-	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
+	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v0pos, 1.0f));
+	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v1pos, 1.0f));
+	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v2pos, 1.0f));
 
 	// Calculate vertices' world coordinates
-	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP,pos0);
-	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP,pos1);
-	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP,pos2);
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos2);
 
 	float2 two_over_windowsize = Get(twoOverRes);
 	// Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
@@ -126,12 +126,12 @@ float4 PS_MAIN(PsIn In)
 
 	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 	// operations that involve computing Z
-	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection.mat, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection.mat, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
 	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
+	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4(In.screenPos * w, z, w)).xyz;
 
 	// TEXTURE COORD INTERPOLATION
 	f3x2 texCoords = make_f3x2_cols(
@@ -140,8 +140,8 @@ float4 PS_MAIN(PsIn In)
 			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) 
 	);
 #if defined(USE_RAY_DIFFERENTIALS)
-	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
-	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP[0], float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP[0], float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
 
 	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
 												Get(camPos).xyz);
@@ -202,7 +202,7 @@ float4 PS_MAIN(PsIn In)
 	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
 
 	// Sample Diffuse color
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
 	
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
@@ -269,12 +269,12 @@ float4 PS_MAIN(PsIn In)
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((In.screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
 
-	uint numLightsInCluster = LoadByte(Get(lightClustersCount), LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y) << 2);
+	uint numLightsInCluster = Get(lightClustersCount)[LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y)];
 
 	// Accumulate light contributions
 	for (uint j = 0; j < numLightsInCluster; ++j)
 	{
-		uint lightId = LoadByte(Get(lightClusters), LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y) << 2);
+		uint lightId = Get(lightClusters)[LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y)];
 
 		shadedColor += pointLightShade(
                                        normal,

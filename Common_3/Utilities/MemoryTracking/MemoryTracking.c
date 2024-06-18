@@ -150,6 +150,7 @@ void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
 
 bool initMemAlloc(const char* appName)
 {
+    UNREF_PARAM(appName);
     // No op but this is where you would initialize your memory allocator and bookkeeping data in a real world scenario
     return true;
 }
@@ -239,19 +240,52 @@ void tf_free(void* ptr)
 #endif
 }
 
-void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf) { return tf_malloc(size); }
+void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf)
+{
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
+    return tf_malloc(size);
+}
 
-void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf) { return tf_memalign(align, size); }
+void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf)
+{
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
+    return tf_memalign(align, size);
+}
 
-void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf) { return tf_calloc(count, size); }
+void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf)
+{
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
+    return tf_calloc(count, size);
+}
 
 void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
 {
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
     return tf_calloc_memalign(count, align, size);
 }
 
-void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf) { return tf_realloc(ptr, size); }
+void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf)
+{
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
+    return tf_realloc(ptr, size);
+}
 
-void tf_free_internal(void* ptr, const char* f, int l, const char* sf) { tf_free(ptr); }
+void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
+{
+    UNREF_PARAM(f);
+    UNREF_PARAM(l);
+    UNREF_PARAM(sf);
+    tf_free(ptr);
+}
 
 #endif // defined(ENABLE_MEMORY_TRACKING) || defined(ENABLE_MTUNER)

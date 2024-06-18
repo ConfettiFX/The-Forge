@@ -41,7 +41,7 @@
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-extern VkAllocationCallbacks gVkAllocationCallbacks;
+extern VkAllocationCallbacks* GetAllocationCallbacks(VkObjectType objType);
 
 struct Raytracing
 {
@@ -163,6 +163,7 @@ bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 
 void vk_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
+    UNREF_PARAM(pRenderer);
     // Do nothing here because in case of Vulkan struct Raytracing contains
     // only shorthands
     tf_free(pRaytracing);
@@ -410,6 +411,7 @@ void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStru
 
 void vk_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
+    UNREF_PARAM(pRaytracing);
     ASSERT(pDesc);
 
     AccelerationStructure* as = pDesc->pAccelerationStructure;

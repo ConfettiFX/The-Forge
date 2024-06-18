@@ -100,6 +100,7 @@ static Fontstash gFontstash = {};
 // --  FONS renderer implementation --
 static int fonsImplementationGenerateTexture(void* userPtr, int width, int height)
 {
+    UNREF_PARAM(userPtr);
     gFontstash.mWidth = width;
     gFontstash.mHeight = height;
     gFontstash.mUpdateTexture = true;
@@ -108,6 +109,7 @@ static int fonsImplementationGenerateTexture(void* userPtr, int width, int heigh
 
 static void fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data)
 {
+    UNREF_PARAM(userPtr);
     UNREF_PARAM(rect);
     gFontstash.pPixels = data;
     gFontstash.mUpdateTexture = true;

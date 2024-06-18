@@ -57,6 +57,7 @@ HRESULT WINAPI d3d12dll_DXGIGetDebugInterface1(UINT Flags, REFIID riid, void** p
 
 void hook_enable_debug_layer(const RendererContextDesc* pDesc, RendererContext* pContext)
 {
+    UNREF_PARAM(pDesc);
     UNREF_PARAM(pContext);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     pContext->mDx.pDebug->EnableDebugLayer();
@@ -148,6 +149,7 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
     ASSERT(D3D12_RESOURCE_STATE_COPY_DEST == state);
     hres = device->CreatePlacedResource(heap, 0, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&pBuffer->mDx.pResource));
+    SAFE_RELEASE(device);
     ASSERT(SUCCEEDED(hres));
     pBuffer->mDx.pMarkerBufferHeap = heap;
     pBuffer->mDx.mMarkerBuffer = true;
@@ -157,6 +159,12 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
                                   D3D12_RESOURCE_STATES startState, uint32_t flags, Texture* pOutTexture)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pDesc);
+    UNREF_PARAM(startState);
+    UNREF_PARAM(flags);
+    UNREF_PARAM(pClearValue);
+    UNREF_PARAM(pOutTexture);
     return E_NOINTERFACE;
 }
 
@@ -327,5 +335,5 @@ void hook_modify_rootsignature_flags(uint32_t, D3D12_ROOT_SIGNATURE_FLAGS*) {}
 
 void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding) { pInOutDesc->ByteStride += padding; }
 
-void hook_pre_resolve_query(Cmd* pCmd) {}
+void hook_pre_resolve_query(Cmd* pCmd) { UNREF_PARAM(pCmd); }
 #endif

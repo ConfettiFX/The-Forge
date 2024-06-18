@@ -10,6 +10,12 @@
     <Filter Include="Graphics\Vulkan">
       <UniqueIdentifier>{35b05cf3-6777-4f3c-b5fe-2b3d0ef89507}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer\VisibilityBuffer">
+      <UniqueIdentifier>{ff95c89c-1e0a-4cb7-91a9-c4ff60a20c71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{32b63936-1cbc-489e-8035-f1e08baf936c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Resources\ResourceLoader">
       <UniqueIdentifier>{b66fbc2b-b94b-42c2-a3bd-46fcbbe772eb}</UniqueIdentifier>
     </Filter>
@@ -50,6 +56,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
       <Filter>Graphics\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp">
+      <Filter>Renderer\VisibilityBuffer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
       <Filter>Resources\ResourceLoader</Filter>

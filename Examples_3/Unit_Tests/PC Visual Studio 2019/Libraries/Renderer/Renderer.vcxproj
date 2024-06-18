@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\ParticleSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\Network\Network.c" />
@@ -43,6 +44,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IParticleSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\TextureContainers.h" />
@@ -50,6 +52,18 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_clear_sorting_structs.comp.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl" />
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_utils.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\clear_buffers.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\pre_skin_vertexes.h.fsl" />

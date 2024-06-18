@@ -180,6 +180,7 @@ class OZZ_BASE_DLL OArchive {
     {
         static void Save(OArchive* archive)
         {
+            UNREF_PARAM(archive); 
             // Arrays don't have a version
         }
     };
@@ -294,6 +295,7 @@ class OZZ_BASE_DLL IArchive {
      {
          static uint32_t Save(IArchive* archive)
          {
+             UNREF_PARAM(archive); 
              // Arrays don't have a version
              return 0;
          }

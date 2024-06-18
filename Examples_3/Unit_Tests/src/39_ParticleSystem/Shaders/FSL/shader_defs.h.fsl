@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef _SHADER_DEFS_H
+#define _SHADER_DEFS_H
+
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_structs.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
+
+#define CAMERA_NEAR		0.1f
+#define CAMERA_FAR		200.0f
+
+#define LIGHT_CLUSTER_WIDTH			32
+#define LIGHT_CLUSTER_HEIGHT		32
+#define MAX_LIGHTS_PER_CLUSTER		(LIGHT_COUNT / 10)
+#define VERTICAL_SUBCLUSTER_COUNT	3
+#define HORIZONTAL_SUBCLUSTER_COUNT	2
+// 3 elements per depth bounds buffer entry: 0 = minDepth, 1 = maxDepth, 2 = bitmask
+#define DEPTH_BOUNDS_ENTRY_SIZE		3
+#define DEPTH_BOUNDS_GROUP_AMOUNT_X		32
+#define DEPTH_BOUNDS_GROUP_AMOUNT_Y		32
+
+#define LIGHT_CLUSTER_COUNT_POS(ix, iy) ( ((iy)*LIGHT_CLUSTER_WIDTH)+(ix) )
+#define LIGHT_CLUSTER_DATA_POS(il, ix, iy) ( LIGHT_CLUSTER_COUNT_POS(ix, iy)*MAX_LIGHTS_PER_CLUSTER + (il) )
+
+#define MAX_SHADOW_DISTANCE				10
+#define MIN_CUBE_SHADOWS_FACE_SIZE		16
+#define MAX_CUBE_SHADOWS_FACE_SIZE		128
+#define CUBE_SHADOWS_COARSE_BLOCK_SIZE	16
+
+// Override default VB culling viewports
+#define NUM_CULLING_VIEWPORTS (2 + SHADOW_COUNT)
+#define NUM_SHADOW_VIEWPORTS  (1 + SHADOW_COUNT)
+#define NUM_UNIQUE_GEOMETRIES (2 + SHADOW_COUNT)
+
+#define VIEW_CAMERA			0
+#define VIEW_SHADOW			1
+#define VIEW_POINT_SHADOW	2
+
+//Override default VB geom sets
+#define NUM_GEOMETRY_SETS 2          // 1 - opaque, 2 - alpha cutout
+#define GEOMSET_OPAQUE 0
+#define GEOMSET_ALPHA_CUTOUT 1
+
+#define MATERIAL_ID_LOW_BIT 0   // 16 bits for materialID
+#define FLAG_LOW_BIT  16        // 16 bits for flags
+
+#define MATERIAL_ID_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
+#define FLAG_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
+#define MESH_CONSTANT_FLAG_TWO_SIDED (1u << 0)
+
+STRUCT(MeshConstants)
+{
+	DATA(uint, indexOffset, None);
+	DATA(uint, vertexOffset, None);
+	DATA(uint, materialID, None);
+	DATA(uint, twoSided, None); // 0 or 1
+};
+
+CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+	DATA(float4, camPos, None);
+	//========================================
+	DATA(float4, lightDir, None);
+	//========================================
+	DATA(float4, lightColor, None);
+	//========================================
+	DATA(float2, CameraPlane, None); //x : near, y : far
+	DATA(uint, lightingMode, None);
+	DATA(uint, outputMode, None);
+	//========================================
+	DATA(float2, twoOverRes, None);
+	DATA(float, esmControl, None);
+	//========================================
+};
+
+STRUCT(LightData)
+{
+	DATA(float4, position, None);
+	DATA(float4, color, None);
+};
+
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shader_defs.h.fsl"
+#endif

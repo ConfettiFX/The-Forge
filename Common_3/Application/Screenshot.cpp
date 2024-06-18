@@ -48,7 +48,7 @@
 #define STBIW_ASSERT  ASSERT
 #include "../Utilities/ThirdParty/OpenSource/Nothings/stb_image_write.h"
 
-static Cmd*               pCmd = 0;
+static Cmd*               gCmd = 0;
 static CmdPool*           pCmdPool = 0;
 static Renderer*          pRendererRef = 0;
 extern PlatformParameters gPlatformParameters;
@@ -92,7 +92,7 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
 #ifdef ENABLE_GRAPHICS_DEBUG
     cmdDesc.pName = "Screenshot Cmd";
 #endif // ENABLE_GRAPHICS_DEBUG
-    addCmd(pRenderer, &cmdDesc, &pCmd);
+    addCmd(pRenderer, &cmdDesc, &gCmd);
 
     updateUIVisibility();
 }
@@ -112,7 +112,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
         DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
         // Add a staging buffer.
-        uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+        uint16_t   formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
         Buffer*    buffer = 0;
         BufferDesc bufferDesc = {};
         bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
@@ -207,7 +207,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
         pRenderer->mDx11.pContext->Map(pNewTexture, subresource, D3D11_MAP_READ, 0, &resource);
 
         // Copy to CPU memory.
-        uint16_t formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+        uint16_t formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
         for (uint32_t i = 0; i < pRenderTarget->mHeight; ++i)
         {
             memcpy((uint8_t*)pImageData + i * pRenderTarget->mWidth * formatByteWidth, (uint8_t*)resource.pData + i * resource.RowPitch,
@@ -232,7 +232,6 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
         pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
 
         // Add a staging buffer.
-        uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
         Buffer*    buffer = 0;
         BufferDesc bufferDesc = {};
         bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -399,7 +398,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     ASSERT(pSwapChain);
     ASSERT(pCmdPool->pQueue);
     // initScreenshotInterface not called.
-    ASSERT(pCmd);
+    ASSERT(gCmd);
 
 #if defined(METAL)
     CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
@@ -417,15 +416,15 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     waitQueueIdle(pCmdPool->pQueue);
 
     // Allocate temp space
-    uint16_t byteSize = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-    uint8_t  channelCount = TinyImageFormat_ChannelCount(pRenderTarget->mFormat);
+    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount(pRenderTarget->mFormat);
     uint32_t size = pRenderTarget->mWidth * pRenderTarget->mHeight * max((uint16_t)4U, byteSize);
     uint8_t* alloc = (uint8_t*)tf_malloc(size);
 
     resetCmdPool(pRendererRef, pCmdPool);
 
     // Generate image data buffer.
-    mapRenderTarget(pRendererRef, pCmdPool->pQueue, pCmd, pRenderTarget, RESOURCE_STATE_PRESENT, alloc);
+    mapRenderTarget(pRendererRef, pCmdPool->pQueue, gCmd, pRenderTarget, RESOURCE_STATE_PRESENT, alloc);
 
     char screenshotFileName[FS_MAX_PATH] = {};
     strcat(screenshotFileName, gScreenshotName);
@@ -522,10 +521,10 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
 void exitScreenshotInterface()
 {
-    if (pCmd != NULL)
+    if (gCmd != NULL)
     {
-        removeCmd(pRendererRef, pCmd);
-        pCmd = NULL;
+        removeCmd(pRendererRef, gCmd);
+        gCmd = NULL;
     }
     if (pRendererRef != NULL)
     {

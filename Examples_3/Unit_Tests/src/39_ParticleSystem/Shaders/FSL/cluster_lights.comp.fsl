@@ -1,0 +1,176 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shading.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
+#include "light_cull_resources.h.fsl"
+
+
+// This compute shader determines if a light of index groupId overlaps
+// the cluster (thread.x,thread.y). Then the light is added to the cluster.
+
+NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
+void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId )
+{
+	INIT_MAIN;
+
+	// Don't exceed the amount of lights
+	uint lightId = groupId.y * uint(ceil(sqrt(float(LIGHT_COUNT)))) + groupId.x;
+	if (lightId > LIGHT_COUNT)
+	{
+		RETURN();
+	}
+
+	// Don't consider dead or invisible particles
+	uint Bitfield = Get(BitfieldBuffer)[lightId];
+	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_LIGHT_CULLED) > 0)
+	{
+		RETURN();
+	}
+
+	ParticleData lightData = Get(ParticlesDataBuffer)[lightId];
+	float3 lightPos = GetParticlePosition(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), Get(ParticlesDataBuffer)[lightId]);
+
+	float4 lightPosClipSpace = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(lightPos.xyz, 1));
+	float lightSize = GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK).LightRadius;
+	// Early exit light if it's behind the camera
+	if (lightPosClipSpace.w < 0.0 && -lightPosClipSpace.w > lightSize)
+	{
+		RETURN();
+	}
+
+	const float invClusterWidth = 1.0f / float(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT);
+	const float invClusterHeight = 1.0f / float(LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
+	const float2 windowSize = Get(cullingViewports)[VIEW_CAMERA].windowSize;
+	const uint2 tileSize = uint2(ceil(windowSize * float2(invClusterWidth, invClusterHeight)));
+	const float aspectRatio = windowSize.x / windowSize.y;
+
+	float lightDepthView = linearizeDepthReverseZ((lightPosClipSpace.z / lightPosClipSpace.w ), CAMERA_NEAR, CAMERA_FAR);
+	float invLightPosW = 1.0 / lightPosClipSpace.w;
+	float fov = 2.0*atan( 1.0/Get(transform)[VIEW_CAMERA].projection.mat[1][1]);
+	float projRadius = 2.0f * lightSize * (1 / tan(fov * 0.5f)) * invLightPosW;
+
+	lightPos = lightPosClipSpace.xyz * invLightPosW;
+	projRadius *= windowSize.x > windowSize.y ? aspectRatio : 1 / aspectRatio;
+	lightPos.x *= aspectRatio;
+
+	// Cluster coordinates in post perspective clip space
+	float clusterLeft = float(threadInGroupId.x) / float(LIGHT_CLUSTER_WIDTH);
+	float clusterTop =  float(threadInGroupId.y) / float(LIGHT_CLUSTER_HEIGHT);
+	float clusterRight = clusterLeft + 1.0 / LIGHT_CLUSTER_WIDTH;
+	float clusterBottom = clusterTop + 1.0 / LIGHT_CLUSTER_HEIGHT;
+	
+	// Transform coordinates from range [0..1] to range [-1..1]
+	clusterLeft = clusterLeft*2.0f - 1.0f;
+	clusterTop = clusterTop*2.0f - 1.0f;
+	clusterRight = clusterRight*2.0f - 1.0f;
+	clusterBottom = clusterBottom*2.0f - 1.0f;
+	
+	clusterLeft *= aspectRatio;
+	clusterRight *= aspectRatio;
+	
+	float clusterCenterX = (clusterLeft + clusterRight) * 0.5;
+	float clusterCenterY = (clusterTop + clusterBottom) * 0.5;
+	float clusterRadius = distance(float2(clusterLeft, clusterTop), float2(clusterRight, clusterBottom))*0.5;
+	
+	// If the light doesn't belong to the current cluster, it won't belong to its subclusters either
+	float distanceToCenter = distance(float2(clusterCenterX, clusterCenterY), lightPos.xy);
+	if (distanceToCenter - clusterRadius >= abs(projRadius))
+	{
+		RETURN();
+	}
+
+	UNROLL_N(HORIZONTAL_SUBCLUSTER_COUNT)
+	for (uint i=0; i<HORIZONTAL_SUBCLUSTER_COUNT; i++)
+	{
+		UNROLL_N(VERTICAL_SUBCLUSTER_COUNT)
+		for (uint j=0; j<VERTICAL_SUBCLUSTER_COUNT; j++)
+		{
+			uint2 subclusterCoords = uint2(threadInGroupId.x * VERTICAL_SUBCLUSTER_COUNT + j, threadInGroupId.y * HORIZONTAL_SUBCLUSTER_COUNT + i);
+			uint subclusterArrayPos = subclusterCoords.x + subclusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT;
+			
+			// Cluster coordinates in post perspective clip space
+			clusterLeft = float(subclusterCoords.x) * invClusterWidth;
+			clusterTop =  float(subclusterCoords.y) * invClusterHeight;
+			clusterRight = clusterLeft + invClusterWidth;
+			clusterBottom = clusterTop + invClusterHeight;
+	
+			// Transform coordinates from range [0..1] to range [-1..1]
+			clusterLeft = clusterLeft*2.0f - 1.0f;
+			clusterTop = clusterTop*2.0f - 1.0f;
+			clusterRight = clusterRight*2.0f - 1.0f;
+			clusterBottom = clusterBottom*2.0f - 1.0f;
+	
+			clusterLeft *= aspectRatio;
+			clusterRight *= aspectRatio;
+	
+			clusterCenterX = (clusterLeft + clusterRight) * 0.5;
+			clusterCenterY = (clusterTop + clusterBottom) * 0.5;
+			clusterRadius = distance(float2(clusterLeft, clusterTop), float2(clusterRight, clusterBottom))*0.5;
+	
+			// Check if the light projection overlaps the cluster: add the light bit to this cluster coords
+			distanceToCenter = distance(float2(clusterCenterX, clusterCenterY), lightPos.xy);
+			if (distanceToCenter - clusterRadius >= abs(projRadius))
+			{
+				continue;
+			}
+
+			// Check depth bounds
+			float depthMin = (float(Get(DepthBoundsBuffer)[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 0]) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
+			if (lightDepthView < depthMin-lightSize)
+				continue;
+			float depthMax = (float(Get(DepthBoundsBuffer)[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 1]) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
+			if (lightDepthView > depthMax+lightSize)
+				continue;
+
+			// Check depth bitmask
+			uint depthBitmask = Get(DepthBoundsBuffer)[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 2];
+
+			// Build the light depth bitmask
+			uint lightBitmask = 0;
+			for (uint i=GetDepthBitmaskIndex(depthMin, depthMax, lightDepthView - lightSize); 
+						i<=GetDepthBitmaskIndex(depthMin, depthMax,lightDepthView + lightSize); i++)
+			{
+				lightBitmask = lightBitmask | (1 << i);
+			}
+
+			// Early exit if the light doesn't intersect the geometry
+			if ((lightBitmask & depthBitmask) == 0)
+			{
+				continue;
+			}
+	
+			// Increase light count on this cluster
+			uint lightArrayPos = 0;
+			AtomicAdd(Get(lightClustersCount)[subclusterArrayPos], 1, lightArrayPos);
+
+			// Add light id to cluster
+			Get(lightClusters)[subclusterArrayPos * MAX_LIGHTS_PER_CLUSTER + lightArrayPos] = lightId;
+		}
+	}
+
+	RETURN();
+}
+

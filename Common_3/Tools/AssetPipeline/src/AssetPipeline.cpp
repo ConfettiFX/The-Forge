@@ -151,8 +151,8 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
         {
             if (subDirectories[i])
             {
-                const char* subDir = subDirectories[i]; //-V595
-                DirectorySearch(resourceDir, subDir, ext, onFindCallback, pUserData, recursive);
+                const char* sDir = subDirectories[i]; //-V595
+                DirectorySearch(resourceDir, sDir, ext, onFindCallback, pUserData, recursive);
             }
         }
 
@@ -204,8 +204,16 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 
     cgltf_data*   data = NULL;
     cgltf_options options = {};
-    options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-    options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+    options.memory_alloc = [](void* user, cgltf_size size)
+    {
+        UNREF_PARAM(user);
+        return tf_malloc(size);
+    };
+    options.memory_free = [](void* user, void* ptr)
+    {
+        UNREF_PARAM(user);
+        tf_free(ptr);
+    };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
     fsCloseStream(&file);
@@ -266,8 +274,16 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsset, cgltf_data* data)
 {
     cgltf_options options = {};
-    options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-    options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+    options.memory_alloc = [](void* user, cgltf_size size)
+    {
+        UNREF_PARAM(user);
+        return tf_malloc(size);
+    };
+    options.memory_free = [](void* user, void* ptr)
+    {
+        UNREF_PARAM(user);
+        tf_free(ptr);
+    };
     options.rd = resourceDir;
     cgltf_size expected = cgltf_write(&options, NULL, 0, data);
     char*      writeBuffer = (char*)tf_malloc(expected);
@@ -603,24 +619,24 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         fsOpenStreamFromPath(assetParams->mRDOutput, binFilePath, FM_WRITE, &binFile);
         size_t fileSize = 0;
 
-        for (uint32_t i = 0; i < count; ++i)
+        for (uint32_t j = 0; j < count; ++j)
         {
-            views[i].type = (i ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
-            views[i].buffer = &buffer;
-            views[i].offset = offset;
-            views[i].size = vertexCounts[i] * vertexStrides[i];
-            accessors[i].component_type = vertexTypes[i].comp;
-            accessors[i].stride = vertexStrides[i];
-            accessors[i].count = vertexCounts[i];
-            accessors[i].offset = 0;
-            accessors[i].type = vertexTypes[i].type;
-            accessors[i].buffer_view = &views[i];
+            views[j].type = (j ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
+            views[j].buffer = &buffer;
+            views[j].offset = offset;
+            views[j].size = vertexCounts[j] * vertexStrides[j];
+            accessors[j].component_type = vertexTypes[j].comp;
+            accessors[j].stride = vertexStrides[j];
+            accessors[j].count = vertexCounts[j];
+            accessors[j].offset = 0;
+            accessors[j].type = vertexTypes[j].type;
+            accessors[j].buffer_view = &views[j];
 
-            attribs[i].name = (char*)vertexNames[i];
-            attribs[i].data = &accessors[i];
+            attribs[j].name = (char*)vertexNames[j];
+            attribs[j].data = &accessors[j];
 
-            fileSize += fsWriteToStream(&binFile, vertexData[i], views[i].size);
-            offset += views[i].size;
+            fileSize += fsWriteToStream(&binFile, vertexData[j], views[j].size);
+            offset += views[j].size;
         }
         fsCloseStream(&binFile);
 
@@ -697,6 +713,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                            ResourceDirectory resourceDirOzzOutput, const char* skeletonOutputFile, ozz::animation::Skeleton* pOutSkeleton,
                            ProcessAssetsSettings* settings)
 {
+    UNREF_PARAM(settings);
     cgltf_data*  data = NULL;
     void*        srcFileData = NULL;
     cgltf_result result = cgltf_parse_and_load(resourceDirInput, skeletonInputfile, &data, &srcFileData);
@@ -976,8 +993,8 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                 skin->extras.end_offset = size - 1;
 
                 const size_t iterCount = strlen(jointRemaps) + 1;
-                for (uint32_t i = 0; i < iterCount; ++i)
-                    arrpush(buffer, jointRemaps[i]);
+                for (uint32_t j = 0; j < iterCount; ++j)
+                    arrpush(buffer, jointRemaps[j]);
             }
         }
 
@@ -1164,6 +1181,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
                              ozz::animation::Skeleton* skeleton, RuntimeAnimationSettings* animationSettings,
                              ProcessAssetsSettings* settings)
 {
+    UNREF_PARAM(settings);
     // Import the glTF with the animation
     cgltf_data*  data = NULL;
     void*        srcFileData = NULL;
@@ -1345,6 +1363,7 @@ static inline void util_unpack_uint8_to_uint16_joints(uint32_t count, uint32_t s
 
 void OnGLTFFind(ResourceDirectory resourceDir, const char* filename, void* pUserData)
 {
+    UNREF_PARAM(resourceDir);
     bstring** inputFileNames = (bstring**)pUserData;
     arrpush(*inputFileNames, bdynfromcstr(filename));
 }
@@ -1367,8 +1386,16 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
-    options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-    options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+    options.memory_alloc = [](void* user, cgltf_size size)
+    {
+        UNREF_PARAM(user);
+        return tf_malloc(size);
+    };
+    options.memory_free = [](void* user, void* ptr)
+    {
+        UNREF_PARAM(user);
+        tf_free(ptr);
+    };
     options.rd = resourceDirInput;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
     fsCloseStream(&file);
@@ -1664,8 +1691,16 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         cgltf_options options = {};
         cgltf_data*   data = NULL;
-        options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-        options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+        options.memory_alloc = [](void* user, cgltf_size size)
+        {
+            UNREF_PARAM(user);
+            return tf_malloc(size);
+        };
+        options.memory_free = [](void* user, void* ptr)
+        {
+            UNREF_PARAM(user);
+            tf_free(ptr);
+        };
         options.rd = assetParams->mRDInput;
         cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
         fsCloseStream(&file);
@@ -1687,11 +1722,11 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 #endif
 
         // Load buffers located in separate files (.bin) using our file system
-        for (uint32_t i = 0; i < data->buffers_count; ++i)
+        for (uint32_t j = 0; j < data->buffers_count; ++j)
         {
-            const char* uri = data->buffers[i].uri;
+            const char* uri = data->buffers[j].uri;
 
-            if (!uri || data->buffers[i].data)
+            if (!uri || data->buffers[j].data)
             {
                 continue;
             }
@@ -1705,9 +1740,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 FileStream fs = {};
                 if (fsOpenStreamFromPath(assetParams->mRDInput, path, FM_READ, &fs))
                 {
-                    ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
-                    data->buffers[i].data = tf_malloc(data->buffers[i].size);
-                    fsReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
+                    ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size);
+                    data->buffers[j].data = tf_malloc(data->buffers[j].size);
+                    fsReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size);
                     fsCloseStream(&fs);
                 }
             }
@@ -1731,13 +1766,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         // Find number of traditional draw calls required to draw this piece of geometry
         // Find total index count, total vertex count
-        for (uint32_t i = 0; i < data->meshes_count; ++i)
+        for (uint32_t j = 0; j < data->meshes_count; ++j)
         {
-            const cgltf_mesh* mesh = &data->meshes[i];
+            const cgltf_mesh* mesh = &data->meshes[j];
             const uint32_t    meshExtrasLength = (uint32_t)(mesh->extras.end_offset - mesh->extras.start_offset);
             if (glTFParams->pReadExtrasCallback && meshExtrasLength)
             {
-                glTFParams->pReadExtrasCallback(i, (uint32_t)data->meshes_count, data->json + mesh->extras.start_offset, meshExtrasLength,
+                glTFParams->pReadExtrasCallback(j, (uint32_t)data->meshes_count, data->json + mesh->extras.start_offset, meshExtrasLength,
                                                 glTFParams->pCallbackUserData);
             }
 
@@ -1748,13 +1783,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 vertexCount += (uint32_t)(prim->attributes[0].data->count);
                 ++drawCount;
 
-                for (uint32_t j = 0; j < prim->attributes_count; ++j)
+                for (uint32_t k = 0; k < prim->attributes_count; ++k)
                 {
                     const uint32_t semanticIdx =
-                        (uint32_t)util_cgltf_attrib_type_to_semantic(prim->attributes[j].type, prim->attributes[j].index);
+                        (uint32_t)util_cgltf_attrib_type_to_semantic(prim->attributes[k].type, prim->attributes[k].index);
                     ASSERT(semanticIdx < MAX_SEMANTICS);
-                    vertexAttribs[semanticIdx] = &prim->attributes[j];
-                    vertexAttribCount[semanticIdx] += (uint32_t)prim->attributes[j].data->count;
+                    vertexAttribs[semanticIdx] = &prim->attributes[k];
+                    vertexAttribCount[semanticIdx] += (uint32_t)prim->attributes[k].data->count;
                 }
             }
         }
@@ -1767,8 +1802,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         PackingFunction vertexPacking[MAX_SEMANTICS] = {};
         uint32_t        vertexAttrStrides[MAX_SEMANTICS] = {};
 
-        for (uint32_t i = 0; i < data->skins_count; ++i)
-            jointCount += (uint32_t)data->skins[i].joints_count;
+        for (uint32_t j = 0; j < data->skins_count; ++j)
+            jointCount += (uint32_t)data->skins[j].joints_count;
 
         // Determine index stride
         // This depends on vertex count rather than the stride specified in gltf
@@ -1914,11 +1949,11 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 geomData->pShadow->mVertexStrides[MAX_SEMANTICS - 1] * geomData->pShadow->mAttributeCount[MAX_SEMANTICS - 1]));
 
         COMPILE_ASSERT(TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides) == TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
-        for (uint32_t i = 1; i < TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides); ++i)
+        for (uint32_t j = 1; j < TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides); ++j)
         {
             // If the attribute is not present in the gltf file we just don't save anything
-            if (geomData->pShadow->mVertexStrides[i] == 0)
-                geomData->pShadow->pAttributes[i] = nullptr;
+            if (geomData->pShadow->mVertexStrides[j] == 0)
+                geomData->pShadow->pAttributes[j] = nullptr;
         }
 
         geom->mDrawArgCount = drawCount;
@@ -1931,9 +1966,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         // Load the remap joint indices generated in the offline process
         uint32_t remapCount = 0;
-        for (uint32_t i = 0; i < data->skins_count; ++i)
+        for (uint32_t j = 0; j < data->skins_count; ++j)
         {
-            const cgltf_skin* skin = &data->skins[i];
+            const cgltf_skin* skin = &data->skins[j];
             uint32_t          extrasSize = (uint32_t)(skin->extras.end_offset - skin->extras.start_offset);
             if (extrasSize)
             {
@@ -1973,11 +2008,11 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        for (uint32_t i = 0; i < data->meshes_count; ++i)
+        for (uint32_t j = 0; j < data->meshes_count; ++j)
         {
-            for (uint32_t p = 0; p < data->meshes[i].primitives_count; ++p)
+            for (uint32_t p = 0; p < data->meshes[j].primitives_count; ++p)
             {
-                const cgltf_primitive* prim = &data->meshes[i].primitives[p];
+                const cgltf_primitive* prim = &data->meshes[j].primitives[p];
 
                 /************************************************************************/
                 // Fill index buffer for this primitive
@@ -2136,7 +2171,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 if (sizeof(uint16_t) == indexStride)
                 {
                     for (uint32_t idx = 0; idx < prim->indices->count; ++idx)
-                        ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
+                        ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += (uint16_t)vertexCount;
                 }
                 else
                 {
@@ -2420,8 +2455,16 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
-    options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
-    options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
+    options.memory_alloc = [](void* user, cgltf_size size)
+    {
+        UNREF_PARAM(user);
+        return tf_malloc(size);
+    };
+    options.memory_free = [](void* user, void* ptr)
+    {
+        UNREF_PARAM(user);
+        tf_free(ptr);
+    };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
     fsCloseStream(&file);

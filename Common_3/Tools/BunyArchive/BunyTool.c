@@ -669,19 +669,19 @@ static bool tryDragNdrop(struct BunyArToolCtx* ctx, int* res, char** freeMe)
         IFileSystem fs;
         if (fsArchiveOpen(TF_RD, firstFile, &info, &fs))
         {
-            struct BunyArDescription info;
-            fsArchiveGetDescription(&fs, &info);
+            struct BunyArDescription inf;
+            fsArchiveGetDescription(&fs, &inf);
 
             const char* dstDir = NULL;
             const char* dstEntry = NULL;
 
-            if (info.nodeCount == 0)
+            if (inf.nodeCount == 0)
             {
                 fprintf(stdout, "Archive is empty\n");
                 fsArchiveClose(&fs);
                 return true;
             }
-            else if (info.nodeCount == 1)
+            else if (inf.nodeCount == 1)
             {
                 char* outName = tf_malloc(pathLen + 1);
                 memcpy(outName, firstFile, pathLen);

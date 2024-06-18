@@ -682,6 +682,7 @@ const char* gTestScripts[] = { "Test_AlphaBlend.lua", "Test_WeightedBlendedOIT.l
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -823,6 +824,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -878,6 +880,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1461,6 +1464,7 @@ public:
 
     void StochasticShadowPass(Cmd* pCmd)
     {
+        UNREF_PARAM(pCmd);
 #if PT_USE_CAUSTICS != 0
         RenderTargetBarrier barriers[3] = {};
         for (uint32_t i = 0; i < 3; ++i)
@@ -1624,18 +1628,18 @@ public:
 #endif
     }
 
-    void DrawObjects(Cmd* pCmd, uint32_t drawCallCount, const DrawCall* pDrawCalls, RootSignature* pRootSignature)
+    void DrawObjects(Cmd* pCmd, uint32_t drawCallCount, const DrawCall* pDrawCalls, RootSignature* pRootSignature_)
     {
         static MeshResource boundMesh = (MeshResource)-1;
         static uint         vertexCount = 0;
         static uint         indexCount = 0;
 
-        uint32_t rootConstantIndex = getDescriptorIndexFromName(pRootSignature, "DrawInfoRootConstant");
+        uint32_t rootConstantIndex = getDescriptorIndexFromName(pRootSignature_, "DrawInfoRootConstant");
 
         for (size_t i = 0; i < drawCallCount; ++i)
         {
             const DrawCall* dc = &pDrawCalls[i];
-            cmdBindPushConstants(pCmd, pRootSignature, rootConstantIndex, &dc->mInstanceOffset);
+            cmdBindPushConstants(pCmd, pRootSignature_, rootConstantIndex, &dc->mInstanceOffset);
 
             if (dc->mMesh != boundMesh || dc->mMesh > MESH_COUNT)
             {
@@ -2029,7 +2033,7 @@ public:
 
     void Draw() override
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2179,7 +2183,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;
@@ -2769,35 +2773,35 @@ public:
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
                 // Opaque objects
-                DescriptorData params[5] = {};
-                params[0].pName = "ObjectUniformBlock";
-                params[0].ppBuffers = &pBufferOpaqueObjectTransforms[i];
-                params[1].pName = "CameraUniform";
-                params[1].ppBuffers = &pBufferCameraLightUniform[i];
-                params[2].pName = "MaterialUniform";
-                params[2].ppBuffers = &pBufferMaterials[i];
-                params[3].pName = "LightUniformBlock";
-                params[3].ppBuffers = &pBufferLightUniform[i];
-                params[4].pName = "WBOITSettings";
-                params[4].ppBuffers = &pBufferWBOITSettings[i];
+                DescriptorData oParams[5] = {};
+                oParams[0].pName = "ObjectUniformBlock";
+                oParams[0].ppBuffers = &pBufferOpaqueObjectTransforms[i];
+                oParams[1].pName = "CameraUniform";
+                oParams[1].ppBuffers = &pBufferCameraLightUniform[i];
+                oParams[2].pName = "MaterialUniform";
+                oParams[2].ppBuffers = &pBufferMaterials[i];
+                oParams[3].pName = "LightUniformBlock";
+                oParams[3].ppBuffers = &pBufferLightUniform[i];
+                oParams[4].pName = "WBOITSettings";
+                oParams[4].ppBuffers = &pBufferWBOITSettings[i];
 
                 // View Shadow Geom Opaque
-                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_SHADOW, GEOM_OPAQUE), pDescriptorSetUniforms, 5, params);
+                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_SHADOW, GEOM_OPAQUE), pDescriptorSetUniforms, 5, oParams);
                 // View Shadow Geom Transparent
-                params[0].ppBuffers = &pBufferTransparentObjectTransforms[i];
-                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_SHADOW, GEOM_TRANSPARENT), pDescriptorSetUniforms, 5, params);
-                params[0].ppBuffers = &pBufferOpaqueObjectTransforms[i];
-                params[1].ppBuffers = &pBufferCameraUniform[i];
+                oParams[0].ppBuffers = &pBufferTransparentObjectTransforms[i];
+                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_SHADOW, GEOM_TRANSPARENT), pDescriptorSetUniforms, 5, oParams);
+                oParams[0].ppBuffers = &pBufferOpaqueObjectTransforms[i];
+                oParams[1].ppBuffers = &pBufferCameraUniform[i];
                 // View Camera Geom Opaque
-                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_CAMERA, GEOM_OPAQUE), pDescriptorSetUniforms, 5, params);
+                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_CAMERA, GEOM_OPAQUE), pDescriptorSetUniforms, 5, oParams);
                 // View Camera Geom Transparent
-                params[0].ppBuffers = &pBufferTransparentObjectTransforms[i];
-                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_CAMERA, GEOM_TRANSPARENT), pDescriptorSetUniforms, 5, params);
+                oParams[0].ppBuffers = &pBufferTransparentObjectTransforms[i];
+                updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_CAMERA, GEOM_TRANSPARENT), pDescriptorSetUniforms, 5, oParams);
 
                 if (gGpuSettings.mEnableAOIT)
                 {
                     // AOIT
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetAOITShade[1], 4, params);
+                    updateDescriptorSet(pRenderer, i, pDescriptorSetAOITShade[1], 4, oParams);
                 }
             }
         }
@@ -2809,10 +2813,10 @@ public:
                 DescriptorData params[2] = {};
                 params[0].pName = "Source";
                 params[0].ppTextures = &rt->pTexture;
-                params[0].mUAVMipSlice = i - 1;
+                params[0].mUAVMipSlice = (uint16_t)(i - 1);
                 params[1].pName = "Destination";
                 params[1].ppTextures = &rt->pTexture;
-                params[1].mUAVMipSlice = i;
+                params[1].mUAVMipSlice = (uint16_t)i;
                 updateDescriptorSet(pRenderer, i - 1, pDescriptorSetPTGenMips, 2, params);
             }
         }
@@ -3956,7 +3960,7 @@ public:
 
 void GuiController::UpdateDynamicUI()
 {
-    if (gTransparencyType != GuiController::currentTransparencyType)
+    if ((int)gTransparencyType != GuiController::currentTransparencyType)
     {
         if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
             uiHideDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
@@ -4076,7 +4080,7 @@ void GuiController::AddGui()
         ButtonWidget resetButton;
         UIWidget*    pResetButton =
             uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-        WidgetCallback resetCallback = ([](void* pUserData) { gWBOITSettingsData = WBOITSettings(); });
+        WidgetCallback resetCallback = ([](void* pUserData) { UNREF_PARAM(pUserData); gWBOITSettingsData = WBOITSettings(); });
         uiSetWidgetOnEditedCallback(pResetButton, nullptr, resetCallback);
         luaRegisterWidget(pResetButton);
     }
@@ -4132,7 +4136,7 @@ void GuiController::AddGui()
         ButtonWidget resetButton;
         UIWidget*    pResetButton =
             uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-        WidgetCallback resetCallback = ([](void* pUserData) { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
+        WidgetCallback resetCallback = ([](void* pUserData) { UNREF_PARAM(pUserData); gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
         uiSetWidgetOnEditedCallback(pResetButton, nullptr, resetCallback);
         luaRegisterWidget(pResetButton);
     }

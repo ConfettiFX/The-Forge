@@ -80,6 +80,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "09_LightShadowPlayground", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "16_Raytracing", "16_Raytracing\16_Raytracing.vcxproj", "{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "39_ParticleSystem", "39_ParticleSystem\39_ParticleSystem.vcxproj", "{8ACC82DD-1721-45DC-9244-E07D9A177070}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Android-arm64-v8a = Debug|Android-arm64-v8a
@@ -181,7 +183,11 @@ Global
 		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
+		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8az
+		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
+		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
+		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
+		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -210,6 +216,7 @@ Global
 		{610C39FA-F02B-4237-BA8C-4EED56FA8D9F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{A99DA1E5-B36E-41E3-88D1-0154F0B60A29} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{8ACC82DD-1721-45DC-9244-E07D9A177070} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {948F21A0-5B36-35C9-B219-88B1DAC0D0C2}

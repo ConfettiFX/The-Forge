@@ -26,7 +26,7 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 	PsInAlphaTested Out;
     float4 vertexPos = LoadVertex(vertexID);
 
-	Out.position = mul(Get(transform)[Get(viewID)].mvp, vertexPos);
+	Out.position = mul(Get(transform)[Get(viewID)].mvp.mat, vertexPos);
     Out.texCoord = LoadTexCoord(vertexID);
 	Out.normal = LoadNormal(vertexID);
 	Out.materialID = Get(indirectDataBuffer)[vertexID];

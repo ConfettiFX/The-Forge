@@ -24,7 +24,11 @@
 
 #include "Clip.h"
 
-void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig) { LoadClip(resourceDir, fileName); }
+void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig)
+{
+    UNREF_PARAM(rig);
+    LoadClip(resourceDir, fileName);
+}
 
 void Clip::Exit() { mAnimation.Deallocate(); }
 

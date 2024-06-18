@@ -1,0 +1,642 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+#include "../../../Graphics/ShaderUtilities.h.fsl"
+#include "particle_boids.h.fsl"
+#include "particle_random.h.fsl"
+#include "particle_sets.h.fsl"
+#include "particle_utils.h.fsl"
+#include "particle_shared.h.fsl"
+
+GroupShared(uint, SwappedCount);
+GroupShared(uint, HelpSuccess);
+GroupShared(uint, HelpIndices[PARTICLE_SWAP_HELP_THRESHOLD]);
+GroupShared(uint, HelpIndicesWriteIdx);
+GroupShared(uint, HelpIndicesReadIdx);
+GroupShared(uint, HelpBufferSection);
+
+// Current batch size is 32x1, each thread simulates and renders 1 particle
+NUM_THREADS(PARTICLES_BATCH_X, PARTICLES_BATCH_Y, 1)
+void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3) inDispatchThreadId)
+{
+	INIT_MAIN;
+
+	uint particleIdx = inDispatchThreadId.y * Get(SimulationDispatchSize) * PARTICLES_BATCH_X + inDispatchThreadId.x;
+	uint totParticleCount = 0;
+	uint groupIdx = inGroupThreadId.x + inGroupThreadId.y * PARTICLES_BATCH_X;
+
+	// Reset help system when sorting particles
+	if (groupIdx == 0)
+	{
+		SwappedCount = 0;
+		HelpSuccess = 0;
+		HelpIndicesWriteIdx = 0;
+		HelpIndicesReadIdx = 0;
+
+		for (uint i=0; i<PARTICLE_SWAP_HELP_THRESHOLD; i++)
+			AtomicStore(HelpIndices[i], PARTICLE_COUNT);
+	}
+
+	AllMemoryBarrier();
+
+	if (particleIdx >= PARTICLE_COUNT)
+	{
+		RETURN();
+	}
+
+	uint inactiveSetIndex = MAX_PARTICLE_SET_COUNT;
+	bool isInInactiveSection = false;
+	bool resetParticles = Get(ResetParticles) > 0;
+
+	uint rngSeed = Get(Seed) * particleIdx;
+	uint particleCount;
+	uint particleBufferOffset;
+	uint particleTypeIndex;
+	float particlesPerSecond;
+
+	ParticleData particleData;
+	ParticleSet particleSet;
+	uint Bitfield;
+	uint setIndex;
+	float Age;
+
+	// 0: activity didn't change, -1: set became inactive, 1: set became active
+	int activityChanged = 0;
+	// Find the section where we are
+	uint currBufferSection;
+
+	// If the app has just been loaded, reset all the particles by clearing the bitfield and allocating particles
+	if (resetParticles)
+	{
+		Bitfield = 0;
+
+		// Particle allocation: find the particle range to which this particle belongs and initialize it consequently.
+		uint3 startIndices = uint3(0, max(0,int(Get(ParticleCountsBuffer)[0].xyz[0])-1), 
+			max(0, int(Get(ParticleCountsBuffer)[0].xyz[0] + Get(ParticleCountsBuffer)[0].xyz[1])-1));
+
+		uint3 endIndices = uint3(Get(ParticleCountsBuffer)[0].x, Get(ParticleCountsBuffer)[0].x + 
+			Get(ParticleCountsBuffer)[0].y, Get(ParticleCountsBuffer)[0].x + Get(ParticleCountsBuffer)[0].y + 
+			Get(ParticleCountsBuffer)[0].z);
+		uint3 bitfields = uint3(PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW, PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT, PARTICLE_BITFIELD_LIGHTING_MODE_NONE);
+
+		// For each lighting type
+		UNROLL_N(3)
+		for (uint i=0; i<3; i++)
+		{
+			// Find the beginning of the current buffer section
+			particleBufferOffset = startIndices[i];
+
+			// Allocate all particle sets that are of that type
+			UNROLL_N(MAX_PARTICLE_SET_COUNT)
+			for (uint j=0; j<MAX_PARTICLE_SET_COUNT; j++)
+			{
+				particleSet = GetParticleSet(j);
+				particleCount = particleSet.MaxParticles;
+				particlesPerSecond = particleSet.ParticlesPerSecond;
+				
+				if (particleSet.LightBitfield == bitfields[i])
+				{
+					// If the particle that we are allocating sits in the current area of the 
+					// buffer, allocate it
+					if (particleIdx >= particleBufferOffset && particleIdx < particleBufferOffset + particleCount)
+					{
+						// Set the allocation flag, the lighting mode, the particle set to which 
+						// the particle belongs and the type of particle (firefly, rain...)
+						Bitfield |= PARTICLE_BITFIELD_IS_ALLOCATED | j | bitfields[i] | particleSet.ParticleType;
+						// Light isn't visible at the beginning
+						Bitfield |= PARTICLE_BITFIELD_LIGHT_CULLED;
+						
+						setIndex = j;
+						particleTypeIndex = i;
+						Age = float(particleIdx - particleBufferOffset) / -particlesPerSecond;
+						
+						SaveParticle(particleSet, particleIdx, Bitfield, float3(0,0,0), Age, float3(0,0,0));
+						RETURN();
+					}
+
+					particleBufferOffset += particleCount;
+				}
+			}
+		}
+	}
+	
+	for (uint i=0; i<3; i++)
+		totParticleCount += Get(ParticleCountsBuffer)[0][i];
+
+	// Check if a set changed state
+	UNROLL_N(MAX_PARTICLE_SET_COUNT)
+	for (uint i=0; i<MAX_PARTICLE_SET_COUNT && activityChanged == 0; i++)
+	{
+		activityChanged = int(Get(ParticleSetVisibility)[i*2+CURR_VALUE]) - int(Get(ParticleSetVisibility)[i*2+PREV_VALUE]);
+		inactiveSetIndex = activityChanged != 0 ? i : inactiveSetIndex;
+	}
+
+	// Try to avoid simulating
+	{
+		// Return immediately if we've reached the end of the buffer
+		if (particleIdx >= totParticleCount)
+		{
+			RETURN();
+		}
+
+		currBufferSection = GetCurrentBufferSection(particleIdx);
+
+		// If the activity of a set didn't change or it became inactive, no need to simulate the inactive area
+		if (activityChanged <= 0 && particleIdx >= Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE])
+		{
+			RETURN();
+		}
+
+		// If a set became active, we need to go through the inactive area to find particles that became 
+		// active and swap them in the right place
+		if (activityChanged == 1 && particleIdx >= Get(ParticleSectionsIndices)[currBufferSection * 2 + PREV_VALUE])
+		{
+			// Avoid double swapping
+			if (particleIdx < Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE])
+			{
+				RETURN();
+			}
+			isInInactiveSection = true;
+		}
+	}
+
+	Bitfield = Get(BitfieldBuffer)[particleIdx];
+	setIndex = Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+
+	if ((Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
+	{
+		RETURN();
+	}
+	
+	// If we are in the inactive area, check if the current particle is visible. If so, swap it with the beginning of the previous
+	// inactive start index.
+	bool swapped = true;
+    bool isActive = false;
+
+	if (isInInactiveSection && bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]))
+	{
+		isActive = true;
+        swapped = TrySwappingActivity(isActive, currBufferSection, PARTICLE_SWAP_ATTEMPTS_COUNT, particleIdx, GetParticleSet(inactiveSetIndex).MaxParticles, Bitfield, particleData);
+		
+		RETURN();
+	}
+	
+	// If a set became inactive, the inactive area expands: swap particles in the same lighting region
+	if (activityChanged == -1 && (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK) == GetParticleSet(inactiveSetIndex).LightBitfield)
+	{
+		// Check if the particle belongs to the set that just became inactive
+		if (!bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]))
+		{
+			isActive = false;
+            swapped = TrySwappingActivity(isActive, currBufferSection, PARTICLE_SWAP_ATTEMPTS_COUNT, particleIdx, GetParticleSet(inactiveSetIndex).MaxParticles, Bitfield, particleData);
+		}
+		else
+		{
+			particleData = Get(ParticlesDataBuffer)[particleIdx];
+		}
+	}
+	else
+	{
+		particleData = Get(ParticlesDataBuffer)[particleIdx];
+	}
+
+	if (!swapped)
+	{
+		uint tmp;
+		AtomicAdd(SwappedCount, 1, tmp);
+		HelpBufferSection = currBufferSection;
+	}
+
+	if (!swapped)
+	{
+		// We have enough threads to finalize the swap on our own
+		if (SwappedCount > PARTICLE_SWAP_SELF_RESOLVE_THRESHOLD)
+		{
+			swapped = TrySwappingActivity(isActive, currBufferSection, PARTICLE_COUNT, particleIdx, GetParticleSet(inactiveSetIndex).MaxParticles, Bitfield, particleData);
+		}
+		// Otherwise we need to rely on other threads for some help
+		else
+		{
+			// Acquire a read index
+			uint readIdx;
+			AtomicAdd(HelpIndicesReadIdx, 1, readIdx);
+
+			while (!swapped)
+			{
+				swapped = TrySwappingActivity(isActive, currBufferSection, PARTICLE_SWAP_FAILURE_ATTEMPTS_COUNT, particleIdx, GetParticleSet(inactiveSetIndex).MaxParticles, Bitfield, particleData);
+
+				if (!swapped && SwappedCount <= PARTICLE_SWAP_HELP_THRESHOLD)
+				{
+					uint candidateIdx;
+					AtomicExchange(HelpIndices[readIdx], PARTICLE_COUNT, candidateIdx);
+					// Helper threads found a valid index
+					if (candidateIdx != PARTICLE_COUNT)
+					{
+						Bitfield = SwapParticles(Bitfield, particleIdx, candidateIdx, particleData);
+						swapped = true;
+					}
+				}
+			}
+
+			uint tmp;
+			AtomicAdd(HelpSuccess, 1, tmp);
+		}
+	}
+	else if (SwappedCount <= PARTICLE_SWAP_HELP_THRESHOLD && SwappedCount > 0)
+	{
+		bool finished = false;
+		uint tmp;
+
+		// Help the threads that didn't manage to swap to find their particles without stuttering
+		for (uint j=0; j<PARTICLE_COUNT / (PARTICLE_SWAP_FAILURE_ATTEMPTS_COUNT * (PARTICLES_BATCH_X * PARTICLES_BATCH_Y - SwappedCount)) && !finished; j++)
+		{
+			for (uint i=0; i<PARTICLE_SWAP_FAILURE_ATTEMPTS_COUNT && !finished; i++)
+			{
+				uint currIdx = 0;
+				int sign = isActive ? 1 : -1;
+
+				AtomicAdd(Get(ParticleSectionsIndices)[HelpBufferSection * 2 + PREV_VALUE], isActive ? 1 : -1, currIdx);
+
+				if (sign*int(currIdx) >= sign*int(Get(ParticleSectionsIndices)[HelpBufferSection * 2 + CURR_VALUE]))
+				{
+					finished = true;
+					AtomicAdd(HelpSuccess, PARTICLE_SWAP_HELP_THRESHOLD, tmp);
+				}
+				else if (bool(Get(ParticleSetVisibility)[(Get(BitfieldBuffer)[currIdx] & PARTICLE_BITFIELD_SET_INDEX_MASK)*2+CURR_VALUE]) != isActive)
+				{
+					uint insertIdx;
+
+					AtomicAdd(HelpIndicesWriteIdx, 1, insertIdx);
+					AtomicExchange(HelpIndices[insertIdx], currIdx, tmp);
+
+					finished = true;
+				}
+
+				if (HelpSuccess == SwappedCount)
+					break;
+			}
+
+			if (HelpSuccess == SwappedCount)
+				break;
+		}
+	}
+
+	bool isAllocated = (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) > 0;
+	setIndex = Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+
+	// Particle set attributes
+	particleSet = GetParticleSet(setIndex);
+	particleCount = particleSet.MaxParticles;
+	particlesPerSecond = particleSet.ParticlesPerSecond;
+
+	float InitialAge = particleSet.InitialAge;
+	float LightRadius = particleSet.LightRadius;
+	float2 steeringSpeed = unpack2Floats(particleSet.SteeringStrengthMaxSpeed);
+
+	// Particle attributes
+	float3 Position, Velocity; 
+	float4 velocityAge;
+	UnpackParticle(particleSet, particleData, Position, velocityAge);
+
+	Velocity = velocityAge.xyz;
+	Age = velocityAge.w;
+
+	bool isAlive = (Bitfield & PARTICLE_BITFIELD_IS_ALIVE) > 0;
+	int sign = isAlive ? -1 : 1;
+	// Worst case simulate at 15 FPS
+	float deltaTime = min(0.066, Get(TimeDelta));
+	Age += sign * deltaTime;
+
+	if (!isAlive)
+	{
+		if (Age >= 0.0f)
+		{
+			// Initialize particle.
+			isAlive = true;
+
+			switch (particleSet.ParticleType)
+			{
+				case PARTICLE_BITFIELD_TYPE_FIREFLIES:
+					InitialAge = particleSet.InitialAge;
+					LightRadius = particleSet.LightRadius;
+
+					Position = (particleSet.Position + (randFloat3_negOneToPlusOne(rngSeed) * particleSet.Size.xyz));
+					Bitfield |= PARTICLE_BITFIELD_IS_MOVING;
+					Velocity.xyz = normalize(randFloat3_negOneToPlusOne(rngSeed)) * steeringSpeed.y;
+					Age = InitialAge;
+					break;
+
+				case PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS:
+					InitialAge = particleSet.InitialAge;
+					LightRadius = particleSet.LightRadius;
+
+					Bitfield |= PARTICLE_BITFIELD_IS_MOVING;
+					Velocity.xyz = randFloat3_negOneToPlusOne(rngSeed) * 0.01;
+					Age = InitialAge;
+					Position = ((setIndex == 0 ? Get(SeekPosition) : particleSet.Position) + randFloat3_negOneToPlusOne(rngSeed) * 0.01);
+					break;
+
+				case PARTICLE_BITFIELD_TYPE_RAIN:
+					InitialAge = particleSet.InitialAge;
+
+					Position = float3(
+						particleSet.Position.x + 30.0f * randFloat_negOneToPlusOne(rngSeed),
+						particleSet.Position.y,
+						particleSet.Position.z + 30.0f * randFloat_negOneToPlusOne(rngSeed)
+					);
+					Bitfield |= PARTICLE_BITFIELD_IS_MOVING
+						| PARTICLE_BITFIELD_IS_ACCELERATING
+						| PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER
+						| PARTICLE_BITFIELD_BILLBOARD_MODE_VELOCITY_ORIENTED;
+					Velocity.xyz = float3(5.0f, -10.0f, 0.0f);
+					Age = InitialAge;
+					break;
+			}
+
+			Bitfield |= PARTICLE_BITFIELD_IS_ALIVE | particleSet.ParticleType | particleSet.LightBitfield;
+			SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+			RETURN();
+		}
+		else
+		{
+			SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+			RETURN();
+		}
+	}
+	else if (Age < 0)
+	{
+		// Kill particle
+		Bitfield &= ~PARTICLE_BITFIELD_IS_ALIVE;
+		// Light isn't visible anymore
+		Bitfield |= PARTICLE_BITFIELD_LIGHT_CULLED;
+		isAlive = false;
+		// Set negative age, particle will respawn when Age > 0
+		Age = -max(0.0, float(particleCount) / float(particlesPerSecond) - InitialAge);
+
+		SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+		RETURN();
+	}
+
+	// Simulate particle
+	uint particleType = Bitfield & PARTICLE_BITFIELD_TYPE_BITS_MASK;
+
+	Velocity.xyz += ((Bitfield & PARTICLE_BITFIELD_IS_ACCELERATING) > 0) ? float3(0.0f, -9.8f * deltaTime, 0.0f) : float3(0,0,0);
+	if ((Bitfield & PARTICLE_BITFIELD_IS_MOVING) > 0)
+		Position += Velocity * deltaTime;
+	
+	bool collideWithDepthBuffer = (Bitfield & PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER) > 0;
+	bool isCollided = false;
+
+	switch (particleSet.ParticleType)
+	{
+		case PARTICLE_BITFIELD_TYPE_RAIN:
+		{
+			float4 clipPosition = mul(Get(ViewProjTransform), float4(Position, 1.0f));
+			float3 ndcPosition = clipPosition.xyz / clipPosition.w;
+			float2 uv = ndcPosition.xy * 0.5 + 0.5;
+			uv.y = 1 - uv.y;
+			float particleDepth = ndcPosition.z;
+			float depth = SampleLvlTex2D(Get(DepthBuffer), Get(NearestClampSampler), uv, 0).r;
+		
+			isCollided = particleDepth < depth && uv.x <= 1.0f && uv.x >= 0.0f && uv.y <= 1.0f && uv.y >= 0.0f;
+
+			if (isCollided)
+			{
+				Bitfield = (Bitfield & ~(
+					PARTICLE_BITFIELD_IS_MOVING
+					| PARTICLE_BITFIELD_IS_ACCELERATING
+					| PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER
+					| PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK
+				)) | PARTICLE_BITFIELD_BILLBOARD_MODE_HORIZONTAL;
+				// Should probabbly accumulate remaining age to add on kill.
+				InitialAge -= Age + 2.0f;
+				Age = 2.0f;
+				// Perhaps particle position should be derived by reprojecting depth.
+				Position -= deltaTime * Velocity.xyz;
+			}
+		}
+		break;
+
+		case PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS:
+		{
+			float2 avoidSeek = unpack2Floats(particleSet.BoidsAvoidSeekStrength);
+			float2 separationFlee = unpack2Floats(particleSet.BoidsSeparationFleeStrength);
+			float2 cohesionAlignment = unpack2Floats(particleSet.BoidsCohesionAlignmentStrength);
+
+			float3 avgPosition = float3(0.0, 0.0, 0.0);
+			float3 avgVelocity = float3(0.0, 0.0, 0.0);
+			float3 steering = float3(0.0, 0.0, 0.0);
+			uint validAmount = 0;
+
+			for (uint i=0; i<BOIDS_SAMPLE_COUNT; i++)
+			{
+				uint otherIdx = (particleIdx + i) - BOIDS_SAMPLE_COUNT / 2;
+				if (otherIdx >= totParticleCount)
+					break;
+
+				uint otherBitfield = Get(BitfieldBuffer)[otherIdx];
+
+				if (i != groupIdx && (otherBitfield & PARTICLE_BITFIELD_IS_ALIVE) > 0 && (otherBitfield & PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS) > 0 &&
+					(otherBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK) == setIndex)
+				{
+					float3 otherPos = GetParticlePosition(particleSet, Get(ParticlesDataBuffer)[otherIdx]);
+					avgPosition += otherPos;
+					avgVelocity += GetParticleVelocity(particleSet, Get(ParticlesDataBuffer)[otherIdx]);
+					validAmount++;
+
+					float dist = length(Position - otherPos);
+					if (dist > 0.0 && dist < PARTICLE_NEIGHBOR_THRESHOLD)
+					{
+						steering += Separation(Position, otherPos, steeringSpeed.x) * separationFlee.x;
+					}
+				}
+			}
+			validAmount = max(validAmount, uint(1));
+
+			// Add a small bias to avoid NaNs when normalizing
+			float nanBias = 0.001;
+			avgPosition = avgPosition / validAmount + nanBias;
+			avgVelocity = avgVelocity / validAmount + nanBias;
+
+			steering += Seek(Position, Velocity.xyz, setIndex == 0 ? Get(SeekPosition) : particleSet.Position, steeringSpeed.y) * avoidSeek.y;
+			steering += Cohesion(Position, avgPosition, steeringSpeed.x) * cohesionAlignment.x;
+			if (length(Velocity.xyz - avgVelocity) > 0.01)
+				steering += Alignment(Velocity.xyz, avgVelocity, steeringSpeed.x) * cohesionAlignment.y;
+
+			if (dot(steering, steering) > steeringSpeed.x * steeringSpeed.x)
+				steering = normalize(steering) * steeringSpeed.x;
+
+			Velocity.xyz += steering * deltaTime;
+
+			if (dot(Velocity, Velocity) > steeringSpeed.y * steeringSpeed.y)
+				Velocity = normalize(Velocity) * steeringSpeed.y;
+		}
+		break;
+	}
+
+	// Reset culling bit to 0
+	Bitfield &= ~PARTICLE_BITFIELD_LIGHT_CULLED;
+
+	// Blink
+	float blinkFactor = (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT) > 0 ? clamp(sin((float(Get(Time)) + particleIdx) * 1.0) + 0.5, 0.0, 1.0) : 1.0;
+	// Cull if firefly is off
+	if (blinkFactor < 0.01)
+	{
+		Bitfield |= PARTICLE_BITFIELD_LIGHT_CULLED;
+
+		SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+		RETURN();
+	}
+
+	// Cull lights
+	if ((Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT) > 0 || (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW) > 0)
+	{
+		float4 clipSpacePos = mul(Get(ViewProjTransform), float4(Position, 1.0));
+		float3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
+		float lightRadiusNDC = (LightRadius / clipSpacePos.w) * float(Get(ScreenSize).x) / float(Get(ScreenSize).y);
+
+		if (clipSpacePos.w < -LightRadius || ndcPos.x < -1-lightRadiusNDC || ndcPos.x > 1+lightRadiusNDC || ndcPos.y < -1-lightRadiusNDC || ndcPos.y > 1+lightRadiusNDC)
+		{
+			Bitfield |= PARTICLE_BITFIELD_LIGHT_CULLED;
+			SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+			RETURN();
+		}
+	}
+
+	SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, Velocity);
+
+	/*********************************/
+	// RASTERIZATION
+	/*********************************/
+
+	float scale = particleSet.Size.w;
+	
+	// bounding box
+	float4 bbMin = float4(-scale,  scale, 0.0f, 0.0f);
+	float4 bbMax = float4( scale, -scale, 0.0f, 0.0f);
+
+	// view space
+	float4 vertexPos = mul(Get(ViewTransform), float4(Position, 1.0f));
+	float viewDepth = vertexPos.z;
+	bbMin += vertexPos;
+	bbMax += vertexPos;
+
+	// clip space
+	vertexPos = mul(Get(ProjTransform), vertexPos);
+	bbMin = mul(Get(ProjTransform), bbMin);
+	bbMax = mul(Get(ProjTransform), bbMax);
+	
+	// Particle is behind the camera, don't rasterize it
+	if (vertexPos.w < 0.0)
+	{
+		RETURN();
+	}
+
+	// NDC but XY in [0, 1] range
+	vertexPos /= vertexPos.w;
+	vertexPos.xy *= 0.5f;
+	vertexPos.y *= -1.0f;
+	vertexPos.xy += float2(0.5f, 0.5f);
+
+	bbMin /= bbMin.w;
+	bbMin.xy *= 0.5f;
+	bbMin.y *= -1.0f;
+	bbMin.xy += float2(0.5f, 0.5f);
+
+	bbMax /= bbMax.w;
+	bbMax.xy *= 0.5f;
+	bbMax.y *= -1.0f;
+	bbMax.xy += float2(0.5f, 0.5f);
+
+	// check if the particle is visible in the camera
+	if (bbMax.z < 0.0f ||
+		bbMax.x < 0.0f || bbMin.x > 1.0f ||
+		bbMax.y < 0.0f || bbMin.y > 1.0f)
+	{
+		RETURN();
+	}
+
+	vertexPos.xy *= float2(Get(ScreenSize));
+	bbMin.xy *= float2(Get(ScreenSize));
+	bbMax.xy *= float2(Get(ScreenSize));
+
+	// Leave particles that are too big to the hardware rasterizer
+	if ((bbMax.x - bbMin.x) * (bbMax.y - bbMin.y) > PARTICLE_HW_RASTERIZATION_THRESHOLD)
+	{
+		uint hwRasterizerIdx;
+		AtomicAdd(Get(ParticlesToRasterizeCount)[0], 1, hwRasterizerIdx);
+		Get(ParticlesToRasterize)[hwRasterizerIdx] = particleIdx;
+		RETURN();
+	}
+
+	int minX = max(0, int(round(bbMin.x)));
+	int minY = max(0, int(round(bbMin.y)));
+	int maxX = min(int(Get(ScreenSize).x)-1, int(round(bbMax.x)));
+	int maxY = min(int(Get(ScreenSize).y)-1, int(round(bbMax.y)));
+
+	if (maxY - minY == 1 || maxX - minX == 1)
+	{
+		float att = clamp(sin((float(Get(Time)) + particleIdx) * 1.0), 0.0, 1.0);
+		float depthBufferSample = LoadTex2D(Get(DepthBuffer), NO_SAMPLER, int2(maxX, maxY), 0).x;
+		if (vertexPos.z < depthBufferSample)
+		{
+			RETURN();
+		}
+
+		if (Get(TransparencyListHeads)[minY * Get(ScreenSize).x + minX] < MAX_TRANSPARENCY_LAYERS)
+		{
+			SaveTransparencyEntry(Get(ScreenSize), uint2(maxX, maxY), float4(particleSet.Color, att), vertexPos.z);
+		}
+
+		RETURN();
+	}
+
+	for (int y = minY; y < maxY; y++)
+	{
+		for (int x = minX; x < maxX; x++)
+		{
+			float depthBufferSample = LoadTex2D(Get(DepthBuffer), NO_SAMPLER, int2(vertexPos.xy), 0).x;
+			if (vertexPos.z < depthBufferSample)
+				continue;
+
+			float2 uv = float2(x-minX, y-minY) / float2(max(1, maxX-minX), max(1, maxY-minY));
+
+			float4 texColor;
+			BeginNonUniformResourceIndex(setIndex, MAX_PARTICLE_SET_COUNT);
+				texColor = SampleLvlTex2D(Get(ParticleTextures)[setIndex], Get(NearestClampSampler), uv, 0);
+			EndNonUniformResourceIndex();
+
+			if (texColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
+				continue;
+
+			texColor = float4(texColor.xyz * particleSet.Color, texColor.w * blinkFactor);
+			if (Get(TransparencyListHeads)[y * Get(ScreenSize).x + x] < MAX_TRANSPARENCY_LAYERS)
+			{
+				SaveTransparencyEntry(Get(ScreenSize), uint2(x, y), texColor, vertexPos.z);
+			}
+		}
+	}
+
+	RETURN();
+}

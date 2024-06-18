@@ -10468,9 +10468,11 @@ bool CompilerGLSL::should_dereference(uint32_t id)
 			if (src_type.pointer != type.pointer || src_type.pointer_depth != type.pointer_depth ||
 			    src_type.parent_type != type.parent_type)
 				break;
-			if ((var = maybe_get<SPIRVariable>(expr->loaded_from)))
+			var = maybe_get<SPIRVariable>(expr->loaded_from);
+			if (var)
 				break;
-			if (!(expr = maybe_get<SPIRExpression>(expr->loaded_from)))
+			expr = maybe_get<SPIRExpression>(expr->loaded_from);
+			if (!expr)
 				break;
 		}
 

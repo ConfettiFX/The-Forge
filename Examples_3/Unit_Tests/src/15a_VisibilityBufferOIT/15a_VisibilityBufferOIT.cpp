@@ -372,6 +372,11 @@ typedef struct AppSettings
 /************************************************************************/
 // Constants
 /************************************************************************/
+Scene* pScene = NULL;
+
+/************************************************************************/
+// Constants
+/************************************************************************/
 const uint32_t gShadowMapSize = 1024;
 const uint32_t gNumViews = NUM_CULLING_VIEWPORTS;
 
@@ -750,6 +755,7 @@ const char* gTestScripts[] = { "Test_MSAA.lua", "Test_VRS.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -1140,7 +1146,7 @@ public:
         GeometryLoadDesc sceneLoadDesc = {};
         sceneLoadDesc.pGeometryBuffer = pGeometryBuffer;
         sceneLoadDesc.pGeometryBufferLayoutDesc = &gGeometryLayout;
-        Scene* pScene = loadSanMiguel(&sceneLoadDesc, token, true);
+        pScene = initSanMiguel(&sceneLoadDesc, token, true);
         if (!pScene)
             return false;
         gSceneMeshCount = pScene->geom->mDrawArgCount;
@@ -1475,6 +1481,7 @@ public:
         uiSetWidgetOnEditedCallback(msaaWidget, nullptr,
                                     [](void* pUserData)
                                     {
+                                        UNREF_PARAM(pUserData);
                                         if (gAppSettings.mEnableVRS)
                                             gAppSettings.mMsaaIndexRequested = 2;
                                         else
@@ -1492,6 +1499,7 @@ public:
         uiSetWidgetOnEditedCallback(vrsWidget, nullptr,
                                     [](void* pUserData)
                                     {
+                                        UNREF_PARAM(pUserData);
                                         if (pRenderer->pGpu->mSettings.mSoftwareVRSSupported)
                                         {
                                             gAppSettings.mMsaaIndexRequested = gAppSettings.mEnableVRS ? 2 : 0;
@@ -1579,6 +1587,7 @@ public:
         uiSetWidgetOnEditedCallback(pGRSelector, nullptr,
                                     [](void* pUserData)
                                     {
+                                        UNREF_PARAM(pUserData);
                                         ReloadDesc reloadDescriptor;
                                         reloadDescriptor.mType = RELOAD_TYPE_RENDERTARGET;
                                         requestReload(&reloadDescriptor);
@@ -1734,9 +1743,6 @@ public:
 
         LOGF(LogLevel::eINFO, "Total Load Time : %f ms", getHiresTimerUSec(&totalTimer, true) / 1000.0f);
 
-        removeResource(pScene->geomData);
-        unloadSanMiguel(pScene);
-
         /************************************************************************/
         // Setup the fps camera for navigating through the scene
         /************************************************************************/
@@ -1774,6 +1780,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1829,6 +1836,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1867,6 +1875,9 @@ public:
         /************************************************************************/
         // Remove loaded scene
         /************************************************************************/
+        removeResource(pScene->geomData);
+        exitSanMiguel(pScene);
+
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             tf_free(gPerFrame[i].pMeshData);
@@ -2181,7 +2192,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2559,7 +2570,7 @@ public:
             gPrevGraphicsSemaphore = graphicsElem.pSemaphore;
 
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = presentIndex;
+            presentDesc.mIndex = (uint8_t)presentIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &pPresentSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -3156,6 +3167,7 @@ public:
         depthRT.mSampleQuality = 0;
         depthRT.mWidth = width / gDivider;
         depthRT.pName = "Depth Buffer RT";
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_SAMPLE_LOCATIONS_COMPATIBLE;
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
         // Add OIT dummy depth buffer
@@ -4138,8 +4150,9 @@ public:
     // This method sets the contents of the buffers to indicate the rendering pass that
     // the whole scene triangles must be rendered (no cluster / triangle filtering).
     // This is useful for testing purposes to compare visual / performance results.
-    void addTriangleFilteringBuffers(Scene* pScene)
+    void addTriangleFilteringBuffers(Scene* pScene_)
     {
+        UNREF_PARAM(pScene_);
         /************************************************************************/
         // Mesh constants
         /************************************************************************/
@@ -4386,10 +4399,11 @@ public:
         const uint32_t frameIdx = currentFrameIdx;
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
 
-        mat4 cameraModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
+        mat4         cameraModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
         // mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4 cameraView = pCameraController->getViewMatrix();
-        mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
+        mat4         cameraView = pCameraController->getViewMatrix();
+        CameraMatrix cameraProj =
+            CameraMatrix::perspectiveReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         // Compute light matrices
         vec3 lightSourcePos(50.0f, 000.0f, 450.0f);
@@ -4400,9 +4414,9 @@ public:
         lightSourcePos += -800.0f * normalize(lightDir.getXYZ());
         mat4 translation = mat4::translation(-lightSourcePos);
 
-        mat4 lightModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
-        mat4 lightView = rotation * translation;
-        mat4 lightProj = mat4::orthographicLH_ReverseZ(-600, 600, -950, 350, -300, 1300);
+        mat4         lightModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
+        mat4         lightView = rotation * translation;
+        CameraMatrix lightProj = CameraMatrix::orthographicReverseZ(-600, 600, -950, 350, -300, 1300);
 
         float2 twoOverRes;
         twoOverRes.setX(gAppSettings.mRetinaScaling / float(width));
@@ -4431,14 +4445,14 @@ public:
 
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
 
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].projection = cameraProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp * cameraModel;
@@ -4466,8 +4480,8 @@ public:
         /************************************************************************/
         cameraView.setTranslation(vec3(0));
         currentFrame->gUniformDataSky.mCamPos = pCameraController->getViewPosition();
-        currentFrame->gUniformDataSky.mProjectView = cameraProj * cameraView;
-        currentFrame->gUniformDataSkyTri.mInverseViewProjection = inverse(cameraProj * cameraView);
+        currentFrame->gUniformDataSky.mProjectView = cameraProj.mCamera * cameraView;
+        currentFrame->gUniformDataSkyTri.mInverseViewProjection = inverse(cameraProj.mCamera * cameraView);
         /************************************************************************/
         // S-Curve
         /************************************************************************/
@@ -4761,7 +4775,7 @@ public:
             cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[i]);
             if (i == GEOMSET_ALPHA_BLEND)
             {
-                BindRenderTargetsDesc bindRenderTargets = {};
+                bindRenderTargets = {};
                 bindRenderTargets.mDepthStencil = { pDepthBufferOIT, LOAD_ACTION_CLEAR };
                 cmdBindRenderTargets(cmd, &bindRenderTargets);
                 cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth * gDivider,
@@ -4972,6 +4986,7 @@ public:
 
     void blurGodRay(Cmd* cmd, uint frameIdx)
     {
+        UNREF_PARAM(frameIdx);
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "God Ray Blur");
 
         BufferUpdateDesc bufferUpdate = { pBufferBlurWeights };

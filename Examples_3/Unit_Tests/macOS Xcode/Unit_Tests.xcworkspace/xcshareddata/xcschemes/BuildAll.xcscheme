@@ -113,34 +113,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "09a_HybridRaytracing.app"
-               BlueprintName = "09a_HybridRaytracing"
-               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
-               BuildableName = "09a_HybridRaytracing_iOS.app"
-               BlueprintName = "09a_HybridRaytracing_iOS"
-               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "10_ScreenSpaceReflections.app"
                BlueprintName = "10_ScreenSpaceReflections"
                ReferencedContainer = "container:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
@@ -452,6 +424,34 @@
                BuildableName = "36_AlgorithmsAndContainers_iOS.app"
                BlueprintName = "36_AlgorithmsAndContainers_iOS"
                ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "NO"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "39_ParticleSystem.app"
+               BlueprintName = "39_ParticleSystem"
+               ReferencedContainer = "container:39_ParticleSystem/39_ParticleSystem.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "NO"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "39_ParticleSystem_iOS.app"
+               BlueprintName = "39_ParticleSystem_iOS"
+               ReferencedContainer = "container:39_ParticleSystem/39_ParticleSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

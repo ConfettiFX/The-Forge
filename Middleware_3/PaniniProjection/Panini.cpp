@@ -131,7 +131,7 @@ bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
 {
     pRenderer = renderer;
     pPipelineCache = pCache;
-    mIndex = -1;
+    mIndex = (uint32_t)-1;
 
     // SHADER
     //----------------------------------------------------------------------------------------------------------------
@@ -182,6 +182,7 @@ void Panini::Exit()
 
 bool Panini::Load(RenderTarget** rts, uint32_t count)
 {
+    UNREF_PARAM(count);
     // Vertexlayout
     VertexLayout vertexLayoutPanini = {};
     vertexLayoutPanini.mBindingCount = 1;
@@ -225,6 +226,7 @@ void Panini::Unload()
 
 void Panini::Update(float deltaTime)
 {
+    UNREF_PARAM(deltaTime);
     if (mIndex >= mMaxDraws)
         mIndex = 0;
 }

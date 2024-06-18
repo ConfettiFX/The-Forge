@@ -64,7 +64,7 @@ PUSH_CONSTANT(GodRayRootConstant, b2)
 
 float GetShadowFactor(float3 position)
 {
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -123,7 +123,7 @@ FSOutput PS_MAIN( PsIn In )
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
 
-	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
 
 	float3 rayStart = Get(camPos).xyz;
 	float3 rayEnd = WorldPosW.xyz / WorldPosW.w;

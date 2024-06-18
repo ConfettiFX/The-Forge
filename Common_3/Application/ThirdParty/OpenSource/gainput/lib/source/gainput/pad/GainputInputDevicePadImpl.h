@@ -36,9 +36,9 @@ public:
 	virtual bool Vibrate(float leftMotor, float rightMotor) = 0;
 	virtual InputState* GetNextInputState() { return 0; }
 	virtual const char* GetDeviceName() { return "Not Set"; }
-	virtual bool SetRumbleEffect(float leftMotor, float rightMotor, uint32_t duration_ms, bool targetOwningDevice) { return false; }
-	virtual void SetLEDColor(uint8_t r, uint8_t g, uint8_t b) { }
-	virtual void SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char*, bool added, int controllerID)) {}
+	virtual bool SetRumbleEffect(float leftMotor, float rightMotor, uint32_t duration_ms, bool targetOwningDevice) { UNREF_PARAM(leftMotor); UNREF_PARAM(rightMotor); UNREF_PARAM(duration_ms); UNREF_PARAM(targetOwningDevice); return false; }
+	virtual void SetLEDColor(uint8_t r, uint8_t g, uint8_t b) { UNREF_PARAM(r); UNREF_PARAM(g); UNREF_PARAM(b); }
+	virtual void SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char*, bool added, int controllerID)) { UNREF_PARAM(onDeviceChange); }
 };
 
 }

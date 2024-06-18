@@ -179,6 +179,7 @@ int32_t     gNumResetsFromTestScripts = 0; // number of times we have reset the 
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -186,6 +187,7 @@ void RunScript(void* pUserData)
 
 void SwitchGpuMode(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     gMultiGPURestart = true;
     ResetDesc resetDescriptor;
     resetDescriptor.mType = RESET_TYPE_GPU_MODE_SWITCH;
@@ -638,6 +640,7 @@ public:
             uiSetWidgetOnEditedCallback(pSwapRenderers, this,
                                         [](void* pUserData)
                                         {
+                                            UNREF_PARAM(pUserData);
                                             uint32_t temporary = gSelectedGpuIndices[0];
                                             gSelectedGpuIndices[0] = gSelectedGpuIndices[1];
                                             gSelectedGpuIndices[1] = temporary;
@@ -738,6 +741,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -793,6 +797,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1054,7 +1059,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue[0]);
             ::toggleVSync(pRenderer[0], &pSwapChain);
@@ -1328,7 +1333,7 @@ public:
             queueSubmit(pGraphicsQueue[0], &submitDesc);
 
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = swapchainImageIndex;
+            presentDesc.mIndex = (uint8_t)swapchainImageIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -1577,12 +1582,12 @@ public:
 
             for (uint32_t f = 0; f < gDataBufferCount; ++f)
             {
-                DescriptorData params[1] = {};
-                params[0].pName = "uniformBlock";
-                params[0].ppBuffers = &pSkyboxUniformBuffer[f][i];
-                updateDescriptorSet(pRenderer[i], f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
-                params[0].ppBuffers = &pProjViewUniformBuffer[f][i];
-                updateDescriptorSet(pRenderer[i], f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
+                DescriptorData uParams[1] = {};
+                uParams[0].pName = "uniformBlock";
+                uParams[0].ppBuffers = &pSkyboxUniformBuffer[f][i];
+                updateDescriptorSet(pRenderer[i], f * 2 + 0, pDescriptorSetUniforms[i], 1, uParams);
+                uParams[0].ppBuffers = &pProjViewUniformBuffer[f][i];
+                updateDescriptorSet(pRenderer[i], f * 2 + 1, pDescriptorSetUniforms[i], 1, uParams);
             }
         }
     }

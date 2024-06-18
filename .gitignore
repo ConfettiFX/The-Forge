@@ -59,11 +59,17 @@ Examples_3/Unit_Tests/Android_VisualStudio2017/Android-*
 Examples_3/Unit_Tests/Android_VisualStudio2019/Android-*
 Examples_3/Visibility_Buffer/Android_VisualStudio2017/Android-*
 Examples_3/Visibility_Buffer/Android_VisualStudio2019/Android-*
+Examples_3/Visibility_Buffer2/Android_VisualStudio2019/Android-*
 Examples_3/Ephemeris/Android_VisualStudio2017/Android-*
 Examples_3/Ephemeris/Android_VisualStudio2019/Android-*
 **/.gradle
 **/.agde
 Common_3/OS/Android/Packaging/build/**
+
+#Quest build artifacts
+Examples_3/Visibility_Buffer/Quest_VisualStudio2019/Android-*
+Examples_3/Unit_Tests/Quest_VisualStudio2019/Android-*
+Examples_3/Ephemeris/Quest_VisualStudio2019/Android-*
 
 ##Xcode User settings
 xcuserdata/

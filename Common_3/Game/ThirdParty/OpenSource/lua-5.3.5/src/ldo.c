@@ -423,7 +423,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       int n;  /* number of returns */
       checkstackp(L, LUA_MINSTACK, func);  /* ensure minimum stack size */
       ci = next_ci(L);  /* now 'enter' new function */
-      ci->nresults = nresults;
+      ci->nresults = (short)nresults;
       ci->func = func;
       ci->top = L->top + LUA_MINSTACK;
       lua_assert(ci->top <= L->stack_last);
@@ -451,7 +451,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
         base = func + 1;
       }
       ci = next_ci(L);  /* now 'enter' new function */
-      ci->nresults = nresults;
+      ci->nresults = (short)nresults;
       ci->func = func;
       ci->u.l.base = base;
       L->top = ci->top = base + fsize;

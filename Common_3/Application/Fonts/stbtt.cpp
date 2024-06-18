@@ -45,9 +45,17 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #define STBTT_assert(x) ASSERT(x)
 
-static void* stbtt_alloc_func(size_t size, void* user_data) { return tf_malloc(size); }
+static void* stbtt_alloc_func(size_t size, void* user_data)
+{
+    UNREF_PARAM(user_data);
+    return tf_malloc(size);
+}
 
-static void stbtt_dealloc_func(void* ptr, void* user_data) { tf_free(ptr); }
+static void stbtt_dealloc_func(void* ptr, void* user_data)
+{
+    UNREF_PARAM(user_data);
+    tf_free(ptr);
+}
 
 #define STBTT_malloc(x, u) stbtt_alloc_func(x, u)
 #define STBTT_free(x, u)   stbtt_dealloc_func(x, u)

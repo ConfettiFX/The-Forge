@@ -174,16 +174,28 @@ static inline uint32_t util_get_surface_size(TinyImageFormat format, uint32_t wi
 /************************************************************************/
 // DDS Loading
 /************************************************************************/
-static bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
+inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
 
     ssize_t ddsDataSize = fsGetStreamFileSize(pStream);
     RETURN_IF_FAILED(ddsDataSize <= UINT32_MAX);
 
-    TinyDDS_Callbacks callbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                 [](void* user, size_t size) { return tf_malloc(size); },
-                                 [](void* user, void* memory) { tf_free(memory); },
+    TinyDDS_Callbacks callbacks{ [](void* user, char const* msg)
+                                 {
+                                     UNREF_PARAM(user);
+                                     LOGF(eERROR, "%s", msg);
+                                 },
+                                 [](void* user, size_t size)
+                                 {
+                                     UNREF_PARAM(user);
+                                     return tf_malloc(size);
+                                 },
+                                 [](void* user, void* memory)
+                                 {
+                                     UNREF_PARAM(user);
+                                     tf_free(memory);
+                                 },
                                  [](void* user, void* buffer, size_t byteCount)
                                  { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                  [](void* user, int64_t offset)
@@ -234,9 +246,21 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     ssize_t ktxDataSize = fsGetStreamFileSize(pStream);
     RETURN_IF_FAILED(ktxDataSize <= UINT32_MAX);
 
-    TinyKtx_Callbacks callbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                 [](void* user, size_t size) { return tf_malloc(size); },
-                                 [](void* user, void* memory) { tf_free(memory); },
+    TinyKtx_Callbacks callbacks{ [](void* user, char const* msg)
+                                 {
+                                     UNREF_PARAM(user);
+                                     LOGF(eERROR, "%s", msg);
+                                 },
+                                 [](void* user, size_t size)
+                                 {
+                                     UNREF_PARAM(user);
+                                     return tf_malloc(size);
+                                 },
+                                 [](void* user, void* memory)
+                                 {
+                                     UNREF_PARAM(user);
+                                     tf_free(memory);
+                                 },
                                  [](void* user, void* buffer, size_t byteCount)
                                  { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                  [](void* user, int64_t offset)

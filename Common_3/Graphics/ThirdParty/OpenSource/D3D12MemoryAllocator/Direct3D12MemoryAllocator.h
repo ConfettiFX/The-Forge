@@ -1771,7 +1771,7 @@ template<typename T>
 static void D3D12MA_SWAP(T& a, T& b) { T tmp = a; a = b; b = tmp; }
 
 // Scans integer for index of first nonzero bit from the Least Significant Bit (LSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanLSB(UINT64 mask)
+UINT8 BitScanLSB(UINT64 mask)
 {
 #if defined(_MSC_VER) && defined(_WIN64)
     unsigned long pos;
@@ -1793,7 +1793,7 @@ static UINT8 BitScanLSB(UINT64 mask)
 #endif
 }
 // Scans integer for index of first nonzero bit from the Least Significant Bit (LSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanLSB(UINT32 mask)
+UINT8 BitScanLSB(UINT32 mask)
 {
 #ifdef _MSC_VER
     unsigned long pos;
@@ -1816,7 +1816,7 @@ static UINT8 BitScanLSB(UINT32 mask)
 }
 
 // Scans integer for index of first nonzero bit from the Most Significant Bit (MSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanMSB(UINT64 mask)
+UINT8 BitScanMSB(UINT64 mask)
 {
 #if defined(_MSC_VER) && defined(_WIN64)
     unsigned long pos;
@@ -1838,7 +1838,7 @@ static UINT8 BitScanMSB(UINT64 mask)
     return UINT8_MAX;
 }
 // Scans integer for index of first nonzero bit from the Most Significant Bit (MSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanMSB(UINT32 mask)
+UINT8 BitScanMSB(UINT32 mask)
 {
 #ifdef _MSC_VER
     unsigned long pos;
@@ -2015,7 +2015,7 @@ static bool IsHeapTypeStandard(D3D12_HEAP_TYPE type)
         type == D3D12_HEAP_TYPE_READBACK;
 }
 
-static D3D12_HEAP_PROPERTIES StandardHeapTypeToHeapProperties(D3D12_HEAP_TYPE type)
+D3D12_HEAP_PROPERTIES StandardHeapTypeToHeapProperties(D3D12_HEAP_TYPE type)
 {
     D3D12MA_ASSERT(IsHeapTypeStandard(type));
     D3D12_HEAP_PROPERTIES result = {};
@@ -5492,6 +5492,7 @@ bool BlockMetadata_Linear::CreateAllocationRequest(
     UINT32 strategy,
     AllocationRequest* pAllocationRequest)
 {
+    UNREF_PARAM(strategy); 
     D3D12MA_ASSERT(allocSize > 0 && "Cannot allocate empty block!");
     D3D12MA_ASSERT(pAllocationRequest != NULL);
     D3D12MA_HEAVY_ASSERT(Validate());
@@ -5508,6 +5509,7 @@ void BlockMetadata_Linear::Alloc(
     UINT64 allocSize,
     void* privateData)
 {
+    UNREF_PARAM(allocSize); 
     UINT64 offset = (UINT64)request.allocHandle - 1;
     const Suballocation newSuballoc = { offset, request.size, privateData, SUBALLOCATION_TYPE_ALLOCATION };
 
@@ -5679,6 +5681,7 @@ AllocHandle BlockMetadata_Linear::GetAllocationListBegin() const
 
 AllocHandle BlockMetadata_Linear::GetNextAllocation(AllocHandle prevAlloc) const
 {
+    UNREF_PARAM(prevAlloc); 
     // Function only used for defragmentation, which is disabled for this algorithm
     D3D12MA_ASSERT(0);
     return (AllocHandle)0;
@@ -5686,6 +5689,7 @@ AllocHandle BlockMetadata_Linear::GetNextAllocation(AllocHandle prevAlloc) const
 
 UINT64 BlockMetadata_Linear::GetNextFreeRegionSize(AllocHandle alloc) const
 {
+    UNREF_PARAM(alloc); 
     // Function only used for defragmentation, which is disabled for this algorithm
     D3D12MA_ASSERT(0);
     return 0;
@@ -6881,6 +6885,7 @@ void BlockMetadata_TLSF::Alloc(
     UINT64 allocSize,
     void* privateData)
 {
+    UNREF_PARAM(allocSize); 
     // Get block and pop it from the free list
     Block* currentBlock = (Block*)request.allocHandle;
     UINT64 offset = request.algorithmData;
@@ -8107,6 +8112,7 @@ AllocatorPimpl::AllocatorPimpl(const ALLOCATION_CALLBACKS& allocationCallbacks, 
 
 HRESULT AllocatorPimpl::Init(const ALLOCATOR_DESC& desc)
 {
+    UNREF_PARAM(desc); 
 #if D3D12MA_DXGI_1_4
     desc.pAdapter->QueryInterface(D3D12MA_IID_PPV_ARGS(&m_Adapter3));
 #endif
@@ -9053,6 +9059,7 @@ void AllocatorPimpl::FreeStatsString(WCHAR* pStatsString)
 template<typename D3D12_RESOURCE_DESC_T>
 bool AllocatorPimpl::PrefersCommittedAllocation(const D3D12_RESOURCE_DESC_T& resourceDesc)
 {
+    UNREF_PARAM(resourceDesc); 
     // Intentional. It may change in the future.
     return false;
 }

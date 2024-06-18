@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{d8d581cc-5e79-4539-b78c-1ccdebf08b89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{7c084b6f-973f-4abb-87ce-cd9b78743988}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\SanMiguel.cpp" />
+    <ClCompile Include="..\src\Visibility_Buffer.cpp" />
+    <ClInclude Include="..\src\SanMiguel.h" />
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+</Project>

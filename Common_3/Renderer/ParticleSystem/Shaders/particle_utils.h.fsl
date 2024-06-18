@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+#ifndef PARTICLE_SIMULATE_H
+#define PARTICLE_SIMULATE_H
+
+#include "../../../Graphics/ShaderUtilities.h.fsl"
+#include "particle_shared.h.fsl"
+#include "particle_packing.h.fsl"
+
+void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, float fragDepth)
+{
+	uint listIndex, bufferIndex;
+	bufferIndex = coords.y * screenSize.x + coords.x;
+
+	if (Get(TransparencyListHeads)[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
+		return;
+	
+	AtomicAdd(Get(TransparencyListHeads)[bufferIndex], 1, listIndex);
+
+	if (listIndex >= MAX_TRANSPARENCY_LAYERS)
+		return;
+
+	// Pack AOIT data
+	PackedParticleTransparencyNode node;
+	node.Depth = fragDepth;
+	node.Color = packUnorm4x8(fragColor);
+
+	Get(TransparencyList)[bufferIndex*MAX_TRANSPARENCY_LAYERS + listIndex] = node;
+}
+
+/* 
+	Returns 0 if the particle is in the LIGHTNSHADOW section, 1 if in the LIGHT section, 2 otherwise
+*/
+uint GetCurrentBufferSection(uint particleIdx)
+{
+	uint currBufferSection = 0;
+	uint currBufferOffset = Get(ParticleCountsBuffer)[0].x;
+
+	while (currBufferOffset <= particleIdx && currBufferSection < 2)
+	{
+		currBufferSection++;
+		currBufferOffset += Get(ParticleCountsBuffer)[0][currBufferSection];
+	}
+
+	return currBufferSection;
+}
+
+/*
+	Swaps particle and bitfield entries at indices currIdx and swapIdx
+	Returns the new bitfield, stores the new particle in outParticle
+*/
+uint SwapParticles(uint currBitfield, uint currIdx, uint swapIdx, inout(ParticleData) outParticle)
+{
+	// Swap particles
+	uint bitfieldB = Get(BitfieldBuffer)[swapIdx];
+	ParticleData particleA = Get(ParticlesDataBuffer)[currIdx];
+	ParticleData particleB = Get(ParticlesDataBuffer)[swapIdx];
+
+	Get(ParticlesDataBuffer)[currIdx] = particleB;
+	Get(ParticlesDataBuffer)[swapIdx] = particleA;
+
+	Get(BitfieldBuffer)[swapIdx] = currBitfield;
+	Get(BitfieldBuffer)[currIdx] = bitfieldB;
+
+	outParticle = particleB;
+	return bitfieldB;
+}
+
+
+
+/* 
+	Attempts nAttempts times to swap a particle with state isActive with a particle with state !isActive contained in 
+		the same buffer lighting section (currBufferSection).
+		Multiple attempts are needed because it could happen that a candidate particle to use for swapping has the same
+		state as the one we want to swap (this happens when the particle buffer is fragmented).
+
+	Returns true if the particle was swapped before nAttempts, false otherwise. When returning true, particleData
+		contains the particle we swapped with and currBitfield contains its bitfield.
+*/
+bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, uint particleIdx, uint particleCount, inout(uint) currBitfield, inout(ParticleData) particleData)
+{
+	int sign = isActive ? 1 : -1;
+	uint attemptCount = 0;
+
+	uint currIdx;
+	uint toSwapBitfield = currBitfield;
+	uint setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+
+	uint offset = Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE] - (isActive ? particleCount : 0);
+
+	do
+	{
+		// Get index to swap particle to
+		AtomicAdd(Get(ParticleSectionsIndices)[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
+		if (sign*int(currIdx) < sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]))
+		{
+			toSwapBitfield = Get(BitfieldBuffer)[currIdx];
+			setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+			attemptCount++;
+		}
+	}
+	while (isActive == bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]) &&							// Make sure the received particle has the right state
+		sign*int(currIdx) < sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]) &&	// Don't read from the wrong section
+		attemptCount < nAttempts);																			// Only try a certain amount of times
+
+	if (bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]) != isActive)
+	{
+		currBitfield = SwapParticles(currBitfield, particleIdx, currIdx, particleData);
+		return true;
+	}
+	
+	if (sign*int(currIdx) >= sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]))
+		return true;
+
+	return false;
+}
+
+/*
+	Stores a particle and its bitfield in the particles / bitfield buffers, initializing the particles with 
+		the attributes passed as arguments.
+*/
+void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, float3 position, float age, float3 velocity)
+{
+	ParticleData particleData = PackParticle(particleSet, position, float4(velocity, age));
+	
+	Get(ParticlesDataBuffer)[particleIdx] = particleData;
+	Get(BitfieldBuffer)[particleIdx] = bitfield;
+}
+
+
+#endif // PARTICLE_SIMULATE_H

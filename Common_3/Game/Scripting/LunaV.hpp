@@ -218,6 +218,7 @@ public:
     // REGISTER CLASS AS A GLOBAL TABLE
     static void RegisterMethod(lua_State* L, const char* methodName, const int methodIndex, const char* namespac = NULL)
     {
+        UNREF_PARAM(namespac);
         // TODO:
         // if (namespac && strlen(namespac))
         //{
@@ -347,7 +348,9 @@ public:
             if (!obj || !*obj)
             {
                 luaL_error(L, "Internal error, no object given!");
+#ifndef NDEBUG
                 return 0;
+#endif
             }
 
             if (_index >> 8) // Try to set a func
@@ -355,7 +358,9 @@ public:
                 char c[128];
                 snprintf(c, 128, "Trying to set the method [%s] of class [%s]", (*obj)->T::methods[_index ^ (1 << 8)].name, T::className);
                 luaL_error(L, c);
+#ifndef NDEBUG
                 return 0;
+#endif
             }
 
             lua_pop(L, 2);    // Pop metatable and _index

@@ -114,23 +114,5 @@ extern void OnVkDeviceLost(struct Renderer*);
 // #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
 extern bool gEnableDynamicRenderingExtension;
 
-/******************************************/
-// Driver / device memory tracking
-/******************************************/
+// Amount of memory tracked objects
 #define TRACKED_OBJECT_TYPE_COUNT_MAX 40
-
-extern uint32_t               GetTrackedObjectTypeCount();
-extern VkAllocationCallbacks* GetAllocationCallbacks(VkObjectType objType);
-extern const char*            GetTrackedObjectName(uint32_t obj);
-
-// Driver memory getters
-extern uint64_t GetDriverAllocationsCount();
-extern uint64_t GetDriverMemoryAmount();
-extern uint64_t GetDriverAllocationsPerObject(uint32_t obj);
-extern uint64_t GetDriverMemoryPerObject(uint32_t obj);
-
-// Device memory getters
-extern uint64_t GetDeviceAllocationsCount();
-extern uint64_t GetDeviceMemoryAmount();
-extern uint64_t GetDeviceAllocationsPerObject(uint32_t obj);
-extern uint64_t GetDeviceMemoryPerObject(uint32_t obj);

@@ -612,7 +612,7 @@ typedef struct TinyDDS_Context {
 
 //static uint32_t TinyDDS_fileIdentifier = TINYDDS_MAKE_RIFFCODE('D', 'D', 'S', ' ');
 
-static void TinyDDS_NullErrorFunc(void *user, char const *msg) {}
+static void TinyDDS_NullErrorFunc(void *user, char const *msg) { UNREF_PARAM(user); UNREF_PARAM(msg); }
 
 TinyDDS_ContextHandle TinyDDS_CreateContext(TinyDDS_Callbacks const *callbacks, void *user) {
 	TinyDDS_Context *ctx = (TinyDDS_Context *) callbacks->allocFn(user, sizeof(TinyDDS_Context));
@@ -1413,6 +1413,7 @@ bool TinyDDS_NeedsGenerationOfMipmaps(TinyDDS_ContextHandle handle) {
 }
 
 bool TinyDDS_NeedsEndianCorrecting(TinyDDS_ContextHandle handle) {
+	UNREF_PARAM(handle); 
 	// TODO should return true if this file is compiled on big endian machines
 	return false;
 }
@@ -2267,8 +2268,6 @@ TinyDDS_Format TinyImageFormat_ToTinyDDSFormat(TinyImageFormat fmt) {
 		// TODO Some of these can be via Dx10/4CC codes I think
 	default: return TDDS_UNDEFINED;
 	}
-
-	return TDDS_UNDEFINED;
 }
 #endif // end TinyImageFormat conversion
 

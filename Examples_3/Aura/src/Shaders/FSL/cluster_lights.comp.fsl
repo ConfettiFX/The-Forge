@@ -32,11 +32,11 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId)
 	LightData lightData = Get(lights)[groupId.x];
 	
 	float4 lightPosWorldSpace = float4(lightData.position.xyz, 1.0f);
-	float4 lightPosClipSpace  = mul(Get(transform)[VIEW_CAMERA].vp, lightPosWorldSpace);
+	float4 lightPosClipSpace  = mul(Get(transform)[VIEW_CAMERA].vp.mat, lightPosWorldSpace);
 	float invLightPosW = 1.0f / lightPosClipSpace.w;
 	float3 lightPos = lightPosClipSpace.xyz * invLightPosW;
 
-	float fov = 2.0*atan( 1.0/Get(transform)[VIEW_CAMERA].projection[1][1] );
+	float fov = 2.0*atan( 1.0/Get(transform)[VIEW_CAMERA].projection.mat[1][1] );
 	float projRadius = 2.0f * LIGHT_SIZE * (1 / tan(fov * 0.5f)) * invLightPosW;
 	projRadius *= windowSize.x > windowSize.y ? aspectRatio : 1 / aspectRatio;
 	

@@ -1511,6 +1511,7 @@ bool KeyChecker(InputActionContext* ctx)
 
 bool TouchChecker(InputActionContext* ctx)
 {
+    UNREF_PARAM(ctx);
 #ifdef TOUCH_INPUT
     if (gConstantData.deviceType == InputDeviceType::INPUT_DEVICE_TOUCH)
     {
@@ -1534,6 +1535,7 @@ IApp* gUnitTestApp = NULL;
 
 void OnDeviceSwitch(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     waitQueueIdle(pGraphicsQueue);
     gConstantData.deviceType = gChosenDeviceType + 1;
 
@@ -1642,6 +1644,7 @@ void OnDeviceSwitch(void* pUserData)
 
 void OnLightsAndRumbleSwitch(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     // Reset controller events
     setRumbleEffect(0, 0, 0, 0);
     setLEDColor(0, 0xFF, 0xCB, 0x00); // TFI Yellow: #FFCB00
@@ -2009,7 +2012,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2162,7 +2165,7 @@ public:
         queueSubmit(pGraphicsQueue, &submitDesc);
 
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.pSwapChain = pSwapChain;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
@@ -2294,10 +2297,10 @@ public:
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData param = {};
-            param.pName = "InputData";
-            param.ppBuffers = &pInputDataUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorInputData, 1, &param);
+            DescriptorData uParam = {};
+            uParam.pName = "InputData";
+            uParam.ppBuffers = &pInputDataUniformBuffer[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorInputData, 1, &uParam);
         }
     }
 };

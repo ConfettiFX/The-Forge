@@ -93,6 +93,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
 		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
 		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
+		
 
 		// TODO: move to VisibilityBuffer.cpp 
 		Get(indirectDataBuffer)[indices[0]] = batchMeshIndex;
@@ -109,7 +110,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
         UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			float4x4 worldViewProjection = Get(transform)[i].mvp;
+#if defined(TARGET_QUEST)
+		float4x4 worldViewProjection = Get(transform)[i].mvp.mat[0];
+#else
+			float4x4 worldViewProjection = Get(transform)[i].mvp.mat;
+#endif
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),

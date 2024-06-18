@@ -104,10 +104,7 @@ namespace gainput
 #define GAINPUT_ASSERT(b)							\
 	do												\
 	{												\
-		if (!(b))									\
-		{											\
-			::gainput::TF_FailedAssert(__FILE__, __LINE__, #b);	\
-		}											\
+		b ? (void)0 : ::gainput::TF_FailedAssert(__FILE__, __LINE__, #b); \
 	} while(0) 
 #else
 #define GAINPUT_ASSERT(b) do { (void)sizeof(b); } while(0)
@@ -193,11 +190,11 @@ typedef unsigned int ListenerId;
 typedef unsigned int ModifierId;
 
 /// An invalid device ID.
-static const DeviceId InvalidDeviceId = -1;
+static const DeviceId InvalidDeviceId = (DeviceId)-1;
 /// An invalid device button ID.
-static const DeviceButtonId InvalidDeviceButtonId = -1;
+static const DeviceButtonId InvalidDeviceButtonId = (DeviceId)-1;
 /// An invalid user button ID.
-static const UserButtonId InvalidUserButtonId = -1;
+static const UserButtonId InvalidUserButtonId = (DeviceId)-1;
 
 /// Returns the name of the library, should be "Gainput".
 const char* GetLibName();

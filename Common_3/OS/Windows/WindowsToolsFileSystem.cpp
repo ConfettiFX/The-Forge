@@ -101,7 +101,6 @@ void fswThreadFunc(void* data)
 
         GetOverlappedResult(hDir, &ovl, &dwBytesReturned, FALSE);
 
-        DWORD offset = 0;
         BYTE* p = notifyBuffer;
         for (;;)
         {
@@ -496,7 +495,6 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIterato
         // if (iterator->fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
 
         bool isDir = iterator->fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-        bool isFile = !isDir;
 
         if (!WideCharToMultiByte(CP_UTF8, 0, iterator->fd.cFileName, -1, iterator->buffer, sizeof iterator->buffer, NULL, NULL))
             continue;

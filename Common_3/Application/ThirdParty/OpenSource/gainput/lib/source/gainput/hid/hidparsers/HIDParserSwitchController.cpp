@@ -367,8 +367,6 @@ bool HIDIsSupportedSwitchController(HIDDeviceInfo* devInfo)
     default:
         return false;
     }
-
-    return false;
 }
 
 
@@ -385,7 +383,7 @@ bool HIDIsSupportedSwitchController(HIDDeviceInfo* devInfo)
 #define GRAVITY (float)(0x1000)
 #define SENSOR_SCALING (float)(0x7FFF)
 
-static int32_t Calibrate(Calibration* calib, int16_t val)
+static int16_t Calibrate(Calibration* calib, int16_t val)
 {
     int16_t newVal = val - calib->mid;
 
@@ -395,9 +393,9 @@ static int32_t Calibrate(Calibration* calib, int16_t val)
         calib->bLo = newVal;
 
     if (newVal > calib->bHi * DEADZONE)
-        newVal = (int32_t)((newVal / (float)calib->bHi) * CENTERING);
+        newVal = (int16_t)((newVal / (float)calib->bHi) * CENTERING);
     else if (newVal < calib->bLo * DEADZONE)
-        newVal = (int32_t)((newVal / (float)calib->bLo) * -CENTERING);
+        newVal = (int16_t)((newVal / (float)calib->bLo) * -CENTERING);
     else
         newVal = 0;
 
@@ -939,7 +937,7 @@ static uint16_t GetNearestAmp(uint16_t amp)
 {
     const uint32_t len = sizeof(amp_ref) / sizeof(uint16_t);
 
-    for (uint32_t i = 0; i < len; i += 3)
+    for (uint16_t i = 0; i < len; i += 3)
     {
         if (amp <= amp_ref[i])
         {
@@ -981,7 +979,7 @@ static void HIDDoRumbleSwitchCon(HIDController* controller, uint16_t left, uint1
     {
         uint16_t iLeft = GetNearestAmp((uint16_t)((left / (float)0xFFFF) * amp_safe_max));
         uint16_t iRight = GetNearestAmp((uint16_t)((right / (float)0xFFFF) * amp_safe_max));
-        uint16_t iFreq = GetNearestFreq(160);
+        uint16_t iFreq = (uint16_t)GetNearestFreq(160);
 
         // frequency and amplitude stored as {..., val, low, high, ...} so just index to get the relative low and high vals
         //   passed index always points to 'val'
@@ -1030,6 +1028,8 @@ static void HIDSetPlayerSwitchCon(HIDController* controller, uint8_t playerNum)
 
 static void HIDSetLightsSwitchCon(HIDController* controller, uint8_t r, uint8_t g, uint8_t b)
 {
+    UNREF_PARAM(r); 
+    UNREF_PARAM(g); 
     SetHomeButtonLightPattern(controller, b);
 }
 

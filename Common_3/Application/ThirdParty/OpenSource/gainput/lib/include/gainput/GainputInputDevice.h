@@ -113,7 +113,7 @@ public:
 	/// Returns the previous state of the given button.
 	float GetFloatPrevious(DeviceButtonId deviceButton) const;
 	
-	virtual void WarpMouse(const float&x, const float& y) {}
+	virtual void WarpMouse(const float&x, const float& y) { UNREF_PARAM(x); UNREF_PARAM(y); }
 
 	/// Checks if any button on this device is down.
 	/**

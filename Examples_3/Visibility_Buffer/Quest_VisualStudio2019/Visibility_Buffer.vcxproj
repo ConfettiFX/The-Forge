@@ -1,0 +1,192 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\SanMiguel.h" />
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\OS\OS.vcxproj">
+      <Project>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Renderer\Renderer.vcxproj">
+      <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
+      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
+      <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\SanMiguel.cpp" />
+    <ClCompile Include="..\src\Visibility_Buffer.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{610C39FA-F02B-4237-BA8C-4EED56FA8D9F}</ProjectGuid>
+    <RootNamespace>Visibility_Buffer</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="AGDEVersions.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <LinkIncremental>true</LinkIncremental>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+    <IncludePath>
+    </IncludePath>
+    <LibraryPath>
+    </LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <LinkIncremental>false</LinkIncremental>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
+    <CustomBuildAfterTargets>
+    </CustomBuildAfterTargets>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <StandardLib>
+      </StandardLib>
+    </ClCompile>
+    <Link>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <PreLinkEvent>
+      <Command>
+      </Command>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "%ASSETS%Meshes\"
+xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "%ASSETS%Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "%ASSETS%"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "%ASSETS%Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "%ASSETS%Scripts\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
+
+if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VULKAN\"
+xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"
+xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
+
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <StandardLib>
+      </StandardLib>
+      <PreprocessorDefinitions>QUEST_VR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+    <FxCompile>
+      <EntryPointName>
+      </EntryPointName>
+    </FxCompile>
+    <PreLinkEvent>
+      <Command>
+      </Command>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "%ASSETS%Meshes\"
+xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "%ASSETS%Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "%ASSETS%"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "%ASSETS%Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "%ASSETS%Scripts\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
+
+if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VULKAN\"
+xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"
+xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
+
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+
+</Command>
+    </PostBuildEvent>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
+  </ImportGroup>
+</Project>

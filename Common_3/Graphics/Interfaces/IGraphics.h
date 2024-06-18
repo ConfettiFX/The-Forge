@@ -661,6 +661,7 @@ typedef enum TextureCreationFlags
     /// Creates resolve attachment for auto resolve (MSAA on tiled architecture - Resolve can be done on tile through render pass)
     TEXTURE_CREATION_FLAG_CREATE_RESOLVE_ATTACHMENT = 0x10000,
 #endif
+    TEXTURE_CREATION_FLAG_SAMPLE_LOCATIONS_COMPATIBLE = 0x20000
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
@@ -2964,6 +2965,7 @@ typedef struct GPUSettings
     uint32_t m64BitAtomicsSupported : 1;
 #if defined(DIRECT3D11) || defined(DIRECT3D12)
     D3D_FEATURE_LEVEL mFeatureLevel;
+    uint32_t          mSuppressInvalidSubresourceStateAfterExit : 1;
 #endif
 #if defined(VULKAN)
     uint32_t mDynamicRenderingSupported : 1;
@@ -3006,8 +3008,10 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
             ID3D12Device*                            pDevice;
 #endif
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
-            ID3D12InfoQueue* pDebugValidation;
-            bool             mSuppressMismatchingCommandListDuringPresent;
+            ID3D12InfoQueue1* pDebugValidation;
+            DWORD             mCallbackCookie;
+            bool              mUseDebugCallback;
+            bool              mSuppressMismatchingCommandListDuringPresent;
 #endif
         } mDx;
 #endif

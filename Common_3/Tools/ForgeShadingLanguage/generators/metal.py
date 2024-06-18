@@ -95,6 +95,10 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         if 'rootcbv' in parsing_cbuffer[0]:
             return False
         return Features.ICB in binary.features or Features.RAYTRACING in binary.features
+
+    def cleaneval(exp: str):
+        exp = re.sub(r"[A-Za-z]"," ",exp)
+        return eval(exp)
         
     # map dx register to main fn metal resource location
     def dxRegisterToMSLBinding(res: str, reg: str) -> str:
@@ -223,9 +227,6 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             sorted_elements = sorted(elements, key=lambda x: x[0], reverse=False)
             vkbinding = 0
             for elem in sorted_elements:
-                def cleaneval(exp: str):
-                    exp = re.sub(r"[A-Za-z]"," ",exp)
-                    return eval(exp)
                 binding = cleaneval(elem[0].split('=')[-1])
                 arr = 1 if not isArray(elem[1][2]) else cleaneval(getArrayLenFlat(elem[1][2]))
                 while vkbinding < binding:
@@ -316,7 +317,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 n2 = sem if shader.stage == Stages.VERT else getArrayBaseName(name)
                 if isArray(name):
                     base_name = getArrayBaseName(name)
-                    array_length = int(getArrayLen(shader.defines, name))
+                    array_length = int(cleaneval(getArrayLen(shader.defines, name)))
                     assignment = []
                     for i in range(array_length): assignment += ['\t_',var, '.', base_name, '[', str(i), '] = ', var, '.', base_name, '_', str(i), '; \\\n']
                     # TODO: handle this case
@@ -466,7 +467,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             if not is_embedded: # regular resource
                 shader_src += ['\n\t// Metal Resource Declaration: ', line, '\n']
                 is_array = isArray(resName)
-                array_len = int(getArrayLenFlat(resName)) if is_array else 1
+                array_len = int(cleaneval(getArrayLenFlat(resName))) if is_array else 1
                 prefix = ''
                 postfix = ' '
                 is_buffer = 'Buffer' in resType

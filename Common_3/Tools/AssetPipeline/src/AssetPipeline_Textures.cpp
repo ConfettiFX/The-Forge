@@ -69,30 +69,78 @@ const char* gExtensions[] = { "dds", "ktx"
 #endif
 };
 
-TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                          [](void* user, size_t size) { return tf_malloc(size); },
-                                          [](void* user, void* memory) { tf_free(memory); },
+TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
+                                          {
+                                              UNREF_PARAM(user);
+                                              LOGF(eERROR, "%s", msg);
+                                          },
+                                          [](void* user, size_t size)
+                                          {
+                                              UNREF_PARAM(user);
+                                              return tf_malloc(size);
+                                          },
+                                          [](void* user, void* memory)
+                                          {
+                                              UNREF_PARAM(user);
+                                              tf_free(memory);
+                                          },
                                           [](void* user, const void* buffer, size_t byteCount)
                                           { fsWriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
 
-TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                    [](void* user, size_t size) { return tf_malloc(size); },
-                                    [](void* user, void* memory) { tf_free(memory); },
+TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
+                                    {
+                                        UNREF_PARAM(user);
+                                        LOGF(eERROR, "%s", msg);
+                                    },
+                                    [](void* user, size_t size)
+                                    {
+                                        UNREF_PARAM(user);
+                                        return tf_malloc(size);
+                                    },
+                                    [](void* user, void* memory)
+                                    {
+                                        UNREF_PARAM(user);
+                                        tf_free(memory);
+                                    },
                                     [](void* user, void* buffer, size_t byteCount)
                                     { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                     [](void* user, int64_t offset)
                                     { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
                                     [](void* user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); } };
 
-TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                          [](void* user, size_t size) { return tf_malloc(size); },
-                                          [](void* user, void* memory) { tf_free(memory); },
+TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
+                                          {
+                                              UNREF_PARAM(user);
+                                              LOGF(eERROR, "%s", msg);
+                                          },
+                                          [](void* user, size_t size)
+                                          {
+                                              UNREF_PARAM(user);
+                                              return tf_malloc(size);
+                                          },
+                                          [](void* user, void* memory)
+                                          {
+                                              UNREF_PARAM(user);
+                                              tf_free(memory);
+                                          },
                                           [](void* user, const void* buffer, size_t byteCount)
                                           { fsWriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
 
-TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg) { LOGF(eERROR, "%s", msg); },
-                                    [](void* user, size_t size) { return tf_malloc(size); },
-                                    [](void* user, void* memory) { tf_free(memory); },
+TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
+                                    {
+                                        UNREF_PARAM(user);
+                                        LOGF(eERROR, "%s", msg);
+                                    },
+                                    [](void* user, size_t size)
+                                    {
+                                        UNREF_PARAM(user);
+                                        return tf_malloc(size);
+                                    },
+                                    [](void* user, void* memory)
+                                    {
+                                        UNREF_PARAM(user);
+                                        tf_free(memory);
+                                    },
                                     [](void* user, void* buffer, size_t byteCount)
                                     { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                     [](void* user, int64_t offset)
@@ -835,6 +883,7 @@ void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, T
 void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextureDesc, uint32_t channelCount,
                                 void* pUserData)
 {
+    UNREF_PARAM(pImageDataSize);
     ASSERT(channelCount > 2 && "Minimum of 3 channels input is required");
 
     const uint32_t width = pTextureDesc->mWidth;
@@ -970,6 +1019,7 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
 
 void onTextureFound(ResourceDirectory resourceDir, const char* filename, void* pUserData)
 {
+    UNREF_PARAM(resourceDir);
     bstring** fileNames = (bstring**)pUserData;
     arrpush(*fileNames, bdynfromcstr(filename));
 }

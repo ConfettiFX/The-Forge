@@ -526,6 +526,7 @@ Texture** gSpecularMapsStorage = NULL;
 VBMeshInstance*  pVBMeshInstances = NULL;
 VBPreFilterStats gVBPreFilterStats[gDataBufferCount] = {};
 
+Scene*    pScene = NULL;
 Geometry* pSanMiguelModel;
 uint32_t  gMeshCount = 0;
 uint32_t  gMaterialCount = 0;
@@ -537,6 +538,7 @@ uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -998,27 +1000,27 @@ public:
         // Point light
         Light light = {};
         light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
-        light.mPos = vec4(-12.5f, -3.5f, 4.7f, 0.0f);
-        light.mRadius = 10.0f;
-        light.mIntensity = 1.0f;
+        light.mPos = vec4(15.0f, 40.0f, 4.7f, 0.0f);
+        light.mRadius = 100.0f;
+        light.mIntensity = 100.0f;
         gUniformDataLights.mLights[0] = light;
 
-        light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
-        light.mPos = vec4(-12.5f, -3.5f, -3.7f, 0.0f);
-        light.mRadius = 10.0f;
-        light.mIntensity = 1.0f;
+        light.mCol = vec4(1.0f, 0.1f, 0.5f, 0.0f);
+        light.mPos = vec4(-25.0f, 40.0f, -3.7f, 0.0f);
+        light.mRadius = 100.0f;
+        light.mIntensity = 100.0f;
         gUniformDataLights.mLights[1] = light;
 
-        light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
-        light.mPos = vec4(9.5f, -3.5f, 4.7f, 0.0f);
-        light.mRadius = 10.0f;
-        light.mIntensity = 1.0f;
+        light.mCol = vec4(0.5f, 1.0f, 0.1f, 0.0f);
+        light.mPos = vec4(40.0f, 40.0f, 4.7f, 0.0f);
+        light.mRadius = 100.0f;
+        light.mIntensity = 100.0f;
         gUniformDataLights.mLights[2] = light;
 
-        light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
-        light.mPos = vec4(9.5f, -3.5f, -3.7f, 0.0f);
-        light.mRadius = 10.0f;
-        light.mIntensity = 1.0f;
+        light.mCol = vec4(0.5f, 0.1f, 1.0f, 0.0f);
+        light.mPos = vec4(-60.0f, 40.0f, -3.7f, 0.0f);
+        light.mRadius = 100.0f;
+        light.mIntensity = 100.0f;
         gUniformDataLights.mLights[3] = light;
 
         gUniformDataLights.mCurrAmountOfLights = 4;
@@ -1216,7 +1218,7 @@ public:
         uint32_t visibilityBufferFilteredIndexCount[NUM_GEOMETRY_SETS] = {};
 
         GeometryLoadDesc sceneLoadDesc = {};
-        Scene*           pScene = loadSanMiguel(&sceneLoadDesc, gResourceSyncToken, false);
+        pScene = initSanMiguel(&sceneLoadDesc, gResourceSyncToken, false);
 
         gSanMiguelModelMat = mat4::scale({ SCENE_SCALE, SCENE_SCALE, SCENE_SCALE }) * mat4::identity();
         gMeshCount = pScene->geom->mDrawArgCount;
@@ -1347,6 +1349,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1402,6 +1405,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1412,9 +1416,6 @@ public:
 
         waitForToken(&token);
 
-        removeResource(pScene->geomData);
-        pScene->geomData = NULL;
-        unloadSanMiguel(pScene);
         tf_free(meshConstants);
 
         return true;
@@ -1445,6 +1446,9 @@ public:
         tf_free(gDiffuseMapsStorage);
         tf_free(gNormalMapsStorage);
         tf_free(gSpecularMapsStorage);
+        removeResource(pScene->geomData);
+        pScene->geomData = NULL;
+        exitSanMiguel(pScene);
 
         removeResource(pSpecularMap);
         removeResource(pIrradianceMap);
@@ -1754,7 +1758,7 @@ public:
             cmdBindPushConstants(pCmd, pSpecularRootSignature, getDescriptorIndexFromName(pSpecularRootSignature, "RootConstant"), &data);
             params[0].pName = "dstTexture";
             params[0].ppTextures = &pSpecularMap;
-            params[0].mUAVMipSlice = i;
+            params[0].mUAVMipSlice = (uint16_t)i;
             updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
             cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
             pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
@@ -1894,20 +1898,20 @@ public:
         pCameraController->update(deltaTime);
 
         // Update camera
-        mat4        viewMat = pCameraController->getViewMatrix();
-        const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-        const float horizontalFov = PI / 2.0f;
-        const float nearPlane = 10.0f;
-        const float farPlane = 1000.f;
-        mat4        projMat = mat4::perspectiveLH_ReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane);
-        mat4        ViewProjMat = projMat * viewMat;
-        mat4        mvp = ViewProjMat * gSanMiguelModelMat;
+        mat4         viewMat = pCameraController->getViewMatrix();
+        const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
+        const float  horizontalFov = PI / 2.0f;
+        const float  nearPlane = 10.0f;
+        const float  farPlane = 1000.f;
+        CameraMatrix projMat = CameraMatrix::perspectiveReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane);
+        CameraMatrix ViewProjMat = projMat * viewMat;
+        CameraMatrix mvp = ViewProjMat * gSanMiguelModelMat;
 
         viewMat.setTranslation(vec3(0));
-        gUniformDataSky.mProjectView = projMat * viewMat;
+        gUniformDataSky.mProjectView = projMat.mCamera * viewMat;
 
         gMeshInfoUniformData[gFrameIndex].mPrevWorldViewProjMat = gMeshInfoUniformData[gFrameIndex].mWorldViewProjMat;
-        gMeshInfoUniformData[gFrameIndex].mWorldViewProjMat = mvp;
+        gMeshInfoUniformData[gFrameIndex].mWorldViewProjMat = mvp.mCamera;
 
         gVBConstants[gFrameIndex].transform[VIEW_CAMERA].mvp = mvp;
         gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
@@ -1917,9 +1921,9 @@ public:
         gUniformDataExtenedCamera.mCameraWorldPos = vec4(pCameraController->getViewPosition(), 1.0);
         gUniformDataExtenedCamera.mViewMat = viewMat;
         gUniformDataExtenedCamera.mInvViewMat = inverse(gUniformDataExtenedCamera.mViewMat);
-        gUniformDataExtenedCamera.mProjMat = projMat;
-        gUniformDataExtenedCamera.mViewProjMat = ViewProjMat;
-        gUniformDataExtenedCamera.mInvViewProjMat = inverse(ViewProjMat);
+        gUniformDataExtenedCamera.mProjMat = projMat.mCamera;
+        gUniformDataExtenedCamera.mViewProjMat = ViewProjMat.mCamera;
+        gUniformDataExtenedCamera.mInvViewProjMat = inverse(ViewProjMat.mCamera);
         gUniformDataExtenedCamera.mViewPortSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
         gUniformDataExtenedCamera.mNear = nearPlane;
         gUniformDataExtenedCamera.mFar = farPlane;
@@ -1965,8 +1969,8 @@ public:
         gUniformSSSRConstantsData.g_prev_view_proj =
             transpose(transpose(gUniformSSSRConstantsData.g_proj) * transpose(gUniformSSSRConstantsData.g_view));
         gUniformSSSRConstantsData.g_inv_view_proj = transpose(gUniformDataExtenedCamera.mInvViewProjMat);
-        gUniformSSSRConstantsData.g_proj = transpose(projMat);
-        gUniformSSSRConstantsData.g_inv_proj = transpose(inverse(projMat));
+        gUniformSSSRConstantsData.g_proj = transpose(projMat.mCamera);
+        gUniformSSSRConstantsData.g_inv_proj = transpose(inverse(projMat.mCamera));
         gUniformSSSRConstantsData.g_view = transpose(gUniformDataExtenedCamera.mViewMat);
         gUniformSSSRConstantsData.g_inv_view = transpose(inverse(gUniformDataExtenedCamera.mViewMat));
 
@@ -2076,7 +2080,7 @@ public:
         {
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw Skybox");
 
-            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets = {};
             bindRenderTargets.mRenderTargetCount = 1;
             bindRenderTargets.mRenderTargets[0] = { pSceneBuffer, LOAD_ACTION_LOAD };
             bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_LOAD };
@@ -2100,7 +2104,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2527,7 +2531,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;
@@ -2578,19 +2582,19 @@ public:
             updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData filterParams[5] = {};
-                filterParams[0].pName = "filteredIndicesBuffer";
-                filterParams[0].mCount = NUM_CULLING_VIEWPORTS;
-                filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
-                filterParams[1].pName = "indirectDataBuffer";
-                filterParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                filterParams[2].pName = "PerFrameVBConstants";
-                filterParams[2].ppBuffers = &pBufferVBConstants[i];
-                filterParams[3].pName = "filterDispatchGroupDataBuffer";
-                filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
-                filterParams[4].pName = "indirectDrawArgs";
-                filterParams[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParams);
+                DescriptorData filterParamsIdx[5] = {};
+                filterParamsIdx[0].pName = "filteredIndicesBuffer";
+                filterParamsIdx[0].mCount = NUM_CULLING_VIEWPORTS;
+                filterParamsIdx[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
+                filterParamsIdx[1].pName = "indirectDataBuffer";
+                filterParamsIdx[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                filterParamsIdx[2].pName = "PerFrameVBConstants";
+                filterParamsIdx[2].ppBuffers = &pBufferVBConstants[i];
+                filterParamsIdx[3].pName = "filterDispatchGroupDataBuffer";
+                filterParamsIdx[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+                filterParamsIdx[4].pName = "indirectDrawArgs";
+                filterParamsIdx[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParamsIdx);
             }
         }
         // VB Pass
@@ -2608,12 +2612,12 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData objectParams[2] = {};
-                objectParams[0].pName = "objectUniformBlock";
-                objectParams[0].ppBuffers = &pBufferMeshTransforms[i];
-                objectParams[1].pName = "indirectDataBuffer";
-                objectParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 2, objectParams);
+                DescriptorData objectParamsUniform[2] = {};
+                objectParamsUniform[0].pName = "objectUniformBlock";
+                objectParamsUniform[0].ppBuffers = &pBufferMeshTransforms[i];
+                objectParamsUniform[1].pName = "indirectDataBuffer";
+                objectParamsUniform[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 2, objectParamsUniform);
             }
         }
 
@@ -2655,16 +2659,16 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData vbShadeParams[4] = {};
-                vbShadeParams[0].pName = "objectUniformBlock";
-                vbShadeParams[0].ppBuffers = &pBufferMeshTransforms[i];
-                vbShadeParams[1].pName = "indirectDataBuffer";
-                vbShadeParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                vbShadeParams[2].pName = "filteredIndexBuffer";
-                vbShadeParams[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-                vbShadeParams[3].pName = "cbExtendCamera";
-                vbShadeParams[3].ppBuffers = &pBufferUniformExtendedCamera[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], TF_ARRAY_COUNT(vbShadeParams), vbShadeParams);
+                DescriptorData vbShadeParamsObj[4] = {};
+                vbShadeParamsObj[0].pName = "objectUniformBlock";
+                vbShadeParamsObj[0].ppBuffers = &pBufferMeshTransforms[i];
+                vbShadeParamsObj[1].pName = "indirectDataBuffer";
+                vbShadeParamsObj[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                vbShadeParamsObj[2].pName = "filteredIndexBuffer";
+                vbShadeParamsObj[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
+                vbShadeParamsObj[3].pName = "cbExtendCamera";
+                vbShadeParamsObj[3].ppBuffers = &pBufferUniformExtendedCamera[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], TF_ARRAY_COUNT(vbShadeParamsObj), vbShadeParamsObj);
             }
         }
 
@@ -2753,10 +2757,10 @@ public:
                     DescriptorData params[2] = {};
                     params[0].pName = "Source";
                     params[0].ppTextures = &pSSSR_DepthHierarchy;
-                    params[0].mUAVMipSlice = i - 1;
+                    params[0].mUAVMipSlice = (uint16_t)(i - 1);
                     params[1].pName = "Destination";
                     params[1].ppTextures = &pSSSR_DepthHierarchy;
-                    params[1].mUAVMipSlice = i;
+                    params[1].mUAVMipSlice = (uint16_t)i;
                     updateDescriptorSet(pRenderer, i - 1, pDescriptorGenerateMip, 2, params);
                 }
             }

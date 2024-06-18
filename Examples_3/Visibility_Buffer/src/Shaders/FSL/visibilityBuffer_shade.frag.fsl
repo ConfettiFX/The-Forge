@@ -36,20 +36,31 @@ STRUCT(VSOutput)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, screenPos, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 // Static descriptors
 #if(SAMPLE_COUNT > 1)
 	RES(Tex2DMS(float4, SAMPLE_COUNT), vbTex, UPDATE_FREQ_NONE, t0, binding = 14);
 #else
+#if FT_MULTIVIEW
+	RES(Tex2DArray(float4), vbTex, UPDATE_FREQ_NONE, t0, binding = 14);
+#else
 	RES(Tex2D(float4), vbTex, UPDATE_FREQ_NONE, t0, binding = 14);
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/
 
 #if SAMPLE_COUNT > 1
     RES(Tex2DMS(float, SAMPLE_COUNT), depthTex, UPDATE_FREQ_NONE, t100, binding = 15);
 #else
+#if FT_MULTIVIEW
+	RES(Tex2DArray(float), depthTex, UPDATE_FREQ_NONE, t100, binding = 15);
+#else
     RES(Tex2D(float), depthTex, UPDATE_FREQ_NONE, t100, binding = 15);
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/
 
 RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t101, binding = 16);
 
@@ -85,8 +96,13 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 #if(SAMPLE_COUNT > 1)
 	float4 visRaw = LoadTex2DMS(Get(vbTex), Get(depthSampler), uint2(In.position.xy), i);
 #else
+#if FT_MULTIVIEW
+	float4 visRaw = LoadTex3D(Get(vbTex), Get(depthSampler), uint3(In.position.xy, In.ViewID), 0);
+#else
 	float4 visRaw = LoadTex2D(Get(vbTex), Get(depthSampler), uint2(In.position.xy), 0);
-#endif
+#endif/*FT_MULTIVIEW*/
+#endif/*SAMPLE_COUNT > 1*/
+
 	// Unpack float4 render target data into uint to extract data
 	uint geomSetPrimID = packUnorm4x8(visRaw);
 
@@ -114,13 +130,24 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
 
 	// Transform positions to clip space
-	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
-	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
-	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
+#if FT_MULTIVIEW
+	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp.mat[In.ViewID], float4(v0pos, 1.0f));
+	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp.mat[In.ViewID], float4(v1pos, 1.0f));
+	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp.mat[In.ViewID], float4(v2pos, 1.0f));
 
-	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP,pos0);
-	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP,pos1);
-	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP,pos2);
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID],pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID],pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID],pos2);
+#else
+	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v0pos, 1.0f));
+	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v1pos, 1.0f));
+	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v2pos, 1.0f));
+
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos2);
+
+#endif
 
 	float2 two_over_windowsize = Get(twoOverRes);
 
@@ -140,20 +167,35 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 	// operations that involve computing Z
-	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
+#if FT_MULTIVIEW
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection.mat[In.ViewID], 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection.mat[In.ViewID], 3, 2);
+#else
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection.mat, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection.mat, 3, 2);
+#endif
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
 	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
+
+#if FT_MULTIVIEW
+	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID], float4(In.screenPos * w, z, w)).xyz;
+#else
+	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4(In.screenPos * w, z, w)).xyz;
+#endif
 
 #if defined(USE_RAY_DIFFERENTIALS)
-	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
-	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+#if FT_MULTIVIEW
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID], float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID], float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+#else
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+#endif /*FT_MULTIVIEW*/
 
 	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
 												Get(camPos).xyz);
-#endif
+#endif/*USE_RAY_DIFFERENTIALS*/
+
 
 	/////////////LOAD///////////////////////////////
 	uint materialID = Get(indirectDataBuffer)[index0];
@@ -204,8 +246,12 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
 
 	// Sample Diffuse color
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
-	
+#if FT_MULTIVIEW
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat[In.ViewID], float4(position, 1.0f));
+#else
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
+#endif
+
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
 
