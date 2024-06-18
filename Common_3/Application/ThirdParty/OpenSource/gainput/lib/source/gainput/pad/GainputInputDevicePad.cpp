@@ -197,9 +197,10 @@ InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned 
 }
 
 InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned hidDevId) :
-	InputDevice(manager, device, -1),
+	InputDevice(manager, device, (uint32_t)-1),
 	impl_(NULL)
 {
+    UNREF_PARAM(hidDevId);
 	state_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), PadButtonCount + PadAxisCount);
 	GAINPUT_ASSERT(state_);
 	previousState_ = manager.GetAllocator().New<InputState>(manager.GetAllocator(), PadButtonCount + PadAxisCount);

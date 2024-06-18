@@ -467,6 +467,7 @@ static void serverReceive(Socket* socket)
 
 static void server(void* pData)
 {
+    UNREF_PARAM(pData);
     while (pRemoteAppServer->mServerListenSocket && !pRemoteAppServer->mDisconnect)
     {
         SocketAddr addr = {};
@@ -839,6 +840,7 @@ static void clientReceive(Socket* socket)
 
 static void client(void* pData)
 {
+    UNREF_PARAM(pData);
     while (pRemoteControlClient->mClientConnectionSocket)
     {
         bool sendSucceed = clientSend(&pRemoteControlClient->mClientConnectionSocket);

@@ -1142,6 +1142,7 @@ static void remove_default_resources(Renderer* pRenderer)
 /************************************************************************/
 void d3d11_initRendererContext(const char* appName, const RendererContextDesc* pDesc, RendererContext** ppContext)
 {
+    UNREF_PARAM(appName);
     d3d11dll_init();
 
     RendererContext* pContext = (RendererContext*)tf_calloc_memalign(1, alignof(RendererContext), sizeof(RendererContext));
@@ -1169,8 +1170,6 @@ void d3d11_initRendererContext(const char* appName, const RendererContextDesc* p
     const uint32_t featureLevelCount = TF_ARRAY_COUNT(featureLevels) - levelIndex;
 
     HRESULT hr = 0;
-
-    IDXGIAdapter1* dxgiAdapter = NULL;
 
     // Enumerate all adapters
     typedef struct GpuDesc
@@ -1551,6 +1550,7 @@ void d3d11_addSemaphore(Renderer* pRenderer, Semaphore** pSemaphore)
 
 void d3d11_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
+    UNREF_PARAM(pSemaphore);
     // ASSERT that renderer and given semaphore are valid
     ASSERT(pRenderer);
 }
@@ -1630,7 +1630,7 @@ void d3d11_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
         DXGI_SWAP_EFFECT_SEQUENTIAL
     };
 
-    HRESULT         hres = E_FAIL;
+    HRESULT         hr = E_FAIL;
     IDXGISwapChain* swapchain = NULL;
     uint32_t        swapEffectsCount = (sizeof(swapEffects) / sizeof(DXGI_SWAP_EFFECT));
     uint32_t        i = pDesc->mUseFlipSwapEffect ? 0 : swapEffectsCount - 2;
@@ -1638,17 +1638,17 @@ void d3d11_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     for (; i < swapEffectsCount; ++i)
     {
         desc.SwapEffect = swapEffects[i];
-        hres = pRenderer->pContext->mDx11.pDXGIFactory->CreateSwapChain(pRenderer->mDx11.pDevice, &desc, &swapchain);
-        if (SUCCEEDED(hres))
+        hr = pRenderer->pContext->mDx11.pDXGIFactory->CreateSwapChain(pRenderer->mDx11.pDevice, &desc, &swapchain);
+        if (SUCCEEDED(hr))
         {
             pSwapChain->mDx11.mSwapEffect = swapEffects[i];
             LOGF(eINFO, "Swapchain creation SUCCEEDED with SwapEffect %d", swapEffects[i]);
             break;
         }
     }
-    if (!SUCCEEDED(hres))
+    if (!SUCCEEDED(hr))
     {
-        LOGF(eERROR, "Swapchain creation FAILED with HRESULT: %u", (uint32_t)hres);
+        LOGF(eERROR, "Swapchain creation FAILED with HRESULT: %u", (uint32_t)hr);
         ASSERT(false);
     }
 
@@ -1660,9 +1660,9 @@ void d3d11_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     ID3D11Resource** buffers = (ID3D11Resource**)alloca(pDesc->mImageCount * sizeof(ID3D11Resource*));
 
     // Create rendertargets from swapchain
-    for (uint32_t i = 0; i < pDesc->mImageCount; ++i)
+    for (uint32_t j = 0; j < pDesc->mImageCount; ++j)
     {
-        CHECK_HRESULT(pSwapChain->mDx11.pSwapChain->GetBuffer(0, IID_ARGS(&buffers[i])));
+        CHECK_HRESULT(pSwapChain->mDx11.pSwapChain->GetBuffer(0, IID_ARGS(&buffers[j])));
     }
 
     RenderTargetDesc descColor = {};
@@ -1676,10 +1676,10 @@ void d3d11_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     descColor.mSampleQuality = 0;
     descColor.mFlags |= TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET;
 
-    for (uint32_t i = 0; i < pDesc->mImageCount; ++i)
+    for (uint32_t j = 0; j < pDesc->mImageCount; ++j)
     {
-        descColor.pNativeHandle = (void*)buffers[i];
-        ::addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
+        descColor.pNativeHandle = (void*)buffers[j];
+        ::addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[j]);
     }
 
     pSwapChain->mImageCount = pDesc->mImageCount;
@@ -1734,6 +1734,7 @@ void d3d11_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 
 void d3d11_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
+    UNREF_PARAM(pDesc);
     // verify that given pool is valid
     ASSERT(pRenderer);
     ASSERT(ppCmd);
@@ -1859,9 +1860,9 @@ void d3d11_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
     if (isDepth)
-        add_dsv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, 0, -1, &pRenderTarget->mDx11.pDsvDescriptor);
+        add_dsv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->mDx11.pDsvDescriptor);
     else
-        add_rtv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, 0, -1, &pRenderTarget->mDx11.pRtvDescriptor);
+        add_rtv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->mDx11.pRtvDescriptor);
 
     for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
     {
@@ -1882,10 +1883,10 @@ void d3d11_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
         else
         {
             if (isDepth)
-                add_dsv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, i, -1,
+                add_dsv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, i, (uint32_t)-1,
                         &pRenderTarget->mDx11.pDsvSliceDescriptors[i]);
             else
-                add_rtv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, i, -1,
+                add_rtv(pRenderer, pRenderTarget->pTexture->mDx11.pResource, dxFormat, i, (uint32_t)-1,
                         &pRenderTarget->mDx11.pRtvSliceDescriptors[i]);
         }
     }
@@ -2856,12 +2857,12 @@ void d3d11_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                     return;
                 }
 
-                for (ptrdiff_t i = 0; i < arrlen(shaderResources); ++i)
+                for (ptrdiff_t j = 0; j < arrlen(shaderResources); ++j)
                 {
-                    // ShaderResource* pRes = &shaderResources[i];
-                    if (strcmp(shaderResources[i].name, pNode->key) == 0)
+                    // ShaderResource* pRes = &shaderResources[j];
+                    if (strcmp(shaderResources[j].name, pNode->key) == 0)
                     {
-                        shaderResources[i].used_stages |= pRes->used_stages;
+                        shaderResources[j].used_stages |= pRes->used_stages;
                         break;
                     }
                 }
@@ -2986,6 +2987,7 @@ void d3d11_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
 void d3d11_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
+    UNREF_PARAM(pRenderer);
     ASSERT(pRootSignature);
 
     shfree(pRootSignature->pDescriptorNameToIndexMap);
@@ -3354,7 +3356,7 @@ void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
     totalSize += pDesc->mMaxSets * pRootSignature->mDx11.mCbvCounts[updateFreq] * sizeof(CBV);
 
     DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
-    pDescriptorSet->mDx11.mMaxSets = pDesc->mMaxSets;
+    pDescriptorSet->mDx11.mMaxSets = (uint16_t)pDesc->mMaxSets;
     pDescriptorSet->mDx11.pRootSignature = pRootSignature;
     pDescriptorSet->mDx11.mUpdateFrequency = updateFreq;
 
@@ -3380,7 +3382,11 @@ void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
     *ppDescriptorSet = pDescriptorSet;
 }
 
-void d3d11_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet) { SAFE_FREE(pDescriptorSet); }
+void d3d11_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+{
+    UNREF_PARAM(pRenderer);
+    SAFE_FREE(pDescriptorSet);
+}
 
 #if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
 #define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
@@ -3556,11 +3562,13 @@ void d3d11_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 
 void d3d11_beginCmd(Cmd* pCmd)
 {
+    UNREF_PARAM(pCmd);
     // TODO: Maybe put lock here if required.
 }
 
 void d3d11_endCmd(Cmd* pCmd)
 {
+    UNREF_PARAM(pCmd);
     // TODO: Maybe put unlock here if required.
 }
 
@@ -3698,7 +3706,7 @@ void d3d11_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             }
 
             const ClearValue* clear = desc->mOverrideClearValue ? &desc->mClearValue : &desc->pDepthStencil->mClearValue;
-            pContext->ClearDepthStencilView(pDepthStencilTarget, clearFlag, clear->depth, clear->stencil);
+            pContext->ClearDepthStencilView(pDepthStencilTarget, clearFlag, clear->depth, (UINT8)clear->stencil);
         }
     }
 
@@ -3781,7 +3789,7 @@ void d3d11_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         pContext->IASetInputLayout(pPipeline->mDx11.pInputLayout);
         pContext->RSSetState(pPipeline->mDx11.pRasterizerState);
         pContext->OMSetDepthStencilState(pPipeline->mDx11.pDepthState, 0);
-        pContext->OMSetBlendState(pPipeline->mDx11.pBlendState, dummyClearColor, ~0);
+        pContext->OMSetBlendState(pPipeline->mDx11.pBlendState, dummyClearColor, ~0u);
 
         // Set shaders.
         pContext->VSSetShader(pPipeline->mDx11.pVertexShader, NULL, 0);
@@ -3794,7 +3802,7 @@ void d3d11_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
     {
         pContext->RSSetState(NULL);
         pContext->OMSetDepthStencilState(NULL, 0);
-        pContext->OMSetBlendState(NULL, dummyClearColor, ~0);
+        pContext->OMSetBlendState(NULL, dummyClearColor, ~0u);
         reset_shader_resources(pContext);
         pContext->CSSetShader(pPipeline->mDx11.pComputeShader, NULL, 0);
     }
@@ -4083,6 +4091,13 @@ void d3d11_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
 void d3d11_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers,
                               TextureBarrier* pTextureBarriers, uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(numBufferBarriers);
+    UNREF_PARAM(pBufferBarriers);
+    UNREF_PARAM(numTextureBarriers);
+    UNREF_PARAM(pTextureBarriers);
+    UNREF_PARAM(numRtBarriers);
+    UNREF_PARAM(pRtBarriers);
 }
 /************************************************************************/
 // Queue Fence Semaphore Functions
@@ -4090,6 +4105,9 @@ void d3d11_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
 void d3d11_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence,
                             uint32_t* pSwapChainImageIndex)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pSignalSemaphore);
+    UNREF_PARAM(pFence);
     // We only have read/write access to the first buffer.
     pSwapChain->mDx11.mImageIndex = 0;
     *pSwapChainImageIndex = pSwapChain->mDx11.mImageIndex;
@@ -4213,6 +4231,8 @@ void d3d11_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 /************************************************************************/
 TinyImageFormat d3d11_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pDesc);
     if (COLOR_SPACE_SDR_LINEAR == colorSpace)
         return TinyImageFormat_B8G8R8A8_UNORM;
     else if (COLOR_SPACE_SDR_SRGB == colorSpace)
@@ -4229,13 +4249,29 @@ uint32_t d3d11_getRecommendedSwapchainImageCount(Renderer* pRenderer, const Wind
 /************************************************************************/
 // Indirect Draw functions
 /************************************************************************/
-void d3d11_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature) {}
+void d3d11_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pDesc);
+    UNREF_PARAM(ppCommandSignature);
+}
 
-void d3d11_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature) {}
+void d3d11_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pCommandSignature);
+}
 
 void d3d11_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer,
                               uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pCommandSignature);
+    UNREF_PARAM(maxCommandCount);
+    UNREF_PARAM(pIndirectBuffer);
+    UNREF_PARAM(bufferOffset);
+    UNREF_PARAM(pCounterBuffer);
+    UNREF_PARAM(counterBufferOffset);
 }
 /************************************************************************/
 // GPU Query Implementation
@@ -4260,7 +4296,7 @@ static inline FORGE_CONSTEXPR uint32_t ToQueryWidth(QueryType type)
     switch (type)
     {
     case QUERY_TYPE_PIPELINE_STATISTICS:
-        return sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
+        return sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS);
     default:
         return sizeof(uint64_t);
     }
@@ -4386,9 +4422,21 @@ void d3d11_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) //-V
     }
 }
 
-void d3d11_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
+void d3d11_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+{
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pQueryPool);
+    UNREF_PARAM(startQuery);
+    UNREF_PARAM(queryCount);
+}
 
-void d3d11_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
+void d3d11_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+{
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pQueryPool);
+    UNREF_PARAM(startQuery);
+    UNREF_PARAM(queryCount);
+}
 
 void d3d11_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t queryIndex, QueryData* pOutData)
 {
@@ -4431,16 +4479,32 @@ void d3d11_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t que
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
-void d3d11_calculateMemoryStats(Renderer* pRenderer, char** stats) {}
+void d3d11_calculateMemoryStats(Renderer* pRenderer, char** stats)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(stats);
+}
 
-void d3d11_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes) {}
+void d3d11_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(usedBytes);
+    UNREF_PARAM(totalAllocatedBytes);
+}
 
-void d3d11_freeMemoryStats(Renderer* pRenderer, char* stats) {}
+void d3d11_freeMemoryStats(Renderer* pRenderer, char* stats)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(stats);
+}
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
 void d3d11_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+    UNREF_PARAM(r);
+    UNREF_PARAM(g);
+    UNREF_PARAM(b);
     if (!pCmd->pRenderer->mDx11.pUserDefinedAnnotation)
     {
         return;
@@ -4462,6 +4526,9 @@ void d3d11_cmdEndDebugMarker(Cmd* pCmd)
 
 void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+    UNREF_PARAM(r);
+    UNREF_PARAM(g);
+    UNREF_PARAM(b);
     if (pCmd->pRenderer->mDx11.pUserDefinedAnnotation)
     {
         wchar_t markerName[256] = { 0 };
@@ -4479,6 +4546,8 @@ void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 /************************************************************************/
 void SetResourceName(ID3D11DeviceChild* pResource, const char* pName)
 {
+    UNREF_PARAM(pResource);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     if (!pName)
     {
@@ -4490,6 +4559,9 @@ void SetResourceName(ID3D11DeviceChild* pResource, const char* pName)
 
 void d3d11_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pBuffer);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     ASSERT(pRenderer);
     ASSERT(pBuffer);
@@ -4502,6 +4574,9 @@ void d3d11_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName
 
 void d3d11_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pTexture);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     ASSERT(pRenderer);
     ASSERT(pTexture);

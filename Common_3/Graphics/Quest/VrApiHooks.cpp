@@ -272,6 +272,7 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     pSwapChain->mVk.mPresentQueueFamilyIndex = 0;
     pSwapChain->mVk.pPresentQueue = NULL;
     pSwapChain->mVk.pSwapChain = NULL;
+    pSwapChain->mFormat = pDesc->mColorFormat;
 
     pSwapChain->mVR.pSwapChain = swapChainTexture;
 

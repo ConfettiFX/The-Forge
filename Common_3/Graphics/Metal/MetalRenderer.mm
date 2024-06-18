@@ -2202,11 +2202,15 @@ static void QueryGPUSettings(GpuInfo* gpuInfo, GPUSettings* pOutSettings)
     }
 #endif
 
+#ifdef ENABLE_GPU_FAMILY_9
     pOutSettings->m64BitAtomicsSupported = [gpuInfo->pGPU supportsFamily:MTLGPUFamilyApple9];
+#endif // ENABLE_GPU_FAMILY_9
+#ifdef ENABLE_GPU_FAMILY_8
     if ([gpuInfo->pGPU supportsFamily:MTLGPUFamilyApple8] && [gpuInfo->pGPU supportsFamily:MTLGPUFamilyMac2])
     {
         pOutSettings->m64BitAtomicsSupported = true;
     }
+#endif // ENABLE_GPU_FAMILY_8
 
     // Get the supported counter set.
     // We only support timestamps at stage boundary..

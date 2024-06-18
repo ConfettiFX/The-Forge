@@ -228,9 +228,9 @@ struct PerFrameData
     mat4                gCameraView;
     mat4                gCameraModelView;
 
-    mat4  gRSMCascadeProjection[gRSMCascadeCount] = {};
-    mat4  gRSMCascadeView[gRSMCascadeCount] = {};
-    float gRSMViewSize[gRSMCascadeCount] = {};
+    CameraMatrix gRSMCascadeProjection[gRSMCascadeCount] = {};
+    mat4         gRSMCascadeView[gRSMCascadeCount] = {};
+    float        gRSMViewSize[gRSMCascadeCount] = {};
 };
 
 typedef struct DebugVisualizationSettings
@@ -240,6 +240,10 @@ typedef struct DebugVisualizationSettings
     float probeRadius = 2.0f;
 } DebugVisualizationSettings;
 
+/************************************************************************/
+// Scene
+/************************************************************************/
+Scene*                     gScene = NULL;
 /************************************************************************/
 // Settings
 /************************************************************************/
@@ -493,6 +497,13 @@ UIWidget* addResolutionProperty(UIComponent* pUIManager, uint32_t& resolutionInd
         return pControl;
     }
 
+#else
+
+    UNREF_PARAM(pUIManager);
+    UNREF_PARAM(resolutionIndex);
+    UNREF_PARAM(resCount);
+    UNREF_PARAM(pResolutions);
+    UNREF_PARAM(onResolutionChanged);
 #endif
     return NULL;
 }
@@ -734,16 +745,16 @@ public:
         GeometryLoadDesc sceneLoadDesc = {};
         sceneLoadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
         SyncToken token = {};
-        Scene*    pScene = loadSanMiguel(&sceneLoadDesc, token, false);
+        gScene = initSanMiguel(&sceneLoadDesc, token, false);
 
-        if (!pScene)
+        if (!gScene)
             return false;
         LOGF(LogLevel::eINFO, "Load scene : %f ms", getHiresTimerUSec(&sceneLoadTimer, true) / 1000.0f);
 
-        gMeshCount = pScene->geom->mDrawArgCount;
-        gMaterialCount = pScene->geom->mDrawArgCount;
+        gMeshCount = gScene->geom->mDrawArgCount;
+        gMaterialCount = gScene->geom->mDrawArgCount;
         pVBMeshInstances = (VBMeshInstance*)tf_calloc(gMeshCount, sizeof(VBMeshInstance));
-        pGeom = pScene->geom;
+        pGeom = gScene->geom;
         /************************************************************************/
         // Texture loading
         /************************************************************************/
@@ -754,16 +765,16 @@ public:
         for (uint32_t i = 0; i < gMaterialCount; ++i)
         {
             TextureLoadDesc desc = {};
-            desc.pFileName = pScene->textures[i];
+            desc.pFileName = gScene->textures[i];
             desc.ppTexture = &gDiffuseMapsStorage[i];
             // Textures representing color should be stored in SRGB or HDR format
             desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
             addResource(&desc, NULL);
             desc.mCreationFlag = TEXTURE_CREATION_FLAG_NONE;
-            desc.pFileName = pScene->normalMaps[i];
+            desc.pFileName = gScene->normalMaps[i];
             desc.ppTexture = &gNormalMapsStorage[i];
             addResource(&desc, NULL);
-            desc.pFileName = pScene->specularMaps[i];
+            desc.pFileName = gScene->specularMaps[i];
             desc.ppTexture = &gSpecularMapsStorage[i];
             addResource(&desc, NULL);
         }
@@ -778,15 +789,15 @@ public:
 
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
-            MaterialFlags material = pScene->materialFlags[i];
+            MaterialFlags material = gScene->materialFlags[i];
             uint32_t      geomSet = material & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
-            visibilityBufferFilteredIndexCount[geomSet] += (pScene->geom->pDrawArgs + i)->mIndexCount;
+            visibilityBufferFilteredIndexCount[geomSet] += (gScene->geom->pDrawArgs + i)->mIndexCount;
             pVBMeshInstances[i].mGeometrySet = geomSet;
             pVBMeshInstances[i].mMeshIndex = i;
-            pVBMeshInstances[i].mTriangleCount = (pScene->geom->pDrawArgs + i)->mIndexCount / 3;
+            pVBMeshInstances[i].mTriangleCount = (gScene->geom->pDrawArgs + i)->mIndexCount / 3;
             pVBMeshInstances[i].mInstanceIndex = INSTANCE_INDEX_NONE;
         }
-        removeResource(pScene->geomData);
+        removeResource(gScene->geomData);
 
         // Init visibility buffer
         VisibilityBufferDesc vbDesc = {};
@@ -861,7 +872,7 @@ public:
 
         HiresTimer setupBuffersTimer;
         initHiresTimer(&setupBuffersTimer);
-        addTriangleFilteringBuffers(pScene);
+        addTriangleFilteringBuffers(gScene);
 
         LOGF(LogLevel::eINFO, "Setup buffers : %f ms", getHiresTimerUSec(&setupBuffersTimer, true) / 1000.0f);
 
@@ -877,8 +888,6 @@ public:
         }
 
         LOGF(LogLevel::eINFO, "Total Load Time : %f ms", getHiresTimerUSec(&totalTimer, true) / 1000.0f);
-
-        unloadSanMiguel(pScene);
 
         // Camera Walking
         FileStream fh = {};
@@ -953,6 +962,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1009,6 +1019,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                gActiveCamera->pCameraController->resetView();
                            return true;
@@ -1048,6 +1059,8 @@ public:
         /************************************************************************/
         // Remove loaded scene
         /************************************************************************/
+        exitSanMiguel(gScene);
+
         // Destroy scene buffers
         removeResource(pGeom);
 
@@ -1266,7 +1279,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1553,7 +1566,7 @@ public:
             prevGraphicsSemaphore = graphicsElem.pSemaphore;
 
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = presentIndex;
+            presentDesc.mIndex = (uint8_t)presentIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &pPresentSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -1660,19 +1673,19 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData filterParams[5] = {};
-                filterParams[0].pName = "filteredIndicesBuffer";
-                filterParams[0].mCount = gNumViews;
-                filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[i * NUM_CULLING_VIEWPORTS];
-                filterParams[1].pName = "indirectDrawArgs";
-                filterParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[i];
-                filterParams[2].pName = "PerFrameVBConstants";
-                filterParams[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
-                filterParams[3].pName = "filterDispatchGroupDataBuffer";
-                filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
-                filterParams[4].pName = "indirectDataBuffer";
-                filterParams[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParams);
+                DescriptorData filterParamsIdx[5] = {};
+                filterParamsIdx[0].pName = "filteredIndicesBuffer";
+                filterParamsIdx[0].mCount = gNumViews;
+                filterParamsIdx[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[i * NUM_CULLING_VIEWPORTS];
+                filterParamsIdx[1].pName = "indirectDrawArgs";
+                filterParamsIdx[1].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[i];
+                filterParamsIdx[2].pName = "PerFrameVBConstants";
+                filterParamsIdx[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
+                filterParamsIdx[3].pName = "filterDispatchGroupDataBuffer";
+                filterParamsIdx[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+                filterParamsIdx[4].pName = "indirectDataBuffer";
+                filterParamsIdx[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParamsIdx);
             }
         }
         // Light Clustering
@@ -1708,14 +1721,14 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData params[3] = {};
-                params[0].pName = "indirectDataBuffer";
-                params[0].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                params[1].pName = "PerFrameConstants";
-                params[1].ppBuffers = &pPerFrameUniformBuffers[i];
-                params[2].pName = "PerFrameVBConstants";
-                params[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 3, params);
+                DescriptorData paramsIndirect[3] = {};
+                paramsIndirect[0].pName = "indirectDataBuffer";
+                paramsIndirect[0].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                paramsIndirect[1].pName = "PerFrameConstants";
+                paramsIndirect[1].ppBuffers = &pPerFrameUniformBuffers[i];
+                paramsIndirect[2].pName = "PerFrameVBConstants";
+                paramsIndirect[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 3, paramsIndirect);
             }
         }
         // VB Shade
@@ -2593,9 +2606,10 @@ public:
         const uint32_t frameIdx = currentFrameIdx;
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
 
-        mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4 cameraView = currentFrame->gCameraView = gCamera.pCameraController->getViewMatrix();
-        mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
+        mat4         cameraModel = mat4::scale(vec3(SCENE_SCALE));
+        mat4         cameraView = currentFrame->gCameraView = gCamera.pCameraController->getViewMatrix();
+        CameraMatrix cameraProj =
+            CameraMatrix::perspectiveReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         currentFrame->gCameraModelView = cameraView * cameraModel;
 
@@ -2603,9 +2617,9 @@ public:
         mat4 rotation = mat4::rotationXY(gDirectionalLight.mRotationXY.x, gDirectionalLight.mRotationXY.y);
         vec4 lightDir = (inverse(rotation) * vec4(0, 0, 1, 0));
 
-        mat4 lightModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4 lightView = rotation;
-        mat4 lightProj = mat4::orthographicLH(-600, 600, -950, 350, -1100, 500);
+        mat4         lightModel = mat4::scale(vec3(SCENE_SCALE));
+        mat4         lightView = rotation;
+        CameraMatrix lightProj = CameraMatrix::orthographic(-600, 600, -950, 350, -1100, 500);
 
         float2 twoOverRes;
         twoOverRes.setX(gAppSettings.mRetinaScaling / float(width));
@@ -2623,14 +2637,14 @@ public:
         /************************************************************************/
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
 
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].projection = cameraProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp * cameraModel;
@@ -2658,7 +2672,7 @@ public:
         /************************************************************************/
         cameraView.setTranslation(vec3(0));
         currentFrame->gUniformDataSky.mCamPos = gActiveCamera->pCameraController->getViewPosition();
-        currentFrame->gUniformDataSky.mProjectView = cameraProj * cameraView;
+        currentFrame->gUniformDataSky.mProjectView = cameraProj.mCamera * cameraView;
 
         if (gAppSettings.useLPV)
         {
@@ -2672,12 +2686,12 @@ public:
                 /************************************************************************/
                 // Matrix data
                 /************************************************************************/
-                mat4 cascadeProjection = currentFrame->gRSMCascadeProjection[i];
-                mat4 cascadeTransform = currentFrame->gRSMCascadeView[i];
+                CameraMatrix cascadeProjection = currentFrame->gRSMCascadeProjection[i];
+                mat4         cascadeTransform = currentFrame->gRSMCascadeView[i];
                 currentFrame->gPerFrameVBUniformData.transform[viewID].projection = cascadeProjection;
                 currentFrame->gPerFrameVBUniformData.transform[viewID].vp = cascadeProjection * cascadeTransform;
                 currentFrame->gPerFrameVBUniformData.transform[viewID].invVP =
-                    inverse(currentFrame->gPerFrameVBUniformData.transform[viewID].vp);
+                    CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[viewID].vp);
                 currentFrame->gPerFrameVBUniformData.transform[viewID].mvp =
                     currentFrame->gPerFrameVBUniformData.transform[viewID].vp * cameraModel;
                 /************************************************************************/
@@ -2851,10 +2865,10 @@ public:
 #endif
             cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, srvBarriers);
 
-            mat4 cascadeViewProjection = gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_RSM_CASCADE0 + i].vp;
+            CameraMatrix cascadeViewProjection = gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_RSM_CASCADE0 + i].vp;
             // Convert into worldspace directly from [0..1] range instead of [-1..1] clip-space range
-            mat4 inverseCascadeViewProjection =
-                inverse(cascadeViewProjection) * mat4::translation(vec3(-1.0f, 1.0f, 0.0f)) * mat4::scale(vec3(2.0f, -2.0f, 1.0f));
+            mat4         inverseCascadeViewProjection =
+                inverse(cascadeViewProjection.mCamera) * mat4::translation(vec3(-1.0f, 1.0f, 0.0f)) * mat4::scale(vec3(2.0f, -2.0f, 1.0f));
 
             vec4       camDir = normalize(gPerFrame[frameIdx].gRSMCascadeView[i].getRow(2));
             aura::vec3 cameraDir(camDir.getX(), camDir.getY(), camDir.getZ());
@@ -2933,8 +2947,9 @@ public:
         }
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, pAura->mCascadeCount * NUM_GRIDS_PER_CASCADE, pBarriers);
 
-        mat4       invMvp = inverse(mat4::scale(vec3(0.5, -0.5, 1)) * mat4::translation(vec3(1, -1, 0)) *
-                              gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
+        mat4 invMvp = CameraMatrix::inverse(mat4::scale(vec3(0.5, -0.5, 1)) * mat4::translation(vec3(1, -1, 0)) *
+                                            gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].vp)
+                          .mCamera;
         aura::vec3 camPos =
             aura::vec3(gPerFrame[frameIdx].gPerFrameUniformData.camPos.getX(), gPerFrame[frameIdx].gPerFrameUniformData.camPos.getY(),
                        gPerFrame[frameIdx].gPerFrameUniformData.camPos.getZ());
@@ -2943,7 +2958,10 @@ public:
         aura::getLightApplyData(pAura, aura::convertMatrix4FromClient((float*)&invMvp), camPos, &lightApplyData);
         BufferUpdateDesc update = { pUniformBufferAuraLightApply[frameIdx] };
         beginUpdateResource(&update);
-        memcpy(update.pMappedData, &lightApplyData, sizeof(lightApplyData));
+        if (update.pMappedData)
+        {
+            memcpy(update.pMappedData, &lightApplyData, sizeof(lightApplyData));
+        }
         endUpdateResource(&update);
 
         // Set load actions to clear the screen to black
@@ -2976,6 +2994,7 @@ public:
 
     void fillRSM(Cmd* cmd, uint32_t frameIdx, ProfileToken nGpuProfileToken, uint32_t cascadeIndex)
     {
+        UNREF_PARAM(nGpuProfileToken);
         uint32_t viewId = VIEW_RSM_CASCADE0 + cascadeIndex;
 
         // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
@@ -3078,15 +3097,16 @@ public:
         if (gDebugVisualizationSettings.isEnabled)
         {
             cmdBeginGpuTimestampQuery(cmd, gGpuProfileTokens[0], "LPV Visualization");
-            mat4       projection = gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].projection;
-            mat4       view = gPerFrame[frameIdx].gCameraView;
-            mat4       invView = inverse(view);
-            aura::mat4 inverseView = aura::convertMatrix4FromClient((float*)&invView);
+            CameraMatrix projection = gPerFrame[frameIdx].gPerFrameVBUniformData.transform[VIEW_CAMERA].projection;
+            mat4         view = gPerFrame[frameIdx].gCameraView;
+            mat4         invView = inverse(view);
+            aura::mat4   inverseView = aura::convertMatrix4FromClient((float*)&invView);
 
             RenderTarget* lpvVisualisationRenderTarget = pScreenRenderTarget;
 
+            mat4 projectMat = projection.mCamera;
             aura::drawLpvVisualization(cmd, pRenderer, pAura, lpvVisualisationRenderTarget, pDepthBuffer,
-                                       aura::convertMatrix4FromClient((float*)&projection), aura::convertMatrix4FromClient((float*)&view),
+                                       aura::convertMatrix4FromClient((float*)&projectMat), aura::convertMatrix4FromClient((float*)&view),
                                        inverseView, gDebugVisualizationSettings.cascadeIndex, gDebugVisualizationSettings.probeRadius);
             cmdEndGpuTimestampQuery(cmd, gGpuProfileTokens[0]);
         }
@@ -3476,7 +3496,7 @@ public:
     }
 #endif
 
-    void calculateRSMCascadesForLPV(const mat4& lightView, int cascadeCount, mat4* cascadeProjections, mat4* cascadeTransforms,
+    void calculateRSMCascadesForLPV(const mat4& lightView, int cascadeCount, CameraMatrix* cascadeProjections, mat4* cascadeTransforms,
                                     float* viewSize)
     {
         aura::Box  boundsLightspace[gRSMCascadeCount] = {};
@@ -3507,7 +3527,7 @@ public:
             mat4 worldToCascade = lightView * translation;
 
             float halfSize = size * 0.5f;
-            cascadeProjections[i] = mat4::orthographicLH(-halfSize, halfSize, -halfSize, halfSize, -5000.0f, 5000.0f);
+            cascadeProjections[i] = CameraMatrix::orthographic(-halfSize, halfSize, -halfSize, halfSize, -5000.0f, 5000.0f);
             cascadeTransforms[i] = worldToCascade;
             viewSize[i] = size;
         }

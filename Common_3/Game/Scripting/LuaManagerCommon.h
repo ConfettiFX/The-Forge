@@ -68,7 +68,11 @@ struct ILuaFunctionWrap
         ASSERT(!bownsdata(&this->functionName));
     };
     virtual ~ILuaFunctionWrap() {}
-    virtual int ExecuteFunction(ILuaStateWrap* luaState) { return 0; };
+    virtual int ExecuteFunction(ILuaStateWrap* luaState)
+    {
+        UNREF_PARAM(luaState);
+        return 0;
+    };
 
     unsigned char fnNameBuf[MAX_FUNCTION_NAME_LENGTH] = {};
     bstring       functionName = bemptyfromarr(fnNameBuf);

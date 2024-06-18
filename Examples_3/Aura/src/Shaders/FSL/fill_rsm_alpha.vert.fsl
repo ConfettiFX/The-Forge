@@ -31,7 +31,7 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 		vertexPos.xyz = WindTransformWorldPosition(vertexPos.xyz, Get(windData));
 	}
 
-	Out.position = mul(Get(transform)[Get(viewID)].mvp, vertexPos);
+	Out.position = mul(Get(transform)[Get(viewID)].mvp.mat, vertexPos);
     Out.texCoord = LoadTexCoord(vertexID);
 	Out.normal = vertexNormal;
 	Out.materialID = materialID;

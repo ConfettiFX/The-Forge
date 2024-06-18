@@ -69,7 +69,7 @@ CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
     DATA(float4x4, prevWorldViewProjMat, None);
 };
 
-CBUFFER(cbLights, UPDATE_FREQ_NONE, b3, binding = 2)
+CBUFFER(cbLights, UPDATE_FREQ_NONE, b3, binding = 6)
 {
 	DATA(Light, lights[16], None);
 	DATA(int, currAmountOflights, None);

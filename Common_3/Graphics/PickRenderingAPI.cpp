@@ -474,7 +474,7 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
 
 #if defined(USE_MULTIPLE_RENDER_APIS)
     // Fallback on other available APIs
-    for (uint32_t i = 0; i < RENDERER_API_COUNT && !*ppContext; ++i)
+    for (int32_t i = 0; i < RENDERER_API_COUNT && !*ppContext; ++i)
     {
         if (i == gPlatformParameters.mSelectedRendererApi || apiIsUnsupported((RendererApi)i))
             continue;
@@ -541,7 +541,7 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
 
 #if defined(USE_MULTIPLE_RENDER_APIS)
     // Fallback on other available APIs
-    for (uint32_t i = 0; i < RENDERER_API_COUNT && !*ppRenderer; ++i)
+    for (int32_t i = 0; i < RENDERER_API_COUNT && !*ppRenderer; ++i)
     {
         if (i == gPlatformParameters.mSelectedRendererApi || apiIsUnsupported((RendererApi)i))
             continue;

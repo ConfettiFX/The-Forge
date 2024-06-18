@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\EGLContextCreator.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLES.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Tools\Network\Network.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\VisibilityBuffer2.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESCapsBuilder.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESContextCreator.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Tools\Network\Network.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Unit_Tests\Android_VisualStudio2019\Libraries\OS\OS.vcxproj">
+      <Project>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Unit_Tests\Android_VisualStudio2019\Libraries\OS\OS.vcxproj">
+      <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DB6193E0-3C12-450F-B344-DC4DAED8C421}</ProjectGuid>
+    <RootNamespace>Renderer</RootNamespace>
+    <ProjectName>Renderer</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <AndroidMinSdkVersion>26</AndroidMinSdkVersion>
+    <CLanguageStandard>c99</CLanguageStandard>
+    <CppLanguageStandard>cpp14</CppLanguageStandard>
+    <UseOfStl>cpp_shared</UseOfStl>
+    <AndroidNdkVersion>21.4.7075529</AndroidNdkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <AndroidMinSdkVersion>26</AndroidMinSdkVersion>
+    <CLanguageStandard>c99</CLanguageStandard>
+    <CppLanguageStandard>cpp14</CppLanguageStandard>
+    <UseOfStl>cpp_shared</UseOfStl>
+    <AndroidNdkVersion>21.4.7075529</AndroidNdkVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <IncludePath>$(VS_NDKRoot)sources\android\native_app_glue</IncludePath>
+    <TargetName>lib$(ProjectName)</TargetName>
+    <TargetExt>.a</TargetExt>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <IncludePath>$(VS_NDKRoot)sources\android\native_app_glue</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+    <TargetName>lib$(ProjectName)</TargetName>
+    <TargetExt>.a</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

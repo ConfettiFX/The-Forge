@@ -34,6 +34,10 @@
 
 int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {
+    UNREF_PARAM(command);
+    UNREF_PARAM(arguments);
+    UNREF_PARAM(argumentCount);
+    UNREF_PARAM(stdOutFile);
 #if defined(XBOX)
     ASSERT(!"UNIMPLEMENTED");
     return -1;

@@ -135,6 +135,7 @@ typedef struct ReloadClient
     UpdatedShader*       pUpdatedShaders;
     UpdatedShader*       pUpdatedShadersEnd;
     UIComponent*         pReloadShaderComponent;
+    bool                 mPrevReloadShaderComponentState;
     tfrg_atomic32_t      mDidReload;
     tfrg_atomic32_t      mShouldReenableButton;
     tfrg_atomic32_t      mIsReloading;
@@ -338,7 +339,7 @@ static bool readReloadServerFile()
 #else
     gClient.mHost = bconstfromcstr(splitData.lines[0]);
 #endif
-    gClient.mPort = atoi(splitData.lines[1]);
+    gClient.mPort = (uint16_t)atoi(splitData.lines[1]);
     gClient.mIntermediateDir = bconstfromcstr(splitData.lines[2]);
 
     const char* host = bdata(&gClient.mHost);
@@ -441,6 +442,7 @@ static uint8_t* waitForServerToUploadShaders(Socket* pSock, bool* serverDidRetur
 
 static void requestRecompileThreadFunc(void* userdata)
 {
+    UNREF_PARAM(userdata);
     MutexLock lock(gClient.mLock);
 
     const char* host = bdata(&gClient.mHost);
@@ -580,8 +582,8 @@ void platformStartStopReloadServerOnHost(ReloadServerAction action)
             fsCloseStream(&fs);
             ASSERT(nRead == (size_t)size);
             output[size] = '\0';
-            const char* action = kill ? "killing" : "starting";
-            LOGF(eERROR, "Error %s the ReloadServer process:\n%s\n", action, output);
+            const char* actionStr = kill ? "killing" : "starting";
+            LOGF(eERROR, "Error %s the ReloadServer process:\n%s\n", actionStr, output);
             tf_free(output);
         }
     }
@@ -671,6 +673,7 @@ void platformReloadClientRequestShaderRecompile()
         return;
     }
 
+    gClient.mPrevReloadShaderComponentState = gClient.pReloadShaderComponent->mActive;
     uiSetComponentActive(gClient.pReloadShaderComponent, false);
 
     ThreadDesc desc = { requestRecompileThreadFunc, nullptr, "ShaderRecompile" };
@@ -725,7 +728,7 @@ bool platformReloadClientShouldQuit(void)
         joinThread(gClient.mThread);
         gClient.mThread = INVALID_THREAD_ID;
         tfrg_atomic32_store_release(&gClient.mIsReloading, 0);
-        uiSetComponentActive(gClient.pReloadShaderComponent, true);
+        uiSetComponentActive(gClient.pReloadShaderComponent, gClient.mPrevReloadShaderComponentState);
     }
 
     if (tfrg_atomic32_store_release(&gClient.mDidReload, 0) == 1)
@@ -749,13 +752,19 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
 
     ButtonWidget shaderReload;
     UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
-    uiSetWidgetOnEditedCallback(pShaderReload, nullptr, [](void* pUserData) { platformReloadClientRequestShaderRecompile(); });
+    uiSetWidgetOnEditedCallback(pShaderReload, nullptr,
+                                [](void* pUserData)
+                                {
+                                    UNREF_PARAM(pUserData);
+                                    platformReloadClientRequestShaderRecompile();
+                                });
     REGISTER_LUA_WIDGET(pShaderReload);
 
     gClient.pReloadShaderComponent = pReloadShaderComponent;
 
     InputActionDesc actionDesc = { DefaultInputActions::RELOAD_SHADERS, [](InputActionContext* ctx)
                                    {
+                                       UNREF_PARAM(ctx);
                                        platformReloadClientRequestShaderRecompile();
                                        return true;
                                    } };

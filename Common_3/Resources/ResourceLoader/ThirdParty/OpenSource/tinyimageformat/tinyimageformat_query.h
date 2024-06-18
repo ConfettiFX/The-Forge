@@ -881,7 +881,6 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneSizeOfBlock(TinyImageFormat c
 		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
 			return 0 == plane ? 1 : 2;
-			return 0 == plane ? 1 : 2;
 
 		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
 		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:

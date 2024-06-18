@@ -209,7 +209,7 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
   global_State *g = G(L);
   GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));
   o->marked = luaC_white(g);
-  o->tt = tt;
+  o->tt = (lu_byte)tt;
   o->next = g->allgc;
   g->allgc = o;
   return o;
@@ -823,7 +823,7 @@ static void GCTM (lua_State *L, int propagateerrors) {
     status = luaD_pcall(L, dothecall, NULL, savestack(L, L->top - 2), 0);
     L->ci->callstatus &= ~CIST_FIN;  /* not running a finalizer anymore */
     L->allowhook = oldah;  /* restore hooks */
-    g->gcrunning = running;  /* restore state */
+    g->gcrunning = (lu_byte)running;  /* restore state */
     if (status != LUA_OK && propagateerrors) {  /* error while running __gc? */
       if (status == LUA_ERRRUN) {  /* is there an error object? */
         const char *msg = (ttisstring(L->top - 1))
@@ -1036,7 +1036,7 @@ static lu_mem sweepstep (lua_State *L, global_State *g,
       return (GCSWEEPMAX * GCSWEEPCOST);
   }
   /* else enter next state */
-  g->gcstate = nextstate;
+  g->gcstate = (lu_byte)nextstate;
   g->sweepgc = nextlist;
   return 0;
 }

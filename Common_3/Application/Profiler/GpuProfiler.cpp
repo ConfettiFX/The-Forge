@@ -235,7 +235,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         node->mHash = nameHash;
         node->mHistoryIndex = 0;
         node->mGpuMaxTime = 0;
-        node->mGpuMinTime = -1;
+        node->mGpuMinTime = (uint64_t)-1;
         node->mStartGpuTime = isRoot ? 0 : pGpuProfiler->pCurrentNode->mStartGpuTime;
         node->mEndGpuTime = 0;
         node->mToken = getProfileToken(pGpuProfiler->mProfilerIndex, pGpuProfiler->mCurrentPoolIndex);
@@ -283,6 +283,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool isRoot = false)
 {
+    UNREF_PARAM(isRoot);
     // Record gpu time
     QueryDesc desc = { pGpuProfiler->pCurrentNode->mIndex };
     cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);

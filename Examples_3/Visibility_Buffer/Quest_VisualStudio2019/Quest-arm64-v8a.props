@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Condition="$(SolutionDir.Contains('Quest_VisualStudio2019'))">
+    <UseQuest>true</UseQuest>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(ConfigurationType)' == 'Application'">
+    <ClCompile Include="$(SolutionDir)..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+        <AdditionalIncludeDirectories>
+          $(VS_NdkRoot)\sources\android\native_app_glue\;
+          $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\agdk\include;
+          %(AdditionalIncludeDirectories);
+        </AdditionalIncludeDirectories>
+        <PreprocessorDefinitions>ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>-u ANativeActivity_onCreate %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>atomic;android;log;GLESv2;EGL</LibraryDependencies>
+    </Link>
+    <FSLShader>
+      <OutDir>$(OutDir)/../../assets/Shaders/</OutDir>
+      <BinaryOutDir>$(OutDir)/../../assets/CompiledShaders/</BinaryOutDir>
+      <Language Condition="'$(UseQuest)' == ''">ANDROID_VULKAN</Language>
+      <Language Condition="'$(UseQuest)' != ''">QUEST</Language>
+    </FSLShader>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(UseQuest)' != ''">
+	<ClCompile>
+      <AdditionalIncludeDirectories>
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Include;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>QUEST_VR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	</ClCompile>
+	<Link>
+	  <AdditionalLibraryDirectories>
+        $(SolutionDir)\$(Platform)\$(Configuration);
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);
+        $(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
+      <LibraryDependencies>vrapi;%(LibraryDependencies)</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <PropertyGroup Condition="'$(ConfigurationType)' == 'Application'">
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\$(PlatformTarget)\</OutDir>
+    <TargetName>libForgeGame</TargetName>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <CppLanguageStandard>cpp14</CppLanguageStandard>
+    <CLanguageStandard>c99</CLanguageStandard>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ConfigurationType)' == 'Application'">
+    <AndroidApkName>$(RootNamespace).apk</AndroidApkName>
+    <AndroidGradlePackageOutputName>$(AndroidApkName)</AndroidGradlePackageOutputName>
+    <AndroidApplicationVariant>$(Configuration)</AndroidApplicationVariant>
+    <AndroidEnablePackaging>true</AndroidEnablePackaging>
+    <AndroidApplicationModule>app</AndroidApplicationModule>
+    <AndroidGradleBuildOutputDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\AndroidBuild</AndroidGradleBuildOutputDir>
+    <AndroidGradleBuildDir>$(IntDir)</AndroidGradleBuildDir>
+    <AndroidExtraGradleArgs>"-PANDROID_APPLICATION_NAME=$(RootNamespace)"; "-PANDROID_APPLICATION_LIBRARY_NAME=ForgeGame"</AndroidExtraGradleArgs>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup Condition="'$(ConfigurationType)' == 'Application'">
+    <PreBuildEvent>
+      <Command>
+        %(Command)
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanSDK\bin\Android\*.* $(OutDir) /s /y /d
+      </Command>
+      <Command Condition="'$(UseQuest)' != ''">
+        %(Command)
+        xcopy  $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\agdk\libs\arm64-v8a_cpp_static_Release\libmemory_advice_static.a;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ImportGroup Condition="'$(UseQuest)' == ''" Label="PropertySheets">
+    <Import Project="./TFAndroidCommon.targets"/>
+  </ImportGroup>
+  <ImportGroup Condition="'$(UseQuest)' != ''" Label="PropertySheets">
+    <Import Project="./TFQuestCommon.targets"/>
+  </ImportGroup>
+
+</Project>

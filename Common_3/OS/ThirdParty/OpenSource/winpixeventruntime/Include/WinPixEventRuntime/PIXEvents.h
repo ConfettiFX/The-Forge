@@ -74,6 +74,8 @@ namespace PIXEventsDetail
 
     inline void PIXCopyEventArguments(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit)
     {
+        UNREF_PARAM(destination); 
+        UNREF_PARAM(limit); 
         // nothing
     }
 

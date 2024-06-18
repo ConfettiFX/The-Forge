@@ -665,7 +665,7 @@ l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
 
 void luaG_traceexec (lua_State *L) {
   CallInfo *ci = L->ci;
-  lu_byte mask = L->hookmask;
+  lu_byte mask = (lu_byte)L->hookmask;
   int counthook = (--L->hookcount == 0 && (mask & LUA_MASKCOUNT));
   if (counthook)
     resethookcount(L);  /* reset count */

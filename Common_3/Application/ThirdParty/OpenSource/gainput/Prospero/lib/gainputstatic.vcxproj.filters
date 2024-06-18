@@ -2,58 +2,58 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput">
-      <UniqueIdentifier>{e6283795-db5a-49b5-9691-d571c6556a8a}</UniqueIdentifier>
+      <UniqueIdentifier>{436dffb4-d1ce-46ce-8dfb-1008fc517d7c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source">
-      <UniqueIdentifier>{f835fe39-c93a-4312-b586-786e3fbe7da1}</UniqueIdentifier>
+      <UniqueIdentifier>{54dc9ada-7d83-4a98-b0e0-efd32d45423d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib">
-      <UniqueIdentifier>{d8723ca2-48b0-4179-9a65-c3a72297e69d}</UniqueIdentifier>
+      <UniqueIdentifier>{35cdadaf-aa07-4be6-81f4-5d42fc933531}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput">
-      <UniqueIdentifier>{798560b8-ddfe-433c-abb4-298842e682b5}</UniqueIdentifier>
+      <UniqueIdentifier>{a64134fe-29a6-4dd4-9019-8b2ba67620ff}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource">
-      <UniqueIdentifier>{3e8986bb-f421-47a4-a948-c4995def4261}</UniqueIdentifier>
+      <UniqueIdentifier>{73455006-e7c7-4b83-98d3-5cdf59292504}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty">
-      <UniqueIdentifier>{9aa35935-ad6c-4871-9f2c-5587336e9e6c}</UniqueIdentifier>
+      <UniqueIdentifier>{f1d21212-b1f6-47b9-9d92-47721dc34b66}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application">
-      <UniqueIdentifier>{4a5611a9-1f08-4407-9347-fe2e7dd417ff}</UniqueIdentifier>
+      <UniqueIdentifier>{d1d84e62-de60-4dfa-9183-d4dbdc9bb556}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3">
-      <UniqueIdentifier>{87b5dadf-0fb2-48d6-8477-11014b922002}</UniqueIdentifier>
+      <UniqueIdentifier>{42a49465-a4c3-4bf6-bb76-94d491df8713}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard">
-      <UniqueIdentifier>{17d79cad-cf7b-47ec-b96b-e424c769df33}</UniqueIdentifier>
+      <UniqueIdentifier>{84e985a2-966b-435e-9f94-a4e8ad69c1b4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\mouse">
-      <UniqueIdentifier>{967cd533-9dec-40e0-bb6f-775a82600d1e}</UniqueIdentifier>
+      <UniqueIdentifier>{b6110646-e433-46b8-a152-43549825d05d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\pad">
-      <UniqueIdentifier>{db354cdf-4150-4557-8f1b-688f23b1e6a9}</UniqueIdentifier>
+      <UniqueIdentifier>{c19e1ab5-22ee-4d5c-9203-e8cea280d56f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\touch">
-      <UniqueIdentifier>{6651306d-9ffb-4190-a0b4-503247650e91}</UniqueIdentifier>
+      <UniqueIdentifier>{9814bbc4-d3c7-4295-8bdb-a54d4c1b93ee}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero\Common_3\Application\Input">
-      <UniqueIdentifier>{e6cc3ab1-a610-496d-9812-07732cde8b10}</UniqueIdentifier>
+      <UniqueIdentifier>{e4fec98b-c4a0-44fc-9cdc-0c501e8abfcc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero\Common_3\Application">
-      <UniqueIdentifier>{ef9dc5a7-e93f-498b-b4fc-c65d350f5f20}</UniqueIdentifier>
+      <UniqueIdentifier>{0e67b8f6-f213-42d9-ab08-9e39d1f530cd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero\Common_3">
-      <UniqueIdentifier>{7f0183f2-40fb-42e0-86e3-0422e1717e90}</UniqueIdentifier>
+      <UniqueIdentifier>{440aa280-598d-43e8-88f3-21ed05e1c7ca}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero">
-      <UniqueIdentifier>{863785d0-e616-4af0-85bf-5376146e249a}</UniqueIdentifier>
+      <UniqueIdentifier>{fdff18bf-3abc-4fdc-822a-5173fe56db67}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\linux">
-      <UniqueIdentifier>{06205110-8b42-4461-bc31-2c91ad2ea3df}</UniqueIdentifier>
+      <UniqueIdentifier>{0731760c-8299-491a-b265-101588c4bec2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\windows">
-      <UniqueIdentifier>{a548957a-3f2e-4665-a04e-69c212751e09}</UniqueIdentifier>
+      <UniqueIdentifier>{cac80900-bfa6-4ef3-97dc-8ea22df8789a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

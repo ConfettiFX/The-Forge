@@ -43,10 +43,6 @@ CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES
 
 CONFIGURATION_BUILD_DIR=$(PROJECT_DIR)/Bin/$(CONFIGURATION)/
 
-//NEEDS to be true for all dependencies overriden to false in main app
-SKIP_INSTALL=YES
-//no need for an install path for products
-INSTALL_PATH=
 
 // should be set in plist file.
 //PRODUCT_BUNDLE_IDENTIFIER=com.confetti.$(TARGET_NAME)

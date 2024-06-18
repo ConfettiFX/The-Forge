@@ -25,14 +25,6 @@
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
 
-#ifdef NO_FSL_DEFINITIONS
-    #define STATIC static
-    #define STRUCT(NAME) struct NAME
-    #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
-	#define float4x4 mat4
-#endif
-
 #define LIGHT_COUNT 128
 #define LIGHT_SIZE 150.0f
 

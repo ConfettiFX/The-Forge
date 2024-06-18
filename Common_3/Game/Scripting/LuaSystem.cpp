@@ -837,6 +837,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
         pLuaManager->SetFunction((const char*)functionName.data,
                                  [fn = pWidget->pOnHover, data = pWidget->pOnHoverUserData](ILuaStateWrap* state) -> int
                                  {
+                                     UNREF_PARAM(state);
                                      fn(data);
                                      return 0;
                                  });
@@ -848,6 +849,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
         pLuaManager->SetFunction((const char*)functionName.data,
                                  [fn = pWidget->pOnActive, data = pWidget->pOnActiveUserData](ILuaStateWrap* state) -> int
                                  {
+                                     UNREF_PARAM(state);
                                      fn(data);
                                      return 0;
                                  });
@@ -859,6 +861,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
         pLuaManager->SetFunction((const char*)functionName.data,
                                  [fn = pWidget->pOnFocus, data = pWidget->pOnFocusUserData](ILuaStateWrap* state) -> int
                                  {
+                                     UNREF_PARAM(state);
                                      fn(data);
                                      return 0;
                                  });
@@ -870,6 +873,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
         pLuaManager->SetFunction((const char*)functionName.data,
                                  [fn = pWidget->pOnEdited, data = pWidget->pOnEditedUserData](ILuaStateWrap* state) -> int
                                  {
+                                     UNREF_PARAM(state);
                                      fn(data);
                                      return 0;
                                  });
@@ -881,6 +885,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
         pLuaManager->SetFunction((const char*)functionName.data,
                                  [fn = pWidget->pOnDeactivated, data = pWidget->pOnDeactivatedUserData](ILuaStateWrap* state) -> int
                                  {
+                                     UNREF_PARAM(state);
                                      fn(data);
                                      return 0;
                                  });
@@ -893,6 +898,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
             (const char*)functionName.data,
             [fn = pWidget->pOnDeactivatedAfterEdit, data = pWidget->pOnDeactivatedAfterEditUserData](ILuaStateWrap* state) -> int
             {
+                UNREF_PARAM(state);
                 fn(data);
                 return 0;
             });

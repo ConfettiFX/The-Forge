@@ -34,6 +34,7 @@ void* Allocate(size_t size)
 
 void DeAllocate(void* b)
 {
+	UNREF_PARAM(b); 
 	// we have a larger buffer, use it as default for the next memory allocations
 	if (current_buffer > 0)
 	{

@@ -4,6 +4,10 @@
   <PropertyGroup>
     <TheForgeRoot>$([System.IO.Path]::GetFullPath("$(MSBuildThisFileDirectory)..\..\..\"))</TheForgeRoot>
     <CustomMiddlewareRoot>$([System.IO.Path]::GetFullPath("$(TheForgeRoot)..\Custom-Middleware\"))</CustomMiddlewareRoot>
+    <UsingMSVC>false</UsingMSVC>
+    <UsingMSVC Condition="'$(Platform)'=='x64'">true</UsingMSVC>
+    <UsingMSVC Condition="'$(Platform)'=='Gaming.Xbox.XboxOne.x64'">true</UsingMSVC>
+    <UsingMSVC Condition="'$(Platform)'=='Gaming.Xbox.Scarlett.x64'">true</UsingMSVC>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -11,12 +15,14 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <ExceptionHandling>false</ExceptionHandling>
       <PreprocessorDefinitions>_HAS_EXCEPTIONS=0;$(AdditionalForgeDefines);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level3</WarningLevel>
-      <TreatWarningAsError>true</TreatWarningAsError>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <DisableSpecificWarnings>4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <WarningsAsErrors>true</WarningsAsErrors>
+      <WarningLevel Condition="!$(UsingMSVC)">EnableWarnings</WarningLevel>
+      <WarningLevel Condition="$(UsingMSVC)">Level4</WarningLevel>
+      <DisableSpecificWarnings Condition="$(UsingMSVC)">4201;4324;4127%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

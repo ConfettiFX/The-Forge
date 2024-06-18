@@ -123,6 +123,8 @@ DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTe
 
 static void SetObjectName(ID3D12Object* pObject, const char* pName)
 {
+    UNREF_PARAM(pObject);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     if (!pName)
     {
@@ -335,7 +337,7 @@ typedef struct DescriptorIndexMap
     uint32_t value;
 } DescriptorIndexMap;
 
-static char* processErrorMessages(IDxcBlobEncoding* pEncoding)
+char* processErrorMessages(IDxcBlobEncoding* pEncoding)
 {
     int32_t       percentCharactersCount = 0;
     IDxcBlobUtf8* pUtf8Blob = NULL;
@@ -402,7 +404,7 @@ static void add_descriptor_heap(ID3D12Device* pDevice, const D3D12_DESCRIPTOR_HE
     *ppDescHeap = pHeap;
 }
 
-static void reset_descriptor_heap(DescriptorHeap* pHeap)
+void reset_descriptor_heap(DescriptorHeap* pHeap)
 {
     memset(pHeap->pFlags, 0, (pHeap->mNumDescriptors / 32) * sizeof(uint32_t));
     pHeap->mUsedDescriptors = 0;
@@ -692,7 +694,7 @@ static const uint32_t gMaxRootConstantsPerRootParam = 4U;
 // Logging functions
 /************************************************************************/
 // Proxy log callback
-static void           internal_log(LogLevel level, const char* msg, const char* component) { LOGF(level, "%s ( %s )", component, msg); }
+void                  internal_log(LogLevel level, const char* msg, const char* component) { LOGF(level, "%s ( %s )", component, msg); }
 
 void AddSrv(Renderer* pRenderer, DescriptorHeap* pOptionalHeap, ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc,
             DxDescriptorID* pInOutId)
@@ -1329,8 +1331,9 @@ bool d3d12dll_init()
     if (!gD3D12dllInited)
         d3d12dll_exit();
     return gD3D12dllInited;
-#endif
+#else
     return true;
+#endif
 }
 HRESULT WINAPI d3d12dll_CreateDevice(void* pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void** ppDevice) //-V835
 {                                                                                                                         //-V835
@@ -1343,8 +1346,8 @@ HRESULT WINAPI d3d12dll_CreateDevice(void* pAdapter, D3D_FEATURE_LEVEL MinimumFe
 #endif
 }
 
-static HRESULT WINAPI d3d12dll_GetDebugInterface(REFIID riid, void** ppvDebug) //-V835
-{                                                                              //-V835
+HRESULT WINAPI d3d12dll_GetDebugInterface(REFIID riid, void** ppvDebug) //-V835
+{                                                                       //-V835
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gPfnGetDebugInterface)
         return gPfnGetDebugInterface(riid, ppvDebug);
@@ -1354,6 +1357,7 @@ static HRESULT WINAPI d3d12dll_GetDebugInterface(REFIID riid, void** ppvDebug) /
 #endif
 }
 
+#if !defined(XBOX)
 static HRESULT WINAPI d3d12dll_EnableExperimentalFeatures(UINT NumFeatures, const IID* pIIDs, void* pConfigurationStructs,
                                                           UINT* pConfigurationStructSizes)
 {
@@ -1365,6 +1369,7 @@ static HRESULT WINAPI d3d12dll_EnableExperimentalFeatures(UINT NumFeatures, cons
     return D3D12EnableExperimentalFeatures(NumFeatures, pIIDs, pConfigurationStructs, pConfigurationStructSizes);
 #endif
 }
+#endif
 
 static HRESULT d3d12dll_SerializeVersionedRootSignature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignature, ID3DBlob** ppBlob,
                                                         ID3DBlob** ppErrorBlob)
@@ -1505,7 +1510,6 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE util_to_dx12_primitive_topology_type(PrimitiveTopo
     default:
         return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
     }
-    return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
 }
 
 uint64_t util_dx12_determine_storage_counter_offset(uint64_t buffer_size)
@@ -1932,6 +1936,8 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
 
 static void QueryRaytracingSupport(ID3D12Device* pDevice, GPUSettings* pGpuSettings)
 {
+    UNREF_PARAM(pDevice);
+    UNREF_PARAM(pGpuSettings);
 #ifdef D3D12_RAYTRACING_AVAILABLE
     ASSERT(pDevice);
     D3D12_FEATURE_DATA_D3D12_OPTIONS5 opts5 = {};
@@ -2212,6 +2218,52 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
         *pStartResourceState = actualStartState;
 }
 
+#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERITY severity, D3D12_MESSAGE_ID id, LPCSTR pDescription,
+                          void* pContext)
+{
+    UNREF_PARAM(pContext);
+    D3D12_MESSAGE_ID ignoreMessageIDs[] = {
+        // Trying to load a PSO that isn't in loaded library is expected. New PSOs will always trigger this warning.
+        D3D12_MESSAGE_ID_LOADPIPELINE_NAMENOTFOUND,
+        // Required when we want to Alias the same memory from multiple buffers and use them at the same time
+        // (we know from the App that we don't read/write on the same memory at the same time)
+        D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS,
+        // Just a baggage
+        D3D12_MESSAGE_ID_CREATE_COMMANDLIST12,
+        D3D12_MESSAGE_ID_DESTROY_COMMANDLIST12,
+        D3D12_MESSAGE_ID_INVALID_SUBRESOURCE_STATE,
+        // Bug in validation when using acceleration structure in compute or graphics pipeline
+        // D3D12 ERROR: ID3D12CommandList::Dispatch: Static Descriptor SRV resource dimensions (UNKNOWN (11)) differs from that expected by
+        // shader (D3D12_SRV_DIMENSION_BUFFER) UNKNOWN (11) is D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE
+        D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH,
+        D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+        D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED,
+    };
+
+    for (uint32_t m = 0; m < TF_ARRAY_COUNT(ignoreMessageIDs); ++m)
+        if (ignoreMessageIDs[m] == id)
+            return;
+
+    if (severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
+    {
+        LOGF(LogLevel::eERROR, "[Corruption] [%d] : %s (%d)", category, pDescription, id);
+    }
+    else if (severity == D3D12_MESSAGE_SEVERITY_ERROR)
+    {
+        LOGF(LogLevel::eERROR, "[Error] [%d] : %s (%d)", category, pDescription, id);
+    }
+    else if (severity == D3D12_MESSAGE_SEVERITY_WARNING)
+    {
+        LOGF(LogLevel::eWARNING, "[%d] : %s (%d)", category, pDescription, id);
+    }
+    else if (severity == D3D12_MESSAGE_SEVERITY_INFO)
+    {
+        LOGF(LogLevel::eINFO, "[%d] : %s (%d)", category, pDescription, id);
+    }
+}
+#endif
+
 /************************************************************************/
 // Internal init functions
 /************************************************************************/
@@ -2232,23 +2284,28 @@ static HRESULT EnableExperimentalShaderModels()
 #endif
 
 #if defined(XBOX)
-static UINT HANGBEGINCALLBACK(UINT64 Flags)
+UINT HANGBEGINCALLBACK(UINT64 Flags)
 {
     LOGF(LogLevel::eINFO, "( %d )", Flags);
     return (UINT)Flags;
 }
 
-static void HANGPRINTCALLBACK(const CHAR* strLine)
+void HANGPRINTCALLBACK(const CHAR* strLine)
 {
     LOGF(LogLevel::eINFO, "( %s )", strLine);
     return;
 }
 
-static void HANGDUMPCALLBACK(const WCHAR* strFileName) { return; }
+void HANGDUMPCALLBACK(const WCHAR* strFileName)
+{
+    UNREF_PARAM(strFileName);
+    return;
+}
 #endif
 
 static bool SelectBestGpu(Renderer* pRenderer, const RendererDesc* pDesc, D3D_FEATURE_LEVEL* pFeatureLevel, uint32_t* pOutGpuCount)
 {
+    UNREF_PARAM(pDesc);
     GPUSettings      gpuSettings[MAX_MULTIPLE_GPUS] = {};
     RendererContext* pContext = pRenderer->pContext;
     for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
@@ -2334,6 +2391,13 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
     HRESULT hr = pRenderer->mDx.pDevice->QueryInterface(IID_ARGS(&pRenderer->mDx.pDebugValidation));
+    pRenderer->mDx.mUseDebugCallback = true;
+    if (!SUCCEEDED(hr))
+    {
+        SAFE_RELEASE(pRenderer->mDx.pDebugValidation);
+        pRenderer->mDx.mUseDebugCallback = false;
+        hr = pRenderer->mDx.pDevice->QueryInterface(__uuidof(ID3D12InfoQueue), IID_PPV_ARGS_Helper(&pRenderer->mDx.pDebugValidation));
+    }
     if (SUCCEEDED(hr))
     {
         pRenderer->mDx.pDebugValidation->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -2367,14 +2431,28 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
         }
 
         D3D12_MESSAGE_ID hide[] = {
-            // Required when we want to Alias the same meory from multiple buffers and use them at the same time
+            // Required when we want to Alias the same memory from multiple buffers and use them at the same time
             // (we know from the App that we don't read/write on the same memory at the same time)
             D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS,
+            D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED,
         };
         D3D12_INFO_QUEUE_FILTER filter = {};
         filter.DenyList.NumIDs = _countof(hide);
         filter.DenyList.pIDList = hide;
         pRenderer->mDx.pDebugValidation->AddStorageFilterEntries(&filter);
+
+        if (pRenderer->mDx.mUseDebugCallback)
+        {
+            pRenderer->mDx.pDebugValidation->SetMuteDebugOutput(true);
+            // D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS, will enable all message filtering in the callback function, no need to use Push/Pop,
+            // but we stick with FLAG_NONE for failsafe
+            HRESULT res = pRenderer->mDx.pDebugValidation->RegisterMessageCallback(DebugMessageCallback, D3D12_MESSAGE_CALLBACK_FLAG_NONE,
+                                                                                   pRenderer, &pRenderer->mDx.mCallbackCookie);
+            if (!SUCCEEDED(res))
+            {
+                internal_log(eERROR, "RegisterMessageCallback failed - disabling DirectX12 ID3D12InfoQueue1 debug callbacks", "AddDevice");
+            }
+        }
     }
 #endif
 
@@ -2388,6 +2466,17 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 static void RemoveDevice(Renderer* pRenderer)
 {
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
+    if (pRenderer->mDx.pDebugValidation && pRenderer->pGpu->mSettings.mSuppressInvalidSubresourceStateAfterExit)
+    {
+        // bypass AMD driver issue with vk and dxgi swapchains resource states
+        D3D12_MESSAGE_ID        hide[] = { D3D12_MESSAGE_ID_INVALID_SUBRESOURCE_STATE };
+        D3D12_INFO_QUEUE_FILTER filter = {};
+        filter.DenyList.NumIDs = 1;
+        filter.DenyList.pIDList = hide;
+        pRenderer->mDx.pDebugValidation->PushStorageFilter(&filter);
+    }
+    if (pRenderer->mDx.mUseDebugCallback)
+        pRenderer->mDx.pDebugValidation->UnregisterMessageCallback(pRenderer->mDx.mCallbackCookie);
     SAFE_RELEASE(pRenderer->mDx.pDebugValidation);
 #endif
 
@@ -2400,6 +2489,8 @@ static void RemoveDevice(Renderer* pRenderer)
 
 void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
 {
+    UNREF_PARAM(pDesc);
+    UNREF_PARAM(pContext);
     d3d12dll_init();
 
     AGSReturnCode agsRet = agsInit();
@@ -3232,6 +3323,8 @@ void d3d12_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
         removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
 #if !defined(XBOX)
         SAFE_RELEASE(resource);
+#else
+        (void)resource;
 #endif
     }
 
@@ -3965,9 +4058,9 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     pRenderTarget->mDx.mDescriptors = consume_descriptor_handles(pHeap, handleCount);
 
     if (isDepth)
-        AddDsv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, 0, -1, &pRenderTarget->mDx.mDescriptors);
+        AddDsv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->mDx.mDescriptors);
     else
-        AddRtv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, 0, -1, &pRenderTarget->mDx.mDescriptors);
+        AddRtv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, 0, (uint32_t)-1, &pRenderTarget->mDx.mDescriptors);
 
     for (uint32_t i = 0; i < desc.MipLevels; ++i)
     {
@@ -3989,9 +4082,9 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
             DxDescriptorID handle = pRenderTarget->mDx.mDescriptors + 1 + i;
 
             if (isDepth)
-                AddDsv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, i, -1, &handle);
+                AddDsv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, i, (uint32_t)-1, &handle);
             else
-                AddRtv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, i, -1, &handle);
+                AddRtv(pRenderer, NULL, pRenderTarget->pTexture->mDx.pResource, dxFormat, i, (uint32_t)-1, &handle);
         }
     }
 
@@ -4287,9 +4380,9 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             if (pNode == NULL)
             {
                 ShaderResource* pFound = NULL;
-                for (ptrdiff_t i = 0; i < arrlen(shaderResources); ++i)
+                for (ptrdiff_t j = 0; j < arrlen(shaderResources); ++j)
                 {
-                    ShaderResource* pCurrent = &shaderResources[i];
+                    ShaderResource* pCurrent = &shaderResources[j];
                     if (pCurrent->type == pRes->type && (pCurrent->used_stages == pRes->used_stages) &&
                         (((pCurrent->reg ^ pRes->reg) | (pCurrent->set ^ pRes->set)) == 0))
                     {
@@ -4362,11 +4455,11 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                     return;
                 }
 
-                for (ptrdiff_t i = 0; i < arrlen(shaderResources); ++i)
+                for (ptrdiff_t j = 0; j < arrlen(shaderResources); ++j)
                 {
-                    if (strcmp(shaderResources[i].name, pNode->key) == 0)
+                    if (strcmp(shaderResources[j].name, pNode->key) == 0)
                     {
-                        shaderResources[i].used_stages |= pRes->used_stages;
+                        shaderResources[j].used_stages |= pRes->used_stages;
                         break;
                     }
                 }
@@ -4611,6 +4704,10 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         }
     }
 
+    // prevent warnings due to unused static function (the func is defined inside of the the sort impl generator macro)
+    size_t (*func)(RootParameter*, size_t, size_t) = partitionRootParameter;
+    (void)func;
+
     // Collect descriptor table parameters
     // Put most frequently changed descriptor tables in the front of the root signature
     for (uint32_t i = kMaxLayoutCount; i-- > 0U;)
@@ -4628,8 +4725,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
             // Store some of the binding info which will be required later when binding the descriptor table
             // We need the root index when calling SetRootDescriptorTable
-            pRootSignature->mDx.mViewDescriptorTableRootIndices[i] = rootParamCount;
-            pRootSignature->mDx.mViewDescriptorCounts[i] = (uint32_t)arrlenu(layout.mCbvSrvUavTable);
+            pRootSignature->mDx.mViewDescriptorTableRootIndices[i] = (uint8_t)rootParamCount;
+            pRootSignature->mDx.mViewDescriptorCounts[i] = (uint16_t)arrlenu(layout.mCbvSrvUavTable);
 
             for (ptrdiff_t descIndex = 0; descIndex < arrlen(layout.mCbvSrvUavTable); ++descIndex)
             {
@@ -4656,8 +4753,8 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
             // Store some of the binding info which will be required later when binding the descriptor table
             // We need the root index when calling SetRootDescriptorTable
-            pRootSignature->mDx.mSamplerDescriptorTableRootIndices[i] = rootParamCount;
-            pRootSignature->mDx.mSamplerDescriptorCounts[i] = (uint32_t)arrlenu(layout.mSamplerTable);
+            pRootSignature->mDx.mSamplerDescriptorTableRootIndices[i] = (uint8_t)rootParamCount;
+            pRootSignature->mDx.mSamplerDescriptorCounts[i] = (uint16_t)arrlenu(layout.mSamplerTable);
             // table.pDescriptorIndices = (uint32_t*)tf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
             for (ptrdiff_t descIndex = 0; descIndex < arrlen(layout.mSamplerTable); ++descIndex)
@@ -4705,9 +4802,9 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     desc.Desc_1_1.pStaticSamplers = staticSamplerDescs;
     desc.Desc_1_1.Flags = rootSignatureFlags;
 
-    HRESULT hres = d3d12dll_SerializeVersionedRootSignature(&desc, &rootSignatureString, &error);
+    HRESULT hr = d3d12dll_SerializeVersionedRootSignature(&desc, &rootSignatureString, &error);
 
-    if (!SUCCEEDED(hres))
+    if (!SUCCEEDED(hr))
     {
         LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", (char*)error->GetBufferPointer());
     }
@@ -4740,6 +4837,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 
 void d3d12_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
+    UNREF_PARAM(pRenderer);
     shfree(pRootSignature->pDescriptorNameToIndexMap);
     SAFE_RELEASE(pRootSignature->mDx.pRootSignature);
 
@@ -4799,7 +4897,8 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
             for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
             {
                 const DescriptorInfo* pDescInfo = &pRootSignature->pDescriptors[i];
-                if (!pDescInfo->mRootDescriptor && pDescInfo->mType != DESCRIPTOR_TYPE_SAMPLER && pDescInfo->mUpdateFrequency == updateFreq)
+                if (!pDescInfo->mRootDescriptor && pDescInfo->mType != DESCRIPTOR_TYPE_SAMPLER &&
+                    (int)pDescInfo->mUpdateFrequency == updateFreq)
                 {
                     DescriptorType type = (DescriptorType)pDescInfo->mType;
                     DxDescriptorID srcHandle = D3D12_DESCRIPTOR_ID_NONE;
@@ -4916,14 +5015,15 @@ void d3d12_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSe
         }
         else
         {
-            VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName ? pParam->pName : "<NULL>");
+            VALIDATE_DESCRIPTOR(pDesc, "Descriptor with param name (%s) not found in root signature, make sure it is not optimized away",
+                                pParam->pName ? pParam->pName : "<NULL>");
         }
 
         const DescriptorType type = (DescriptorType)pDesc->mType; //-V522
         const uint32_t       arrayStart = pParam->mArrayOffset;
         const uint32_t       arrayCount = max(1U, pParam->mCount);
 
-        VALIDATE_DESCRIPTOR(pDesc->mUpdateFrequency == updateFreq, "Descriptor (%s) - Mismatching update frequency and register space",
+        VALIDATE_DESCRIPTOR((int)pDesc->mUpdateFrequency == updateFreq, "Descriptor (%s) - Mismatching update frequency and register space",
                             pDesc->pName);
 
         if (pDesc->mRootDescriptor)
@@ -5176,7 +5276,7 @@ static bool ResetRootSignature(Cmd* pCmd, PipelineType type, const RootSignature
     for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
     {
         pCmd->mDx.pBoundDescriptorSets[i] = NULL;
-        pCmd->mDx.mBoundDescriptorSetIndices[i] = -1;
+        pCmd->mDx.mBoundDescriptorSetIndices[i] = (uint16_t)-1;
     }
 
     return true;
@@ -5197,7 +5297,7 @@ void d3d12_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
         pCmd->mDx.pBoundDescriptorSets[pDescriptorSet->mDx.mUpdateFrequency] != pDescriptorSet)
     {
         pCmd->mDx.pBoundDescriptorSets[pDescriptorSet->mDx.mUpdateFrequency] = pDescriptorSet;
-        pCmd->mDx.mBoundDescriptorSetIndices[pDescriptorSet->mDx.mUpdateFrequency] = index;
+        pCmd->mDx.mBoundDescriptorSetIndices[pDescriptorSet->mDx.mUpdateFrequency] = (uint16_t)index;
 
         // Bind the descriptor tables associated with this DescriptorSet
         if (pDescriptorSet->mDx.mPipelineType == PIPELINE_TYPE_GRAPHICS)
@@ -5332,10 +5432,10 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
 
 #ifndef DISABLE_PIPELINE_LIBRARY
     ID3D12PipelineLibrary* psoCache = pMainDesc->pCache ? pMainDesc->pCache->mDx.pLibrary : NULL;
-#endif
 
     size_t psoShaderHash = 0;
     size_t psoRenderHash = 0;
+#endif
 
     pPipeline->mDx.mType = PIPELINE_TYPE_GRAPHICS;
     pPipeline->mDx.pRootSignature = pDesc->pRootSignature;
@@ -5572,9 +5672,9 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     pipeline_state_desc.NodeMask = util_calculate_shared_node_mask(pRenderer);
 
     HRESULT result = E_FAIL;
-    wchar_t pipelineName[MAX_DEBUG_NAME_LENGTH + 32] = {};
 
 #ifndef DISABLE_PIPELINE_LIBRARY
+    wchar_t pipelineName[MAX_DEBUG_NAME_LENGTH + 32] = {};
     if (psoCache)
     {
         psoShaderHash = tf_mem_hash<uint8_t>((uint8_t*)VS.pShaderBytecode, VS.BytecodeLength, psoShaderHash);
@@ -5758,6 +5858,9 @@ void d3d12_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 
 void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pDesc);
+    UNREF_PARAM(ppPipelineCache);
 #ifndef DISABLE_PIPELINE_LIBRARY
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -5801,6 +5904,8 @@ void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc,
 
 void d3d12_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pPipelineCache);
 #ifndef DISABLE_PIPELINE_LIBRARY
     ASSERT(pRenderer);
     ASSERT(pPipelineCache);
@@ -5813,6 +5918,9 @@ void d3d12_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCach
 
 void d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pPipelineCache);
+    UNREF_PARAM(pData);
     ASSERT(pSize);
 
     *pSize = 0;
@@ -5866,7 +5974,7 @@ void d3d12_beginCmd(Cmd* pCmd)
     for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
     {
         pCmd->mDx.pBoundDescriptorSets[i] = NULL;
-        pCmd->mDx.mBoundDescriptorSetIndices[i] = -1;
+        pCmd->mDx.mBoundDescriptorSetIndices[i] = (uint16_t)-1;
     }
 
 #if defined(XBOX)
@@ -6652,9 +6760,17 @@ static void WaitForFences(uint32_t fenceCount, Fence** ppFences)
     }
 }
 
-void d3d12_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus) { GetFenceStatus(pFence, pFenceStatus); }
+void d3d12_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+{
+    UNREF_PARAM(pRenderer);
+    GetFenceStatus(pFence, pFenceStatus);
+}
 
-void d3d12_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences) { WaitForFences(fenceCount, ppFences); }
+void d3d12_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+{
+    UNREF_PARAM(pRenderer);
+    WaitForFences(fenceCount, ppFences);
+}
 
 void d3d12_waitQueueIdle(Queue* pQueue)
 {
@@ -6936,12 +7052,12 @@ void d3d12_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 void d3d12_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
     const D3D12_QUERY_TYPE type = pQueryPool->mDx.mType;
-    const uint32_t         index = pQuery->mIndex * 2 + 1;
+    uint32_t               index = pQuery->mIndex * 2 + 1;
     switch (type)
     {
     case D3D12_QUERY_TYPE_TIMESTAMP:
     {
-        const uint32_t index = pQuery->mIndex * 2 + 1;
+        index = pQuery->mIndex * 2 + 1;
         pCmd->mDx.pCmdList->EndQuery(pQueryPool->mDx.pQueryHeap, type, index);
         break;
     }
@@ -6951,13 +7067,13 @@ void d3d12_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
         extern void SetOcclusionQueryControl(Cmd * pCmd, uint32_t sampleCount);
         SetOcclusionQueryControl(pCmd, 0);
 #endif
-        const uint32_t index = pQuery->mIndex;
+        index = pQuery->mIndex;
         pCmd->mDx.pCmdList->EndQuery(pQueryPool->mDx.pQueryHeap, type, index);
         break;
     }
     case D3D12_QUERY_TYPE_PIPELINE_STATISTICS:
     {
-        const uint32_t index = pQuery->mIndex;
+        index = pQuery->mIndex;
         pCmd->mDx.pCmdList->EndQuery(pQueryPool->mDx.pQueryHeap, type, index);
         break;
     }
@@ -6981,7 +7097,13 @@ void d3d12_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery
                                          (uint64_t)startQuery * internalQueryCount * pQueryPool->mStride);
 }
 
-void d3d12_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
+void d3d12_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+{
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pQueryPool);
+    UNREF_PARAM(startQuery);
+    UNREF_PARAM(queryCount);
+}
 
 void d3d12_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t queryIndex, QueryData* pOutData)
 {
@@ -7045,12 +7167,21 @@ void d3d12_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t
     *totalAllocatedBytes = stats.Total.Stats.AllocationBytes;
 }
 
-void d3d12_freeMemoryStats(Renderer* pRenderer, char* stats) { tf_free(stats); }
+void d3d12_freeMemoryStats(Renderer* pRenderer, char* stats)
+{
+    UNREF_PARAM(pRenderer);
+    tf_free(stats);
+}
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
 void d3d12_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(r);
+    UNREF_PARAM(g);
+    UNREF_PARAM(b);
+    UNREF_PARAM(pName);
     // note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
     // is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #if defined(USE_PIX)
@@ -7061,6 +7192,7 @@ void d3d12_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char*
 
 void d3d12_cmdEndDebugMarker(Cmd* pCmd)
 {
+    UNREF_PARAM(pCmd);
 #if defined(USE_PIX)
     PIXEndEvent(pCmd->mDx.pCmdList);
 #endif
@@ -7068,6 +7200,11 @@ void d3d12_cmdEndDebugMarker(Cmd* pCmd)
 
 void d3d12_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(r);
+    UNREF_PARAM(g);
+    UNREF_PARAM(b);
+    UNREF_PARAM(pName);
 #if defined(USE_PIX)
     // color is in B8G8R8X8 format where X is padding
     PIXSetMarker(pCmd->mDx.pCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
@@ -7104,6 +7241,9 @@ void d3d12_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
 /************************************************************************/
 void d3d12_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pBuffer);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     ASSERT(pRenderer);
     ASSERT(pBuffer);
@@ -7114,6 +7254,9 @@ void d3d12_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName
 
 void d3d12_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pTexture);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     ASSERT(pRenderer);
     ASSERT(pTexture);
@@ -7129,6 +7272,9 @@ void d3d12_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget,
 
 void d3d12_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pPipeline);
+    UNREF_PARAM(pName);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     ASSERT(pRenderer);
     ASSERT(pPipeline);

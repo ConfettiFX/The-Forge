@@ -49,7 +49,12 @@
 #include "../Interfaces/IOperatingSystem.h"
 
 #include "../../OS/CPUConfig.h"
+#if defined(ENABLE_FORGE_REMOTE_UI)
 #include "../../Tools/Network/Network.h"
+#endif
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
+#include "../../Tools/ReloadServer/ReloadClient.h"
+#endif
 #include "../../Utilities/Math/MathTypes.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -78,8 +83,10 @@ extern float2*      gDPIScales;
 
 /// VSync Toggle
 static UIComponent* pToggleVSyncWindow = NULL;
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
-@interface          ForgeApplication: NSApplication
+#endif
+@interface ForgeApplication: NSApplication
 @end
 
 ThermalStatus getThermalStatus(void) { return THERMAL_STATUS_NOT_SUPPORTED; }
@@ -330,16 +337,17 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
 
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+#endif
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
 
-    extern void platformReloadClientAddReloadShadersButton(UIComponent * pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
 #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
@@ -366,7 +374,9 @@ void togglePlatformUI()
     platformToggleWindowSystemUI(gShowPlatformUI);
 
     uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
+#endif
 #endif
 }
 
@@ -778,7 +788,7 @@ char     benchmarkOutput[1024] = { "\0" };
         togglePlatformUI();
     }
 
-    extern bool platformReloadClientShouldQuit(void);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     if (platformReloadClientShouldQuit())
     {
         for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
@@ -788,6 +798,7 @@ char     benchmarkOutput[1024] = { "\0" };
 
         [NSApp terminate:nil];
     }
+#endif
 
 #ifdef AUTOMATED_TESTING
     extern bool gAutomatedTestingScriptsFinished;

@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Examples_3\Visibility_Buffer\src">
+      <UniqueIdentifier>{b720e471-623c-4185-8121-60d02d8e7046}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Visibility_Buffer">
+      <UniqueIdentifier>{0f252225-68ee-459c-88b9-02fd31aa989f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{1a1038bf-d693-4771-81aa-658fdfbd30c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\39_ParticleSystem">
+      <UniqueIdentifier>{128bfde7-280b-49e4-85ef-1b84867b902a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{8f630189-a984-4db6-bc0c-2b01a6f61146}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{c7c3c9ca-ed30-4da5-a9ed-a17a603e78c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer\ParticleSystem\Shaders">
+      <UniqueIdentifier>{3f70752e-18fd-4250-9b09-01376ac5c202}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer\ParticleSystem">
+      <UniqueIdentifier>{4f9ff886-d07e-4971-9370-3db425fadd9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Renderer">
+      <UniqueIdentifier>{233dedc6-3652-4664-a1f8-2ca37ec6d26f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{287a9b9b-414a-4f32-a95b-a9eb7e542960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL">
+      <UniqueIdentifier>{f6525fbc-e9bb-400a-a6fd-b171c3d64ca5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders">
+      <UniqueIdentifier>{007a1611-2bb2-48a0-bb27-450294eb6879}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\39_ParticleSystem\39_ParticleSystem.cpp">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem</Filter>
+    </ClCompile>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_clear_sorting_structs.comp.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl">
+      <Filter>Common_3\Renderer\ParticleSystem\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\batch_compaction.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_buffers.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_light_clusters.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_texture.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\cluster_lights.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\compute_depth_bounds.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\compute_depth_clusters.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\downsample_depth.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\fsq.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\fsq.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\light_cull_resources.h.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\resolve.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShaderList.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shader_defs.h.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shading.h.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_filtering.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass_alpha.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass_alpha.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\triangle_filtering.comp.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\vb_resources.h.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+</Project>

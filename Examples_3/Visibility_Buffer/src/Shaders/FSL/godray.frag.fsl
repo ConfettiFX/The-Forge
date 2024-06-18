@@ -36,6 +36,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 STRUCT(FSOutput)
@@ -58,9 +61,19 @@ PUSH_CONSTANT(GodRayRootConstant, b2)
 	DATA(float, mScatterFactor, None);
 };
 
-float GetShadowFactor(float3 position)
+float GetShadowFactor(
+#if FT_MULTIVIEW
+	uint viewID,
+#endif
+	float3 position
+)
 {
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+#if FT_MULTIVIEW
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat[viewID], float4(position, 1.0f));
+#else
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
+#endif
+
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -114,8 +127,11 @@ FSOutput PS_MAIN( PsIn In )
 	depth /= SAMPLE_COUNT;
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
-
-	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+#if FT_MULTIVIEW
+	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP.mat[In.ViewID], float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+#else
+	float4 WorldPosW = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+#endif
 
 	float3 rayStart = Get(camPos).xyz;
 	float3 rayEnd = WorldPosW.xyz / WorldPosW.w;
@@ -132,7 +148,11 @@ FSOutput PS_MAIN( PsIn In )
 
 	for(int j = 0; j < 10; j++)
 	{
+#if FT_MULTIVIEW
+		float shadowFactor = GetShadowFactor(In.ViewID, samplePos);
+#else
 		float shadowFactor = GetShadowFactor(samplePos);
+#endif
 
 		color += Get(lightColor).rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
 

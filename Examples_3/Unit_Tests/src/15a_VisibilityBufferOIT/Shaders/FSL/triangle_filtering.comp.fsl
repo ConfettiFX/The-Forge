@@ -102,7 +102,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		mvp[i] = mul(Get(transform)[i].mvp, Get(MeshDataBuffer)[batchMeshIndex].modelMtx);
+		mvp[i] = mul(Get(transform)[i].mvp.mat, Get(MeshDataBuffer)[batchMeshIndex].modelMtx);
 	}
 
 	uint indices[3] = { 0, 0, 0 };

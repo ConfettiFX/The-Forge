@@ -1,5 +1,5 @@
 //NEEDS to be yes for all libs / dependencies
-SKIP_INSTALL=YES
+SKIP_INSTALL=NO
 
 //no need for an install path for products
 INSTALL_PATH=$(CONFIGURATION_BUILD_DIR)

@@ -13,6 +13,9 @@ public:
 		manager_(manager),
 		device_(device)
 	{
+		UNREF_PARAM(index); 
+		UNREF_PARAM(state); 
+		UNREF_PARAM(previousState); 
 		DeviceId newId = manager_.GetNextId();
 		device_.OverrideDeviceId(newId);
 		manager_.AddDevice(newId, &device_);

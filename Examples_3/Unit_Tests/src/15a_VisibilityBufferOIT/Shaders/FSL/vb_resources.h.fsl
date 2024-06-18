@@ -80,7 +80,7 @@ float4x4 GetModelViewProj(uint geomSet, uint view, inout(uint) vertID)
     MeshData meshConstant = Get(MeshDataBuffer)[indirectData];
     vertID = vertID - meshConstant.indirectVertexOffset;
 
-    return mul(Get(transform)[view].mvp, meshConstant.modelMtx);
+    return mul(Get(transform)[view].mvp.mat, meshConstant.modelMtx);
 }
 
 float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, inout(uint) vertID, out(uint) materialID)
@@ -90,7 +90,7 @@ float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, inout(uint) vert
     vertID = vertID - meshConstant.indirectVertexOffset;
 	materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
 
-    return mul(Get(transform)[view].mvp, meshConstant.modelMtx);
+    return mul(Get(transform)[view].mvp.mat, meshConstant.modelMtx);
 }
 
 

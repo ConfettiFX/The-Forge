@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+#include "particle_shared.h.fsl"
+#include "particle_sets.h.fsl"
+
+bool IsParticleSetVisible(ParticleSet particleSet, float4x4 viewProj, uint index)
+{
+	uint2 colorBufferSize = Get(ScreenSize);
+	float aspectRatio = float(colorBufferSize.x) / float(colorBufferSize.y);
+	float4 setPosition = float4(index == 0 ? Get(SeekPosition) : particleSet.Position, 1.0);
+	float setRadius = max(particleSet.Size.x, max(particleSet.Size.y, particleSet.Size.z));
+	float4 clipSpacePos = mul(viewProj, setPosition);
+	clipSpacePos.xyz /= clipSpacePos.w;
+
+	float fov = 2.0 * atan( 1.0/Get(ProjTransform)[1][1] );
+	setRadius = (2.0 * setRadius * (1 / tan(fov * 0.5f))) / clipSpacePos.w;
+	setRadius *= aspectRatio;
+
+	if (particleSet.LightBitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT)
+		return true;
+
+	if (clipSpacePos.x < -1-setRadius || clipSpacePos.x > 1+setRadius ||
+		clipSpacePos.y < -1-setRadius || clipSpacePos.y > 1+setRadius)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+NUM_THREADS(1, 1, 1)
+void CS_MAIN()
+{
+	INIT_MAIN;
+
+	// Compute the amount of particles per lighting mode to later compute the ranges of each section
+	uint3 amountsPerMode = uint3(0,0,0);
+
+	UNROLL_N(MAX_PARTICLE_SET_COUNT)
+	for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
+	{
+		uint bitfield = GetParticleSet(i).LightBitfield;
+		uint maxParticles = GetParticleSet(i).MaxParticles;
+		
+		if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW)
+			amountsPerMode.x += maxParticles;
+		else if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT)
+			amountsPerMode.y += maxParticles;
+		else
+			amountsPerMode.z += maxParticles;
+	}
+
+	// When setting up the particle system, all sets are considered active and visible to allocate them.
+	// Later on, the simulation shader will correctly sort them.
+	if (Get(ResetParticles) > 0)
+	{
+		// Light + shadow
+		// Active particles
+		for (uint i=0; i<2; i++)
+		{
+			Get(ParticleSectionsIndices)[0 + i] = amountsPerMode[0];
+			Get(ParticleSectionsIndices)[2 + i] = amountsPerMode[0] + amountsPerMode[1];
+			Get(ParticleSectionsIndices)[4 + i] = amountsPerMode[0] + amountsPerMode[1] + amountsPerMode[2];
+		}
+
+		// All sets are inactive at the beginning
+		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
+		{
+			Get(ParticleSetVisibility)[i*2] = 1;
+			Get(ParticleSetVisibility)[i*2+1] = 1;
+		}
+	}
+	else
+	{
+		// Dead / alive particles are handled in the simulation shader, we only need to get data
+		// about the activity state of a particle set
+		uint3 activeParticlesPerSection = uint3(0, 0, 0);
+		
+		// Compute the new visibility mask. The current visibility becomes the previous one.
+		// Also compute the new starting point of the inactive particles
+		uint stateChanged = 0;
+		
+		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
+		{
+			uint lightModeIndex = 0;
+			uint bitfield = GetParticleSet(i).LightBitfield;
+			uint maxParticles = GetParticleSet(i).MaxParticles;
+
+			if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW)
+				lightModeIndex = 0;
+			else if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT)
+				lightModeIndex = 1;
+			else
+				lightModeIndex = 2;
+
+			uint isSetVisible = IsParticleSetVisible(GetParticleSet(i), Get(ViewProjTransform), i) ? 1 : 0;
+			// Change one set at a time
+			if (stateChanged == 0)
+			{
+				Get(ParticleSetVisibility)[i*2+PREV_VALUE] = Get(ParticleSetVisibility)[i*2+CURR_VALUE]; 
+				Get(ParticleSetVisibility)[i*2+CURR_VALUE] = isSetVisible;
+			}
+
+			activeParticlesPerSection[lightModeIndex] += maxParticles * Get(ParticleSetVisibility)[i*2+CURR_VALUE];
+			stateChanged += (isSetVisible != Get(ParticleSetVisibility)[i*2+PREV_VALUE]) ? 1 : 0;
+		}
+
+		uint3 inactiveStartIndices = uint3(activeParticlesPerSection[0], amountsPerMode[0] + activeParticlesPerSection[1], 
+			amountsPerMode[0] + amountsPerMode[1] + activeParticlesPerSection[2]);
+
+		// Store the new starting points for each section, the current ones become the previous ones
+		for (uint i=0; i<PARTICLE_BUFFER_SECTION_COUNT; i++)
+		{
+			Get(ParticleSectionsIndices)[i*2] = Get(ParticleSectionsIndices)[i*2+1];
+			Get(ParticleSectionsIndices)[i*2+1] = inactiveStartIndices[i];
+		}
+	}
+
+	Get(ParticleCountsBuffer)[0] = uint4(amountsPerMode, 0);
+	// Hardware rasterized particles index write
+	Get(ParticlesToRasterizeCount)[0] = 0;
+	
+	RETURN();
+}

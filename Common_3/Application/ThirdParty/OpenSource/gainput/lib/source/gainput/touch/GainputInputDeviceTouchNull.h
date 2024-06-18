@@ -10,6 +10,8 @@ class InputDeviceTouchImplNull : public InputDeviceTouchImpl
 public:
 	InputDeviceTouchImplNull(InputManager& manager, InputDevice& device)
 	{
+	UNREF_PARAM(manager); 
+	UNREF_PARAM(device); 
 	}
 
 	InputDevice::DeviceVariant GetVariant() const

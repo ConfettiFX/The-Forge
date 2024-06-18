@@ -182,8 +182,8 @@ public:
 	}
 
 	bool IsTextInputEnabled() const { return false; }
-	void SetTextInputEnabled(bool enabled) { }
-	wchar_t* GetTextInput(uint32_t* count) { return NULL; }
+	void SetTextInputEnabled(bool enabled) { UNREF_PARAM(enabled); }
+	wchar_t* GetTextInput(uint32_t* count) { UNREF_PARAM(count); return NULL; }
 
 	void HandleMessage(const MSG& msg)
 	{

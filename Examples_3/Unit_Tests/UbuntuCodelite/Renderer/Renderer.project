@@ -5,6 +5,9 @@
       <![CDATA[00010001N0005Debug000000000000]]>
     </Plugin>
   </Plugins>
+  <VirtualDirectory Name="ParticleSystem">
+    <File Name="../../../../Common_3/Renderer/ParticleSystem/ParticleSystem.cpp"/>
+  </VirtualDirectory>
   <VirtualDirectory Name="Interfaces">
     <File Name="../../../../Common_3/Renderer/Interfaces/IVisibilityBuffer.h"/>
   </VirtualDirectory>

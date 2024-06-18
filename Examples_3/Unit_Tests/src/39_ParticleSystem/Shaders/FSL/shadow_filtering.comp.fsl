@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+RES(RWTex2D(float), Textures[2], UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+
+PUSH_CONSTANT(RootConstant, b5)
+{
+	DATA(uint2, ScreenSize, None);
+	DATA(uint, Horizontal, None);
+	DATA(uint, Pad, None);
+};
+
+NUM_THREADS(16, 16, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint3) threadInGroup, SV_GroupID(uint3) groupID )
+{
+	INIT_MAIN;
+
+	if (threadInDispatch.x >= Get(ScreenSize).x || threadInDispatch.y >= Get(ScreenSize).y)
+	{
+		RETURN();
+	}
+
+	int stepCount = 3;
+	float sigma = float(stepCount * 2 + 1) / 2.0;
+	
+	uint horizontal = Get(Horizontal);
+	uint readIdx = horizontal == 1 ? 0 : 1;
+	uint writeIdx = 1 - readIdx;
+
+	float currSample;
+
+	BeginNonUniformResourceIndex(readIdx, 2);
+	currSample = LoadRWTex2D(Get(Textures)[readIdx], threadInDispatch.xy).x;
+	EndNonUniformResourceIndex();
+
+	float anisoSize = currSample * 5;
+	float anisoStep = anisoSize / stepCount;
+
+	float val = 0.0;
+	float currOffset = -anisoStep * stepCount;
+	float totWeight = 0.0;
+
+	// TODO:
+	// - Distance map should probably be a separate R16G16 texture
+	// - Don't filter things that are near in screen space but far in world space (use distance map)
+	// - Optimize texture access using group shared memory
+
+	for (int i=-stepCount; i<=stepCount; i++)
+	{
+		int intOffset = int(round(currOffset));
+		int2 offset = int2(intOffset * uint(horizontal == 1), intOffset * uint(horizontal == 0));
+
+		float shadow;
+		BeginNonUniformResourceIndex(readIdx, 2);
+		shadow = LoadRWTex2D(Get(Textures)[readIdx], int2(threadInDispatch.xy) + offset).x;
+		EndNonUniformResourceIndex();
+
+		float a = float(abs(i)) / sigma;
+		a *= a;
+		float weight = exp((-0.5) * a);
+
+		val += shadow * weight;
+		totWeight += weight;
+
+		currOffset += anisoStep;
+	}
+
+	val /= totWeight;
+
+	Write2D(Get(Textures)[writeIdx], threadInDispatch.xy, val);
+	
+	RETURN();
+}

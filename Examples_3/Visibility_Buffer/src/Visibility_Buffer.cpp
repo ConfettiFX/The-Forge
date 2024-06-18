@@ -23,7 +23,6 @@
  */
 
 #include "../../../Common_3/Application/Interfaces/IApp.h"
-#include "../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../Common_3/Application/Interfaces/IFont.h"
 #include "../../../Common_3/Application/Interfaces/IInput.h"
 #include "../../../Common_3/Application/Interfaces/IProfiler.h"
@@ -41,7 +40,7 @@
 #include "../../../Common_3/Utilities/Threading/ThreadSystem.h"
 
 #include "SanMiguel.h"
-#define NO_FSL_DEFINITIONS
+
 #include "Shaders/FSL/shader_defs.h.fsl"
 
 #include "../../../Common_3/Utilities/Interfaces/IMemory.h"
@@ -304,8 +303,8 @@ const uint32_t gNumViews = NUM_CULLING_VIEWPORTS;
 
 struct UniformDataSkybox
 {
-    mat4 mProjectView;
-    vec3 mCamPos;
+    CameraMatrix mProjectView;
+    vec3         mCamPos;
 };
 
 int gGodrayScale = 2;
@@ -325,6 +324,10 @@ struct PerFrameData
     UniformDataSkybox   gUniformDataSky;
 };
 
+/************************************************************************/
+// Scene
+/************************************************************************/
+Scene*            gScene = NULL;
 /************************************************************************/
 // Settings
 /************************************************************************/
@@ -614,7 +617,14 @@ UIWidget* addResolutionProperty(UIComponent* pUIManager, uint32_t& resolutionInd
         pControl->pOnEdited = onResolutionChanged;
         return pControl;
     }
+#else
+    UNREF_PARAM(pUIManager);
+    UNREF_PARAM(resolutionIndex);
+    UNREF_PARAM(resCount);
+    UNREF_PARAM(pResolutions);
+    UNREF_PARAM(onResolutionChanged);
 #endif
+
     return NULL;
 }
 
@@ -623,6 +633,7 @@ const char* gTestScripts[] = { "Test_MSAA_0.lua", "Test_MSAA_2.lua", "Test_MSAA_
 uint32_t gCurrentScriptIndex = 0;
 void     RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -859,16 +870,16 @@ public:
         GeometryLoadDesc sceneLoadDesc = {};
         sceneLoadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
         SyncToken token = {};
-        Scene*    pScene = loadSanMiguel(&sceneLoadDesc, token, false);
+        gScene = initSanMiguel(&sceneLoadDesc, token, false);
 
-        if (!pScene)
+        if (!gScene)
             return false;
         LOGF(LogLevel::eINFO, "Load scene : %f ms", getHiresTimerUSec(&sceneLoadTimer, true) / 1000.0f);
 
-        gMeshCount = pScene->geom->mDrawArgCount;
-        gMaterialCount = pScene->geom->mDrawArgCount;
+        gMeshCount = gScene->geom->mDrawArgCount;
+        gMaterialCount = gScene->geom->mDrawArgCount;
         pVBMeshInstances = (VBMeshInstance*)tf_calloc(gMeshCount, sizeof(VBMeshInstance));
-        pGeom = pScene->geom;
+        pGeom = gScene->geom;
         /************************************************************************/
         // Texture loading
         /************************************************************************/
@@ -879,19 +890,19 @@ public:
         for (uint32_t i = 0; i < gMaterialCount; ++i)
         {
             TextureLoadDesc desc = {};
-            desc.pFileName = pScene->textures[i];
+            desc.pFileName = gScene->textures[i];
             desc.ppTexture = &gDiffuseMapsStorage[i];
             // Textures representing color should be stored in SRGB or HDR format
             desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
             addResource(&desc, NULL);
             desc = {};
 
-            desc.pFileName = pScene->normalMaps[i];
+            desc.pFileName = gScene->normalMaps[i];
             desc.ppTexture = &gNormalMapsStorage[i];
             addResource(&desc, NULL);
             desc = {};
 
-            desc.pFileName = pScene->specularMaps[i];
+            desc.pFileName = gScene->specularMaps[i];
             desc.ppTexture = &gSpecularMapsStorage[i];
             addResource(&desc, NULL);
         }
@@ -907,13 +918,13 @@ public:
         // Calculate clusters
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
-            MaterialFlags material = pScene->materialFlags[i];
+            MaterialFlags material = gScene->materialFlags[i];
             uint32_t      geomSet = material & MATERIAL_FLAG_ALPHA_TESTED ? GEOMSET_ALPHA_CUTOUT : GEOMSET_OPAQUE;
-            visibilityBufferFilteredIndexCount[geomSet] += (pScene->geom->pDrawArgs + i)->mIndexCount;
+            visibilityBufferFilteredIndexCount[geomSet] += (gScene->geom->pDrawArgs + i)->mIndexCount;
 
             pVBMeshInstances[i].mGeometrySet = geomSet;
             pVBMeshInstances[i].mMeshIndex = i;
-            pVBMeshInstances[i].mTriangleCount = (pScene->geom->pDrawArgs + i)->mIndexCount / 3;
+            pVBMeshInstances[i].mTriangleCount = (gScene->geom->pDrawArgs + i)->mIndexCount / 3;
             pVBMeshInstances[i].mInstanceIndex = INSTANCE_INDEX_NONE;
         }
 
@@ -926,8 +937,8 @@ public:
         vbDesc.mComputeThreads = VB_COMPUTE_THREADS;
         initVisibilityBuffer(pRenderer, &vbDesc, &pVisibilityBuffer);
 
-        removeResource(pScene->geomData);
-        pScene->geomData = nullptr;
+        removeResource(gScene->geomData);
+        gScene->geomData = nullptr;
         LOGF(LogLevel::eINFO, "Setup vb : %f ms", getHiresTimerUSec(&vbSetupTimer, true) / 1000.0f);
 
         UpdateVBMeshFilterGroupsDesc updateVBMeshFilterGroupsDesc = {};
@@ -1126,6 +1137,7 @@ public:
         uiSetWidgetOnEditedCallback(msaaWidget, nullptr,
                                     [](void* pUserData)
                                     {
+                                        UNREF_PARAM(pUserData);
                                         ReloadDesc reloadDescriptor;
                                         reloadDescriptor.mType = RELOAD_TYPE_RENDERTARGET;
                                         requestReload(&reloadDescriptor);
@@ -1252,13 +1264,11 @@ public:
 
         HiresTimer setupBuffersTimer;
         initHiresTimer(&setupBuffersTimer);
-        addTriangleFilteringBuffers(pScene);
+        addTriangleFilteringBuffers(gScene);
 
         LOGF(LogLevel::eINFO, "Setup buffers : %f ms", getHiresTimerUSec(&setupBuffersTimer, true) / 1000.0f);
 
         LOGF(LogLevel::eINFO, "Total Load Time : %f ms", getHiresTimerUSec(&totalTimer, true) / 1000.0f);
-
-        unloadSanMiguel(pScene);
 
         /************************************************************************/
         // Setup the fps camera for navigating through the scene
@@ -1297,6 +1307,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1352,6 +1363,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1396,6 +1408,8 @@ public:
         /************************************************************************/
         // Remove loaded scene
         /************************************************************************/
+        exitSanMiguel(gScene);
+
         // Destroy scene buffers
         removeResource(pGeom);
 
@@ -1613,7 +1627,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1864,9 +1878,11 @@ public:
                 drawColorconversion(graphicsCmd);
             }
 
+#if !defined(QUEST_VR)
             cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "UI Pass");
             drawGUI(graphicsCmd, frameIdx);
             cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+#endif
 
             // Get the current render target for this frame
             acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
@@ -1895,7 +1911,7 @@ public:
             prevGraphicsSemaphore = graphicsElem.pSemaphore;
 
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = presentIndex;
+            presentDesc.mIndex = (uint8_t)presentIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &pPresentSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -2256,7 +2272,8 @@ public:
         depthRT.mHeight = height;
         depthRT.mSampleCount = gAppSettings.mMsaaLevel;
         depthRT.mSampleQuality = 0;
-        depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_NONE : TEXTURE_CREATION_FLAG_ESRAM;
+        depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_VR_MULTIVIEW
+                                                                  : TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         depthRT.mWidth = width;
         depthRT.pName = "Depth Buffer RT";
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
@@ -2296,7 +2313,7 @@ public:
         vbRTDesc.mHeight = height;
         vbRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
         vbRTDesc.mSampleQuality = 0;
-        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         vbRTDesc.mWidth = width;
         vbRTDesc.pName = "VB RT";
         addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
@@ -2339,7 +2356,7 @@ public:
         postProcRTDesc.mWidth = mSettings.mWidth;
         postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         postProcRTDesc.pName = "pIntermediateRenderTarget";
         addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
@@ -2357,7 +2374,7 @@ public:
         GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         GRRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 
         GRRTDesc.pName = "GodRay RT A";
         addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
@@ -2379,7 +2396,7 @@ public:
         postCurveConversionRTDesc.mWidth = width;
         postCurveConversionRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         postCurveConversionRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        postCurveConversionRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        postCurveConversionRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         postCurveConversionRTDesc.pName = "pCurveConversionRenderTarget";
         addRenderTarget(pRenderer, &postCurveConversionRTDesc, &pCurveConversionRenderTarget);
         ESRAM_END_ALLOC(pRenderer);
@@ -2457,7 +2474,7 @@ public:
         RootSignatureDesc godrayPassShaderRootSigDesc = { pGodRayPass, MSAA_LEVELS_COUNT };
         godrayPassShaderRootSigDesc.mStaticSamplerCount = 1;
         godrayPassShaderRootSigDesc.ppStaticSamplerNames = pGodRayStaticSamplerNames;
-        godrayPassShaderRootSigDesc.ppStaticSamplers = &pSamplerBilinearClamp;
+        godrayPassShaderRootSigDesc.ppStaticSamplers = &pSamplerPointClamp;
         addRootSignature(pRenderer, &godrayPassShaderRootSigDesc, &pRootSigGodRayPass);
         gGodRayConstantIndex = getDescriptorIndexFromName(pRootSigGodRayPass, "GodRayRootConstant");
 
@@ -3167,9 +3184,10 @@ public:
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
 
         mat4 cameraModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
-        // mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
         mat4 cameraView = pCameraController->getViewMatrix();
-        mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
+
+        CameraMatrix cameraProj =
+            CameraMatrix::perspectiveReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         // Compute light matrices
         vec3 lightSourcePos(50.0f, 000.0f, 450.0f);
@@ -3180,9 +3198,9 @@ public:
         lightSourcePos += -800.0f * normalize(lightDir.getXYZ());
         mat4 translation = mat4::translation(-lightSourcePos);
 
-        mat4 lightModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
-        mat4 lightView = rotation * translation;
-        mat4 lightProj = mat4::orthographicLH(-600, 600, -950, 350, -300, 1300);
+        mat4         lightModel = mat4::translation(vec3(-20, 0, 0)) * mat4::scale(vec3(SCENE_SCALE));
+        mat4         lightView = rotation * translation;
+        CameraMatrix lightProj = CameraMatrix::orthographic(-600, 600, -950, 350, -300, 1300);
 
         float2 twoOverRes;
         twoOverRes.setX(gAppSettings.mRetinaScaling / float(width));
@@ -3199,14 +3217,14 @@ public:
         /************************************************************************/
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
 
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
+            CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].projection = cameraProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp * cameraModel;
@@ -3633,6 +3651,7 @@ public:
 
     void blurGodRay(Cmd* cmd, uint frameIdx)
     {
+        UNREF_PARAM(frameIdx);
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "God Ray Blur");
 
         BufferUpdateDesc bufferUpdate = { pBufferBlurWeights };

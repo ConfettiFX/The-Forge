@@ -701,6 +701,12 @@ BSTR_DECLARE_FN(int, bassignblk, bstring* a, const void* s, int len) {
  *  Truncate the bstring to at most n characters.
  */
 BSTR_DECLARE_FN(int, btrunc, bstring*  b, int n) {
+    #ifdef ENABLE_MEMORY_TRACKING
+	UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
 	BSTR_TEST_ASSERT(bisvalid(b));
 	ASSERT(bisvalid(b));
 	BSTR_TEST_ASSERT(n >= 0);
@@ -1600,7 +1606,7 @@ struct charField { LONG_TYPE content[CFCLEN]; };
 #define CFCLEN (1 << CHAR_BIT)
 struct charField { unsigned char content[CFCLEN]; };
 #define testInCharField(cf,c) ((cf)->content[(unsigned char) (c)])
-#define setInCharField(cf,idx) (cf)->content[(unsigned int) (idx)] = ~0
+#define setInCharField(cf,idx) (cf)->content[(unsigned int) (idx)] = (unsigned char)~0
 
 #endif
 
@@ -1612,7 +1618,7 @@ static inline void buildCharField (struct charField * cf, const bstring* b) {
 	       "Calling function should validate inputs");
 	memset ((void *) cf->content, 0, sizeof (struct charField));
 	for (i=0; i < b->slen; i++) {
-		setInCharField (cf, b->data[i]);
+		setInCharField(cf, b->data[i]);
 	}
 }
 
@@ -2631,6 +2637,12 @@ static int bscb(void* parm, int ofs, int len)
  */
 BSTR_DECLARE_FN(bstring*, bsplit, const bstring* str, unsigned char splitChar)
 {
+	#ifdef ENABLE_MEMORY_TRACKING
+    UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
 	BSTR_TEST_ASSERT_RET(bconstisvalid(str), NULL);
 	ASSERT(bconstisvalid(str));
 
@@ -2664,6 +2676,12 @@ BSTR_DECLARE_FN(bstring*, bsplit, const bstring* str, unsigned char splitChar)
  */
 BSTR_DECLARE_FN(bstring*, bsplitstr, const bstring* str, const bstring* splitStr)
 {
+	#ifdef ENABLE_MEMORY_TRACKING
+    UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
 	BSTR_TEST_ASSERT_RET(bconstisvalid(str), NULL);
 	ASSERT(bconstisvalid(str));
 	BSTR_TEST_ASSERT_RET(bconstisvalid(splitStr), NULL);
@@ -2689,6 +2707,12 @@ BSTR_DECLARE_FN(bstring*, bsplitstr, const bstring* str, const bstring* splitStr
  */
 BSTR_DECLARE_FN(bstring*, bsplits, const bstring* str, const bstring* splitChars)
 {
+	#ifdef ENABLE_MEMORY_TRACKING
+    UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
 	BSTR_TEST_ASSERT_RET(bconstisvalid(str), NULL);
 	ASSERT(bconstisvalid(str));
 

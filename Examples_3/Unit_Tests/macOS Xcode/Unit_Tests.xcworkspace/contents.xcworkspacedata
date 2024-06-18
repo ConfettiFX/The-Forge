@@ -27,9 +27,6 @@
          location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
-      </FileRef>
-      <FileRef
          location = "group:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
       </FileRef>
       <FileRef
@@ -58,6 +55,9 @@
       </FileRef>
       <FileRef
          location = "group:34_Input/34_Input.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:39_ParticleSystem/39_ParticleSystem.xcodeproj">
       </FileRef>
    </Group>
    <Group

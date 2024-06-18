@@ -128,7 +128,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
     HANDLE process = GetCurrentProcess();
 
     SymInitialize(process, NULL, FALSE);
-    DWORD options = SymGetOptions() | (SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    // DWORD options = SymGetOptions() | (SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
     HMODULE* pModuleHandles;
     DWORD    requiredSize;
@@ -273,6 +273,10 @@ bool WindowsStackTrace::Init() { return false; }
 
 void WindowsStackTrace::Exit() {}
 
-LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo) { return EXCEPTION_EXECUTE_HANDLER; }
+LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
+{
+    UNREF_PARAM(pExceptionInfo);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
 
 #endif // ENABLE_FORGE_STACKTRACE_DUMP

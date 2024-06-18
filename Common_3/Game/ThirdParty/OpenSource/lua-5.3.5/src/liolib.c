@@ -416,7 +416,7 @@ static int nextc (RN *rn) {
     return 0;  /* fail */
   }
   else {
-    rn->buff[rn->n++] = rn->c;  /* save current char */
+    rn->buff[rn->n++] = (char)rn->c;  /* save current char */
     rn->c = l_getc(rn->f);  /* read next one */
     return 1;
   }
@@ -500,7 +500,7 @@ static int read_line (lua_State *L, FILE *f, int chop) {
     int i = 0;
     l_lockfile(f);  /* no memory errors can happen inside the lock */
     while (i < LUAL_BUFFERSIZE && (c = l_getc(f)) != EOF && c != '\n')
-      buff[i++] = c;
+      buff[i++] = (char)c;
     l_unlockfile(f);
     luaL_addsize(&b, i);
   }

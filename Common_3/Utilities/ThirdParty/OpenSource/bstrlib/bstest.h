@@ -11,6 +11,14 @@
  * This file is the C unit test for Bstrlib.
  */
 
+// This warning means that the `cond` in `if (cond) { ... }` is known
+// at compile time. Since this file is for testing bstrlib, there are
+// many test asserts that are known at compile time that trigger this warning,
+// so we disable it for this file only.
+#ifdef _MSC_VER
+#pragma warning(disable: 4127) // conditional expression is constant
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -32,6 +40,8 @@ static int rot = 0;
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wstring-plus-int"
+#elif defined(_MSC_VER)
+#pragma warning(disable: 4130)
 #endif
 
 #ifdef __cplusplus
@@ -2705,9 +2715,9 @@ static int test20 (void) {
 #define test20_0_all_strings(fmt, ...)								\
 	{																\
 		initGoodBstrings(&staticBufs, &strings);					\
-		for (int i = 0; i < (int)ARR_SIZE(strings); ++i)					\
+		for (int j = 0; j < (int)ARR_SIZE(strings); ++j)					\
 		{															\
-			test20_0( (&strings[i]), fmt, BSTR_OK, __VA_ARGS__);	\
+			test20_0( (&strings[j]), fmt, BSTR_OK, __VA_ARGS__);	\
 		}															\
 		deinitGoodBstrings(&staticBufs, &strings);					\
 	}
@@ -2777,9 +2787,9 @@ static int test20 (void) {
 #define test20_1_all_strings(fmt, ...)								\
 	{																\
 		initGoodBstrings(&staticBufs, &strings);					\
-		for (int i = 0; i < (int)ARR_SIZE(strings); ++i)					\
+		for (int j = 0; j < (int)ARR_SIZE(strings); ++j)					\
 		{															\
-			test20_1( (&strings[i]), fmt, BSTR_OK, __VA_ARGS__);	\
+			test20_1( (&strings[j]), fmt, BSTR_OK, __VA_ARGS__);	\
 		}															\
 		deinitGoodBstrings(&staticBufs, &strings);					\
 	}
@@ -3711,11 +3721,13 @@ static int test28 (void) {
 			const unsigned char* ptr = str->data;
 			int len = str->slen;
 			int res = BSTR_ERR;
-			while ((ptr = (const unsigned char*)memchr(ptr, ch, len)))
+			ptr = (const unsigned char*)memchr(ptr, ch, len);
+            while (ptr)
 			{
 				res = (int)(ptr - str->data);
 				len = str->slen - res - 1;
 				++ptr;
+                ptr = (const unsigned char*)memchr(ptr, ch, len);
 			}
 
 			ret += test28_1(str, ch, res);
@@ -3752,11 +3764,11 @@ static int test28 (void) {
 		const bstring* str = &goodConstBstrings[i];
 		for (int ch = 0; ch < UCHAR_MAX; ++ch)
 		{
-			for (int i = 0; i <= str->slen; ++i)
+			for (int j = 0; j <= str->slen; ++j)
 			{
-				const void* ptr = memchr(str->data + i, ch, str->slen - i);
+				const void* ptr = memchr(str->data + j, ch, str->slen - j);
 				int res = ptr ? (int)((unsigned char*)ptr - str->data) : BSTR_ERR;
-				ret += test28_2(str, ch, i, res);
+				ret += test28_2(str, ch, j, res);
 			}
 		}
 	}
@@ -3868,9 +3880,9 @@ int ret = 0;
 
 
 		initGoodBstrings(&staticBufs, &strings);
-		for (int i = 0; i < (int)ARR_SIZE(strings); ++i)
+		for (int j = 0; j < (int)ARR_SIZE(strings); ++j)
 		{
-			bstring* str = &strings[i];
+			bstring* str = &strings[j];
 			bstring res = bdynfromstr(str, 256);
 			
 			bcatblk(&res, cstr, (int)strlen(cstr));
@@ -4809,7 +4821,7 @@ static int test39_1(const bstring* b, const bstring* lRes, const bstring* rRes, 
 	{
 		const trimFn fn = fns[i];
 		const char* fnName = fnNames[i];
-		const bstring* res = results[i];
+		res = results[i];
 		int end = MEM_OFS + b->slen;
 		if (b->slen == 0)
 			end += 1;
@@ -4957,9 +4969,9 @@ static int test40 (void)
 		bstring* b0 = (bstring*)&badBstrings[i];
 		ret += test40_0(b0, NULL, 0, 1, NULL, BSTR_ASSERT_ERR);
 		ret += test40_0(NULL, b0, 0, 1, NULL, BSTR_ASSERT_ERR);
-		for (int i = 0; i < (int)ARR_SIZE(badConstBstrings); ++i)
+		for (int j = 0; j < (int)ARR_SIZE(badConstBstrings); ++j)
 		{
-			ret += test40_0(b0, &badConstBstrings[i], 0, 1, NULL, BSTR_ASSERT_ERR);
+			ret += test40_0(b0, &badConstBstrings[j], 0, 1, NULL, BSTR_ASSERT_ERR);
 		}
 	}
 
@@ -4973,9 +4985,9 @@ static int test40 (void)
 		ret += test40_0(b0, b0, -1, -1, b0, BSTR_ASSERT_ERR);
 		ret += test40_0(b0, &emptyBstring, 9, 1, b0, BSTR_ASSERT_ERR);
 
-		for (int i = 0; i < (int)ARR_SIZE(badConstBstrings); ++i)
+		for (int j = 0; j < (int)ARR_SIZE(badConstBstrings); ++j)
 		{
-			ret += test40_0(b0, &badConstBstrings[i], 0, 1, b0, BSTR_ASSERT_ERR);
+			ret += test40_0(b0, &badConstBstrings[j], 0, 1, b0, BSTR_ASSERT_ERR);
 
 		}
 	}
@@ -5543,8 +5555,8 @@ static int runBstringTests () {
 	LOGF(eINFO, "# test failures: %d", ret);
 	LOGF(eINFO, "# test successes: %d", success);
 	
-	for (int i = 0; i < (int)ARR_SIZE(dumpOut); ++i)
-		bdestroy(&dumpOut[i]);
+	for (int j = 0; j < (int)ARR_SIZE(dumpOut); ++j)
+		bdestroy(&dumpOut[j]);
 
     setBstrlibTestDone();
 	joinThread(emptyStringCheckHandle);

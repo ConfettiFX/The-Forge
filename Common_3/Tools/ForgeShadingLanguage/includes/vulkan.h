@@ -156,6 +156,11 @@ bool allGreaterThan(const vec4 a, const vec4 b)
     groupMemoryBarrier(); \
     barrier(); \
 }
+
+#define MemoryBarrier() { \
+	memoryBarrier(); \
+}
+
 // #define AllMemoryBarrier AllMemoryBarrierWithGroupSync()
 #define AllMemoryBarrier() { \
     groupMemoryBarrier(); \
@@ -184,6 +189,8 @@ bool allGreaterThan(const vec4 a, const vec4 b)
     SRC
 #define AtomicExchange(DEST, VALUE, ORIGINAL_VALUE) \
     ORIGINAL_VALUE = atomicExchange((DEST), (VALUE))
+#define AtomicCompareExchange(DEST, COMPARE_VALUE, VALUE, ORIGINAL_VALUE) \
+    ORIGINAL_VALUE = atomicCompSwap((DEST), (COMPARE_VALUE), (VALUE))
 
 #define CBUFFER(NAME, FREQ, REG, BINDING) layout(std140, FREQ, BINDING) uniform NAME
 #define PUSH_CONSTANT(NAME, REG) layout(push_constant) uniform NAME##Block
@@ -212,6 +219,8 @@ textureLod(sampler3D(NAME, SAMPLER), COORD, LEVEL)
 textureLod(sampler2DArray(NAME, SAMPLER), COORD, LEVEL)
 #define SampleLvlTexCube(NAME, SAMPLER, COORD, LEVEL ) \
 textureLod(samplerCube(NAME, SAMPLER), COORD, LEVEL)
+#define SampleLvlTexCubeArray(NAME, SAMPLER, COORD, LEVEL ) \
+textureLod(samplerCubeArray(NAME, SAMPLER), float4(COORD, LEVEL), 0)
 
 // vec4 SampleLvlOffsetTex2D( texture2D NAME, sampler SAMPLER, vec2 COORD, float LEVEL, const in(ivec2) OFFSET )
 // { return textureLodOffset(sampler2D(NAME, SAMPLER), COORD, LEVEL, OFFSET); }
@@ -317,6 +326,9 @@ textureGrad(sampler2D(TEX, SMP), P, DX, DY)
 #define GatherRedTex2D(TEX, SMP, P) _GatherRedTex2D((TEX), (SMP), vec2(P.xy))
 vec4 _GatherRedTex2D(texture2D TEX, sampler SMP, vec2 P) { return textureGather(sampler2D(TEX, SMP), P, 0 ); }
 
+#define GatherRedTex3D(TEX, SMP, P) _GatherRedTex3D((TEX), (SMP), vec3(P.xyz))
+vec4 _GatherRedTex3D(texture2DArray TEX, sampler SMP, vec3 P) { return textureGather(sampler2DArray(TEX, SMP), P, 0 ); }
+
 #define GatherRedOffsetTex2D(TEX, SMP, P, O) _GatherRedOffsetTex2D((TEX), (SMP), vec2(P.xy), ivec2(O))
 vec4 _GatherRedOffsetTex2D(texture2D TEX, sampler SMP, vec2 P, ivec2 O) { return textureGatherOffset(sampler2D(TEX, SMP), P, O, 0 ); }
 
@@ -413,6 +425,9 @@ ivec4 _to4(in(int)   x)  { return ivec4(x, 0, 0, 0); }
 #define AtomicMax2D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMax((DST), ivec2((COORD).xy), (VALUE)))
 #define AtomicMin(DST, VALUE) atomicMin(DST, VALUE)
 #define AtomicMax(DST, VALUE) atomicMax(DST, VALUE)
+#define AtomicOr(DST, VALUE, ORIGINAL_VALUE) atomicOr(DST, VALUE)
+#define AtomicAnd(DST, VALUE, ORIGINAL_VALUE) atomicAnd(DST, VALUE)
+#define AtomicXor(DST, VALUE, ORIGINAL_VALUE) atomicXor(DST, VALUE)
 
 #if defined(FT_ATOMICS_64)
 #define AtomicMinU64(DST, VALUE) atomicMin(DST, VALUE)
@@ -784,6 +799,7 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
     #ifdef WAVE_OPS_BASIC_BIT
         #define WaveIsFirstLane        subgroupElect
         #define WaveGetLaneIndex() gl_SubgroupInvocationID
+		#define WaveIsHelperLane() gl_HelperInvocation
     #endif
     
     #ifdef WAVE_OPS_ARITHMETIC_BIT

@@ -541,6 +541,7 @@ static void HIDClosePS4Controller(HIDController* controller)
 
 int HIDOpenPS4Controller(HIDDeviceInfo* devInfo, HIDController* controller, uint8_t playerNum)
 {
+    UNREF_PARAM(playerNum); 
     hid_device * hidDev = hid_open_path(devInfo->logicalSystemPath);
     if (!hidDev)
     {
@@ -575,7 +576,6 @@ int HIDOpenPS4Controller(HIDDeviceInfo* devInfo, HIDController* controller, uint
     if (con->official && !con->dongle)
     {
         // test if usb connection
-        uint8_t data[PS4_USB_INPUT_REPORT_SIZE];
         memset(data, 0, sizeof data);
         *data = PS4_FEATURE_REPORT_DEVICE_ID;
         int32_t size = hid_get_feature_report(hidDev, data, PS4_USB_INPUT_REPORT_SIZE);

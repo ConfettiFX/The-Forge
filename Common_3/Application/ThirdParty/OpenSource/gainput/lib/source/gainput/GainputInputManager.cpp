@@ -213,7 +213,7 @@ void InputManager::Update(float deltaTime)
     HIDPromptForDeviceStateReports(pDeltaState);
 #endif
 
-    Change change;
+	Change change{};
     while (GAINPUT_CONC_DEQUEUE(mConcurrentInputs, change))
     {
         if (change.type == BT_BOOL)

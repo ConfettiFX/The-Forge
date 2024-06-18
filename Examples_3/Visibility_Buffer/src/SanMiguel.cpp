@@ -763,7 +763,7 @@ static void SetMaterials(Scene* pScene, bool transparentFlags)
 }
 
 // Loads a scene and returns a Scene object with scene information
-Scene* loadSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool transparentFlags)
+Scene* initSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool transparentFlags)
 {
     Scene* scene = (Scene*)tf_calloc(1, sizeof(Scene));
 
@@ -808,7 +808,7 @@ Scene* loadSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool t
     return scene;
 }
 
-void unloadSanMiguel(Scene* scene)
+void exitSanMiguel(Scene* scene)
 {
     for (uint32_t i = 0; i < scene->materialCount; ++i)
     {

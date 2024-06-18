@@ -677,7 +677,6 @@ inline TinyImageFormat_VkFormat TinyImageFormat_ToVkFormat(TinyImageFormat fmt) 
 
 	default: return TIF_VK_FORMAT_UNDEFINED;
 	}
-	return TIF_VK_FORMAT_UNDEFINED;
 }
 
 #ifndef TINYIMAGEFORMAT_DXGIFORMAT
@@ -1159,7 +1158,6 @@ inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_ToDXGI_FORMAT(TinyImageFormat
 	case TinyImageFormat_ASTC_12x12_SRGB:	 return TIF_DXGI_FORMAT_ASTC_12X12_UNORM_SRGB;
 	default: return TIF_DXGI_FORMAT_UNKNOWN;
 	}
-	return TIF_DXGI_FORMAT_UNKNOWN;
 }
 
 inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_DXGI_FORMATToTypeless(TinyImageFormat_DXGI_FORMAT fmt) {

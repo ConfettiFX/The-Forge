@@ -1909,7 +1909,7 @@ inline void generateIndexedBonePoints(float **ppPoints, int *pNumberOfPoints, fl
 	
 	for (uint32_t boneIndex = 0; boneIndex < boneCount; boneIndex++)
 	{
-		uint16_t currBoneIndex = boneIndex;
+		uint16_t currBoneIndex = (uint16_t)boneIndex;
 		uint16_t currParentIndex = parentIndices[boneIndex];
 		// root bone parents itself
 		if (boneIndex == 0)

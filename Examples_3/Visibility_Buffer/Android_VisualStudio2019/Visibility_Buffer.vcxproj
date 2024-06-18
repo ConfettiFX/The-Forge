@@ -112,7 +112,7 @@ xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "%ASSETS%"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "%ASSETS%Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "%ASSETS%Scripts\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
+xcopy /Y /S /D "$(TheForgeRoot)\Art\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VULKAN\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"

@@ -102,7 +102,7 @@ typedef struct UserInterface
 
     struct TextureNode
     {
-        uint64_t key = -1;
+        uint64_t key = ~0ull;
         Texture* value = NULL;
     }* pTextureHashmap = NULL;
     uint32_t       mDynamicTexturesCount = 0;
@@ -144,6 +144,27 @@ extern bool remoteAppIsConnected();
 extern bool remoteAppShouldSendFontTexture();
 extern void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
                                      unsigned char* ptr);
+#endif
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING) || defined(GFX_DEVICE_MEMORY_TRACKING)
+extern uint32_t    GetTrackedObjectTypeCount();
+extern const char* GetTrackedObjectName(uint32_t obj);
+#endif
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+// Driver memory getters
+extern uint64_t GetDriverAllocationsCount();
+extern uint64_t GetDriverMemoryAmount();
+extern uint64_t GetDriverAllocationsPerObject(uint32_t obj);
+extern uint64_t GetDriverMemoryPerObject(uint32_t obj);
+#endif
+
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+// Device memory getters
+extern uint64_t GetDeviceAllocationsCount();
+extern uint64_t GetDeviceMemoryAmount();
+extern uint64_t GetDeviceAllocationsPerObject(uint32_t obj);
+extern uint64_t GetDeviceMemoryPerObject(uint32_t obj);
 #endif
 
 #ifdef ENABLE_FORGE_UI
@@ -232,9 +253,17 @@ static void      processWidgetCallbacks(UIWidget* pWidget, bool deferred = false
 static void      processWidget(UIWidget* pWidget);
 static void      destroyWidget(UIWidget* pWidget, bool freeUnderlying);
 
-static void* alloc_func(size_t size, void* user_data) { return tf_malloc(size); }
+static void* alloc_func(size_t size, void* user_data)
+{
+    UNREF_PARAM(user_data);
+    return tf_malloc(size);
+}
 
-static void dealloc_func(void* ptr, void* user_data) { tf_free(ptr); }
+static void dealloc_func(void* ptr, void* user_data)
+{
+    UNREF_PARAM(user_data);
+    tf_free(ptr);
+}
 
 static void SetDefaultStyle()
 {
@@ -573,6 +602,7 @@ static DebugTexturesWidget* cloneDebugTexturesWidget(const void* pWidget)
 // LabelWidget private functions
 static LabelWidget* cloneLabelWidget(const void* pWidget)
 {
+    UNREF_PARAM(pWidget);
     LabelWidget* pClonedWidget = (LabelWidget*)tf_calloc(1, sizeof(LabelWidget));
 
     return pClonedWidget;
@@ -592,6 +622,7 @@ static ColorLabelWidget* cloneColorLabelWidget(const void* pWidget)
 // HorizontalSpaceWidget private functions
 static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 {
+    UNREF_PARAM(pWidget);
     HorizontalSpaceWidget* pClonedWidget = (HorizontalSpaceWidget*)tf_calloc(1, sizeof(HorizontalSpaceWidget));
 
     return pClonedWidget;
@@ -600,6 +631,7 @@ static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 // SeparatorWidget private functions
 static SeparatorWidget* cloneSeparatorWidget(const void* pWidget)
 {
+    UNREF_PARAM(pWidget);
     SeparatorWidget* pClonedWidget = (SeparatorWidget*)tf_calloc(1, sizeof(SeparatorWidget));
 
     return pClonedWidget;
@@ -619,6 +651,7 @@ static VerticalSeparatorWidget* cloneVerticalSeparatorWidget(const void* pWidget
 // ButtonWidget private functions
 static ButtonWidget* cloneButtonWidget(const void* pWidget)
 {
+    UNREF_PARAM(pWidget);
     ButtonWidget* pClonedWidget = (ButtonWidget*)tf_calloc(1, sizeof(ButtonWidget));
 
     return pClonedWidget;
@@ -3713,7 +3746,7 @@ uint8_t uiWantTextInput()
         inputState = 1;
     }
 
-    return inputState;
+    return (uint8_t)inputState;
 #else
     return 0;
 #endif

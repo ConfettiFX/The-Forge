@@ -626,7 +626,7 @@ bool HIDHandleSystemMessage(void const* message)
 uint8_t HIDGetNextNewControllerID(uint8_t* outPlatform, uint16_t* outVendorID, uint16_t* outproductID)
 {
     if (!gActiveSlots)
-        return -1;
+        return (uint8_t)-1;
 
     static uint8_t i = 0;
     if (i >= gActiveSlots)

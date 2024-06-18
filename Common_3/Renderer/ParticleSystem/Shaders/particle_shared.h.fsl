@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+#ifndef _PARTICLE_SHARED_H
+#define _PARTICLE_SHARED_H
+
+#include "particle_defs.h.fsl"
+
+RES(RWBuffer(uint), BitfieldBuffer, UPDATE_FREQ_PER_FRAME, u53, binding = 10);
+RES(RWBuffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_PER_FRAME, u52, binding = 11);
+
+// Amount of particles for each section: LightNShadow - Light - Standard
+RES(RWBuffer(uint4), ParticleCountsBuffer, UPDATE_FREQ_PER_FRAME, u55, binding = 12);
+
+// Start indices of the various sections: Alive - Dead - Inactive. We only need the Dead start index and the Inactive start index
+// The first element contains the value of the previous frame, the second one contains the value of the current frame
+RES(RWBuffer(uint), ParticleSectionsIndices, UPDATE_FREQ_PER_FRAME, u56, binding = 13);
+
+// For each particle set, y tells whether it is visible, x if it was visible in the last frame
+RES(RWBuffer(uint), ParticleSetVisibility, UPDATE_FREQ_PER_FRAME, u57, binding = 14);
+
+// Amount of particles to be rasterized by the hardware rasterizer
+RES(RWBuffer(uint), ParticlesToRasterizeCount, UPDATE_FREQ_PER_FRAME, u60, binding = 25);
+// Indices of the particles to be rasterized by the hardware rasterizer
+RES(RWBuffer(uint), ParticlesToRasterize, UPDATE_FREQ_PER_FRAME, u68, binding = 16);
+
+// Array of textures for each particle set
+RES(Tex2D(float4), ParticleTextures[MAX_PARTICLE_SET_COUNT], UPDATE_FREQ_NONE, t59, binding = 24);
+
+RES(RWTex2D(float4), ColorBuffer, UPDATE_FREQ_PER_FRAME, u59, binding = 19);
+RES(Tex2D(float), DepthBuffer, UPDATE_FREQ_PER_FRAME, t69, binding = 20);
+RES(SamplerState, NearestClampSampler, UPDATE_FREQ_NONE, s0, binding = 21);
+RES(SamplerState, LinearClampSampler, UPDATE_FREQ_NONE, s1, binding = 22);
+
+
+// Per pixel linked list for sorting transparent pixels
+RES(RWBuffer(PackedParticleTransparencyNode), TransparencyList, UPDATE_FREQ_PER_FRAME, u66, binding = 23);
+RES(RWBuffer(uint), TransparencyListHeads, UPDATE_FREQ_PER_FRAME, u67, binding = 24);
+
+
+#endif

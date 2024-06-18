@@ -429,18 +429,18 @@ static void materialLoadBinaryShader(Renderer* pRenderer, const MaterialDesc* pM
 // so we dont need a command buffer to upload linear data
 // A simple memcpy suffices since the GPU memory is marked as CPU write combine
 #if !defined(GFX_DRIVER_MANAGED_VIDEO_MEMORY) || defined(NX64)
-static FORGE_CONSTEXPR const bool gUma = true;
+static bool gUma = true;
 #elif defined(ANDROID)
 #if defined(USE_MULTIPLE_RENDER_APIS)
 // Cant determine at compile time since we can be running GLES or VK. Not using UMA path for non VK
 static bool gUma = false;
 #elif defined(VULKAN)
-static FORGE_CONSTEXPR const bool gUma = true;
+static bool gUma = true;
 #else
-static FORGE_CONSTEXPR const bool gUma = false;
+static bool gUma = false;
 #endif
 #else
-static FORGE_CONSTEXPR const bool gUma = false;
+static bool gUma = false;
 #endif
 
 bool isUma() { return gUma; }
@@ -916,9 +916,9 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
             removeFence(pRenderer, resourceSet.pFence);
         }
 
-        for (ptrdiff_t i = 0; i < arrlen(resourceSet.mTempBuffers); ++i)
+        for (ptrdiff_t j = 0; j < arrlen(resourceSet.mTempBuffers); ++j)
         {
-            removeBuffer(pRenderer, resourceSet.mTempBuffers[i]);
+            removeBuffer(pRenderer, resourceSet.mTempBuffers[j]);
         }
         arrfree(resourceSet.mTempBuffers);
 
@@ -1049,7 +1049,7 @@ static void streamerFlush(CopyEngine* pCopyEngine)
         if (StrictQueueTypeBarriers() && resourceSet.mPostCopyBarrierRecording)
         {
             endCmd(resourceSet.pPostCopyBarrierCmd);
-            QueueSubmitDesc submitDesc = {};
+            submitDesc = {};
             submitDesc.mCmdCount = 1;
             submitDesc.ppCmds = &resourceSet.pPostCopyBarrierCmd;
             submitDesc.mWaitSemaphoreCount = 1;
@@ -1110,6 +1110,7 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
 
 static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, const BufferUpdateDesc& bufUpdateDesc)
 {
+    UNREF_PARAM(pRenderer);
     Buffer* pBuffer = bufUpdateDesc.pBuffer;
     ASSERT(pCopyEngine->pQueue->mNodeIndex == pBuffer->mNodeIndex);
     ASSERT(RESOURCE_MEMORY_USAGE_GPU_ONLY == pBuffer->mMemoryUsage);
@@ -1550,6 +1551,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
                                    uint32_t* indexStride, BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS],
                                    BufferUpdateDesc indexUpdateDesc[1])
 {
+    UNREF_PARAM(pCopyEngine);
     bool     structuredBuffers = (pDesc->mFlags & GEOMETRY_LOAD_FLAG_STRUCTURED_BUFFERS) > 0;
     uint32_t indexBufferSize = *indexStride * geom->mIndexCount;
 
@@ -1933,6 +1935,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         indexUpdateDesc.mCurrentState = gUma ? indexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
         indexUpdateDesc.mInternal.mMappedRange =
             allocateStagingMemory(pCopyEngine, indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+        ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.mInternal.mMappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.mSize);
         tf_free(indexUpdateDesc.pMappedData);
         if (indexUpdateDesc.mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
@@ -1954,6 +1957,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
                 vertexUpdateDesc[i].mCurrentState = gUma ? vertexUpdateDesc[i].mCurrentState : RESOURCE_STATE_COPY_DEST;
                 vertexUpdateDesc[i].mInternal.mMappedRange =
                     allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+                ASSERT(vertexUpdateDesc[i].pMappedData);
                 memcpy(vertexUpdateDesc[i].mInternal.mMappedRange.pData, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].mSize);
                 tf_free(vertexUpdateDesc[i].pMappedData);
                 if (vertexUpdateDesc[i].mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
@@ -1978,6 +1982,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
 static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, TextureCopyDesc& pTextureCopy)
 {
+    UNREF_PARAM(pRenderer);
     Texture*              texture = pTextureCopy.pTexture;
     const TinyImageFormat fmt = (TinyImageFormat)texture->mFormat;
 
@@ -2604,6 +2609,7 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 
 void exitResourceLoaderInterface(Renderer* pRenderer)
 {
+    UNREF_PARAM(pRenderer);
 #ifdef ENABLE_FORGE_MATERIALS
     if (pMaterialLibrary)
     {
@@ -2639,7 +2645,12 @@ void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount,
     initResourceLoader(ppRenderers, rendererCount, pDesc, &pResourceLoader);
 }
 
-void exitResourceLoaderInterface(Renderer** pRenderers, uint32_t rendererCount) { exitResourceLoader(pResourceLoader); }
+void exitResourceLoaderInterface(Renderer** pRenderers, uint32_t rendererCount)
+{
+    UNREF_PARAM(pRenderers);
+    UNREF_PARAM(rendererCount);
+    exitResourceLoader(pResourceLoader);
+}
 
 #ifdef ENABLE_FORGE_MATERIALS
 static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material** pOut)
@@ -2785,9 +2796,9 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
             pMaterialSet->mShaderSetIdx = INVALID_MATERIAL_ID;
             pMaterialSet->mTextureSetIdx = INVALID_MATERIAL_ID;
 
-            uint32_t offset = 0;
+            uint32_t offset32 = 0;
             pMaterialDesc->pMaterialSetNames[pMaterialDesc->mMaterialCount] =
-                materialParseAndStoreString(pMaterialDesc, pSetLine + 2, &offset);
+                materialParseAndStoreString(pMaterialDesc, pSetLine + 2, &offset32);
 
             ASSERT(pMaterialDesc->mMaterialCount < numMaterialSets);
             pMaterialDesc->mMaterialCount++;
@@ -3032,10 +3043,10 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         const MaterialDesc::TextureSet* pTextureSet = pMaterialDesc->pTextureSets + pMaterialSet->mTextureSetIdx;
 
         const uint32_t textureCount = pTextureSet->mTextureCount;
-        for (uint32_t i = 0; i < textureCount; ++i)
+        for (uint32_t j = 0; j < textureCount; ++j)
         {
             // Try to get the texture from the global cache
-            const uint32_t textureIndex = pMaterialDesc->pTextureIds[pTextureSet->pTextureIdxs[i]];
+            const uint32_t textureIndex = pMaterialDesc->pTextureIds[pTextureSet->pTextureIdxs[j]];
             ASSERT(textureIndex < pLib->mMaxMaterialTextures);
 
             // Check refcount because ppMaterialTextures[textureIndex] might still be null in case the loading is still queued in another
@@ -3047,9 +3058,9 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
 
                 // Texture is not in the cache yet, load it into the cache
                 TextureLoadDesc desc = {};
-                desc.pFileName = pMaterialDesc->pTextureNames[pTextureSet->pTextureIdxs[i]];
+                desc.pFileName = pMaterialDesc->pTextureNames[pTextureSet->pTextureIdxs[j]];
                 desc.ppTexture = &pLib->ppMaterialTextures[textureIndex];
-                if (pMaterialDesc->pTextureFlags[i] & MaterialDesc::TextureFlags::SRGB)
+                if (pMaterialDesc->pTextureFlags[j] & MaterialDesc::TextureFlags::SRGB)
                     desc.mCreationFlag |= TEXTURE_CREATION_FLAG_SRGB;
                 addResource(&desc, &token);
 #ifdef TARGET_IOS
@@ -3059,7 +3070,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
             }
 
             pLib->pMaterialTextureRefCount[textureIndex]++;
-            pLoadedMaterial->pTextureIndexes[i] = textureIndex;
+            pLoadedMaterial->pTextureIndexes[j] = textureIndex;
         }
 
         pLoadedMaterial->mTextureCount = textureCount;
@@ -3111,10 +3122,10 @@ void removeMaterial(Material* pMaterial)
             pLib->mLoadedShaderCount--;
         }
 
-        for (uint32_t i = 0; i < pLoadedMaterial->mTextureCount; ++i)
+        for (uint32_t j = 0; j < pLoadedMaterial->mTextureCount; ++j)
         {
-            const uint32_t textureIndex = pLoadedMaterial->pTextureIndexes[i];
-            pLoadedMaterial->pTextureIndexes[i] = INVALID_MATERIAL_ID;
+            const uint32_t textureIndex = pLoadedMaterial->pTextureIndexes[j];
+            pLoadedMaterial->pTextureIndexes[j] = INVALID_MATERIAL_ID;
             ASSERT(textureIndex < pLib->mMaxMaterialTextures);
             ASSERT(pLib->ppMaterialTextures[textureIndex] != NULL);
             ASSERT(pLib->pMaterialTextureRefCount[textureIndex] > 0);
@@ -3505,7 +3516,7 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
         loadDesc.mDesc.pPlacement = pDesc->pVerticesPlacements[i];
         addResource(&loadDesc, nullptr);
 
-        BufferChunkAllocatorDesc allocDesc = { pVertexBuffer };
+        allocDesc = { pVertexBuffer };
         addBufferChunkAllocator(&allocDesc, &pBuffer->mVertex[i]);
     }
 }
@@ -3790,8 +3801,8 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        bool     success = util_get_surface_info(MIP_REDUCE(texture->mWidth, i), MIP_REDUCE(texture->mHeight, i), fmt, &srcSliceStride,
-                                             &srcRowStride, &rowCount);
+        success = util_get_surface_info(MIP_REDUCE(texture->mWidth, i), MIP_REDUCE(texture->mHeight, i), fmt, &srcSliceStride,
+                                        &srcRowStride, &rowCount);
         ASSERT(success);
         uint32_t d = MIP_REDUCE(texture->mDepth, i);
 
@@ -3939,6 +3950,8 @@ Semaphore* getLastSemaphoreSubmitted(uint32_t nodeIndex)
 static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, ShaderStage stage, BinaryShaderStageDesc* pOut,
                                         ShaderByteCodeBuffer* pShaderByteCodeBuffer, FSLMetadata* pOutMetadata)
 {
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(stage);
     char binaryShaderPath[FS_MAX_PATH];
 
     {
@@ -4042,7 +4055,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
                     break;
                 }
 
-                size_t size = pDerivatives[i].mSize;
+                size = pDerivatives[i].mSize;
 
 #if defined(GLES)
 #if defined(USE_MULTIPLE_RENDER_APIS)
@@ -4072,7 +4085,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 #endif
                 pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)size, binaryShaderPath);
                 pOut->mByteCodeSize = (uint32_t)pDerivatives[i].mSize;
-                if (fsReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != size)
+                if (fsReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != (size_t)size)
                 {
                     LOGF(eERROR, "Failed to read file '%s'", binaryShaderPath);
                 }

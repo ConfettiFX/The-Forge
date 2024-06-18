@@ -1,0 +1,100 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "shader_defs.h.fsl"
+
+RES(SamplerState, pointClampSampler, UPDATE_FREQ_NONE, s2, binding = 28);
+RES(SamplerState, bilinearSampler, UPDATE_FREQ_NONE, s3, binding = 21);
+RES(Tex2D(float4), g_inputTexture, UPDATE_FREQ_NONE, t0, binding = 4);
+RES(Tex2D(float), shadowCollector, UPDATE_FREQ_NONE, t1, binding = 5);
+RES(Buffer(PackedParticleTransparencyNode), transparencyList, UPDATE_FREQ_NONE, t2, binding = 6);
+RES(Buffer(uint), transparencyListHeads, UPDATE_FREQ_NONE, t3, binding = 7);
+
+PUSH_CONSTANT(fsqRootConstants, b0)
+{
+	DATA(uint2, size, None);
+};
+
+STRUCT(PsIn)
+{
+    DATA(float4, position, SV_Position);
+	DATA(float2, screenPos, TEXCOORD0);
+};
+
+float4 PS_MAIN( PsIn In )
+{
+	INIT_MAIN;
+	float4 Out;
+	uint2 screenCoords = uint2(In.position.xy);
+
+	float2 uv = float2(In.position.xy) / float2(Get(size).x, Get(size).y);
+	Out = SampleTex2D(Get(g_inputTexture), Get(bilinearSampler), uv);
+	Out.xyz *= SampleTex2D(Get(shadowCollector), Get(pointClampSampler), uv).x;
+
+	uint bufferIdx = screenCoords.y * Get(size).x + screenCoords.x;
+	uint nodeCount = Get(transparencyListHeads)[bufferIdx];
+	
+	PackedParticleTransparencyNode nodes[MAX_TRANSPARENCY_LAYERS];
+	uint validNodeCount = 0;
+
+	// Save all nodes for this pixel
+	for (uint i=0; i<nodeCount && i<MAX_TRANSPARENCY_LAYERS; i++)
+	{
+		nodes[i] = Get(transparencyList)[bufferIdx*MAX_TRANSPARENCY_LAYERS + i];
+		validNodeCount++;
+	}
+
+	// Insertion sort
+	for (uint j = 1; j < validNodeCount; ++j)
+	{
+		PackedParticleTransparencyNode insert = nodes[j];
+		uint k = j;
+			
+		while (k > 0)
+		{
+			if (insert.Depth >= nodes[k - 1].Depth)
+				break; 
+			
+			nodes[k] = nodes[k - 1];
+			--k;
+		}
+		
+		nodes[k] = insert; 
+	}
+
+	float3 transparentColor = Out.xyz;
+	float transAlpha = 1.0;
+
+	for (uint l = 0; l < validNodeCount; ++l)
+	{
+		float4 col = unpackUnorm4x8(nodes[l].Color);
+		transparentColor = lerp(transparentColor, col.xyz, col.w);
+		transAlpha = saturate(transAlpha * (1.f - col.w) + col.w);
+	}
+
+	Out = float4(transparentColor, 1.0);
+    RETURN(Out);
+}

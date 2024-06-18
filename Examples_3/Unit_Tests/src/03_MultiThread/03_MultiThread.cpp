@@ -204,6 +204,7 @@ uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -563,6 +564,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -618,6 +620,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -823,7 +826,7 @@ public:
 
     void Draw() override
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -955,10 +958,10 @@ public:
                 pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
                 pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-                BindRenderTargetsDesc bindRenderTargets = {};
-                bindRenderTargets.mRenderTargetCount = 1;
-                bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-                cmdBindRenderTargets(graphCmd, &bindRenderTargets);
+                BindRenderTargetsDesc bindDesc = {};
+                bindDesc.mRenderTargetCount = 1;
+                bindDesc.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+                cmdBindRenderTargets(graphCmd, &bindDesc);
                 cmdSetViewport(graphCmd, pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
                                pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
                 cmdSetScissor(graphCmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
@@ -1021,7 +1024,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;

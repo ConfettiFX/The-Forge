@@ -25,7 +25,7 @@ public:
 
 	bool IsTextInputEnabled() const { return false; }
 	void SetTextInputEnabled(bool /*enabled*/) { }
-	wchar_t* GetTextInput(uint32_t* count) { return NULL; }
+	wchar_t* GetTextInput(uint32_t* count) { UNREF_PARAM(count); return NULL; }
 };
 
 

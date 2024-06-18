@@ -140,7 +140,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IMemory.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IThread.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\ITime.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IToolFileSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Log\Log.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\AlgorithmsImpl.h" />

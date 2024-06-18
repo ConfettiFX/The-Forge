@@ -111,6 +111,7 @@ void AnimatedObject::ComputePose(const Matrix4& rootTransform)
 // compute joint scales
 void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
 {
+    UNREF_PARAM(rootTransform);
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Traverses through the skeleton's joint hierarchy, placing bones between
     // joints and altering the size of joints and bones to reflect distances

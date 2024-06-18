@@ -66,6 +66,7 @@ void ClipMask::SetAllChildrenOf(int32_t jointIndex, float setValue)
 {
     auto functor = [this, setValue](int32_t joint, int16_t jointParent)
     {
+        UNREF_PARAM(jointParent);
         // Sets the weight_setting of all the joints children to setValue. Note
         // that weights are stored in SoA format.
         const int32_t jointId = joint;

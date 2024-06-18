@@ -309,6 +309,7 @@ static void setpath (lua_State *L, const char *fieldname,
                                    const char *dft) {
   const char *nver = lua_pushfstring(L, "%s%s", envname, LUA_VERSUFFIX);
 #if defined(XBOX)
+  (void)nver;
   const char *path = NULL;  /* use versioned name */
 #else
   const char *path = getenv(nver);  /* use versioned name */

@@ -370,7 +370,7 @@ typedef union UUdata {
 
 #define setuservalue(L,u,o) \
 	{ const TValue *io=(o); Udata *iu = (u); \
-	  iu->user_ = io->value_; iu->ttuv_ = rttype(io); \
+	  iu->user_ = io->value_; iu->ttuv_ = (lu_byte)rttype(io); \
 	  checkliveness(L,io); }
 
 

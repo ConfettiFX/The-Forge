@@ -13,6 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4132) // const object should be initialized
+#endif
+
 #include <stdbool.h>
 #include <string.h>
 
@@ -1716,4 +1720,8 @@ const char* GetX86MicroarchitectureName(X86Microarchitecture value) {
   if (value >= X86_MICROARCHITECTURE_LAST_) return "unknown microarchitecture";
   return kMicroarchitectureNames[value];
 }
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(default: 4132)
 #endif

@@ -114,11 +114,15 @@ public:
 
     void Exit() {}
 
-    bool Load(ReloadDesc* pReloadDesc) { return true; }
+    bool Load(ReloadDesc* pReloadDesc)
+    {
+        UNREF_PARAM(pReloadDesc);
+        return true;
+    }
 
-    void Unload(ReloadDesc* pReloadDesc) {}
+    void Unload(ReloadDesc* pReloadDesc) { UNREF_PARAM(pReloadDesc); }
 
-    void Update(float deltaTime) {}
+    void Update(float deltaTime) { UNREF_PARAM(deltaTime); }
 
     void Draw() {}
 

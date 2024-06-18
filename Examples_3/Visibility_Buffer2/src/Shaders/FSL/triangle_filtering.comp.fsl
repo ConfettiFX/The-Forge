@@ -39,7 +39,7 @@ RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t1, binding = 4);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t2, binding = 5);
 RES(Buffer(uint), materialProps, UPDATE_FREQ_NONE, t3, binding = 6);
 
-#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/triangle_filtering.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/triangle_filtering.h.fsl"
 
 RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_PER_FRAME, u0, binding = 10);
 RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
@@ -49,7 +49,7 @@ RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
 GroupShared(uint, tileTriangleCount[NUM_CULLING_VIEWPORTS][TILE_COUNTX][TILE_COUNTY]);
 #endif
 
-#include "../../../../../Common_3/Renderer/visibilitybuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
 RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 20);
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t6, binding = 21);

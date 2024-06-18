@@ -63,6 +63,7 @@ typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
             [](GPUSettings* pSetting, uint64_t value)                               \
         {                                                                           \
             UNREF_PARAM(value);                                                     \
+            UNREF_PARAM(pSetting);                                                  \
             LOGF(eDEBUG, "GPUConfig: Unsupported setting %s from gpu.cfg", name);   \
             ASSERT(false);                                                          \
         }                                                                           \
@@ -90,6 +91,7 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY_READ_ONLY("deviceid", mGpuVendorPreset.mModelId),
 #if defined(DIRECT3D11) || defined(DIRECT3D12)
     GPU_CONFIG_PROPERTY("directxfeaturelevel", mFeatureLevel),
+    GPU_CONFIG_PROPERTY("suppressinvalidsubresourcestateafterexit", mSuppressInvalidSubresourceStateAfterExit),
 #endif
     GPU_CONFIG_PROPERTY("geometryshadersupported", mGeometryShaderSupported),
     GPU_CONFIG_PROPERTY("gpupresetlevel", mGpuVendorPreset.mPresetLevel),
@@ -1064,6 +1066,7 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 
 void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
 {
+    UNREF_PARAM(pCapBits);
     for (uint32_t i = 0; i < gConfigurationSettingsCount; i++)
     {
         ConfigurationSetting* currentSetting = &gConfigurationSettings[i];
@@ -1186,6 +1189,8 @@ GPUPresetLevel getDefaultPresetLevel() { return gDefaultPresetLevel; }
 
 GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName)
 {
+    UNREF_PARAM(vendorName);
+    UNREF_PARAM(modelName);
     GPUPresetLevel presetLevel = GPU_PRESET_NONE;
 
     if (arrlenu(gGPUModels))
@@ -1431,7 +1436,7 @@ bool parseDriverVersion(const char* driverStr, DriverVersion* pDriverVersionOut)
 char* stringToLower(char* str)
 {
     for (char* p = str; *p != '\0'; ++p)
-        *p = tolower(*p);
+        *p = (char)tolower(*p);
     return str;
 }
 
@@ -1544,6 +1549,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
                      char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
                      char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], GPUPresetLevel* pOutPresetLevel)
 {
+    UNREF_PARAM(pInRevisionId);
     const char* pOrigLine = pLine;
     ASSERT(pLine && pOutPresetLevel);
     ASSERT(pInVendorName);

@@ -21,7 +21,7 @@ PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 
 	PsInOpaque Out;
     float4 vertexPos = LoadVertex(vertexID);
-    Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, vertexPos);
+    Out.position = mul(Get(transform)[VIEW_SHADOW].mvp.mat, vertexPos);
 
     RETURN(Out);
 }

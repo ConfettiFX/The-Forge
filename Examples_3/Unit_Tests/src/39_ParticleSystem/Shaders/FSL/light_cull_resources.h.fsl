@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#define INT_MAX	2147483647
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
+
+// cluster lights
+RES(RWBuffer(uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, u0, binding = 2);
+RES(RWBuffer(uint), lightClusters, UPDATE_FREQ_PER_FRAME, u1, binding=3);
+RES(RWBuffer(uint), DepthBoundsBuffer, UPDATE_FREQ_PER_FRAME, u4, binding=6);
+
+RES(RWBuffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_PER_FRAME, u52, binding = 11);
+RES(RWBuffer(uint), BitfieldBuffer, UPDATE_FREQ_PER_FRAME, u53, binding = 10);
+RES(Tex2D(float), DepthBuffer, UPDATE_FREQ_PER_FRAME, t69, binding = 20);
+RES(Tex2D(float2), DownsampledDepthBuffer, UPDATE_FREQ_PER_FRAME, t70, binding = 21);
+
+uint GetDepthBitmaskIndex(float minDepth, float maxDepth, float currDepth)
+{
+	return uint(max(0.0, min(31.0, (currDepth - minDepth) / ((maxDepth - minDepth) / 32.0))));
+}

@@ -106,7 +106,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId)
 		UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			float4x4 worldViewProjection = Get(transform)[i].mvp;
+			float4x4 worldViewProjection = Get(transform)[i].mvp.mat;
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),

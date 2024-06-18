@@ -46,7 +46,12 @@
 #include "../Interfaces/IOperatingSystem.h"
 
 #include "../../OS/CPUConfig.h"
+#if defined(ENABLE_FORGE_REMOTE_UI)
 #include "../../Tools/Network/Network.h"
+#endif
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
+#include "../../Tools/ReloadServer/ReloadClient.h"
+#endif
 #include "../../Utilities/Math/MathTypes.h"
 
 #import "iOSAppDelegate.h"
@@ -72,8 +77,9 @@ static bool       gIsLoaded = false;
 static bool       gBaseSubsystemAppDrawn = false;
 
 static ThermalStatus gThermalStatus = THERMAL_STATUS_NONE;
-
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
+#endif
 
 /// CPU
 static CpuInfo gCpu;
@@ -299,16 +305,17 @@ void setupPlatformUI()
     extern void platformSetupWindowSystemUI(IApp*);
     platformSetupWindowSystemUI(pApp);
 
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc desc = {};
     desc.mStartPosition = vec2(pApp->mSettings.mWidth * 0.6f, pApp->mSettings.mHeight * 0.90f);
     uiCreateComponent("Reload Control", &desc, &pReloadShaderComponent);
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+#endif
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
 
-    extern void platformReloadClientAddReloadShadersButton(UIComponent * pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
 #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
@@ -678,12 +685,13 @@ char     benchmarkOutput[1024] = { "\0" };
         togglePlatformUI();
     }
 
-    extern bool platformReloadClientShouldQuit(void);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     if (platformReloadClientShouldQuit())
     {
         [self shutdown];
         exit(0);
     }
+#endif
 
 #ifdef AUTOMATED_TESTING
     extern bool gAutomatedTestingScriptsFinished;

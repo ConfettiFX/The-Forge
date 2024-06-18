@@ -539,30 +539,30 @@ uint32_t gASMMaxTilesPerPass = 4;
 
 typedef struct LightUniformBlock
 {
-    mat4 mLightViewProj;
-    vec4 mLightPosition;
-    vec4 mLightColor = { 1, 0, 0, 1 };
-    vec4 mLightUpVec;
-    vec4 mTanLightAngleAndThresholdValue;
-    vec3 mLightDir;
+    CameraMatrix mLightViewProj;
+    vec4         mLightPosition;
+    vec4         mLightColor = { 1, 0, 0, 1 };
+    vec4         mLightUpVec;
+    vec4         mTanLightAngleAndThresholdValue;
+    vec3         mLightDir;
 } LightUniformBlock;
 
 typedef struct CameraUniform
 {
-    mat4  mView;
-    mat4  mProject;
-    mat4  mViewProject;
-    mat4  mInvView;
-    mat4  mInvProj;
-    mat4  mInvViewProject;
-    vec4  mCameraPos;
-    float mNear;
-    float mFar;
-    float mFarNearDiff;
-    float mFarNear;
-    vec2  mTwoOverRes;
-    vec2  mWindowSize;
-    vec4  mDeviceZToWorldZ;
+    mat4         mView;
+    CameraMatrix mProject;
+    CameraMatrix mViewProject;
+    mat4         mInvView;
+    CameraMatrix mInvProj;
+    CameraMatrix mInvViewProject;
+    vec4         mCameraPos;
+    float        mNear;
+    float        mFar;
+    float        mFarNearDiff;
+    float        mFarNear;
+    vec2         mTwoOverRes;
+    vec2         mWindowSize;
+    vec4         mDeviceZToWorldZ;
 } CameraUniform;
 
 typedef struct ESMInputConstants
@@ -1080,6 +1080,7 @@ uint32_t     gSSSRootConstantIndex = 0;
 
 Renderer*         pRenderer = NULL;
 VisibilityBuffer* pVisibilityBuffer = NULL;
+Scene*            pScene = NULL;
 
 Queue*     pGraphicsQueue = NULL;
 GpuCmdRing gGraphicsCmdRing = {};
@@ -1523,6 +1524,7 @@ void CalculateBounds(BVHTree* bvhTree, int32_t begin, int32_t end, vec3& outMinB
 
 BVHNode* CreateBVHNodeSHA(BVHTree* bvhTree, int32_t begin, int32_t end, float parentSplitCost)
 {
+    UNREF_PARAM(parentSplitCost);
     int32_t count = end - begin + 1;
 
     vec3 minBounds;
@@ -1717,6 +1719,7 @@ struct SDFVolumeData
         mSDFVolumeSize(0), mLocalBoundingBox(), mDistMinMax(FLT_MAX, FLT_MIN), mIsTwoSided(false), mTwoSidedWorldSpaceBias(0.f),
         mSDFVolumeTextureNode(this)
     {
+        UNREF_PARAM(mainMesh);
     }
 
     SDFVolumeData():
@@ -1837,6 +1840,7 @@ struct CalculateMeshSDFTask
 
 void DoCalculateMeshSDFTask(void* dataPtr, uintptr_t index)
 {
+    UNREF_PARAM(index);
     CalculateMeshSDFTask* task = (CalculateMeshSDFTask*)(dataPtr);
 
     const AABB&  sdfVolumeBounds = *task->mSDFVolumeBounds;
@@ -2233,12 +2237,12 @@ float Get3DRefinementDistanceSq(const AABB& BBox, const vec2& refinementPos)
 
 struct ASMProjectionData
 {
-    mat4 mViewMat;
-    mat4 mInvViewMat;
-    mat4 mProjMat;
-    mat4 mInvProjMat;
-    mat4 mViewProjMat;
-    mat4 mInvViewProjMat;
+    mat4         mViewMat;
+    mat4         mInvViewMat;
+    CameraMatrix mProjMat;
+    CameraMatrix mInvProjMat;
+    CameraMatrix mViewProjMat;
+    CameraMatrix mInvViewProjMat;
 };
 
 class ConvexHull2D
@@ -2263,7 +2267,7 @@ public:
         vec2 vertices[numVertices];
         vertices[0] = vec2(projectedFrustumPos.getX(), projectedFrustumPos.getY());
 
-        mat4 projMat = projection.mProjMat;
+        mat4 projMat = projection.mProjMat.mCamera;
 
         float hz = Project(vec3(0, 0, frustumZMaxOverride), 1.f, projMat).getZ();
 
@@ -2274,7 +2278,7 @@ public:
             vec3(-1.0f, +1.0f, hz),
         };
 
-        mat4 tm = viewProj * projection.mInvViewProjMat;
+        mat4 tm = viewProj * projection.mInvViewProjMat.mCamera;
         for (uint32_t i = 1; i < numVertices; ++i)
         {
             vec3 indxProjectedFrustumPos = Project(frustumCorners[i - 1], 1.f, tm);
@@ -2483,6 +2487,7 @@ public:
 
     void Add(CItem* pItem, bool mayBeAlreadyInserted = false)
     {
+        UNREF_PARAM(mayBeAlreadyInserted);
         SHandleSetter& handle = static_cast<SHandleSetter&>((pItem->*GetHandle)());
         if (!handle.IsInserted())
         {
@@ -2492,6 +2497,7 @@ public:
     }
     void Remove(CItem* pItem, bool mayBeNotInserted = false)
     {
+        UNREF_PARAM(mayBeNotInserted);
         SHandleSetter& handle = static_cast<SHandleSetter&>((pItem->*GetHandle)());
         if (handle.IsInserted())
         {
@@ -2934,6 +2940,7 @@ public:
     void RenderIndirectModelSceneTile(const vec2& viewPortLoc, const vec2& viewPortSize, const ASMProjectionData& renderProjectionData,
                                       bool isLayer, ASMSShadowMapRenderContext& renderContext, uint32_t tileIndex, uint32_t geomSet)
     {
+        UNREF_PARAM(isLayer);
         Cmd* pCurCmd = renderContext.m_pRendererContext->m_pCmd;
 
         cmdSetViewport(pCurCmd, static_cast<float>(viewPortLoc.getX()), static_cast<float>(viewPortLoc.getY()),
@@ -2945,7 +2952,7 @@ public:
         for (int32_t i = 0; i < MESH_COUNT; ++i)
         {
             gMeshASMProjectionInfoUniformData[0][gFrameIndex].mWorldViewProjMat =
-                renderProjectionData.mViewProjMat * gMeshInfoData[i].mWorldMat;
+                renderProjectionData.mViewProjMat.mCamera * gMeshInfoData[i].mWorldMat;
             gMeshASMProjectionInfoUniformData[0][gFrameIndex].mViewID = VIEW_SHADOW + tileIndex;
         }
 
@@ -3431,6 +3438,7 @@ public:
     const ASMProjectionData CalcCamera(const vec3& cameraPos, const AABB& BBoxLS, const vec2& viewportScaleFactor, bool reverseZ = true,
                                        bool customCamera = false) const
     {
+        UNREF_PARAM(customCamera);
         mat4              viewMat = mat4::lookAtRH(Point3(cameraPos), Point3(cameraPos + m_lightDir), vec3(0.f, 1.f, 0.f));
         ASMProjectionData renderProjection;
         renderProjection.mViewMat = viewMat;
@@ -3444,15 +3452,15 @@ public:
 
         if (reverseZ)
         {
-            renderProjection.mProjMat = mat4::orthographicLH(-hw, hw, -hh, hh, farPlane, 0);
+            renderProjection.mProjMat = CameraMatrix::orthographic(-hw, hw, -hh, hh, farPlane, 0);
         }
         else
         {
-            renderProjection.mProjMat = mat4::orthographicLH(-hw, hw, -hh, hh, 0, farPlane);
+            renderProjection.mProjMat = CameraMatrix::orthographic(-hw, hw, -hh, hh, 0, farPlane);
         }
 
         renderProjection.mInvViewMat = inverse(viewMat);
-        renderProjection.mInvProjMat = inverse(renderProjection.mProjMat);
+        renderProjection.mInvProjMat = CameraMatrix::inverse(renderProjection.mProjMat);
         renderProjection.mViewProjMat = renderProjection.mProjMat * viewMat;
         renderProjection.mInvViewProjMat = renderProjection.mInvViewMat * renderProjection.mInvProjMat;
 
@@ -3787,7 +3795,7 @@ private:
             m_indexViewMat = renderProjection.mViewMat;
 
             static const mat4 screenToTexCoordMatrix = mat4::translation(vec3(0.5f, 0.5f, 0.f)) * mat4::scale(vec3(0.5f, -0.5f, 1.f));
-            m_indexTexMat = screenToTexCoordMatrix * renderProjection.mViewProjMat;
+            m_indexTexMat = screenToTexCoordMatrix * renderProjection.mViewProjMat.mCamera;
         }
     }
     void FillIndirectionTextureData(bool processLayers)
@@ -3922,6 +3930,8 @@ private:
     void UpdateIndirectionTexture(RenderTarget* indirectionTexture, ASMSShadowMapRenderContext context, bool disableHierarchy,
                                   bool isPreRender)
     {
+        UNREF_PARAM(indirectionTexture);
+        UNREF_PARAM(isPreRender);
         ASMRendererContext* curRendererContext = context.m_pRendererContext;
 
         IndirectionRenderData* finalIndirectionRenderData =
@@ -4027,6 +4037,7 @@ private:
 void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, RenderTarget* workBufferDepth, RenderTarget* workBufferColor,
                                ASMSShadowMapRenderContext& context, bool allowDEM)
 {
+    UNREF_PARAM(workBufferColor);
     if (!numTiles)
         return;
 
@@ -4284,14 +4295,14 @@ public:
         return m_cache->PrepareRenderTilesBatch(context);
     }
 
-    void Render(RenderTarget* pRenderTargetDepth, RenderTarget* pRenderTargetColor, ASMRendererContext& renderContext,
+    void Render(RenderTarget* pDepthTarget, RenderTarget* pRenderTargetColor, ASMRendererContext& renderContext,
                 ASMProjectionData* projectionRender)
     {
         ASMSShadowMapRenderContext context = { &renderContext, projectionRender };
 
         if (!m_cache->NothingToRender())
         {
-            m_cache->RenderTilesBatch(pRenderTargetDepth, pRenderTargetColor, context);
+            m_cache->RenderTilesBatch(pDepthTarget, pRenderTargetColor, context);
         }
 
         m_cache->CreateDEM(pRenderTargetColor, context, false);
@@ -4317,6 +4328,8 @@ public:
               const vec3& halfwayLightDir, uint32_t currentTime, uint32_t dt, bool disableWarping, bool forceUpdate,
               uint32_t updateDeltaTime)
     {
+        UNREF_PARAM(currentTime);
+        UNREF_PARAM(updateDeltaTime);
         // mTickData = tickData;
 
         vec3 sunDir = lightDir;
@@ -4575,6 +4588,7 @@ ASM* pASM;
 
 void SetupASMDebugTextures(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     if (!gASMCpuSettings.mShowDebugTextures)
     {
         if (pUIASMDebugTexturesWindow)
@@ -4657,6 +4671,7 @@ const char* gTestScripts[] = { "Test_ESM.lua", "Test_ASM.lua",    "Test_SDF.lua"
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -4680,10 +4695,15 @@ public:
         uint32_t startIdx = 0;
     } sdfLoadData[NUM_SDF_MESHES];
 
-    static void refreshASM(void* pUserData) { pASM->Reset(); }
+    static void refreshASM(void* pUserData)
+    {
+        UNREF_PARAM(pUserData);
+        pASM->Reset();
+    }
 
     static void resetLightDir(void* pUserData)
     {
+        UNREF_PARAM(pUserData);
         asmCurrentTime = 0.f;
         refreshASM(pUserData);
     }
@@ -5262,7 +5282,7 @@ public:
         SyncToken        sceneToken = {};
         GeometryLoadDesc sceneLoadDesc = {};
         sceneLoadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED; // To compute CPU clusters
-        Scene* pScene = loadSanMiguel(&sceneLoadDesc, sceneToken, false);
+        pScene = initSanMiguel(&sceneLoadDesc, sceneToken, false);
         waitForToken(&sceneToken);
 
         threadSystemWaitIdle(gThreadSystem);
@@ -5496,8 +5516,6 @@ public:
 
         GuiController::addGui();
 
-        unloadSanMiguel(pScene);
-
         CameraMotionParameters cmp{ 146.0f, 300.0f, 140.0f };
         vec3                   camPos = vec3(120.f + SAN_MIGUEL_OFFSETX, 98.f, 14.f);
         vec3                   lookAt = camPos + vec3(-1.0f - 0.0f, 0.1f, 0.0f);
@@ -5531,12 +5549,14 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
         addInputAction(&actionDesc);
         InputActionCallback onUIInput = [](InputActionContext* ctx)
         {
+            UNREF_PARAM(ctx);
             if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
             {
                 uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
@@ -5586,6 +5606,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -5764,6 +5785,7 @@ public:
         tf_free(gDiffuseMapsStorage);
         tf_free(gNormalMapsStorage);
         tf_free(gSpecularMapsStorage);
+        exitSanMiguel(pScene);
 
         exitUserInterface();
 
@@ -6311,7 +6333,7 @@ public:
         int            dispatchCount = 0;
 
         vec3 lightDir = normalize(-gLightUniformData.mLightDir);
-        mat4 viewProject = gCameraUniformData.mViewProject;
+        mat4 viewProject = gCameraUniformData.mViewProject.mCamera;
 
         vec4      lightProjection = viewProject * vec4(lightDir, 0.0f);
         const int waveSize = 64;
@@ -6731,7 +6753,7 @@ public:
         mainViewProjection.mViewMat = gCameraUniformData.mView;
         mainViewProjection.mProjMat = gCameraUniformData.mProject;
         mainViewProjection.mInvViewMat = inverse(mainViewProjection.mViewMat);
-        mainViewProjection.mInvProjMat = inverse(mainViewProjection.mProjMat);
+        mainViewProjection.mInvProjMat = CameraMatrix::inverse(mainViewProjection.mProjMat);
         mainViewProjection.mViewProjMat = mainViewProjection.mProjMat * mainViewProjection.mViewMat;
         mainViewProjection.mInvViewProjMat = mainViewProjection.mInvViewMat * mainViewProjection.mInvProjMat;
 
@@ -6744,7 +6766,7 @@ public:
             for (size_t i = 0; i < size; i++)
             {
                 gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_SHADOW + i] =
-                    (renderBatchProjection[i]->mInvViewProjMat * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
+                    (renderBatchProjection[i]->mInvViewProjMat.mCamera * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 
                 gVBConstants[gFrameIndex].transform[VIEW_SHADOW + i].mvp =
                     renderBatchProjection[i]->mViewProjMat * gMeshInfoData[0].mWorldMat;
@@ -6764,7 +6786,7 @@ public:
         mainViewProjection.mViewMat = gCameraUniformData.mView;
         mainViewProjection.mProjMat = gCameraUniformData.mProject;
         mainViewProjection.mInvViewMat = inverse(mainViewProjection.mViewMat);
-        mainViewProjection.mInvProjMat = inverse(mainViewProjection.mProjMat);
+        mainViewProjection.mInvProjMat = CameraMatrix::inverse(mainViewProjection.mProjMat);
         mainViewProjection.mViewProjMat = mainViewProjection.mProjMat * mainViewProjection.mViewMat;
         mainViewProjection.mInvViewProjMat = mainViewProjection.mInvViewMat * mainViewProjection.mInvProjMat;
 
@@ -6809,14 +6831,14 @@ public:
         constexpr float horizontal_fov = PI / 2.0f;
         constexpr float nearValue = 0.1f;
         constexpr float farValue = 1000.f;
-        mat4            projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, nearValue, farValue).getPrimaryMatrix();
+        CameraMatrix    projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, nearValue, farValue);
 
         gCameraUniformData.mView = viewMat;
         gCameraUniformData.mProject = projMat;
         gCameraUniformData.mViewProject = projMat * viewMat;
-        gCameraUniformData.mInvProj = inverse(projMat);
+        gCameraUniformData.mInvProj = CameraMatrix::inverse(projMat);
         gCameraUniformData.mInvView = inverse(viewMat);
-        gCameraUniformData.mInvViewProject = inverse(gCameraUniformData.mViewProject);
+        gCameraUniformData.mInvViewProject = CameraMatrix::inverse(gCameraUniformData.mViewProject);
         gCameraUniformData.mNear = nearValue;
         gCameraUniformData.mFarNearDiff = farValue - nearValue; // if OpenGL convention was used this would be 2x the value
         gCameraUniformData.mFarNear = nearValue * farValue;
@@ -6824,8 +6846,8 @@ public:
 
         gCameraUniformData.mTwoOverRes = vec2(1.5f / width, 1.5f / height);
 
-        float depthMul = projMat[2][2];
-        float depthAdd = projMat[3][2];
+        float depthMul = projMat.mCamera[2][2];
+        float depthAdd = projMat.mCamera[3][2];
 
         if (depthAdd == 0.f)
         {
@@ -6833,7 +6855,7 @@ public:
             depthAdd = 0.00000001f;
         }
 
-        if (projMat[3][3] < 1.0f)
+        if (projMat.mCamera[3][3] < 1.0f)
         {
             float subtractValue = depthMul / depthAdd;
             subtractValue -= 0.00000001f;
@@ -6857,9 +6879,9 @@ public:
         mat4 rotation = mat4::rotationXY(gLightCpuSettings.mSunControl.x, gLightCpuSettings.mSunControl.y);
         mat4 translation = mat4::translation(-vec3(lightSourcePos));
 
-        vec3 newLightDir = vec4(inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ();
-        mat4 lightProjMat = mat4::orthographicLH(-140, 140, -210, 90, -220, 100);
-        mat4 lightView = rotation * translation;
+        vec3         newLightDir = vec4(inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ();
+        CameraMatrix lightProjMat = CameraMatrix::orthographic(-140, 140, -210, 90, -220, 100);
+        mat4         lightView = rotation * translation;
 
         gLightUniformData.mLightPosition = vec4(0.f);
         gLightUniformData.mLightViewProj = lightProjMat * lightView;
@@ -6878,7 +6900,7 @@ public:
             mat4 offsetTranslationMat = mat4::translation(f3Tov3(gMeshInfoData[i].mOffsetTranslation));
             gMeshInfoData[i].mWorldMat = gMeshInfoData[i].mTranslationMat * gMeshInfoData[i].mScaleMat * offsetTranslationMat;
 
-            gMeshInfoUniformData[i][gFrameIndex].mWorldViewProjMat = gCameraUniformData.mViewProject * gMeshInfoData[i].mWorldMat;
+            gMeshInfoUniformData[i][gFrameIndex].mWorldViewProjMat = gCameraUniformData.mViewProject.mCamera * gMeshInfoData[i].mWorldMat;
 
             if (gCurrentShadowType == SHADOW_TYPE_ASM)
             {
@@ -6888,7 +6910,7 @@ public:
                      gCurrentShadowType == SHADOW_TYPE_MSM)
             {
                 gMeshASMProjectionInfoUniformData[i][gFrameIndex].mWorldViewProjMat =
-                    gLightUniformData.mLightViewProj * gMeshInfoData[i].mWorldMat;
+                    gLightUniformData.mLightViewProj.mCamera * gMeshInfoData[i].mWorldMat;
                 gMeshASMProjectionInfoUniformData[i][gFrameIndex].mViewID = VIEW_SHADOW;
             }
         }
@@ -6904,7 +6926,7 @@ public:
 
     void Draw() override
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -6931,7 +6953,7 @@ public:
         else if (gCurrentShadowType == SHADOW_TYPE_ESM || gCurrentShadowType == SHADOW_TYPE_VSM || gCurrentShadowType == SHADOW_TYPE_MSM)
         {
             gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_SHADOW] =
-                (inverse(gLightUniformData.mLightViewProj) * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
+                (CameraMatrix::inverse(gLightUniformData.mLightViewProj).mCamera * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 
             gVBConstants[gFrameIndex].transform[VIEW_SHADOW].mvp = gLightUniformData.mLightViewProj * gMeshInfoData[0].mWorldMat;
             gVBConstants[gFrameIndex].cullingViewports[VIEW_SHADOW].sampleCount = 1;
@@ -7038,18 +7060,18 @@ public:
             {
                 const uint32_t numBarriers = NUM_CULLING_VIEWPORTS + 2;
                 BufferBarrier  barriers2[numBarriers] = {};
-                uint32_t       barrierCount = 0;
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0], RESOURCE_STATE_UNORDERED_ACCESS,
-                                              RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS,
-                                              RESOURCE_STATE_SHADER_RESOURCE };
+                uint32_t       barrierCount2 = 0;
+                barriers2[barrierCount2++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0], RESOURCE_STATE_UNORDERED_ACCESS,
+                                               RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+                barriers2[barrierCount2++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS,
+                                               RESOURCE_STATE_SHADER_RESOURCE };
                 for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
                 {
-                    barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+                    barriers2[barrierCount2++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
+                                                   RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
                 }
 
-                cmdResourceBarrier(cmd, barrierCount, barriers2, 0, NULL, 0, NULL);
+                cmdResourceBarrier(cmd, barrierCount2, barriers2, 0, NULL, 0, NULL);
             }
             RenderTargetBarrier barriers[19] = {};
             uint32_t            barrierCount = 0;
@@ -7228,17 +7250,17 @@ public:
                 const uint32_t      numBarriers = NUM_CULLING_VIEWPORTS + 2;
                 RenderTargetBarrier barrierPresent = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
                 BufferBarrier       barriers2[numBarriers] = {};
-                uint32_t            barrierCount = 0;
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0],
-                                              RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE,
-                                              RESOURCE_STATE_UNORDERED_ACCESS };
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex], RESOURCE_STATE_SHADER_RESOURCE,
-                                              RESOURCE_STATE_UNORDERED_ACCESS };
+                uint32_t            barrierCount2 = 0;
+                barriers2[barrierCount2++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0],
+                                               RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE,
+                                               RESOURCE_STATE_UNORDERED_ACCESS };
+                barriers2[barrierCount2++] = { pVisibilityBuffer->ppIndirectDataBuffer[gFrameIndex], RESOURCE_STATE_SHADER_RESOURCE,
+                                               RESOURCE_STATE_UNORDERED_ACCESS };
                 for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
                 {
-                    barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i],
-                                                  RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE,
-                                                  RESOURCE_STATE_UNORDERED_ACCESS };
+                    barriers2[barrierCount2++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i],
+                                                   RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE,
+                                                   RESOURCE_STATE_UNORDERED_ACCESS };
                 }
 
                 cmdResourceBarrier(cmd, numBarriers, barriers2, 0, NULL, 1, &barrierPresent);
@@ -7263,7 +7285,7 @@ public:
             submitDesc.pSignalFence = elem.pFence;
             queueSubmit(pGraphicsQueue, &submitDesc);
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = swapchainImageIndex;
+            presentDesc.mIndex = (uint8_t)swapchainImageIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &elem.pSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -7324,6 +7346,7 @@ public:
 
     void presentImage(Cmd* cmd, Texture* pSrc, uint32_t index, RenderTarget* pDstCol)
     {
+        UNREF_PARAM(pSrc);
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Present Image");
 
         BindRenderTargetsDesc bindRenderTargets = {};
@@ -7898,19 +7921,19 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData filterParams[5] = {};
-                filterParams[0].pName = "filteredIndicesBuffer";
-                filterParams[0].mCount = NUM_CULLING_VIEWPORTS;
-                filterParams[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
-                filterParams[1].pName = "indirectDataBuffer";
-                filterParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                filterParams[2].pName = "PerFrameVBConstants";
-                filterParams[2].ppBuffers = &pBufferVBConstants[i];
-                filterParams[3].pName = "filterDispatchGroupDataBuffer";
-                filterParams[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
-                filterParams[4].pName = "indirectDrawArgs";
-                filterParams[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParams);
+                DescriptorData filterParamsIdx[5] = {};
+                filterParamsIdx[0].pName = "filteredIndicesBuffer";
+                filterParamsIdx[0].mCount = NUM_CULLING_VIEWPORTS;
+                filterParamsIdx[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
+                filterParamsIdx[1].pName = "indirectDataBuffer";
+                filterParamsIdx[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                filterParamsIdx[2].pName = "PerFrameVBConstants";
+                filterParamsIdx[2].ppBuffers = &pBufferVBConstants[i];
+                filterParamsIdx[3].pName = "filterDispatchGroupDataBuffer";
+                filterParamsIdx[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+                filterParamsIdx[4].pName = "indirectDrawArgs";
+                filterParamsIdx[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParamsIdx);
             }
         }
         // Gaussian Blur
@@ -8003,30 +8026,30 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData vbShadeParams[11] = {};
-                vbShadeParams[0].pName = "objectUniformBlock";
-                vbShadeParams[0].ppBuffers = &pBufferMeshTransforms[0][i];
-                vbShadeParams[1].pName = "indirectDataBuffer";
-                vbShadeParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                vbShadeParams[2].pName = "filteredIndexBuffer";
-                vbShadeParams[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-                vbShadeParams[3].pName = "cameraUniformBlock";
-                vbShadeParams[3].ppBuffers = &pBufferCameraUniform[i];
-                vbShadeParams[4].pName = "lightUniformBlock";
-                vbShadeParams[4].ppBuffers = &pBufferLightUniform[i];
-                vbShadeParams[5].pName = "ASMUniformBlock";
-                vbShadeParams[5].ppBuffers = &pBufferASMDataUniform[i];
-                vbShadeParams[6].pName = "renderSettingUniformBlock";
-                vbShadeParams[6].ppBuffers = &pBufferRenderSettings[i];
-                vbShadeParams[7].pName = "ESMInputConstants";
-                vbShadeParams[7].ppBuffers = &pBufferESMUniform[i];
-                vbShadeParams[8].pName = "VSMInputConstants";
-                vbShadeParams[8].ppBuffers = &pBufferVSMUniform[i];
-                vbShadeParams[9].pName = "MSMInputConstants";
-                vbShadeParams[9].ppBuffers = &pBufferMSMUniform[i];
-                vbShadeParams[10].pName = "SSSEnabled";
-                vbShadeParams[10].ppBuffers = &pBufferSSSEnabled[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], 11, vbShadeParams);
+                DescriptorData vbShadeParamsObj[11] = {};
+                vbShadeParamsObj[0].pName = "objectUniformBlock";
+                vbShadeParamsObj[0].ppBuffers = &pBufferMeshTransforms[0][i];
+                vbShadeParamsObj[1].pName = "indirectDataBuffer";
+                vbShadeParamsObj[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+                vbShadeParamsObj[2].pName = "filteredIndexBuffer";
+                vbShadeParamsObj[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
+                vbShadeParamsObj[3].pName = "cameraUniformBlock";
+                vbShadeParamsObj[3].ppBuffers = &pBufferCameraUniform[i];
+                vbShadeParamsObj[4].pName = "lightUniformBlock";
+                vbShadeParamsObj[4].ppBuffers = &pBufferLightUniform[i];
+                vbShadeParamsObj[5].pName = "ASMUniformBlock";
+                vbShadeParamsObj[5].ppBuffers = &pBufferASMDataUniform[i];
+                vbShadeParamsObj[6].pName = "renderSettingUniformBlock";
+                vbShadeParamsObj[6].ppBuffers = &pBufferRenderSettings[i];
+                vbShadeParamsObj[7].pName = "ESMInputConstants";
+                vbShadeParamsObj[7].ppBuffers = &pBufferESMUniform[i];
+                vbShadeParamsObj[8].pName = "VSMInputConstants";
+                vbShadeParamsObj[8].ppBuffers = &pBufferVSMUniform[i];
+                vbShadeParamsObj[9].pName = "MSMInputConstants";
+                vbShadeParamsObj[9].ppBuffers = &pBufferMSMUniform[i];
+                vbShadeParamsObj[10].pName = "SSSEnabled";
+                vbShadeParamsObj[10].ppBuffers = &pBufferSSSEnabled[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], 11, vbShadeParamsObj);
             }
         }
         // Resolve
@@ -9193,7 +9216,7 @@ public:
 
 void GuiController::updateDynamicUI()
 {
-    if (gRenderSettings.mShadowType != GuiController::currentlyShadowType)
+    if ((int)gRenderSettings.mShadowType != GuiController::currentlyShadowType)
     {
         if (GuiController::currentlyShadowType == SHADOW_TYPE_ESM)
             uiHideDynamicWidgets(&GuiController::esmDynamicWidgets, pGuiWindow);
@@ -9314,6 +9337,7 @@ void GuiController::addGui()
         uiSetWidgetOnEditedCallback(msaaWidget, nullptr,
                                     [](void* pUserData)
                                     {
+                                        UNREF_PARAM(pUserData);
                                         ReloadDesc reloadDesc;
                                         reloadDesc.mType = RELOAD_TYPE_RENDERTARGET; /*TODO: new type */
                                         requestReload(&reloadDesc);

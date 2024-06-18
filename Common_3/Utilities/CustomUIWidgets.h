@@ -41,6 +41,7 @@ namespace ImGui
 static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data, int values_count, int values_offset,
                                              const char* overlay_text, ImVec2 frame_size)
 {
+    UNREF_PARAM(values_offset);
     ImGuiContext& g = *GImGui;
     g.CurrentWindow->WriteAccessed = true;
     ImGuiWindow* window = g.CurrentWindow;

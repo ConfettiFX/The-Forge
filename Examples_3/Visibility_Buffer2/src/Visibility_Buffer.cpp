@@ -342,6 +342,10 @@ struct RasterizerPushConstantData
 uint32_t gIndexCount = 0;
 
 /************************************************************************/
+// Scene
+/************************************************************************/
+Scene*            gScene = NULL;
+/************************************************************************/
 // Settings
 /************************************************************************/
 AppSettings       gAppSettings;
@@ -614,46 +618,6 @@ void SetupDebugTexturesWindow()
     }
 }
 
-UIWidget* addResolutionProperty(UIComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions,
-                                WidgetCallback onResolutionChanged)
-{
-#if defined(_WINDOWS)
-    if (pUIManager)
-    {
-        ResolutionData& data = gGuiResolution;
-
-        static const uint32_t maxResNameLength = 16;
-        arrsetlen(data.mResNameContainer, 0);
-        arrsetcap(data.mResNameContainer, maxResNameLength * resCount);
-        arrsetlen(data.mResNamePointers, resCount);
-
-        char* pBuf = data.mResNameContainer;
-        int   remainingLen = (int)arrcap(data.mResNameContainer);
-
-        for (uint32_t i = 0; i < resCount; ++i)
-        {
-            int res = snprintf(pBuf, remainingLen, "%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight);
-            ASSERT(res >= 0 && res < remainingLen);
-
-            data.mResNamePointers[i] = pBuf;
-
-            pBuf += res + 1;
-            remainingLen -= res + 1;
-        }
-
-        DropdownWidget control;
-        control.pData = &resolutionIndex;
-        control.pNames = data.mResNamePointers;
-        control.mCount = resCount;
-
-        UIWidget* pControl = uiCreateComponentWidget(pUIManager, "Screen Resolution", &control, WIDGET_TYPE_DROPDOWN);
-        pControl->pOnEdited = onResolutionChanged;
-        return pControl;
-    }
-#endif
-    return NULL;
-}
-
 class Visibility_Buffer: public IApp
 {
 public:
@@ -888,16 +852,16 @@ public:
         GeometryLoadDesc sceneLoadDesc = {};
         sceneLoadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
         SyncToken token = {};
-        Scene*    pScene = loadSanMiguel(&sceneLoadDesc, token, false);
+        gScene = initSanMiguel(&sceneLoadDesc, token, false);
 
-        if (!pScene)
+        if (!gScene)
             return false;
         LOGF(LogLevel::eINFO, "Load scene : %f ms", getHiresTimerUSec(&sceneLoadTimer, true) / 1000.0f);
 
-        gMeshCount = pScene->geom->mDrawArgCount;
-        gMaterialCount = pScene->geom->mDrawArgCount;
+        gMeshCount = gScene->geom->mDrawArgCount;
+        gMaterialCount = gScene->geom->mDrawArgCount;
         pFilterContainers = (FilterContainer*)tf_calloc(gMeshCount, sizeof(FilterContainer));
-        pGeom = pScene->geom;
+        pGeom = gScene->geom;
         /************************************************************************/
         // Texture loading
         /************************************************************************/
@@ -908,19 +872,19 @@ public:
         for (uint32_t i = 0; i < gMaterialCount; ++i)
         {
             TextureLoadDesc desc = {};
-            desc.pFileName = pScene->textures[i];
+            desc.pFileName = gScene->textures[i];
             desc.ppTexture = &gDiffuseMapsStorage[i];
             // Textures representing color should be stored in SRGB or HDR format
             desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
             addResource(&desc, NULL);
             desc = {};
 
-            desc.pFileName = pScene->normalMaps[i];
+            desc.pFileName = gScene->normalMaps[i];
             desc.ppTexture = &gNormalMapsStorage[i];
             addResource(&desc, NULL);
             desc = {};
 
-            desc.pFileName = pScene->specularMaps[i];
+            desc.pFileName = gScene->specularMaps[i];
             desc.ppTexture = &gSpecularMapsStorage[i];
             addResource(&desc, NULL);
         }
@@ -930,7 +894,7 @@ public:
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
             gIndexCount +=
-                (uint32_t)ceil((pScene->geom->pDrawArgs + i)->mIndexCount / 3.f / RASTERIZE_BATCH_SIZE) * RASTERIZE_BATCH_SIZE * 3;
+                (uint32_t)ceil((gScene->geom->pDrawArgs + i)->mIndexCount / 3.f / RASTERIZE_BATCH_SIZE) * RASTERIZE_BATCH_SIZE * 3;
         }
 
         gIndexCount = MAX_BATCHES * RASTERIZE_BATCH_SIZE * 3;
@@ -955,18 +919,18 @@ public:
         // Calculate clusters
         for (uint32_t i = 0; i < gMeshCount; ++i)
         {
-            MaterialFlags material = pScene->materialFlags[i];
+            MaterialFlags material = gScene->materialFlags[i];
 
             FilterContainerDescriptor desc = {};
             // desc.mType = FILTER_CONTAINER_TYPE_CLUSTER;
-            desc.mBaseIndex = (pScene->geom->pDrawArgs + i)->mStartIndex;
+            desc.mBaseIndex = (gScene->geom->pDrawArgs + i)->mStartIndex;
             desc.mInstanceIndex = INSTANCE_INDEX_NONE;
 
             desc.mGeometrySet = GEOMSET_OPAQUE;
             if (material & MATERIAL_FLAG_ALPHA_TESTED)
                 desc.mGeometrySet = GEOMSET_ALPHA_CUTOUT;
 
-            desc.mIndexCount = (pScene->geom->pDrawArgs + i)->mIndexCount;
+            desc.mIndexCount = (gScene->geom->pDrawArgs + i)->mIndexCount;
             desc.mMeshIndex = i;
             addVBFilterContainer(&desc, &pFilterContainers[i]);
         }
@@ -1246,13 +1210,11 @@ public:
 
         HiresTimer setupBuffersTimer;
         initHiresTimer(&setupBuffersTimer);
-        addTriangleFilteringBuffers(pScene);
+        addTriangleFilteringBuffers(gScene);
 
         LOGF(LogLevel::eINFO, "Setup buffers : %f ms", getHiresTimerUSec(&setupBuffersTimer, true) / 1000.0f);
 
         LOGF(LogLevel::eINFO, "Total Load Time : %f ms", getHiresTimerUSec(&totalTimer, true) / 1000.0f);
-
-        unloadSanMiguel(pScene);
 
         /************************************************************************/
         // Setup the fps camera for navigating through the scene
@@ -1291,6 +1253,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1346,6 +1309,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1390,6 +1354,8 @@ public:
         /************************************************************************/
         // Remove loaded scene
         /************************************************************************/
+        exitSanMiguel(gScene);
+
         // Destroy scene buffers
         removeResource(pGeom);
 
@@ -1600,7 +1566,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if (pSwapChain->mEnableVsync != (uint32_t)mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1881,7 +1847,7 @@ public:
             prevGraphicsSemaphore = graphicsElem.pSemaphore;
 
             QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = presentIndex;
+            presentDesc.mIndex = (uint8_t)presentIndex;
             presentDesc.mWaitSemaphoreCount = 1;
             presentDesc.ppWaitSemaphores = &pPresentSemaphore;
             presentDesc.pSwapChain = pSwapChain;
@@ -2060,14 +2026,14 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData params[4] = {};
-                params[0].pName = "PerFrameVBConstants";
-                params[0].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
-                params[1].pName = "binBuffer";
-                params[1].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
-                params[2].pName = "visibilityBuffer";
-                params[2].ppBuffers = &pVBDepthBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetShadowRasterizationPass[1], 3, params);
+                DescriptorData paramsPerFrame[4] = {};
+                paramsPerFrame[0].pName = "PerFrameVBConstants";
+                paramsPerFrame[0].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
+                paramsPerFrame[1].pName = "binBuffer";
+                paramsPerFrame[1].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
+                paramsPerFrame[2].pName = "visibilityBuffer";
+                paramsPerFrame[2].ppBuffers = &pVBDepthBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetShadowRasterizationPass[1], 3, paramsPerFrame);
             }
         }
 
@@ -2089,14 +2055,14 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                DescriptorData params[4] = {};
-                params[0].pName = "PerFrameVBConstants";
-                params[0].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
-                params[1].pName = "binBuffer";
-                params[1].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
-                params[2].pName = "visibilityBuffer";
-                params[2].ppBuffers = &pVBDepthBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBDepthRaster[1], 3, params);
+                DescriptorData paramsPerFrame[4] = {};
+                paramsPerFrame[0].pName = "PerFrameVBConstants";
+                paramsPerFrame[0].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
+                paramsPerFrame[1].pName = "binBuffer";
+                paramsPerFrame[1].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
+                paramsPerFrame[2].pName = "visibilityBuffer";
+                paramsPerFrame[2].ppBuffers = &pVBDepthBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBDepthRaster[1], 3, paramsPerFrame);
             }
         }
 
@@ -2511,7 +2477,7 @@ public:
         RootSignatureDesc godrayPassShaderRootSigDesc = { &pGodRayPass, 1 };
         godrayPassShaderRootSigDesc.mStaticSamplerCount = 1;
         godrayPassShaderRootSigDesc.ppStaticSamplerNames = pGodRayStaticSamplerNames;
-        godrayPassShaderRootSigDesc.ppStaticSamplers = &pSamplerBilinearClamp;
+        godrayPassShaderRootSigDesc.ppStaticSamplers = &pSamplerPointClamp;
         addRootSignature(pRenderer, &godrayPassShaderRootSigDesc, &pRootSigGodRayPass);
         gGodRayConstantIndex = getDescriptorIndexFromName(pRootSigGodRayPass, "GodRayRootConstant");
 
@@ -3384,6 +3350,8 @@ public:
     // Render the shadow mapping pass. This pass updates the shadow map texture.
     void drawShadowMapPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
+        UNREF_PARAM(pGpuProfiler);
+
         RasterizerPushConstantData pushConstantData = {};
         pushConstantData.view = VIEW_SHADOW;
         pushConstantData.width = gShadowMapSize;
@@ -3407,6 +3375,8 @@ public:
     // less memory bandwidth is used.
     void drawVisibilityBufferPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
+        UNREF_PARAM(pGpuProfiler);
+
         RasterizerPushConstantData pushConstantData = {};
         pushConstantData.view = VIEW_CAMERA;
         pushConstantData.width = (int)pRenderTargetVBPass->mWidth;
@@ -3423,6 +3393,8 @@ public:
 
     void blitVisibilityBufferDepthPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t view, uint32_t frameIdx, RenderTarget* depthTarget)
     {
+        UNREF_PARAM(pGpuProfiler);
+
         // cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Blit Depth Buffer");
         {
             RenderTargetBarrier rtBarriers[] = {
@@ -3586,6 +3558,8 @@ public:
 
     void blurGodRay(Cmd* cmd, uint frameIdx)
     {
+        UNREF_PARAM(frameIdx);
+
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "God Ray Blur");
 
         BufferUpdateDesc bufferUpdate = { pBufferBlurWeights };

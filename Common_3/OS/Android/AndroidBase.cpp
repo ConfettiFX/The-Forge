@@ -50,7 +50,12 @@
 #include "../../Utilities/Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
+#if defined(ENABLE_FORGE_REMOTE_UI)
 #include "../../Tools/Network/Network.h"
+#endif
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
+#include "../../Tools/ReloadServer/ReloadClient.h"
+#endif
 #include "../CPUConfig.h"
 
 #if defined(QUEST_VR)
@@ -79,9 +84,11 @@ static OSInfo  gOsInfo = {};
 /// UI
 static UIComponent* pAPISwitchingWindow = NULL;
 static UIComponent* pToggleVSyncWindow = NULL;
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
-UIWidget*           pSwitchWindowLabel = NULL;
-UIWidget*           pSelectApUIWidget = NULL;
+#endif
+UIWidget* pSwitchWindowLabel = NULL;
+UIWidget* pSelectApUIWidget = NULL;
 
 static uint32_t gSelectedApiIndex = 0;
 
@@ -386,16 +393,16 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
 
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+#endif
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
-
-    extern void platformReloadClientAddReloadShadersButton(UIComponent * pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 
     gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
 
@@ -452,8 +459,9 @@ void togglePlatformUI()
     platformToggleWindowSystemUI(gShowPlatformUI);
 
     uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
-
+#endif
     if (pAPISwitchingWindow)
         uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
 #endif
@@ -641,6 +649,7 @@ int AndroidMain(void* param, IApp* app)
 
     bool baseSubsystemAppDrawn = false;
     bool quit = false;
+
     while (!quit)
     {
         // Used to poll the events in the main loop
@@ -650,12 +659,20 @@ int AndroidMain(void* param, IApp* app)
         if (ALooper_pollAll(windowReady ? 1 : 0, NULL, &events, (void**)&source) >= 0)
         {
             if (source != NULL)
+            {
+#if defined(QUEST_VR)
+                // Don't try to handle the Home, Volume Up and Volume Down buttons.
+                if (source->process != android_app->inputPollSource.process)
+                    source->process(android_app, source);
+#else
                 source->process(android_app, source);
+#endif
+            }
+        }
 
 #if defined(QUEST_VR)
-            hook_poll_events(isActive, windowReady, pApp->pWindow->handle.window);
+        hook_poll_events(isActive, windowReady, pApp->pWindow->handle.window);
 #endif
-        }
 
         float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
         // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
@@ -796,12 +813,13 @@ int AndroidMain(void* param, IApp* app)
             togglePlatformUI();
         }
 
-        extern bool platformReloadClientShouldQuit(void);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
         if (platformReloadClientShouldQuit())
         {
             ANativeActivity_finish(android_app->activity);
             pApp->mSettings.mQuit = true;
         }
+#endif
 
 #ifdef AUTOMATED_TESTING
         extern bool gAutomatedTestingScriptsFinished;

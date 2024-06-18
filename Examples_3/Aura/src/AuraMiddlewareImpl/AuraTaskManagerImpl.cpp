@@ -99,7 +99,11 @@ void TaskManagerImpl::waitForTaskSet(ITASKSETHANDLE hTaskSet)
 #endif
 }
 
-bool TaskManagerImpl::isTaskDone(ITASKSETHANDLE hTaskSet) { return true; }
+bool TaskManagerImpl::isTaskDone(ITASKSETHANDLE hTaskSet)
+{
+    UNREF_PARAM(hTaskSet);
+    return true;
+}
 
 void TaskManagerImpl::waitAll()
 {

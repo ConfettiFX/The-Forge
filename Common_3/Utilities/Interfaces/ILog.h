@@ -80,10 +80,7 @@ extern "C"
     do                                                                                                           \
     {                                                                                                            \
         (void)sizeof(b); /* This sizeof must compile, otherwise when disabling ASSERTs the code won't compile */ \
-        if (!(b))                                                                                                \
-        {                                                                                                        \
-            _FailedAssert(__FILE__, __LINE__, #b, "" msgFmt, ##__VA_ARGS__);                                     \
-        }                                                                                                        \
+        b ? (void)0 : _FailedAssert(__FILE__, __LINE__, #b, "" msgFmt, ##__VA_ARGS__);                           \
     } while (0)
 
 // Version of ASSERT intended to be used in if statements.

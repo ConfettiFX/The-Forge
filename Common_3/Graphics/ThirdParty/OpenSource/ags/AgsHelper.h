@@ -32,9 +32,9 @@ static AGSReturnCode agsInit()
 	AGSConfiguration config = {};
 	gAgsStatus = agsInitialize(AGS_CURRENT_VERSION, &config, &pAgsContext, &gAgsGpuInfo);
 	return gAgsStatus;
-#endif
-
+#else
 	return AGS_SUCCESS;
+#endif
 }
 
 static void agsExit()
@@ -62,7 +62,7 @@ static AGSDeviceInfo::AsicFamily agsGetAsicFamily(uint32_t deviceId)
 	{
 		for (int i = 0; i < gAgsGpuInfo.numDevices; i++)
 		{
-			if (gAgsGpuInfo.devices[i].deviceId == deviceId)
+			if ((uint32_t)gAgsGpuInfo.devices[i].deviceId == deviceId)
 			{
 				return gAgsGpuInfo.devices[i].asicFamily;
 			}

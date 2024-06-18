@@ -1,0 +1,101 @@
+#vert particle.vert
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle.vert.fsl"
+#end
+
+#frag particle.frag
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle.frag.fsl"
+#end
+
+#comp particle_clear_sorting_structs.comp
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_clear_sorting_structs.comp.fsl"
+#end
+
+#comp particle_simulate.comp
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl"
+#end
+
+#vert shadow_pass.vert
+#include "shadow_pass.vert.fsl"
+#end
+
+#frag shadow_pass.frag
+#include "shadow_pass.frag.fsl"
+#end
+
+#vert shadow_pass_alpha.vert
+#include "shadow_pass_alpha.vert.fsl"
+#end
+
+#frag shadow_pass_alpha.frag
+#include "shadow_pass_alpha.frag.fsl"
+#end
+
+#comp shadow_filtering.comp
+#include "shadow_filtering.comp.fsl"
+#end
+
+#vert FT_PRIM_ID visibilityBuffer_pass.vert
+#include "visibilityBuffer_pass.vert.fsl"
+#end
+
+#frag FT_PRIM_ID visibilityBuffer_pass.frag
+#include "visibilityBuffer_pass.frag.fsl"
+#end
+
+#vert FT_PRIM_ID visibilityBuffer_pass_alpha.vert
+#include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
+#frag FT_PRIM_ID visibilityBuffer_pass_alpha.frag
+#include "visibilityBuffer_pass_alpha.frag.fsl"
+#end
+
+#comp triangle_filtering.comp
+#include "triangle_filtering.comp.fsl"
+#end
+
+#comp clear_buffers.comp
+#include "clear_buffers.comp.fsl"
+#end
+
+#comp clear_light_clusters.comp
+#include "clear_light_clusters.comp.fsl"
+#end
+
+#comp cluster_lights.comp
+#include "cluster_lights.comp.fsl"
+#end
+
+#comp compute_depth_bounds.comp
+#include "compute_depth_bounds.comp.fsl"
+#end
+
+#comp compute_depth_clusters.comp
+#include "compute_depth_clusters.comp.fsl"
+#end
+
+#comp clear_texture.comp
+#include "clear_texture.comp.fsl"
+#end
+
+#vert visibilityBuffer_shade.vert
+#include "visibilityBuffer_shade.vert.fsl"
+#end
+
+// We should have a better way of generating these
+#frag visibilityBuffer_shade_SAMPLE_1.frag
+#define SAMPLE_COUNT 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#vert fsq.vert
+#include "fsq.vert.fsl"
+#end
+
+#frag fsq.frag
+#include "fsq.frag.fsl"
+#end
+
+#frag downsample_depth.frag
+#include "downsample_depth.frag.fsl"
+#end

@@ -1073,6 +1073,15 @@ static inline int STBDS_HM_CONST_BSTRING_default_storage_mode(void)
 
 static inline void STBDS_HM_BINARY_free_key(stbds_hash_index* table, const void* key, size_t keysize STBDS_FN_ALLOC_ARGS)
 {
+	#ifdef ENABLE_MEMORY_TRACKING
+    UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
+    UNREF_PARAM(table); 
+    UNREF_PARAM(key); 
+    UNREF_PARAM(keysize); 
 }
 
 static inline void STBDS_HM_STRING_free_key(stbds_hash_index* table, const void* key, size_t keysize STBDS_FN_ALLOC_ARGS)
@@ -1096,6 +1105,15 @@ static inline void STBDS_HM_STRING_free_key(stbds_hash_index* table, const void*
 
 static inline void STBDS_HM_CONST_BSTRING_free_key(stbds_hash_index* table, void* key, size_t keysize STBDS_FN_ALLOC_ARGS)
 {
+    #ifdef ENABLE_MEMORY_TRACKING
+	UNREF_PARAM(PARENT_FUNCTION_NAME);
+	UNREF_PARAM(FUNCTION_NAME);
+	UNREF_PARAM(FILE_NAME);
+	UNREF_PARAM(FILE_LINE);
+    #endif
+    UNREF_PARAM(table); 
+    UNREF_PARAM(key); 
+    UNREF_PARAM(keysize); 
 }
 
 
@@ -1690,7 +1708,7 @@ void *stbds_hmput_key(void *a, size_t elemsize, size_t elemalign, const void *ke
       tf_free_internal(table, FILE_NAME, FILE_LINE, pFunction);
 	else
 	{
-		STBDS_HM_DISPATCH_ASSIGN(mode, nt->string.mode, _default_storage_mode);
+        STBDS_HM_DISPATCH_IMPL(mode, nt->string.mode = (uint8_t), _default_storage_mode);
 	}
       
     stbds_header(a)->hash_table = table = nt;
@@ -2212,40 +2230,40 @@ void stbds_unit_tests(void)
   }
 
   for (i=0; i < testsize; i += 2) {
-    stbds_struct s = { i,i*2,i*3,i*4 };
-    hmput(map, s, i*5);
+    stbds_struct st = { i,i*2,i*3,i*4 };
+    hmput(map, st, i*5);
   }
 
   for (i=0; i < testsize; i += 1) {
-    stbds_struct s = { i,i*2,i*3  ,i*4 };
-    if (i & 1) { ASSERT(hmget(map, s) == 0);			  }
-    else       { ASSERT(hmget(map, s) == i*5);		  }
-    if (i & 1) { ASSERT(hmget_ts(map, s, temp) == 0);	  }
-    else       { ASSERT(hmget_ts(map, s, temp) == i*5); }
+    stbds_struct st = { i,i*2,i*3  ,i*4 };
+    if (i & 1) { ASSERT(hmget(map, st) == 0);			  }
+    else       { ASSERT(hmget(map, st) == i*5);		  }
+    if (i & 1) { ASSERT(hmget_ts(map, st, temp) == 0);	  }
+    else       { ASSERT(hmget_ts(map, st, temp) == i*5); }
   }
   hmfree(map);
 
   for (i=0; i < testsize; i += 2) {
-    stbds_struct s = { i,i*2,i*3,i*4 };
-    hmputs(map2, s);
+    stbds_struct st = { i,i*2,i*3,i*4 };
+    hmputs(map2, st);
   }
   hmfree(map);
 
   for (i=0; i < testsize; i += 1) {
-    stbds_struct s = { i,i*2,i*3,i*4 };
-    if (i & 1) { ASSERT(hmgets(map2, s.key).d == 0);	 }
-    else       { ASSERT(hmgets(map2, s.key).d == i*4); }
+    stbds_struct st = { i,i*2,i*3,i*4 };
+    if (i & 1) { ASSERT(hmgets(map2, st.key).d == 0);	 }
+    else       { ASSERT(hmgets(map2, st.key).d == i*4); }
   }
   hmfree(map2);
 
   for (i=0; i < testsize; i += 2) {
-    stbds_struct2 s = { { i,i*2 }, i*3,i*4, i*5 };
-    hmputs(map3, s);
+    stbds_struct2 st = { { i,i*2 }, i*3,i*4, i*5 };
+    hmputs(map3, st);
   }
   for (i=0; i < testsize; i += 1) {
-    stbds_struct2 s = { { i,i*2}, i*3, i*4, i*5 };
-    if (i & 1) { ASSERT(hmgets(map3, s.key).d == 0);	 }
-    else       { ASSERT(hmgets(map3, s.key).d == i*5); }
+    stbds_struct2 st = { { i,i*2}, i*3, i*4, i*5 };
+    if (i & 1) { ASSERT(hmgets(map3, st.key).d == 0);	 }
+    else       { ASSERT(hmgets(map3, st.key).d == i*5); }
   }
   hmfree(map3);
 

@@ -1,0 +1,130 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+#ifndef PARTICLE_PACKING_H
+#define PARTICLE_PACKING_H
+
+#include "../../../Graphics/ShaderUtilities.h.fsl"
+
+uint FirstBits(uint v, uint nBits)
+{
+	return v & ((1 << nBits)-1);
+}
+
+uint2 packFloat3FixedPoint(float3 v)
+{
+	const float maxVal = (1 << 20)-1;
+	// Initialize to make sure everything is or-ed correctly
+	uint3 vUint = uint3(0,0,0);
+	
+	for (uint i=0; i<3; i++)
+	{
+		// Absolute number after the point
+		vUint[i] = uint(round(abs(v[i] * maxVal)));
+		// Sign
+		vUint[i] |= (v[i] > 0 ? (1 << 20) : 0);
+	}
+
+	// Layout of the output: [(21 bits of X - 11 bits of Y), (unused bit, remaining 10 bits of Y, 21 bits of Z)]
+	return uint2((vUint.x << 11) | (vUint.y >> 10), ((vUint.y & ((1 << 10)-1)) << 21) | vUint.z);
+}
+
+float3 unpackFloat3FixedPoint(uint2 v)
+{
+	const float maxVal = (1 << 20)-1;
+	// Layout of the input: [(21 bits of X - 11 bits of Y), (unused bit, remaining 10 bits of Y, 21 bits of Z)]
+	uint3 vUint = uint3(0,0,0);
+	vUint[0] = v.x >> 11;
+	vUint[1] = ((v.x & (1 << 11)-1) << 10) | (v.y >> 21);
+	vUint[2] = (v.y & (1 << 21)-1);
+	
+	// Rebuild the number: value * sign
+	float3 ret;
+	for (uint i=0; i<3; i++)
+		ret[i] = (float(vUint[i] & ((1 << 20)-1)) / maxVal) * ((vUint[i] >> 20) > 0 ? 1 : -1);
+
+	return ret;
+}
+
+uint packFloat2(float a, float b)
+{
+	uint aUint = asuint(a) >> 16;
+	uint bUint = asuint(b) >> 16;
+
+	return (aUint << 16) | bUint;
+}
+
+float2 unpackFloat2(uint v)
+{
+	uint aUint = v >> 16;
+	uint bUint = v & ((1<<16)-1);
+
+	return float2(asfloat(aUint << 16), asfloat(bUint << 16));
+}
+
+void UnpackParticle(ParticleSet particleSet, ParticleData particleData, inout(float3) position, inout(float4) velocityAndAge)
+{
+	position = unpackFloat3FixedPoint(particleData.Position);
+	position.xyz *= PARTICLE_PACKING_SCALE;
+	position.xyz += particleSet.Position;
+
+	velocityAndAge.xy = unpack2Floats(particleData.VelocityAndAge.x);
+	velocityAndAge.zw = unpack2Floats(particleData.VelocityAndAge.y);
+	velocityAndAge.xyz *= unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y;
+	velocityAndAge.w *= particleSet.InitialAge;
+}
+
+float3 GetParticleVelocity(ParticleSet particleSet, ParticleData particleData)
+{
+	float3 velocity;
+	velocity.xy = unpack2Floats(particleData.VelocityAndAge.x);
+	velocity.z = unpack2Floats(particleData.VelocityAndAge.y).x;
+
+	return velocity * unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y;
+}
+
+float3 GetParticlePosition(ParticleSet particleSet, ParticleData particleData)
+{
+	float3 position = unpackFloat3FixedPoint(particleData.Position);
+	position.xyz *= PARTICLE_PACKING_SCALE;
+	position.xyz += particleSet.Position;
+
+	return position;
+}
+
+ParticleData PackParticle(ParticleSet particleSet, float3 position, float4 velocityAndAge)
+{
+	ParticleData ret;
+	position.xyz -= particleSet.Position;
+	position.xyz /= PARTICLE_PACKING_SCALE;
+
+	velocityAndAge.xyz /= unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y;
+
+	ret.Position = packFloat3FixedPoint(position);
+	ret.VelocityAndAge = uint2(pack2Floats(velocityAndAge.x, velocityAndAge.y), pack2Floats(velocityAndAge.z, velocityAndAge.w / particleSet.InitialAge));
+
+	return ret;
+}
+
+#endif

@@ -289,8 +289,13 @@ inline uint AtomicLoad(device uint& src)
 inline uint AtomicLoad(threadgroup uint& src)
 { return atomic_load_explicit((threadgroup atomic_uint*)&src, memory_order_relaxed); }
 
+inline void AtomicExchange(threadgroup uint& dst, uint value, thread uint& original)
+{ original = atomic_exchange_explicit((threadgroup atomic_uint*)&dst, value, memory_order_relaxed); }
 inline void AtomicExchange(device uint& dst, uint value, thread uint& original)
 { original = atomic_exchange_explicit((device atomic_uint*)&dst, value, memory_order_relaxed); }
+
+#define AtomicCompareExchange(DEST, COMPARE_VALUE, VALUE, ORIGINAL_VALUE) \
+    atomic_compare_exchange_weak_explicit(&(DEST), &(COMPARE_VALUE), (VALUE), memory_order_relaxed, memory_order_relaxed)
 
 void AtomicMax(device uint& dst, uint val, thread uint& original)
 { original = atomic_fetch_max_explicit((device atomic_uint*)&(dst), val, memory_order_relaxed); }
@@ -303,6 +308,18 @@ void AtomicMin(device uint& dst, uint val)
 
 #define AtomicMin3D NO_TEXTURE_ATOMIC_SUPPORT
 #define AtomicMax3D NO_TEXTURE_ATOMIC_SUPPORT
+
+inline void AtomicAnd( device uint& dst, uint val, thread uint& original)
+{ original = atomic_fetch_and_explicit((device atomic_uint*)&dst, val, memory_order_relaxed);}
+
+inline void AtomicOr( device uint& dst, uint val, thread uint& original)
+{ original = atomic_fetch_or_explicit((device atomic_uint*)&dst, val, memory_order_relaxed);}
+
+inline void AtomicXor( device uint& dst, uint val, thread uint& original)
+{ original = atomic_fetch_xor_explicit((device atomic_uint*)&dst, val, memory_order_relaxed);}
+
+// #define AtomicMax(DST, VAL) \
+// atomic_fetch_max_explicit((device atomic_uint*)&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
 
 #if defined(FT_ATOMICS_64)
 void AtomicMinU64(device uint64_t& DEST, ulong VALUE)
@@ -322,6 +339,7 @@ void AtomicMaxU64(device uint64_t& DEST, ulong VALUE)
 #define discard discard_fragment()
 
 #define SampleLvlTexCube(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
+#define SampleLvlTexCubeArray(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, (LEVEL))
 #define SampleLvlTex3D(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
 #define SampleLvlTex2DArray(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
 
@@ -437,6 +455,7 @@ inline uint3 asuint(float3 X) { return as_type<uint3>(X); }
 inline uint4 asuint(float4 X) { return as_type<uint4>(X); }
 
 #define TexCube(ELEM_TYPE) texturecube<METAL_T(ELEM_TYPE), access::sample>
+#define TexCubeArray(ELEM_TYPE) texturecube_array<METAL_T(ELEM_TYPE), access::sample>
 
 #define RWTex1D(ELEM_TYPE) texture1d<METAL_T(ELEM_TYPE), access::read_write>
 #define RWTex2D(ELEM_TYPE) texture2d<METAL_T(ELEM_TYPE), access::read_write>

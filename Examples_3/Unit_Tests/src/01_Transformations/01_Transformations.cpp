@@ -304,13 +304,13 @@ static void generate_complex_mesh()
                 uint8_t* sq_color = sqColors[i][x][y];
                 uint8_t* sp_color = spColors[i][x][y];
 
-                sq_color[0] = (randomInt(0, 256) * close_ratio) / 255;
-                sq_color[1] = (randomInt(0, 256) * close_ratio) / 255;
-                sq_color[2] = (randomInt(0, 256) * close_ratio) / 255;
+                sq_color[0] = (uint8_t)((randomInt(0, 256) * close_ratio) / 255);
+                sq_color[1] = (uint8_t)((randomInt(0, 256) * close_ratio) / 255);
+                sq_color[2] = (uint8_t)((randomInt(0, 256) * close_ratio) / 255);
 
-                sp_color[0] = (spColorTemplate[0] * close_ratio) / 255;
-                sp_color[1] = (spColorTemplate[1] * close_ratio) / 255;
-                sp_color[2] = (spColorTemplate[2] * close_ratio) / 255;
+                sp_color[0] = (uint8_t)((spColorTemplate[0] * close_ratio) / 255);
+                sp_color[1] = (uint8_t)((spColorTemplate[1] * close_ratio) / 255);
+                sp_color[2] = (uint8_t)((spColorTemplate[2] * close_ratio) / 255);
             }
         }
     }
@@ -326,12 +326,12 @@ static void generate_complex_mesh()
                 uint16_t* quadIndices = indices[i][x][y];
 
 #define vid(vx, vy) (o + (vx)*DETAIL_LEVEL + (vy))
-                quadIndices[0] = vid(x, y);
-                quadIndices[1] = vid(x, y + 1);
-                quadIndices[2] = vid(x + 1, y + 1);
-                quadIndices[3] = vid(x + 1, y + 1);
-                quadIndices[4] = vid(x + 1, y);
-                quadIndices[5] = vid(x, y);
+                quadIndices[0] = (uint16_t)vid(x, y);
+                quadIndices[1] = (uint16_t)vid(x, y + 1);
+                quadIndices[2] = (uint16_t)vid(x + 1, y + 1);
+                quadIndices[3] = (uint16_t)vid(x + 1, y + 1);
+                quadIndices[4] = (uint16_t)vid(x + 1, y);
+                quadIndices[5] = (uint16_t)vid(x, y);
 #undef vid
             }
         }
@@ -733,6 +733,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -789,6 +790,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -983,7 +985,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1151,7 +1153,7 @@ public:
         queueSubmit(pGraphicsQueue, &submitDesc);
 
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.pSwapChain = pSwapChain;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
@@ -1328,14 +1330,14 @@ public:
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData params[1] = {};
-            params[0].pName = "uniformBlock";
-            params[0].ppBuffers = &pSkyboxUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
+            DescriptorData uParams[1] = {};
+            uParams[0].pName = "uniformBlock";
+            uParams[0].ppBuffers = &pSkyboxUniformBuffer[i];
+            updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, uParams);
 
-            params[0].pName = "uniformBlock";
-            params[0].ppBuffers = &pProjViewUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
+            uParams[0].pName = "uniformBlock";
+            uParams[0].ppBuffers = &pProjViewUniformBuffer[i];
+            updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, uParams);
         }
     }
 };

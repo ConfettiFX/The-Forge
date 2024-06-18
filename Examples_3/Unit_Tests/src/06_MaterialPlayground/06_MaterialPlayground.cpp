@@ -712,7 +712,11 @@ bool gSupportTextureAtomics = true;
 CameraMatrix gTextProjView;
 mat4         gTextWorldMats[MATERIAL_INSTANCE_COUNT] = {};
 
-void ReloadScriptButtonCallback(void* pUserData) { gLuaManager.ReloadUpdatableScript(); }
+void ReloadScriptButtonCallback(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    gLuaManager.ReloadUpdatableScript();
+}
 
 #define OUT_OF_POSITION float3(100000.0f, 100000.0f, 100000.0f)
 
@@ -775,6 +779,7 @@ uint32_t gFontID = 0;
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -907,6 +912,7 @@ public:
         gLuaManager.SetFunction("LookAtWorldOrigin",
                                 [cameraLocalPtr](ILuaStateWrap* state) -> int
                                 {
+                                    UNREF_PARAM(state);
                                     cameraLocalPtr->lookAt(vec3(0, 0, 0));
                                     return 0; // return amount of arguments
                                 });
@@ -1061,6 +1067,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1116,6 +1123,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -1334,7 +1342,7 @@ public:
         gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMap = 0;
         gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = gDirectionalLightIntensity;
         gUniformDataDirectionalLights.mDirectionalLights[0].mColor = gDirectionalLightColor.getXYZ();
-        gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.getPrimaryMatrix() * viewMat;
+        gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.mCamera * viewMat;
         gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMapDimensions = gShadowMapDimensions;
         gUniformDataDirectionalLights.mNumDirectionalLights = 1;
 
@@ -1503,7 +1511,7 @@ public:
 
     void Draw() override
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -2188,11 +2196,11 @@ public:
 #if HAIR_MAX_CAPSULE_COUNT > 0
             if (gShowCapsules)
             {
-                BindRenderTargetsDesc bindRenderTargets = {};
-                bindRenderTargets.mRenderTargetCount = 1;
-                bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-                bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
-                cmdBindRenderTargets(cmd, &bindRenderTargets);
+                BindRenderTargetsDesc bindDesc = {};
+                bindDesc.mRenderTargetCount = 1;
+                bindDesc.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+                bindDesc.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
+                cmdBindRenderTargets(cmd, &bindDesc);
                 cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
                 cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2318,7 +2326,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;
@@ -2680,7 +2688,7 @@ public:
         // Name Plates
         getMaterialTextures(pGroundAndNameplateMaterials, 1, pTextureNames, ppTextures, MATERIAL_TEXTURE_COUNT);
 
-        for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
+        for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
         {
             for (uint32_t j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
             {
@@ -2688,8 +2696,8 @@ public:
                 params[j].ppTextures = &ppTextures[j];
             }
             params[MATERIAL_TEXTURE_COUNT].pName = "cbObject";
-            params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferNamePlates[j];
-            updateDescriptorSet(pRenderer, 1 + j, ppSceneMaterialDescriptorSets[SCENE_MATERIAL_NAME_PLATE][2], MATERIAL_TEXTURE_COUNT + 1,
+            params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferNamePlates[i];
+            updateDescriptorSet(pRenderer, 1 + i, ppSceneMaterialDescriptorSets[SCENE_MATERIAL_NAME_PLATE][2], MATERIAL_TEXTURE_COUNT + 1,
                                 params);
         }
     }
@@ -3180,7 +3188,12 @@ public:
                                     return 0; // return amount of arguments that we want to send back to script
                                 });
 
-        gLuaManager.AddAsyncScript("loadModels.lua", [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
+        gLuaManager.AddAsyncScript("loadModels.lua",
+                                   [&modelsAreLoaded](ScriptState state)
+                                   {
+                                       UNREF_PARAM(state);
+                                       modelsAreLoaded = true;
+                                   });
 
         while (!modelsAreLoaded) //-V776 //-V712
             threadSleep(0);
@@ -3455,7 +3468,7 @@ public:
             cmdBindPushConstants(pCmd, pSpecularRootSignature, rootConstantIndex, &data);
             params[0].pName = "dstTexture";
             params[0].ppTextures = &pTextureSpecularMap;
-            params[0].mUAVMipSlice = i;
+            params[0].mUAVMipSlice = (uint16_t)i;
             updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
             cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
             pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
@@ -3946,6 +3959,8 @@ public:
     static void addHairMesh(HairType type, const char* name, const char* tfxFile, uint numFollowHairs, float maxRadiusAroundGuideHair,
                             uint transform, HairSectionShadingParameters* shadingParameters, HairSimulationParameters* simulationParameters)
     {
+        UNREF_PARAM(name);
+        UNREF_PARAM(maxRadiusAroundGuideHair);
         HairBuffer hairBuffer = {};
 
         VertexLayout layout = {};
@@ -4685,7 +4700,7 @@ public:
 //--------------------------------------------------------------------------------------------
 void GuiController::UpdateDynamicUI()
 {
-    if (gMaterialType != GuiController::currentMaterialType)
+    if ((int)gMaterialType != GuiController::currentMaterialType)
     {
         gDiffuseReflectionModel = gMaterialLightingModelMap[gMaterialType];
 

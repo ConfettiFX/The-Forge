@@ -3186,29 +3186,31 @@ void CompilerMSL::add_plain_member_variable_to_interface_block(StorageClass stor
 	}
 
 	const SPIRConstant *c = nullptr;
-	if (!flatten_stage_out && var.storage == StorageClassOutput &&
-	    var.initializer != ID(0) && (c = maybe_get<SPIRConstant>(var.initializer)))
+	if (!flatten_stage_out && var.storage == StorageClassOutput && var.initializer != ID(0))
 	{
-		if (meta.strip_array)
-		{
-			entry_func.fixup_hooks_in.push_back([=, &var]() {
-				auto &type = this->get<SPIRType>(var.basetype);
-				uint32_t index = get_extended_member_decoration(var.self, mbr_idx, SPIRVCrossDecorationInterfaceMemberIndex);
+		c = maybe_get<SPIRConstant>(var.initializer);
+		if (c) {
+			if (meta.strip_array)
+			{
+				entry_func.fixup_hooks_in.push_back([=, &var]() {
+					auto &type = this->get<SPIRType>(var.basetype);
+					uint32_t index = get_extended_member_decoration(var.self, mbr_idx, SPIRVCrossDecorationInterfaceMemberIndex);
 
-				auto invocation = to_tesc_invocation_id();
-				auto constant_chain = join(to_expression(var.initializer), "[", invocation, "]");
-				statement(to_expression(stage_out_ptr_var_id), "[",
-				          invocation, "].",
-				          to_member_name(ib_type, index), " = ",
-				          constant_chain, ".", to_member_name(type, mbr_idx), ";");
-			});
-		}
-		else
-		{
-			entry_func.fixup_hooks_in.push_back([=]() {
-				statement(qual_var_name, " = ", constant_expression(
-						this->get<SPIRConstant>(c->subconstants[mbr_idx])), ";");
-			});
+					auto invocation = to_tesc_invocation_id();
+					auto constant_chain = join(to_expression(var.initializer), "[", invocation, "]");
+					statement(to_expression(stage_out_ptr_var_id), "[",
+							  invocation, "].",
+							  to_member_name(ib_type, index), " = ",
+							  constant_chain, ".", to_member_name(type, mbr_idx), ";");
+				});
+			}
+			else
+			{
+				entry_func.fixup_hooks_in.push_back([=]() {
+					statement(qual_var_name, " = ", constant_expression(
+							this->get<SPIRConstant>(c->subconstants[mbr_idx])), ";");
+				});
+			}
 		}
 	}
 
@@ -12711,40 +12713,46 @@ void CompilerMSL::entry_point_args_builtin(string &ep_args)
 
 			const SPIRConstant *c = nullptr;
 
-			if (outer_factor_initializer_id && (c = maybe_get<SPIRConstant>(outer_factor_initializer_id)))
+			if (outer_factor_initializer_id)
 			{
-				auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
-				entry_func.fixup_hooks_in.push_back(
-				    [=]()
-				    {
-					    uint32_t components = is_tessellating_triangles() ? 3 : 4;
-					    for (uint32_t i = 0; i < components; i++)
-					    {
-						    statement(builtin_to_glsl(BuiltInTessLevelOuter, StorageClassOutput), "[", i,
-						              "] = ", "half(", to_expression(c->subconstants[i]), ");");
-					    }
-				    });
+				c = maybe_get<SPIRConstant>(outer_factor_initializer_id);
+				if (c) {
+					auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
+					entry_func.fixup_hooks_in.push_back(
+						[=]()
+						{
+							uint32_t components = is_tessellating_triangles() ? 3 : 4;
+							for (uint32_t i = 0; i < components; i++)
+							{
+								statement(builtin_to_glsl(BuiltInTessLevelOuter, StorageClassOutput), "[", i,
+										  "] = ", "half(", to_expression(c->subconstants[i]), ");");
+							}
+						});
+				}
 			}
 
-			if (inner_factor_initializer_id && (c = maybe_get<SPIRConstant>(inner_factor_initializer_id)))
+			if (inner_factor_initializer_id)
 			{
-				auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
-				if (is_tessellating_triangles())
-				{
-					entry_func.fixup_hooks_in.push_back([=]() {
-						statement(builtin_to_glsl(BuiltInTessLevelInner, StorageClassOutput), " = ", "half(",
-						          to_expression(c->subconstants[0]), ");");
-					});
-				}
-				else
-				{
-					entry_func.fixup_hooks_in.push_back([=]() {
-						for (uint32_t i = 0; i < 2; i++)
-						{
-							statement(builtin_to_glsl(BuiltInTessLevelInner, StorageClassOutput), "[", i, "] = ",
-							          "half(", to_expression(c->subconstants[i]), ");");
-						}
-					});
+				c = maybe_get<SPIRConstant>(inner_factor_initializer_id);
+				if (c) {
+					auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
+					if (is_tessellating_triangles())
+					{
+						entry_func.fixup_hooks_in.push_back([=]() {
+							statement(builtin_to_glsl(BuiltInTessLevelInner, StorageClassOutput), " = ", "half(",
+									  to_expression(c->subconstants[0]), ");");
+						});
+					}
+					else
+					{
+						entry_func.fixup_hooks_in.push_back([=]() {
+							for (uint32_t i = 0; i < 2; i++)
+							{
+								statement(builtin_to_glsl(BuiltInTessLevelInner, StorageClassOutput), "[", i, "] = ",
+										  "half(", to_expression(c->subconstants[i]), ");");
+							}
+						});
+					}
 				}
 			}
 

@@ -230,11 +230,11 @@ void AvoidanceSystem(ecs_iter_t* it)
             SpriteComponent*   avoidSprites = ecs_term(&avoidIter, SpriteComponent, 3);
             AvoidComponent*    avoidDistances = ecs_term(&avoidIter, AvoidComponent, 4);
 
-            for (int i = 0; i < avoidIter.count; i++)
+            for (int j = 0; j < avoidIter.count; j++)
             {
-                const PositionComponent& avoidPosition = avoidPositions[i];
-                const SpriteComponent&   avoidSprite = avoidSprites[i];
-                const AvoidComponent&    avoidDistance = avoidDistances[i];
+                const PositionComponent& avoidPosition = avoidPositions[j];
+                const SpriteComponent&   avoidSprite = avoidSprites[j];
+                const AvoidComponent&    avoidDistance = avoidDistances[j];
 
                 if (DistanceSq(pos, avoidPosition) < avoidDistance.distanceSq)
                 {
@@ -263,6 +263,7 @@ struct CreationData
 
 static void createEntities(void* pData, uintptr_t i)
 {
+    UNREF_PARAM(i);
     CreationData data = *(CreationData*)pData;
 
     ecs_entity_t entityId = ecs_new_id(gECSWorld);
@@ -534,6 +535,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -726,7 +728,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -827,7 +829,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;

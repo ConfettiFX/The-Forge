@@ -1,0 +1,372 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+// USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
+// Uncomment this definition to use ray differentials method for calculating
+// gradients instead of screen-space projected triangles method.
+//#define USE_RAY_DIFFERENTIALS
+
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "shading.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
+
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
+
+// This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
+
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, screenPos, TEXCOORD0);
+};
+
+// Static descriptors
+#if(SAMPLE_COUNT > 1)
+	RES(Tex2DMS(float4, SAMPLE_COUNT), vbTex, UPDATE_FREQ_NONE, t0, binding = 14);
+#else
+	RES(Tex2D(float4), vbTex, UPDATE_FREQ_NONE, t0, binding = 14);
+#endif
+
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t0, binding = 24);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t1, binding = 24 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t2, binding = 24 + MAX_TEXTURE_UNITS * 2);
+#else
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  space4, t0, binding = 24);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   space5, t0, binding = 24 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], space6, t0, binding = 24 + MAX_TEXTURE_UNITS * 2);
+#endif
+
+RES(TexCubeArray(float), depthCube, UPDATE_FREQ_PER_FRAME, t22, binding = 24 + MAX_TEXTURE_UNITS * 3);
+
+RES(ByteBuffer, vertexPos,           UPDATE_FREQ_NONE, t10, binding=0);
+RES(ByteBuffer, vertexTexCoord,      UPDATE_FREQ_NONE, t11, binding=1);
+RES(ByteBuffer, vertexNormal,        UPDATE_FREQ_NONE, t12, binding=5);
+RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t14, binding=4);
+RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t8, binding = 15);
+RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t16, binding=6);
+
+RES(Buffer(uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, t20, binding=20);
+RES(Buffer(uint), lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=21);
+RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t22, binding = 16);
+RES(WTex2D(float), shadowCollector, UPDATE_FREQ_NONE, u2, binding = 23);
+
+RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_PER_FRAME, t52, binding = 24);
+RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_PER_FRAME, t53, binding = 10);
+
+RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s1, binding = 8);
+RES(SamplerState, pointSampler, UPDATE_FREQ_NONE, s2, binding = 3);
+
+float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+{
+	INIT_MAIN;
+	// Load Visibility Buffer raw packed float4 data from render target
+#if(SAMPLE_COUNT > 1)
+	float4 visRaw = LoadTex2DMS(Get(vbTex), Get(depthSampler), uint2(In.position.xy), i);
+#else
+	float4 visRaw = LoadTex2D(Get(vbTex), Get(depthSampler), uint2(In.position.xy), 0);
+#endif
+	// Unpack float4 render target data into uint to extract data
+	uint geomSetPrimID = packUnorm4x8(visRaw);
+
+	// Early exit if this pixel doesn't contain triangle data
+	if (geomSetPrimID == ~0u)
+	{
+		RETURN(float4(0.0,0.0,0.0, 1.0));
+	}
+	// Extract packed data
+	uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+	uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
+
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 0;
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 1;
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 2;
+
+	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
+	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
+	uint index2 = LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
+
+	uint materialID = Get(indirectDataBuffer)[index0];
+	MeshConstants meshConstant = Get(meshConstantsBuffer)[materialID];
+
+	// Load vertex data of the 3 vertices
+	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
+
+	// Transform positions to clip space
+	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v0pos, 1.0f));
+	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v1pos, 1.0f));
+	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp.mat, float4(v2pos, 1.0f));
+
+	// Compute partial derivatives and baycentric coordinates.
+	// This is necessary to interpolate triangle attributes per pixel.
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,In.screenPos, Get(twoOverRes));
+
+	// Interpolated 1/w (one_over_w) for all three vertices of the triangle
+	// using the barycentric coordinates and the delta vector
+	float w = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
+
+	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
+	// operations that involve computing Z
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection.mat, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection.mat, 3, 2);
+
+	// Calculate the world position coordinates:
+	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
+	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
+	float3 wsPosition = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4(In.screenPos * w, z, w)).xyz;
+
+
+	f3x2 texCoords = make_f3x2_cols(
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index0 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index1 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) 
+	);
+
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP.mat,pos2);
+
+#if defined(USE_RAY_DIFFERENTIALS)
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((In.screenPos+two_over_windowsize.y/2) * w, z, w)).xyz;
+
+	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,wsPosition,positionDX,positionDY,
+												Get(camPos).xyz);
+#endif
+
+	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
+	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);
+	
+	float linearZ = linearizeDepth(z/w, Get(CameraPlane).x, Get(CameraPlane).y);
+	float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
+	
+	float2 texCoordDX = results.dx * mip;
+	float2 texCoordDY = results.dy * mip;
+	float2 texCoord = results.interp;
+
+	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
+	// Reconstruct normal map Z from X and Y
+	// "NonUniformResourceIndex" is a "pseudo" function see
+	// http://asawicki.info/news_1608_direct3d_12_-_watch_out_for_non-uniform_resource_index.html
+
+	// Get textures from arrays.
+	float4 normalMapRG;
+	float4 diffuseColor;
+	float4 specularColor;
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+		normalMapRG   = SampleGradTex2D(Get(normalMaps)[materialID],   Get(textureSampler), texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(Get(diffuseMaps)[materialID],  Get(textureSampler), texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(Get(specularMaps)[materialID], Get(textureSampler), texCoord, texCoordDX, texCoordDY);
+	EndNonUniformResourceIndex();
+
+	float3 reconstructedNormalMap;
+	reconstructedNormalMap.xy = normalMapRG.ga * 2.0f - 1.0f;
+	reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
+
+	// NORMAL INTERPOLATION
+	float3x3 normals = make_f3x3_rows(
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index0 << 2))),
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index1 << 2))),
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index2 << 2)))
+	);
+	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
+	
+	//Calculate pixel normal and tangent vectors
+	f3x3 wPositions = make_f3x3_cols(
+			wPos0.xyz,
+			wPos1.xyz,
+			wPos2.xyz
+	);
+
+	DerivativesOutput wPosDer = Cal3DDeriv(derivativesOut, wPositions);
+	DerivativesOutput uvDer = { float3(results.dx, 0.0),  float3(results.dy, 0.0) };
+	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
+
+	// Sample Diffuse color
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].mvp.mat, float4(wsPosition, 1.0f));
+	
+	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
+	float Metallic = specularColor.b;
+
+	float ao = 1.0f;
+
+	bool isTwoSided =  (geomSet == GEOMSET_ALPHA_CUTOUT) && (Get(meshConstantsBuffer)[materialID].twoSided == 1);
+	bool isBackFace = false;
+
+	float3 ViewVec = normalize(Get(camPos).xyz - wsPosition.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	if (isTwoSided && dot(normal, ViewVec) < 0.0f)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	float3 HalfVec = normalize(ViewVec - normalize(Get(lightDir).xyz));
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+
+	float NoL = dot(normal, -normalize(Get(lightDir).xyz));	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	float3 shadedColor = f3(0.0f);
+
+	float3 F0 = specularColor.xyz * 0.8;
+	float3 DiffuseColor = diffuseColor.xyz;
+	float shadowFactor = 1.0f;
+	float fLightingMode = saturate(float(Get(lightingMode)));
+
+	shadedColor = calculateIllumination(
+		    normal,
+		    ViewVec,
+			HalfVec,
+			ReflectVec,
+			NoL,
+			NoV,
+			Get(camPos).xyz,
+			Get(esmControl),
+			normalize(Get(lightDir).xyz),
+			posLS,
+			wsPosition,
+			Get(shadowMap),
+			DiffuseColor,
+			F0,
+			Roughness,
+			Metallic,			
+			Get(depthSampler),
+			isBackFace,
+			fLightingMode,
+			shadowFactor);
+			
+	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL * ao * 0.2;
+
+	// Find the light cluster for the current pixel
+	uint2 clusterCoords = uint2(floor((In.screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)));
+	uint numLightsInCluster = Get(lightClustersCount)[clusterCoords.x + clusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT];
+
+	float currShadow = 1.0;
+
+	// Accumulate light contributions
+	for (uint j = 0; j < numLightsInCluster; ++j)
+	{
+		uint lightId = Get(lightClusters)[(clusterCoords.x + clusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT) * MAX_LIGHTS_PER_CLUSTER + j];
+		
+		uint Bitfield = Get(BitfieldBuffer)[lightId];
+		ParticleData particle = Get(ParticlesDataBuffer)[lightId];
+		bool castShadows = (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW) > 0;
+		
+		float3 pointLightPos = GetParticlePosition(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particle);
+		float3 fragToLight = wsPosition - pointLightPos;
+		float lightDistance = length(fragToLight);
+
+		float blinkFactor = castShadows ? 1.0 : clamp(sin((float(Get(Time)) + lightId) * 1.0) + 0.5, 0.0, 1.0);
+		float modulationFactor = sin(Get(Time) + (float(lightId) / LIGHT_COUNT) * 8 * PI);
+		modulationFactor = clamp(modulationFactor, -LIGHT_SIZE/3, LIGHT_SIZE/3);
+
+		float lightRadius = (GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK).LightRadius + modulationFactor * 0.05) * blinkFactor;
+		NoL = dot(normal, -fragToLight);
+		
+		// Don't apply if 
+		//		- World distance between light and fragment is more than the area of influence of the light
+		//		- Light is behind the surface
+		if (lightDistance > lightRadius || NoL <= 0.0)
+			continue;
+
+		float4 particleColor = float4(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK).Color, 1.0);
+		float4 lightColor = lerp(float4(particleColor.x,particleColor.y*0.5, particleColor.z,1.0), particleColor, (modulationFactor + 1.0) / 2.0);
+
+		// point light shadows
+		if (castShadows)
+		{
+			float lightDistanceNorm = (lightDistance - CAMERA_NEAR) / (CAMERA_FAR - CAMERA_NEAR);
+			float cubeDepth = 1.0 - SampleLvlTexCubeArray(Get(depthCube), Get(textureSampler), normalize(fragToLight), lightId).x;
+
+			float occluderDistance = (cubeDepth * (CAMERA_FAR - CAMERA_NEAR)) + CAMERA_NEAR;
+			// TODO: use a falloff curve instead of linear interpolation to better align with the light
+			float esmAmount = lerp(0, 160, clamp(float(lightRadius - lightDistance) / lightRadius, 0.0, 1.0));
+
+			float myDepth = exp(-esmAmount*2 * lightDistanceNorm);
+			cubeDepth = exp(esmAmount*2 * cubeDepth);
+			currShadow *= saturate(myDepth * cubeDepth);
+
+			/* TODO: SOFT SHADOWS
+			float4 shadowValue = float4(saturate(currShadow), 0, 0, 0);
+			float coarseDepth = (1.0 - SampleLvlTexCube(Get(coarseMaps)[k], Get(pointSampler), sampleDir, 0).x) * (CAMERA_FAR - CAMERA_NEAR) + CAMERA_NEAR;
+			float occluderDistance = abs(length(fragToLight) - coarseDepth);
+
+			float dReceiverBlocker = occluderDistance;
+			float dBlockerObserver = coarseDepth;
+			float wLight = lightRadius * 2;
+			float cameraDistanceFactor = length(camPos - wsPosition);
+			float cameraFactorBias = 0.0001;
+			cameraDistanceFactor = sqrt(1.0 / (cameraDistanceFactor * cameraDistanceFactor * cameraFactorBias));
+
+			float penumbraWidth = (dReceiverBlocker * wLight) / dBlockerObserver;
+			float anisoSize = saturate(sqrt(dot(ViewVec, normal))) * penumbraWidth * cameraDistanceFactor;
+
+			shadowValue.x = currShadow;
+			shadowValue.y = anisoSize;
+			*/
+		}
+
+		shadedColor += pointLightShade(
+		normal,
+		ViewVec,
+		HalfVec,
+		ReflectVec,
+		NoL,
+		NoV,
+		pointLightPos,
+		lightColor.xyz,
+		Get(camPos).xyz,
+		normalize(fragToLight),
+		posLS,
+		wsPosition,
+		DiffuseColor,
+		F0,
+		Roughness,
+		Metallic,		
+		isBackFace,
+		fLightingMode,
+		lightRadius) * saturate(NoL);
+	}
+
+	// TODO: Mask pixels that aren't affected by shadows
+	// Save shadow data
+	if (currShadow < 1.0)
+		Write2D(Get(shadowCollector), uint2(In.position.xy), saturate(currShadow));
+
+	// Shaded + ambient color
+	float3 FinalColor = shadedColor + diffuseColor.xyz * 0.05;
+
+	RETURN(float4(FinalColor, 1.0));
+}

@@ -3,11 +3,10 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="Yes"/>
+  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
-  <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_ScreenSpaceReflections" Path="10_ScreenSpaceReflections/10_ScreenSpaceReflections.project" Active="No"/>
   <Project Name="12_ZipFileSystem" Path="12_ZipFileSystem/12_ZipFileSystem.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
@@ -25,6 +24,7 @@
   <Project Name="15a_VisibilityBufferOIT" Path="15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.project" Active="No"/>
   <Project Name="34_Input" Path="34_Input/34_Input.project" Active="No"/>
   <Project Name="36_AlgorithmsAndContainers" Path="36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.project" Active="No"/>
+  <Project Name="39_ParticleSystem" Path="39_ParticleSystem/39_ParticleSystem.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
       <Environment/>
@@ -37,7 +37,6 @@
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
-      <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
       <Project Name="10_ScreenSpaceReflections" ConfigName="Debug"/>
       <Project Name="12_ZipFileSystem" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
@@ -62,6 +61,7 @@
       <Project Name="19a_CodeHotReload_Game" ConfigName="Debug"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Debug"/>
       <Project Name="21_Animations" ConfigName="Debug"/>
+      <Project Name="39_ParticleSystem" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release">
       <Environment/>
@@ -86,7 +86,6 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="12_ZipFileSystem" ConfigName="Release"/>
       <Project Name="10_ScreenSpaceReflections" ConfigName="Release"/>
-      <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
       <Project Name="03_MultiThread" ConfigName="Release"/>
@@ -98,6 +97,7 @@
       <Project Name="19a_CodeHotReload_Game" ConfigName="Release"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Release"/>
       <Project Name="21_Animations" ConfigName="Release"/>
+      <Project Name="39_ParticleSystem" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

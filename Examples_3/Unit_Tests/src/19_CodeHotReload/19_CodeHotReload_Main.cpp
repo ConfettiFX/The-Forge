@@ -95,7 +95,7 @@ static const char* findMsBuildPath()
 
             buffer = (char*)tf_malloc(size);
             size_t readSize = fsReadFromStream(&stream, buffer, size);
-            ASSERT(readSize == size);
+            ASSERT(readSize == (size_t)size);
 
             // VSWhere command
             char* endPos = strchr(buffer, ' ');
@@ -285,6 +285,7 @@ const char* gTestScripts[] = { "Test_HotReload.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -366,11 +367,11 @@ static void AvoidanceSystem(ecs_iter_t* it)
             SpriteComponent*   avoidSprites = ecs_term(&avoidIter, SpriteComponent, 3);
             AvoidComponent*    avoidDistances = ecs_term(&avoidIter, AvoidComponent, 4);
 
-            for (int i = 0; i < avoidIter.count; i++)
+            for (int j = 0; j < avoidIter.count; j++)
             {
-                const PositionComponent& avoidPosition = avoidPositions[i];
-                const SpriteComponent&   avoidSprite = avoidSprites[i];
-                const AvoidComponent&    avoidDistance = avoidDistances[i];
+                const PositionComponent& avoidPosition = avoidPositions[j];
+                const SpriteComponent&   avoidSprite = avoidSprites[j];
+                const AvoidComponent&    avoidDistance = avoidDistances[j];
 
                 Vector2     v = pos.pos - avoidPosition.pos;
                 const float sumRadius = avoidDistance.distance + sprite.scale * 0.5f;
@@ -442,6 +443,7 @@ struct CreationData
 
 static void createEntity(ecs_world_t* world, CreationData* pData, uintptr_t i)
 {
+    UNREF_PARAM(i);
     ecs_entity_t entityId = ecs_new_id(world);
 
     float x = randomFloat(pData->bounds->xMin, pData->bounds->xMax);
@@ -653,6 +655,7 @@ public:
         static WindowDesc* pWindowDesc = pWindow;
         widget->pOnEdited = [](void* pUserData)
         {
+            UNREF_PARAM(pUserData);
             const char* logDirectory = fsGetResourceDirectory(RD_LOG);
             char        buildLogFile[FS_MAX_PATH] = {};
             snprintf(buildLogFile, sizeof(buildLogFile), "%s\\%s", logDirectory, "CodeReloadBuild.log");
@@ -844,6 +847,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -1057,7 +1061,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1152,7 +1156,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;

@@ -48,7 +48,12 @@
 #include "../../Utilities/Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
+#if defined(ENABLE_FORGE_REMOTE_UI)
 #include "../../Tools/Network/Network.h"
+#endif
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
+#include "../../Tools/ReloadServer/ReloadClient.h"
+#endif
 #include "../../Utilities/Math/MathTypes.h"
 #include "../CPUConfig.h"
 
@@ -84,7 +89,9 @@ static OSInfo  gOsInfo = {};
 
 /// VSync Toggle
 static UIComponent* pToggleVSyncWindow = NULL;
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
+#endif
 
 //------------------------------------------------------------------------
 // OPERATING SYSTEM INTERFACE FUNCTIONS
@@ -238,16 +245,17 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
 
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+#endif
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
 
-    extern void platformReloadClientAddReloadShadersButton(UIComponent * pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
 #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
@@ -274,7 +282,9 @@ void togglePlatformUI()
     platformToggleWindowSystemUI(gShowPlatformUI);
 
     uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
     uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
+#endif
 #endif
 }
 
@@ -547,9 +557,10 @@ int LinuxMain(int argc, char** argv, IApp* app)
             togglePlatformUI();
         }
 
-        extern bool platformReloadClientShouldQuit(void);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
         if (platformReloadClientShouldQuit())
             gQuit = true;
+#endif
 
 #ifdef AUTOMATED_TESTING
         extern bool gAutomatedTestingScriptsFinished;

@@ -118,7 +118,7 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 	uint index0 = indirectIndex0 - meshConstant.indirectVertexOffset;
 	uint index1 = indirectIndex1 - meshConstant.indirectVertexOffset;
 	uint index2 = indirectIndex2 - meshConstant.indirectVertexOffset;
-	float4x4 mvp = Get(transform)[VIEW_CAMERA].mvp;
+	float4x4 mvp = Get(transform)[VIEW_CAMERA].mvp.mat;
 
 	// If triangle belongs to an animated instance: drawVertexOffset contains the offset to the animated attributes, 
 	// we need a different offset to access the constant data.
@@ -159,12 +159,12 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 
 	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 	// operations that involve computing Z
-	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection.mat, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection.mat, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using screenPos and the computed Z value at this point.
 	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(screenPos * w, z, w)).xyz;
+	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4(screenPos * w, z, w)).xyz;
 
 	// TEXTURE COORD INTERPOLATION
 	f3x2 texCoords = make_f3x2_cols(
@@ -173,13 +173,13 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 			unpack2Floats(LoadByte(Get(vertexTexCoord), animIndex2 << 2)) 
 	);
 
-	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP, pos0);
-	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP, pos1);
-	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP, pos2);
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP.mat, pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP.mat, pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP.mat, pos2);
 
 #if defined(USE_RAY_DIFFERENTIALS)
-	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+two_over_windowsize.x) * w, z, w)).xyz;
-	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+two_over_windowsize.y) * w, z, w)).xyz;
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((screenPos+two_over_windowsize.x) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP.mat, float4((screenPos+two_over_windowsize.y) * w, z, w)).xyz;
 
 	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
 												Get(camPos).xyz);
@@ -249,7 +249,7 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
 
 	// Sample Diffuse color
-	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
 	
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;

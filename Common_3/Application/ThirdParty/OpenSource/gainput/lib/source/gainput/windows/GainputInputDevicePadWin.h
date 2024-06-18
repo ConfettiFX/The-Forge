@@ -35,7 +35,7 @@ public:
 		state_(state),
 		previousState_(previousState),
 		deviceState_(InputDevice::DS_UNAVAILABLE),
-		lastPacketNumber_(-1),
+		lastPacketNumber_((uint32_t)-1),
 		hasBattery_(false),
 		type_(PadType::Unresolved)
 	{
@@ -256,6 +256,7 @@ public:
 	// targetOwningDevice discarded/ignored as it is only used for mobile phones... 
 	bool SetRumbleEffect(float leftMotor, float rightMotor, uint32_t duration_ms, bool targetOwningDevice)
 	{
+		UNREF_PARAM(targetOwningDevice); 
 		return SetRumbleEffect(leftMotor, rightMotor, duration_ms);
 	}
 

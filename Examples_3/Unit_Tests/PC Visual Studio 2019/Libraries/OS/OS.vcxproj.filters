@@ -552,9 +552,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\ITime.h">
       <Filter>Common_3\Utilities\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IToolFileSystem.h">
-      <Filter>Common_3\Utilities\Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Log\Log.h">
       <Filter>Common_3\Utilities\Log</Filter>
     </ClInclude>

@@ -100,7 +100,7 @@ static int str_lower (lua_State *L) {
   const char *s = luaL_checklstring(L, 1, &l);
   char *p = luaL_buffinitsize(L, &b, l);
   for (i=0; i<l; i++)
-    p[i] = tolower(uchar(s[i]));
+    p[i] = (char)tolower(uchar(s[i]));
   luaL_pushresultsize(&b, l);
   return 1;
 }
@@ -113,7 +113,7 @@ static int str_upper (lua_State *L) {
   const char *s = luaL_checklstring(L, 1, &l);
   char *p = luaL_buffinitsize(L, &b, l);
   for (i=0; i<l; i++)
-    p[i] = toupper(uchar(s[i]));
+    p[i] = (char)toupper(uchar(s[i]));
   luaL_pushresultsize(&b, l);
   return 1;
 }
@@ -393,7 +393,7 @@ static const char *start_capture (MatchState *ms, const char *s,
   if (level >= LUA_MAXCAPTURES) luaL_error(ms->L, "too many captures");
   ms->capture[level].init = s;
   ms->capture[level].len = what;
-  ms->level = level+1;
+  ms->level = (uint8_t)(level+1);
   if ((res=match(ms, s, p)) == NULL)  /* match failed? */
     ms->level--;  /* undo capture */
   return res;
@@ -833,7 +833,7 @@ static int str_gsub (lua_State *L) {
 static lua_Number adddigit (char *buff, int n, lua_Number x) {
   lua_Number dd = l_mathop(floor)(x);  /* get integer part from 'x' */
   int d = (int)dd;
-  buff[n] = (d < 10 ? d + '0' : d - 10 + 'a');  /* add to buffer */
+  buff[n] = (char)(d < 10 ? d + '0' : d - 10 + 'a');  /* add to buffer */
   return x - dd;  /* return what is left */
 }
 
@@ -876,7 +876,7 @@ static int lua_number2strx (lua_State *L, char *buff, int sz,
   if (fmt[SIZELENMOD] == 'A') {
     int i;
     for (i = 0; i < n; i++)
-      buff[i] = toupper(uchar(buff[i]));
+      buff[i] = (char)toupper(uchar(buff[i]));
   }
   else if (fmt[SIZELENMOD] != 'a')
     return luaL_error(L, "modifiers for format '%%a'/'%%A' not implemented");
@@ -1303,7 +1303,7 @@ static void packint (luaL_Buffer *b, lua_Unsigned n,
   }
   if (neg && size > SZINT) {  /* negative number need sign extension? */
     for (i = SZINT; i < size; i++)  /* correct extra bytes */
-      buff[islittle ? i : size - 1 - i] = (char)MC;
+      buff[islittle ? i : size - 1 - i] = (char)(uint8_t)MC;
   }
   luaL_addsize(b, size);  /* add result to buffer */
 }

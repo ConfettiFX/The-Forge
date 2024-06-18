@@ -3251,6 +3251,8 @@ static inline bool VmaIsBufferImageGranularityConflict(
 
 static void VmaWriteMagicValue(void* pData, VkDeviceSize offset)
 {
+    UNREF_PARAM(pData); 
+UNREF_PARAM(offset); 
 #if VMA_DEBUG_MARGIN > 0 && VMA_DEBUG_DETECT_CORRUPTION
     uint32_t* pDst = (uint32_t*)((char*)pData + offset);
     const size_t numberCount = VMA_DEBUG_MARGIN / sizeof(uint32_t);
@@ -3265,6 +3267,8 @@ static void VmaWriteMagicValue(void* pData, VkDeviceSize offset)
 
 static bool VmaValidateMagicValue(const void* pData, VkDeviceSize offset)
 {
+    UNREF_PARAM(pData); 
+UNREF_PARAM(offset); 
 #if VMA_DEBUG_MARGIN > 0 && VMA_DEBUG_DETECT_CORRUPTION
     const uint32_t* pSrc = (const uint32_t*)((const char*)pData + offset);
     const size_t numberCount = VMA_DEBUG_MARGIN / sizeof(uint32_t);
@@ -5817,7 +5821,7 @@ public:
     bool IsPersistentMap() const { return (m_Flags & FLAG_PERSISTENT_MAP) != 0; }
     bool IsMappingAllowed() const { return (m_Flags & FLAG_MAPPING_ALLOWED) != 0; }
 
-    void SetUserData(VmaAllocator hAllocator, void* pUserData) { m_pUserData = pUserData; }
+    void SetUserData(VmaAllocator hAllocator, void* pUserData) { UNREF_PARAM(hAllocator); m_pUserData = pUserData; }
     void SetName(VmaAllocator hAllocator, const char* pName);
     void FreeName(VmaAllocator hAllocator);
     uint8_t SwapBlockAllocation(VmaAllocator hAllocator, VmaAllocation allocation);
@@ -6199,6 +6203,8 @@ VmaBlockMetadata::VmaBlockMetadata(const VkAllocationCallbacks* pAllocationCallb
 
 void VmaBlockMetadata::DebugLogAllocation(VkDeviceSize offset, VkDeviceSize size, void* userData) const
 {
+    UNREF_PARAM(offset); 
+    UNREF_PARAM(size); 
     if (IsVirtual())
     {
         VMA_DEBUG_LOG("UNFREED VIRTUAL ALLOCATION; Offset: %llu; Size: %llu; UserData: %p", offset, size, userData);
@@ -6210,6 +6216,7 @@ void VmaBlockMetadata::DebugLogAllocation(VkDeviceSize offset, VkDeviceSize size
 
         userData = allocation->GetUserData();
         const char* name = allocation->GetName();
+        (void)name;
 
 #if VMA_STATS_STRING_ENABLED
         VMA_DEBUG_LOG("UNFREED ALLOCATION; Offset: %llu; Size: %llu; UserData: %p; Name: %s; Type: %s; Usage: %u",
@@ -8532,6 +8539,7 @@ VmaAllocHandle VmaBlockMetadata_Linear::GetAllocationListBegin() const
 
 VmaAllocHandle VmaBlockMetadata_Linear::GetNextAllocation(VmaAllocHandle prevAlloc) const
 {
+    UNREF_PARAM(prevAlloc); 
     // Function only used for defragmentation, which is disabled for this algorithm
     VMA_ASSERT(0);
     return VK_NULL_HANDLE;
@@ -8539,6 +8547,7 @@ VmaAllocHandle VmaBlockMetadata_Linear::GetNextAllocation(VmaAllocHandle prevAll
 
 VkDeviceSize VmaBlockMetadata_Linear::GetNextFreeRegionSize(VmaAllocHandle alloc) const
 {
+    UNREF_PARAM(alloc); 
     // Function only used for defragmentation, which is disabled for this algorithm
     VMA_ASSERT(0);
     return 0;
@@ -8732,6 +8741,7 @@ bool VmaBlockMetadata_Linear::CreateAllocationRequest_LowerAddress(
     uint32_t strategy,
     VmaAllocationRequest* pAllocationRequest)
 {
+    UNREF_PARAM(strategy); 
     const VkDeviceSize blockSize = GetSize();
     const VkDeviceSize debugMargin = GetDebugMargin();
     const VkDeviceSize bufferImageGranularity = GetBufferImageGranularity();
@@ -8910,6 +8920,7 @@ bool VmaBlockMetadata_Linear::CreateAllocationRequest_UpperAddress(
     uint32_t strategy,
     VmaAllocationRequest* pAllocationRequest)
 {
+    UNREF_PARAM(strategy); 
     const VkDeviceSize blockSize = GetSize();
     const VkDeviceSize bufferImageGranularity = GetBufferImageGranularity();
     SuballocationVectorType& suballocations1st = AccessSuballocations1st();
@@ -10248,6 +10259,7 @@ void VmaBlockMetadata_TLSF::Alloc(
     VmaSuballocationType type,
     void* userData)
 {
+    UNREF_PARAM(type); 
     VMA_ASSERT(request.type == VmaAllocationRequestType::TLSF);
 
     // Get block and pop it from the free list
@@ -11520,7 +11532,7 @@ VmaDeviceMemoryBlock::VmaDeviceMemoryBlock(VmaAllocator hAllocator)
     m_Id(0),
     m_hMemory(VK_NULL_HANDLE),
     m_MapCount(0),
-    m_pMappedData(VMA_NULL) {}
+    m_pMappedData(VMA_NULL) { UNREF_PARAM(hAllocator); }
 
 VmaDeviceMemoryBlock::~VmaDeviceMemoryBlock()
 {
@@ -13942,6 +13954,7 @@ VmaAllocator_T::VmaAllocator_T(const VmaAllocatorCreateInfo* pCreateInfo) :
 
 VkResult VmaAllocator_T::Init(const VmaAllocatorCreateInfo* pCreateInfo)
 {
+    UNREF_PARAM(pCreateInfo); 
     VkResult res = VK_SUCCESS;
 
 #if VMA_MEMORY_BUDGET
@@ -14721,6 +14734,7 @@ VkResult VmaAllocator_T::CalcAllocationParams(
     bool dedicatedRequired,
     bool dedicatedPreferred)
 {
+    UNREF_PARAM(dedicatedPreferred); 
     VMA_ASSERT((inoutCreateInfo.flags &
         (VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT)) !=
         (VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT) &&
@@ -14762,7 +14776,8 @@ VkResult VmaAllocator_T::CalcAllocationParams(
         return VK_ERROR_FEATURE_NOT_PRESENT;
     }
 
-    if(VMA_DEBUG_ALWAYS_DEDICATED_MEMORY &&
+    int dedicated = VMA_DEBUG_ALWAYS_DEDICATED_MEMORY;
+    if(dedicated &&
         (inoutCreateInfo.flags & VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT) != 0)
     {
         inoutCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
@@ -15677,7 +15692,8 @@ void VmaAllocator_T::UpdateVulkanBudget()
 
 void VmaAllocator_T::FillAllocation(const VmaAllocation hAllocation, uint8_t pattern)
 {
-    if(VMA_DEBUG_INITIALIZE_ALLOCATIONS &&
+    int init = VMA_DEBUG_INITIALIZE_ALLOCATIONS;
+    if(init &&
         hAllocation->IsMappingAllowed() &&
         (m_MemProps.memoryTypes[hAllocation->GetMemoryTypeIndex()].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
     {
@@ -16705,6 +16721,7 @@ VMA_CALL_PRE VkResult VMA_CALL_POST vmaBeginDefragmentationPass(
     VmaDefragmentationContext VMA_NOT_NULL context,
     VmaDefragmentationPassMoveInfo* VMA_NOT_NULL pPassInfo)
 {
+    UNREF_PARAM(allocator); 
     VMA_ASSERT(context && pPassInfo);
 
     VMA_DEBUG_LOG("vmaBeginDefragmentationPass");
@@ -16719,6 +16736,7 @@ VMA_CALL_PRE VkResult VMA_CALL_POST vmaEndDefragmentationPass(
     VmaDefragmentationContext VMA_NOT_NULL context,
     VmaDefragmentationPassMoveInfo* VMA_NOT_NULL pPassInfo)
 {
+    UNREF_PARAM(allocator); 
     VMA_ASSERT(context && pPassInfo);
 
     VMA_DEBUG_LOG("vmaEndDefragmentationPass");

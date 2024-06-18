@@ -31,7 +31,49 @@ android {
     aaptOptions {
         noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip'
     }
+
+
+ 
+    signingConfigs {
+        internal_build {
+        	initWith(signingConfigs.debug)
+        }
+        shipping_build {
+            // Note: This should be replaced with proper shipping signing configuration before releasing the app,
+            //       this is a workaround to be able to install release builds without signature
+        	initWith(signingConfigs.debug)
+        }
+    }
+
+    // This is an example on how to setup builds for different custom configuration types
+    buildTypes {
+        debug {
+            initWith(buildTypes.debug)
+            applicationIdSuffix ".debug"
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.internal_build
+        }
+        profile {
+            initWith(buildTypes.release)
+            applicationIdSuffix ".profile"
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.internal_build
+        }
+        release {
+            initWith(buildTypes.release)
+            applicationIdSuffix ".release"
+            debuggable true
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+        }
+    }
 }
+    
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])

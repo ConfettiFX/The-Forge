@@ -26,6 +26,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 STRUCT(FSOutput)
@@ -33,8 +36,12 @@ STRUCT(FSOutput)
 	DATA(float4, FragmentOutput, SV_Target);
 };
 
-RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
+#if FT_MULTIVIEW
+	RES(Tex2DArray(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
+#else
+	RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t0, binding = 0);
+#endif
+	RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
 
 PUSH_CONSTANT(RootConstantSCurveInfo, b0)
 {
@@ -87,7 +94,11 @@ FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
     FSOutput Out;
+#if FT_MULTIVIEW
+	float4 sceneColor = SampleTex2DArray(Get(uTex0), Get(uSampler0), float3(In.texCoord, In.ViewID));
+#else
     float4 sceneColor = SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord);
+#endif
 	float3 resultColor = float3(0.0, 0.0, 0.0);
 
 	if(Get(outputMode) == 0)

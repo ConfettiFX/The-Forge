@@ -921,6 +921,7 @@ static FILE* fons__fopen(const char* filename, const char* mode)
 	// #TheForgeChangesBegin
 #if _MSC_VER
 	errno_t err = _wfopen_s(&f, wpath, wmode);
+	ASSERT(err == 0);
 #else
 	f = _wfopen(wpath, wmode);
 #endif

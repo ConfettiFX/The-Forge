@@ -70,6 +70,7 @@ LuaManagerImpl::LuaManagerImpl(lua_State* L):
     m_UpdatableScriptLuaState(nullptr), m_SyncLuaState(nullptr), m_AsyncLuaStates(), m_AsyncLuaStatesMutex(), m_AddAsyncScriptMutex(),
     m_Functions(nullptr), m_UpdateFunctionNameBuf(), m_UpdatableScriptExitBuf(), m_UpdatableScriptFile(nullptr), m_AsyncScriptsCounter(0)
 {
+    UNREF_PARAM(L);
     memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*));
 }
 
@@ -154,6 +155,7 @@ static int msghandler(lua_State* L)
 
 const char* luaReaderFunction(lua_State* L, void* ud, size_t* sz)
 {
+    UNREF_PARAM(L);
     FileStream*  pHandle = (FileStream*)ud;
     const size_t size = 1024;
     static char  buffer[size];

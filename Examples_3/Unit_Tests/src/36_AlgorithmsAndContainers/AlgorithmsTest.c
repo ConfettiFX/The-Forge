@@ -43,6 +43,7 @@ static int testStableSortImpl(void* pArray, void* pExpected, size_t memberCount,
 
 static bool intCompare(const void* pLhs, const void* pRhs, void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     int lhs = *(int*)pLhs;
     int rhs = *(int*)pRhs;
     // use negative numbers to show duplicates

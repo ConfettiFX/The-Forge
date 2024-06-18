@@ -28,9 +28,9 @@
 
 struct UIComponent;
 
-bool platformInitReloadClient(void);
-void platformExitReloadClient();
-void platformReloadClientRequestShaderRecompile();
-bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize);
-bool platformReloadClientShouldQuit(void);
-void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderComponent);
+FORGE_API bool platformInitReloadClient(void);
+FORGE_API void platformExitReloadClient();
+FORGE_API void platformReloadClientRequestShaderRecompile();
+FORGE_API bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize);
+FORGE_API bool platformReloadClientShouldQuit(void);
+FORGE_API void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderComponent);

@@ -151,6 +151,7 @@ uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     LuaScriptDesc runDesc = {};
     runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
     luaQueueScriptToRun(&runDesc);
@@ -158,6 +159,7 @@ void RunScript(void* pUserData)
 
 void SwitchGpuMode(void* pUserData)
 {
+    UNREF_PARAM(pUserData);
     gMultiGPURestart = true;
     ResetDesc resetDescriptor;
     resetDescriptor.mType = RESET_TYPE_GPU_MODE_SWITCH;
@@ -576,6 +578,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -631,6 +634,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -853,7 +857,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue[0]);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -941,11 +945,11 @@ public:
             {
                 cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw Results");
 
-                RenderTarget*       pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-                RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET } };
+                pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
+                barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
                 cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-                BindRenderTargetsDesc bindRenderTargets = {};
+                bindRenderTargets = {};
                 bindRenderTargets.mRenderTargetCount = 1;
                 bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
                 cmdBindRenderTargets(cmd, &bindRenderTargets);
@@ -1011,7 +1015,7 @@ public:
                 submitDesc.ppWaitSemaphores = waitSemaphores;
                 queueSubmit(pGraphicsQueue[i], &submitDesc);
                 QueuePresentDesc presentDesc = {};
-                presentDesc.mIndex = swapchainImageIndex;
+                presentDesc.mIndex = (uint8_t)swapchainImageIndex;
                 presentDesc.mWaitSemaphoreCount = 1;
                 presentDesc.ppWaitSemaphores = &elem[i].pSemaphore;
                 presentDesc.pSwapChain = pSwapChain;
@@ -1212,12 +1216,12 @@ public:
 
             for (uint32_t f = 0; f < gDataBufferCount; ++f)
             {
-                DescriptorData params[1] = {};
-                params[0].pName = "uniformBlock";
-                params[0].ppBuffers = &pSkyboxUniformBuffer[f];
-                updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
-                params[0].ppBuffers = &pProjViewUniformBuffer[f];
-                updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
+                DescriptorData uParams[1] = {};
+                uParams[0].pName = "uniformBlock";
+                uParams[0].ppBuffers = &pSkyboxUniformBuffer[f];
+                updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, uParams);
+                uParams[0].ppBuffers = &pProjViewUniformBuffer[f];
+                updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, uParams);
             }
         }
     }

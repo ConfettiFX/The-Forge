@@ -34,10 +34,16 @@
 
 // iOS
 
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 141000
+#error "Please only compile with ios SDK version 14.1 or higher"
+#endif
+
 #ifdef __IPHONE_17_0
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0
 #define ENABLE_REFLECTION_BINDING_API
 #define ARGUMENT_ACCESS_DEPRECATED
+#define ENABLE_GPU_FAMILY_9
+#define HIGHEST_GPU_FAMILY MTLGPUFamilyApple9
 #endif // __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0
 #endif // __IPHONE_17_0
 
@@ -82,10 +88,16 @@
 
 // macOS
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 110000
+#error("Please only compile with macOS SDK version 11 or higher")
+#endif
+
 #ifdef MAC_OS_VERSION_14_0
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_14_0
 #define ENABLE_REFLECTION_BINDING_API
 #define ARGUMENT_ACCESS_DEPRECATED
+#define ENABLE_GPU_FAMILY_9
+#define HIGHEST_GPU_FAMILY MTLGPUFamilyApple9
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_14_0
 #endif // MAC_OS_X_VERSION_14_0
 

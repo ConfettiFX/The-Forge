@@ -70,6 +70,8 @@ typedef struct CallOnceFnWrapper
 
 static BOOL callOnceImpl(PINIT_ONCE initOnce, PVOID pWrapper, PVOID* ppContext)
 {
+    UNREF_PARAM(initOnce);
+    UNREF_PARAM(ppContext);
     CallOnceFn fn = ((CallOnceFnWrapper*)pWrapper)->fn;
     if (fn)
         fn();
@@ -181,7 +183,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
             GROUP_AFFINITY groupAffinity = { 0 };
 
             groupAffinity.Mask = item.affinityMask[groupId];
-            groupAffinity.Group = groupId;
+            groupAffinity.Group = (WORD)groupId;
 
             BOOL res = SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, NULL);
             if (res != 0)
@@ -237,6 +239,7 @@ unsigned int getNumCPUCores(void)
 
 int initPerformanceStats(PerformanceStatsFlags flags)
 {
+    UNREF_PARAM(flags);
 #if defined(XBOX)
     for (uint32_t i = 0; i < getNumCPUCores(); ++i)
     {
@@ -306,10 +309,10 @@ void updatePerformanceStats()
     FILETIME creation, exit, user, kernel;
     GetThreadTimes(currThread, &creation, &exit, &kernel, &user);
 
-    uint32_t threadIdx = -1;
+    uint32_t threadIdx = (uint32_t)-1;
     for (uint32_t i = 0; i < getNumCPUCores(); i++)
     {
-        if (gThreadIds[i] == threadId)
+        if (gThreadIds[i] == (int)threadId)
         {
             threadIdx = i;
             break;
@@ -394,7 +397,6 @@ PerformanceStats getPerformanceStats()
     }
 
     IWbemClassObject* pclsObj = NULL;
-    ULONG             uReturn = 0;
 
     ULONG i = 0;
     ULONG retVal;

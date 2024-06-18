@@ -819,7 +819,7 @@ static uint8_t TinyKtx_fileIdentifier[12] = {
 		0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 };
 
-static void TinyKtx_NullErrorFunc(void *user, char const *msg) {}
+static void TinyKtx_NullErrorFunc(void *user, char const *msg) { UNREF_PARAM(user); UNREF_PARAM(msg); }
 
 TinyKtx_ContextHandle TinyKtx_CreateContext(TinyKtx_Callbacks const *callbacks, void *user) {
 	TinyKtx_Context *ctx = (TinyKtx_Context *) callbacks->allocFn(user, sizeof(TinyKtx_Context));
@@ -1437,6 +1437,7 @@ TinyKtx_Format TinyKtx_CrackFormatFromGL(uint32_t const glformat,
 																				 uint32_t const gltype,
 																				 uint32_t const glinternalformat,
 																				 uint32_t const typesize) {
+	UNREF_PARAM(typesize); 
 	switch (glinternalformat) {
 	case TINYKTX_GL_COMPRESSED_RGB_S3TC_DXT1: return TKTX_BC1_RGB_UNORM_BLOCK;
 	case TINYKTX_GL_COMPRESSED_RGBA_S3TC_DXT1: return TKTX_BC1_RGBA_UNORM_BLOCK;
@@ -2437,8 +2438,6 @@ TinyKtx_Format TinyImageFormat_ToTinyKtxFormat(TinyImageFormat format) {
 
 	default: return TKTX_UNDEFINED;
 	};
-
-	return TKTX_UNDEFINED;
 }
 #endif // end TinyImageFormat conversion
 

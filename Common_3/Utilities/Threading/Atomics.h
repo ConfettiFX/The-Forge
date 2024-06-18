@@ -38,14 +38,15 @@ typedef volatile ALIGNAS(PTR_SIZE) uintptr_t tfrg_atomicptr_t;
 #define tfrg_memorybarrier_release()                     _ReadWriteBarrier()
 
 #define tfrg_atomic32_load_relaxed(pVar)                 (*(pVar))
-#define tfrg_atomic32_store_relaxed(dst, val)            InterlockedExchange((volatile long*)(dst), val)
-#define tfrg_atomic32_add_relaxed(dst, val)              InterlockedExchangeAdd((volatile long*)(dst), (val))
-#define tfrg_atomic32_cas_relaxed(dst, cmp_val, new_val) InterlockedCompareExchange((volatile long*)(dst), (new_val), (cmp_val))
+#define tfrg_atomic32_store_relaxed(dst, val)            (uint32_t) InterlockedExchange((volatile long*)(dst), val)
+#define tfrg_atomic32_add_relaxed(dst, val)              (uint32_t) InterlockedExchangeAdd((volatile long*)(dst), (val))
+#define tfrg_atomic32_cas_relaxed(dst, cmp_val, new_val) (uint32_t) InterlockedCompareExchange((volatile long*)(dst), (new_val), (cmp_val))
 
 #define tfrg_atomic64_load_relaxed(pVar)                 (*(pVar))
-#define tfrg_atomic64_store_relaxed(dst, val)            InterlockedExchange64((volatile LONG64*)(dst), val)
-#define tfrg_atomic64_add_relaxed(dst, val)              InterlockedExchangeAdd64((volatile LONG64*)(dst), (val))
-#define tfrg_atomic64_cas_relaxed(dst, cmp_val, new_val) InterlockedCompareExchange64((volatile LONG64*)(dst), (new_val), (cmp_val))
+#define tfrg_atomic64_store_relaxed(dst, val)            (uint64_t) InterlockedExchange64((volatile LONG64*)(dst), val)
+#define tfrg_atomic64_add_relaxed(dst, val)              (uint64_t) InterlockedExchangeAdd64((volatile LONG64*)(dst), (val))
+#define tfrg_atomic64_cas_relaxed(dst, cmp_val, new_val) \
+    (uint64_t) InterlockedCompareExchange64((volatile LONG64*)(dst), (new_val), (cmp_val))
 
 #else
 #define tfrg_memorybarrier_acquire()                     __asm__ __volatile__("" : : : "memory")

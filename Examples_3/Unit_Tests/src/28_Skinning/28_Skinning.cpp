@@ -213,7 +213,11 @@ struct UIData
 UIData gUIData;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
-void ClipTimeChangeCallback(void* pUserData) { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
+void ClipTimeChangeCallback(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime);
+}
 
 //--------------------------------------------------------------------------------------------
 // APP CODE
@@ -671,6 +675,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            requestShutdown();
                            return true;
                        } };
@@ -726,6 +731,7 @@ public:
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
                        {
+                           UNREF_PARAM(ctx);
                            if (!uiWantTextInput())
                                pCameraController->resetView();
                            return true;
@@ -995,7 +1001,7 @@ public:
 
     void Draw()
     {
-        if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+        if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
             ::toggleVSync(pRenderer, &pSwapChain);
@@ -1138,7 +1144,7 @@ public:
         submitDesc.pSignalFence = elem.pFence;
         queueSubmit(pGraphicsQueue, &submitDesc);
         QueuePresentDesc presentDesc = {};
-        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mIndex = (uint8_t)swapchainImageIndex;
         presentDesc.mWaitSemaphoreCount = 1;
         presentDesc.ppWaitSemaphores = &elem.pSemaphore;
         presentDesc.pSwapChain = pSwapChain;
@@ -1306,16 +1312,16 @@ public:
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData params[2] = {};
-            params[0].pName = "uniformBlock";
-            params[0].ppBuffers = &pPlaneUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
+            DescriptorData uParams[2] = {};
+            uParams[0].pName = "uniformBlock";
+            uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, uParams);
 
-            params[0].pName = "uniformBlock";
-            params[0].ppBuffers = &pPlaneUniformBuffer[i];
-            params[1].pName = "boneMatrices";
-            params[1].ppBuffers = &pUniformBufferBones[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, params);
+            uParams[0].pName = "uniformBlock";
+            uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
+            uParams[1].pName = "boneMatrices";
+            uParams[1].ppBuffers = &pUniformBufferBones[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, uParams);
         }
     }
 

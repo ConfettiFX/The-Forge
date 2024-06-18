@@ -315,34 +315,34 @@ typedef struct ControllerMapping
 
 	int operator[](GameControllerAxis index) { return axis[index]; }
 
-	GameControllerAxis GetAxisFromString(const char* axis)
+	GameControllerAxis GetAxisFromString(const char* ax)
 	{
-		if (_strcmpi(leftx, axis) == 0)
+		if (_strcmpi(leftx, ax) == 0)
 		{
 			return CONTROLLER_LEFT_X;
 		}
 
-		if (_strcmpi(rightx, axis) == 0)
+		if (_strcmpi(rightx, ax) == 0)
 		{
 			return CONTROLLER_RIGHT_X;
 		}
 
-		if (_strcmpi(lefty, axis) == 0)
+		if (_strcmpi(lefty, ax) == 0)
 		{
 			return CONTROLLER_LEFT_Y;
 		}
 
-		if (_strcmpi(righty, axis) == 0)
+		if (_strcmpi(righty, ax) == 0)
 		{
 			return CONTROLLER_RIGHT_Y;
 		}
 
-		if (_strcmpi(lefttrigger, axis) == 0)
+		if (_strcmpi(lefttrigger, ax) == 0)
 		{
 			return CONTROLLER_LEFT_TRIGGER;
 		}
 
-		if (_strcmpi(righttrigger, axis) == 0)
+		if (_strcmpi(righttrigger, ax) == 0)
 		{
 			return CONTROLLER_RIGHT_TRIGGER;
 		}
@@ -410,24 +410,24 @@ typedef struct ControllerMapping
 		return CONTROLLER_BUTTON_INVALID;
 	}
 
-	GameControllerHat GetHatFromString(const char* hat)
+	GameControllerHat GetHatFromString(const char* ht)
 	{
-		if (_strcmpi(DN, hat) == 0)
+		if (_strcmpi(DN, ht) == 0)
 		{
 			return CONTROLLER_HAT_UP;
 		}
 
-		if (_strcmpi(DS, hat) == 0)
+		if (_strcmpi(DS, ht) == 0)
 		{
 			return CONTROLLER_HAT_DOWN;
 		}
 
-		if (_strcmpi(DE, hat) == 0)
+		if (_strcmpi(DE, ht) == 0)
 		{
 			return CONTROLLER_HAT_RIGHT;
 		}
 
-		if (_strcmpi(DW, hat) == 0)
+		if (_strcmpi(DW, ht) == 0)
 		{
 			return CONTROLLER_HAT_LEFT;
 		}
@@ -653,14 +653,14 @@ static BOOL CALLBACK EnumDevObjectsCallback(LPCDIDEVICEOBJECTINSTANCE dev, LPVOI
 	if (dev->dwType & DIDFT_BUTTON)
 	{
 		in->type = Type::BUTTON;
-		in->num = gamepadInfo->gamepad.nbuttons;
+		in->num = (uint8_t)gamepadInfo->gamepad.nbuttons;
 		in->ofs = DIJOFS_BUTTON(in->num);
 		gamepadInfo->gamepad.nbuttons++;
 	}
 	else if (dev->dwType & DIDFT_POV)
 	{
 		in->type = Type::HAT;
-		in->num = gamepadInfo->gamepad.nhats;
+		in->num = (uint8_t)gamepadInfo->gamepad.nhats;
 		in->ofs = DIJOFS_POV(in->num);
 		gamepadInfo->gamepad.nhats++;
 	}
@@ -670,7 +670,7 @@ static BOOL CALLBACK EnumDevObjectsCallback(LPCDIDEVICEOBJECTINSTANCE dev, LPVOI
 		DIPROPDWORD dilong;
 
 		in->type = Type::AXIS;
-		in->num = gamepadInfo->gamepad.naxes;
+		in->num = (uint8_t)gamepadInfo->gamepad.naxes;
 		if (!memcmp(&dev->guidType, &GUID_XAxis, sizeof(dev->guidType)))
 			in->ofs = DIJOFS_X;
 		else if (!memcmp(&dev->guidType, &GUID_YAxis, sizeof(dev->guidType)))
@@ -734,7 +734,6 @@ static BOOL CALLBACK EnumDevObjectsCallback(LPCDIDEVICEOBJECTINSTANCE dev, LPVOI
 	}
 
 	return DIENUM_CONTINUE;
-	return true;
 }
 
 /* Sort using the data offset into the DInput struct.
@@ -768,17 +767,17 @@ static void SortDevObjects(GamePad* joystick)
 		switch (inputs[n].type)
 		{
 			case Type::BUTTON:
-				inputs[n].num = nButtons;
+				inputs[n].num = (uint8_t)nButtons;
 				nButtons++;
 				break;
 
 			case Type::HAT:
-				inputs[n].num = nHats;
+				inputs[n].num = (uint8_t)nHats;
 				nHats++;
 				break;
 
 			case Type::AXIS:
-				inputs[n].num = nAxis;
+				inputs[n].num = (uint8_t)nAxis;
 				nAxis++;
 				break;
 		}
@@ -923,7 +922,6 @@ static BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE* pdidInstance,
 	XInputType type = IsXInputDevice(&pdidInstance->guidProduct);
 	if (type != XInputType::InputTypeNone)
 	{
-		DirectInputGamePads* directInutGamePads = (DirectInputGamePads*)pvRef;
 		XInputInfo&          xinputPad = directInutGamePads->xinputPadInfo[directInutGamePads->directInputCountConnected];
 		xinputPad.found = true;
 		xinputPad.type = type;
@@ -1073,7 +1071,7 @@ public:
 		NotificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
 		NotificationFilter.dbcc_reserved = 0;
 		NotificationFilter.dbcc_classguid = USB_DEVICE;
-		HDEVNOTIFY hDevNotify = RegisterDeviceNotification(_hwnd, &NotificationFilter, DEVICE_NOTIFY_WINDOW_HANDLE);
+		RegisterDeviceNotification(_hwnd, &NotificationFilter, DEVICE_NOTIFY_WINDOW_HANDLE);
 
 		HRESULT initRe = CoInitializeEx(0, COINIT_MULTITHREADED);
 		if (FAILED(initRe))
@@ -1348,7 +1346,7 @@ public:
 						RID_DEVICE_INFO info;
 						info.cbSize = sizeof(RID_DEVICE_INFO);
 						UINT bufferSize = sizeof(RID_DEVICE_INFO);
-						UINT result = GetRawInputDeviceInfo(raw.header.hDevice, RIDI_DEVICEINFO, &info, &bufferSize);
+						result = GetRawInputDeviceInfo(raw.header.hDevice, RIDI_DEVICEINFO, &info, &bufferSize);
 
 						result = GetRawInputDeviceInfo(raw.header.hDevice, RIDI_DEVICENAME, NULL, &bufferSize);
 						if (result != 0)
@@ -1396,7 +1394,7 @@ public:
 		if (value >= 8)
 			return HAT_CENTERED; /* shouldn't happen */
 
-		return HAT_VALS[value];
+		return (int8_t)HAT_VALS[value];
 	}
 
 	void EvaluateJoystickAxis(GamePad& joystick, UINT8 axis, INT16 value)
@@ -1657,6 +1655,9 @@ public:
 
 	void DInputPoll(InputDeltaState* delta, InputState& state_, InputDevice& device_)
 	{
+		UNREF_PARAM(delta); 
+		UNREF_PARAM(state_); 
+		UNREF_PARAM(device_); 
 		if (!gamepadInfo.interfacePtr)
 		{
 			ASSERT(gamepadInfo.interfacePtr && "GamePad Interface Ptr is null");

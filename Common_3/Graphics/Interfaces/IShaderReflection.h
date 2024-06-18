@@ -192,7 +192,7 @@ inline bool isDescriptorRootConstant(const char* resourceName)
     uint32_t length = (uint32_t)strlen(resourceName);
     for (uint32_t i = 0; i < length; ++i)
     {
-        lower[i] = tolower(resourceName[i]);
+        lower[i] = (char)tolower(resourceName[i]);
     }
     return strstr(lower, "rootconstant") || strstr(lower, "pushconstant");
 }
@@ -203,7 +203,7 @@ inline bool isDescriptorRootCbv(const char* resourceName)
     uint32_t length = (uint32_t)strlen(resourceName);
     for (uint32_t i = 0; i < length; ++i)
     {
-        lower[i] = tolower(resourceName[i]);
+        lower[i] = (char)tolower(resourceName[i]);
     }
     return strstr(lower, "rootcbv");
 }

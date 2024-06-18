@@ -79,7 +79,7 @@
 #define NDEBUG
 #endif
 
-#define UNREF_PARAM(x)         (x)
+#define UNREF_PARAM(x)         ((void)(x))
 #define ALIGNAS(x)             __declspec(align(x))
 #define DEFINE_ALIGNED(def, a) __declspec(align(a)) def
 #define FORGE_CALLCONV         __cdecl
@@ -132,7 +132,7 @@ typedef SSIZE_T ssize_t;
 #define ALIGNOF(x)   __alignof__(x)
 #define THREAD_LOCAL __thread
 
-#ifdef __clang__
+#if defined(__clang__) && !defined(__cplusplus)
 #define COMPILE_ASSERT(exp) _Static_assert(exp, #exp)
 #else
 #define COMPILE_ASSERT(exp) static_assert(exp, #exp)

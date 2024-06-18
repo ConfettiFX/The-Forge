@@ -140,33 +140,34 @@ typedef struct VirtualJoystick
 #endif
 } VirtualJoystick;
 
-static VirtualJoystick* pVirtualJoystick = NULL;
+static VirtualJoystick* gVirtualJoystick = NULL;
 
 void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtualJoystick)
 {
+    UNREF_PARAM(pDesc);
     ASSERT(ppVirtualJoystick);
-    ASSERT(pVirtualJoystick == NULL);
+    ASSERT(gVirtualJoystick == NULL);
 
-    pVirtualJoystick = tf_new(VirtualJoystick);
+    gVirtualJoystick = tf_new(VirtualJoystick);
 
 #if TOUCH_INPUT
     Renderer* pRenderer = (Renderer*)pDesc->pRenderer;
-    pVirtualJoystick->pRenderer = pRenderer;
+    gVirtualJoystick->pRenderer = pRenderer;
 
     TextureLoadDesc loadDesc = {};
     SyncToken       token = {};
     loadDesc.pFileName = pDesc->pJoystickTexture;
-    loadDesc.ppTexture = &pVirtualJoystick->pTexture;
+    loadDesc.ppTexture = &gVirtualJoystick->pTexture;
     // Textures representing color should be stored in SRGB or HDR format
     loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
-    if (!pVirtualJoystick->pTexture)
+    if (!gVirtualJoystick->pTexture)
     {
         LOGF(LogLevel::eWARNING, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
-        tf_delete(pVirtualJoystick);
-        pVirtualJoystick = NULL;
+        tf_delete(gVirtualJoystick);
+        gVirtualJoystick = NULL;
         return;
     }
     /************************************************************************/
@@ -178,7 +179,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
                                 ADDRESS_MODE_CLAMP_TO_EDGE,
                                 ADDRESS_MODE_CLAMP_TO_EDGE,
                                 ADDRESS_MODE_CLAMP_TO_EDGE };
-    addSampler(pRenderer, &samplerDesc, &pVirtualJoystick->pSampler);
+    addSampler(pRenderer, &samplerDesc, &gVirtualJoystick->pSampler);
     /************************************************************************/
     // Resources
     /************************************************************************/
@@ -187,12 +188,12 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
-    vbDesc.ppBuffer = &pVirtualJoystick->pMeshBuffer;
+    vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);
 #endif
 
     // Joystick is good!
-    *ppVirtualJoystick = pVirtualJoystick;
+    *ppVirtualJoystick = gVirtualJoystick;
 }
 
 void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
@@ -215,15 +216,21 @@ void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
 bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
                          uint32_t displayHeight)
 {
+    UNREF_PARAM(loadType);
+    UNREF_PARAM(colorFormat);
+    UNREF_PARAM(width);
+    UNREF_PARAM(height);
+    UNREF_PARAM(displayWidth);
+    UNREF_PARAM(displayHeight);
 #if TOUCH_INPUT
-    if (!pVirtualJoystick)
+    if (!gVirtualJoystick)
     {
         return false;
     }
 
     if (loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
-        Renderer* pRenderer = pVirtualJoystick->pRenderer;
+        Renderer* pRenderer = gVirtualJoystick->pRenderer;
 
         if (loadType & RELOAD_TYPE_SHADER)
         {
@@ -233,25 +240,25 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
             ShaderLoadDesc texturedShaderDesc = {};
             texturedShaderDesc.mStages[0].pFileName = "textured_mesh.vert";
             texturedShaderDesc.mStages[1].pFileName = "textured_mesh.frag";
-            addShader(pRenderer, &texturedShaderDesc, &pVirtualJoystick->pShader);
+            addShader(pRenderer, &texturedShaderDesc, &gVirtualJoystick->pShader);
 
             const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { &pVirtualJoystick->pShader, 1 };
+            RootSignatureDesc textureRootDesc = { &gVirtualJoystick->pShader, 1 };
             textureRootDesc.mStaticSamplerCount = 1;
             textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-            textureRootDesc.ppStaticSamplers = &pVirtualJoystick->pSampler;
-            addRootSignature(pRenderer, &textureRootDesc, &pVirtualJoystick->pRootSignature);
-            pVirtualJoystick->mRootConstantIndex = getDescriptorIndexFromName(pVirtualJoystick->pRootSignature, "uRootConstants");
+            textureRootDesc.ppStaticSamplers = &gVirtualJoystick->pSampler;
+            addRootSignature(pRenderer, &textureRootDesc, &gVirtualJoystick->pRootSignature);
+            gVirtualJoystick->mRootConstantIndex = getDescriptorIndexFromName(gVirtualJoystick->pRootSignature, "uRootConstants");
 
-            DescriptorSetDesc descriptorSetDesc = { pVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(pRenderer, &descriptorSetDesc, &pVirtualJoystick->pDescriptorSet);
+            DescriptorSetDesc descriptorSetDesc = { gVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            addDescriptorSet(pRenderer, &descriptorSetDesc, &gVirtualJoystick->pDescriptorSet);
             /************************************************************************/
             // Prepare descriptor sets
             /************************************************************************/
             DescriptorData params[1] = {};
             params[0].pName = "uTex";
-            params[0].ppTextures = &pVirtualJoystick->pTexture;
-            updateDescriptorSet(pRenderer, 0, pVirtualJoystick->pDescriptorSet, 1, params);
+            params[0].ppTextures = &gVirtualJoystick->pTexture;
+            updateDescriptorSet(pRenderer, 0, gVirtualJoystick->pDescriptorSet, 1, params);
         }
 
         VertexLayout vertexLayout = {};
@@ -298,18 +305,18 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
         pipelineDesc.pColorFormats = &colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
-        pipelineDesc.pRootSignature = pVirtualJoystick->pRootSignature;
-        pipelineDesc.pShaderProgram = pVirtualJoystick->pShader;
+        pipelineDesc.pRootSignature = gVirtualJoystick->pRootSignature;
+        pipelineDesc.pShaderProgram = gVirtualJoystick->pShader;
         pipelineDesc.pVertexLayout = &vertexLayout;
-        addPipeline(pVirtualJoystick->pRenderer, &desc, &pVirtualJoystick->pPipeline);
+        addPipeline(gVirtualJoystick->pRenderer, &desc, &gVirtualJoystick->pPipeline);
     }
 
     if (loadType & RELOAD_TYPE_RESIZE)
     {
-        pVirtualJoystick->mRenderSize[0] = (float)width;
-        pVirtualJoystick->mRenderSize[1] = (float)height;
-        pVirtualJoystick->mRenderScale[0] = (float)width / (float)displayWidth;
-        pVirtualJoystick->mRenderScale[1] = (float)height / (float)displayHeight;
+        gVirtualJoystick->mRenderSize[0] = (float)width;
+        gVirtualJoystick->mRenderSize[1] = (float)height;
+        gVirtualJoystick->mRenderScale[0] = (float)width / (float)displayWidth;
+        gVirtualJoystick->mRenderScale[1] = (float)height / (float)displayHeight;
     }
 #endif
     return true;
@@ -317,23 +324,24 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint3
 
 void unloadVirtualJoystick(ReloadType unloadType)
 {
+    UNREF_PARAM(unloadType);
 #if TOUCH_INPUT
-    if (!pVirtualJoystick)
+    if (!gVirtualJoystick)
     {
         return;
     }
 
     if (unloadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
-        Renderer* pRenderer = pVirtualJoystick->pRenderer;
+        Renderer* pRenderer = gVirtualJoystick->pRenderer;
 
-        removePipeline(pRenderer, pVirtualJoystick->pPipeline);
+        removePipeline(pRenderer, gVirtualJoystick->pPipeline);
 
         if (unloadType & RELOAD_TYPE_SHADER)
         {
-            removeDescriptorSet(pRenderer, pVirtualJoystick->pDescriptorSet);
-            removeRootSignature(pRenderer, pVirtualJoystick->pRootSignature);
-            removeShader(pRenderer, pVirtualJoystick->pShader);
+            removeDescriptorSet(pRenderer, gVirtualJoystick->pDescriptorSet);
+            removeRootSignature(pRenderer, gVirtualJoystick->pRootSignature);
+            removeShader(pRenderer, gVirtualJoystick->pShader);
         }
     }
 #endif
@@ -341,8 +349,10 @@ void unloadVirtualJoystick(ReloadType unloadType)
 
 void drawVirtualJoystick(Cmd* pCmd, const float4* color)
 {
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(color);
 #if TOUCH_INPUT
-    if (!pVirtualJoystick || !(pVirtualJoystick->mSticks[0].mPressed || pVirtualJoystick->mSticks[1].mPressed))
+    if (!gVirtualJoystick || !(gVirtualJoystick->mSticks[0].mPressed || gVirtualJoystick->mSticks[1].mPressed))
         return;
 
     struct RootConstants
@@ -352,54 +362,54 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
         int    _pad[2];
     } data = {};
 
-    cmdSetViewport(pCmd, 0.0f, 0.0f, pVirtualJoystick->mRenderSize[0], pVirtualJoystick->mRenderSize[1], 0.0f, 1.0f);
-    cmdSetScissor(pCmd, 0u, 0u, (uint32_t)pVirtualJoystick->mRenderSize[0], (uint32_t)pVirtualJoystick->mRenderSize[1]);
+    cmdSetViewport(pCmd, 0.0f, 0.0f, gVirtualJoystick->mRenderSize[0], gVirtualJoystick->mRenderSize[1], 0.0f, 1.0f);
+    cmdSetScissor(pCmd, 0u, 0u, (uint32_t)gVirtualJoystick->mRenderSize[0], (uint32_t)gVirtualJoystick->mRenderSize[1]);
 
-    cmdBindPipeline(pCmd, pVirtualJoystick->pPipeline);
-    cmdBindDescriptorSet(pCmd, 0, pVirtualJoystick->pDescriptorSet);
+    cmdBindPipeline(pCmd, gVirtualJoystick->pPipeline);
+    cmdBindDescriptorSet(pCmd, 0, gVirtualJoystick->pDescriptorSet);
     data.color = *color;
-    data.scaleBias = { 2.0f / (float)pVirtualJoystick->mRenderSize[0], -2.0f / (float)pVirtualJoystick->mRenderSize[1] };
-    cmdBindPushConstants(pCmd, pVirtualJoystick->pRootSignature, pVirtualJoystick->mRootConstantIndex, &data);
+    data.scaleBias = { 2.0f / (float)gVirtualJoystick->mRenderSize[0], -2.0f / (float)gVirtualJoystick->mRenderSize[1] };
+    cmdBindPushConstants(pCmd, gVirtualJoystick->pRootSignature, gVirtualJoystick->mRootConstantIndex, &data);
 
     // Draw the camera controller's virtual joysticks.
-    float extSide = pVirtualJoystick->mOutsideRadius;
-    float intSide = pVirtualJoystick->mInsideRadius;
+    float extSide = gVirtualJoystick->mOutsideRadius;
+    float intSide = gVirtualJoystick->mInsideRadius;
 
     uint64_t bufferOffset = 0;
     for (uint i = 0; i < 2; i++)
     {
-        if (pVirtualJoystick->mSticks[i].mPressed)
+        if (gVirtualJoystick->mSticks[i].mPressed)
         {
-            float2 joystickSize = float2(extSide) * pVirtualJoystick->mRenderScale;
-            float2 joystickCenter = pVirtualJoystick->mSticks[i].mStartPos * pVirtualJoystick->mRenderScale -
-                                    float2(0.0f, pVirtualJoystick->mRenderSize.y * 0.1f);
+            float2 joystickSize = float2(extSide) * gVirtualJoystick->mRenderScale;
+            float2 joystickCenter = gVirtualJoystick->mSticks[i].mStartPos * gVirtualJoystick->mRenderScale -
+                                    float2(0.0f, gVirtualJoystick->mRenderSize.y * 0.1f);
             float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
             const uint32_t   vertexStride = sizeof(float4);
-            BufferUpdateDesc updateDesc = { pVirtualJoystick->pMeshBuffer, bufferOffset };
+            BufferUpdateDesc updateDesc = { gVirtualJoystick->pMeshBuffer, bufferOffset };
             beginUpdateResource(&updateDesc);
             TexVertex vertices[4] = {};
             // the last variable can be used to create a border
             MAKETEXQUAD(vertices, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
             memcpy(updateDesc.pMappedData, vertices, sizeof(vertices));
             endUpdateResource(&updateDesc);
-            cmdBindVertexBuffer(pCmd, 1, &pVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
+            cmdBindVertexBuffer(pCmd, 1, &gVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
             cmdDraw(pCmd, 4, 0);
             bufferOffset += sizeof(TexVertex) * 4;
 
-            joystickSize = float2(intSide) * pVirtualJoystick->mRenderScale;
-            joystickCenter = pVirtualJoystick->mSticks[i].mCurrPos * pVirtualJoystick->mRenderScale -
-                             float2(0.0f, pVirtualJoystick->mRenderSize.y * 0.1f);
+            joystickSize = float2(intSide) * gVirtualJoystick->mRenderScale;
+            joystickCenter = gVirtualJoystick->mSticks[i].mCurrPos * gVirtualJoystick->mRenderScale -
+                             float2(0.0f, gVirtualJoystick->mRenderSize.y * 0.1f);
             joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
-            updateDesc = { pVirtualJoystick->pMeshBuffer, bufferOffset };
+            updateDesc = { gVirtualJoystick->pMeshBuffer, bufferOffset };
             beginUpdateResource(&updateDesc);
             TexVertex verticesInner[4] = {};
             // the last variable can be used to create a border
             MAKETEXQUAD(verticesInner, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
             memcpy(updateDesc.pMappedData, verticesInner, sizeof(verticesInner));
             endUpdateResource(&updateDesc);
-            cmdBindVertexBuffer(pCmd, 1, &pVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
+            cmdBindVertexBuffer(pCmd, 1, &gVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
             cmdDraw(pCmd, 4, 0);
             bufferOffset += sizeof(TexVertex) * 4;
         }
@@ -438,6 +448,9 @@ bool isPositionInsideScreenArea(float2 position, TouchScreenArea area, float2 di
 
 void virtualJoystickOnMove(VirtualJoystick* pVirtualJoystick, uint32_t id, InputActionContext* ctx)
 {
+    UNREF_PARAM(pVirtualJoystick);
+    UNREF_PARAM(id);
+    UNREF_PARAM(ctx);
 #if TOUCH_INPUT
     if (!ctx->pPosition)
         return;
@@ -1098,7 +1111,7 @@ struct InputSystemImpl: public gainput::InputListener
                     memset((void*)pControl, 0, sizeof(*pControl));
                     pControl->mType = CONTROL_AXIS;
                     pControl->mAction = action;
-                    pControl->mStartButton = pActionMappingDesc->mDeviceButtons[0];
+                    pControl->mStartButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
                     pControl->mAxisCount = pActionMappingDesc->mNumAxis;
                     pControl->mTarget = (pControl->mAxisCount == 2 ? (1 << 1) | 1 : 1);
                     for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
@@ -1132,8 +1145,8 @@ struct InputSystemImpl: public gainput::InputListener
 
                 pControl->mType = CONTROL_COMBO;
                 pControl->mAction = action;
-                pControl->mPressButton = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = pActionMappingDesc->mDeviceButtons[1];
+                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
+                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
                 arrpush(mControls[index][pActionMappingDesc->mDeviceButtons[0]], pControl);
                 arrpush(mControls[index][pActionMappingDesc->mDeviceButtons[1]], pControl);
                 break;
@@ -1184,8 +1197,8 @@ struct InputSystemImpl: public gainput::InputListener
 
                 pControl->mType = CONTROL_COMBO;
                 pControl->mAction = action;
-                pControl->mPressButton = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = pActionMappingDesc->mDeviceButtons[1];
+                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
+                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
                 arrpush(mControls[mKeyboardDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
                 arrpush(mControls[mKeyboardDeviceID][pActionMappingDesc->mDeviceButtons[1]], pControl);
                 break;
@@ -1221,7 +1234,7 @@ struct InputSystemImpl: public gainput::InputListener
 
                     memset((void*)pControl, 0, sizeof(*pControl));
                     pControl->mType = CONTROL_FLOAT;
-                    pControl->mStartButton = pActionMappingDesc->mDeviceButtons[0];
+                    pControl->mStartButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
                     pControl->mTarget = (pActionMappingDesc->mNumAxis == 2 ? (1 << 1) | 1 : 1);
                     pControl->mDelta = pActionMappingDesc->mDelta ? (1 << 1) | 1 : 0;
                     pControl->mAction = action;
@@ -1261,8 +1274,8 @@ struct InputSystemImpl: public gainput::InputListener
 
                 pControl->mType = CONTROL_COMBO;
                 pControl->mAction = action;
-                pControl->mPressButton = pActionMappingDesc->mDeviceButtons[0];
-                pControl->mTriggerButton = pActionMappingDesc->mDeviceButtons[1];
+                pControl->mPressButton = (uint16_t)pActionMappingDesc->mDeviceButtons[0];
+                pControl->mTriggerButton = (uint16_t)pActionMappingDesc->mDeviceButtons[1];
                 arrpush(mControls[mMouseDeviceID][pActionMappingDesc->mDeviceButtons[0]], pControl);
                 arrpush(mControls[mMouseDeviceID][pActionMappingDesc->mDeviceButtons[1]], pControl);
                 break;
@@ -1779,6 +1792,7 @@ struct InputSystemImpl: public gainput::InputListener
 
     void SetVirtualKeyboard(uint32_t type)
     {
+        UNREF_PARAM(type);
 #ifdef TARGET_IOS
         if (!pGainputView)
             return;
@@ -1870,7 +1884,7 @@ struct InputSystemImpl: public gainput::InputListener
         if (arrlen(mControls[device]))
         {
             InputActionContext ctx = {};
-            ctx.mDeviceType = pDeviceTypes[device];
+            ctx.mDeviceType = (uint8_t)pDeviceTypes[device];
             ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
 #if TOUCH_INPUT
             uint32_t touchIndex = 0;
@@ -2023,9 +2037,9 @@ struct InputSystemImpl: public gainput::InputListener
                         pControl->mPerformed[index] = 0;
                         pControl->mPressedVal[index] = 0;
                         bool allReleased = true;
-                        for (uint8_t i = 0; i < pControl->mComposite; ++i)
+                        for (uint8_t j = 0; j < pControl->mComposite; ++j)
                         {
-                            if (pControl->mPerformed[i])
+                            if (pControl->mPerformed[j])
                             {
                                 allReleased = false;
                                 break;
@@ -2290,8 +2304,8 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.pPosition = &pControl->mCurrPos;
                             ctx.mActionId = pControl->mAction.mActionId;
 
-                            if (pVirtualJoystick)
-                                virtualJoystickOnMove(pVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
+                            if (gVirtualJoystick)
+                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
                                                       &ctx);
 
                             if (pDesc->pFunction)
@@ -2317,8 +2331,8 @@ struct InputSystemImpl: public gainput::InputListener
                             ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
                             ctx.mActionId = pControl->mAction.mActionId;
 
-                            if (pVirtualJoystick)
-                                virtualJoystickOnMove(pVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
+                            if (gVirtualJoystick)
+                                virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea),
                                                       &ctx);
 
                             if (pDesc->pFunction)
@@ -2429,7 +2443,7 @@ struct InputSystemImpl: public gainput::InputListener
                 const InputControlType type = control->mType;
                 const InputActionDesc* pDesc = &control->mAction;
                 InputActionContext     ctx = {};
-                ctx.mDeviceType = pDeviceTypes[device];
+                ctx.mDeviceType = (uint8_t)pDeviceTypes[device];
                 ctx.pUserData = pDesc->pUserData;
                 ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
                 ctx.mActionId = pDesc->mActionId;
@@ -2548,8 +2562,8 @@ struct InputSystemImpl: public gainput::InputListener
                     if (pControl->mPerformed == pControl->mTarget)
                     {
                         bool equal = true;
-                        for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
-                            equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
+                        for (uint32_t j = 0; j < pControl->mAxisCount; ++j)
+                            equal = equal && (pControl->mValue[j] == pControl->mNewValue[j]);
 
                         pControl->mValue = pControl->mNewValue;
 
@@ -2582,13 +2596,13 @@ struct InputSystemImpl: public gainput::InputListener
                             break;
 
                     const uint32_t axis = index & 1;
-                    const float    oldValue = pControl->mValue[axis];
+                    const float    prevValue = pControl->mValue[axis];
                     pControl->mValue[axis] = newValue;
-                    if (newValue == oldValue)
+                    if (newValue == prevValue)
                     {
                         continue;
                     }
-                    else if (oldValue == 0.0)
+                    else if (prevValue == 0.0)
                     {
                         ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
                         pControl->mPressedVal[index] = 1;
@@ -2600,9 +2614,9 @@ struct InputSystemImpl: public gainput::InputListener
                         pControl->mPressedVal[index] = 0;
                         pControl->mPerformed[index] = 0;
                         bool anyPressed = false;
-                        for (uint32_t i = 0; i < pControl->mComposite; ++i)
+                        for (uint32_t j = 0; j < pControl->mComposite; ++j)
                         {
-                            anyPressed |= pControl->mPressedVal[i] != 0;
+                            anyPressed |= pControl->mPressedVal[j] != 0;
                         }
                         if (!anyPressed)
                             pControl->mStarted = 0;
@@ -2791,8 +2805,8 @@ struct InputSystemImpl: public gainput::InputListener
                         ctx.mActionId = pControl->mAction.mActionId;
                         ctx.mFingerIndices[0] = pControl->mTouchIndex;
 
-                        if (pVirtualJoystick)
-                            virtualJoystickOnMove(pVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea), &ctx);
+                        if (gVirtualJoystick)
+                            virtualJoystickOnMove(gVirtualJoystick, virtualJoystickIndexFromArea((TouchScreenArea)pControl->mArea), &ctx);
 
                         if (pDesc->pFunction)
                             executeNext = pDesc->pFunction(&ctx) && executeNext;
@@ -2812,6 +2826,10 @@ struct InputSystemImpl: public gainput::InputListener
     bool OnDeviceButtonGesture(float deltaTime, gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton,
                                const struct gainput::GestureChange& gesture)
     {
+        UNREF_PARAM(deltaTime);
+        UNREF_PARAM(deviceId);
+        UNREF_PARAM(deviceButton);
+        UNREF_PARAM(gesture);
         // uint32_t device = IdToIndex(deviceId);
         return true;
     }
@@ -2962,6 +2980,8 @@ static void ResetInputStates()
 
 int32_t InputSystemHandleMessage(WindowDesc* pWindow, void* msg)
 {
+    UNREF_PARAM(msg);
+    UNREF_PARAM(pWindow);
 #ifdef ENABLE_FORGE_INPUT
 
     if (pInputSystem == nullptr)
@@ -3015,7 +3035,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
         VirtualJoystickDesc joystickDesc = {};
         joystickDesc.pRenderer = pDesc->pRenderer;
         joystickDesc.pJoystickTexture = pDesc->pJoystickTexture;
-        initVirtualJoystick(&joystickDesc, &pVirtualJoystick);
+        initVirtualJoystick(&joystickDesc, &gVirtualJoystick);
     }
 #endif
 
@@ -3033,7 +3053,7 @@ void exitInputSystem()
     ASSERT(pInputSystem);
 
 #if TOUCH_INPUT
-    exitVirtualJoystick(&pVirtualJoystick);
+    exitVirtualJoystick(&gVirtualJoystick);
 #endif
 
     setCustomMessageProcessor(nullptr);
@@ -3046,6 +3066,9 @@ void exitInputSystem()
 
 void updateInputSystem(float deltaTime, uint32_t width, uint32_t height)
 {
+    UNREF_PARAM(deltaTime);
+    UNREF_PARAM(width);
+    UNREF_PARAM(height);
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
 #if !defined(AUTOMATED_TESTING)
