@@ -68,6 +68,55 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.58 - June 17th, 2024 Behemoth | Compute-Driven Mega Particle System | Triangle Visibility Buffer 2.0 | 
+
+### Announce trailer for Behemoth
+We helped Skydance Interactive to optimize Behemoth last year. Click on the image below to see the announce trailer:
+
+
+[![Behemoth Trailer from June 2024](Screenshots/Behemoth/Behemoth.png)](https://youtu.be/hTmjjzwSp-E?si=rj0G6yrqv5Cr6Gn9)
+
+
+### Compute-Based Mega Particle System
+This unit test was based on some of our research into software rasterization and GPU-driven rendering. A particle system completely running in very few compute shaders with one large buffer holding most of the data. Like with all things GPU-Driven, the trick is to execute one compute shader once on one buffer to reduce read / write memory bandwidth. Although this is not new wisdom, you will be surprised how many particle systems get this still wrong ... having compute shaders for each stage of the particle life time or even worse doing most of the particle work on the CPU.
+This particle system was demoed last year in a few talks in September on a Samsung S22. Here are the slides:
+
+http://www.conffx.com/WolfgangEngelParticleSystem.pptx 
+
+
+It is meant to be used to implement next-gen Mega Particle systems in which we simulate always 100000th or millions of particles at once instead of the few dozen ones contemporary systems simulate. 
+
+#### Android Samsung S22 1170x540 resolution
+This screenshot shows 4 million firefly-like particles, with 10000 lights attached to them and 8 shadows. Those numbers were thought to be not possible on mobile phones before.
+![Mega Particle System Android Samsung S22](Screenshots/Particle%20System/AndroidS22_1170x540.png) 
+
+#### Android Samsung S23 1170x540 resolution
+Same setting as above.
+![Mega Particle System Android Samsung S23](Screenshots/Particle%20System/Android_S23_1170x540.png)
+
+#### Android Samsung S24 1170x540 resolution
+Same setting as above. 
+![Mega Particle System Android Samsung S24](Screenshots/Particle%20System/Android_S24_1170x540.png) 
+
+#### PS5 running at 4K
+![Mega Particle System PS5](Screenshots/Particle%20System/PS5_4K.png) 
+
+#### Windows with AMD RX 6400 at 1080p
+![Mega Particle System PC Windows](Screenshots/Particle%20System/Windows_1080p.png) 
+
+
+### Triangle Visibility Buffer 2.0
+we have the new compute based TVB 2.0 approach now running on all platforms (on Android only S22). You can download slides from the I3D talk from
+
+http://www.conffx.com/I3D-VisibilityBuffer2.pptx 
+
+
+
+
+
+
+
+
 
 ## Release 1.57 - May 8th, 2024 Visibility Buffer 2.0 Prototype | Visibility Buffer 1.0 One Draw call  
 
@@ -111,7 +160,7 @@ We improved the Metal Validation Support.
 Everything related to Art assets is now in the Art folder.
 
 ### Bug fixes
-Lots of fixes everywhere.
+Lots of fixes.
 
 References:
 [burns2013] Christopher A. Burns, Warren A. Hunt, "The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading", 2013, Journal of Computer Graphics Techniques (JCGT) 2:2, Pages 55 - 69.
@@ -475,89 +524,6 @@ We updated the Wiki documentation. Check it out. We know it could be more ...
   - 37_PrecomputedVolumeDLUT - a very specific technique that didn't show any new abilities, so we removed it
   - 38_AmbientOcclusion_GTAO - the maintainer could not fix one bug in the implementation ... so we removed it until someone else can write a consistent implementation for all platforms
 
-
-## Release 1.53 - October 5th, 2022 - Steamdeck Support | App life cycle changes | Shader Byte Code Offline Generation | GTAO Unit Test | Improved gradient calculation in Visibility Buffer | New C Containers | Reorg TF Directory Structure | Upgraded to newer ImGUI | The Forge Blog
-
-The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleasure to see The Forge running in AAA games like this:
-
-[![Starfield](Screenshots/starfield-screenshot.jpg)](https://www.youtube.com/watch?v=ZHZOTFMyMyM)
-
-We added The Forge to the Creation Engine in 2019.
-
-The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
-
-[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
-
-
-- We switched our Linux OS to Manjaro to have an easier upgrade path to the Steamdeck. Please note the changed Linux requirements below.
-
-- Shader byte code can now be generated offline.
-  * Shader binaries are compiled through FSL
-  * Introduced ShaderList files that determine all the binary shaders that FSL needs to produce. Defines, shader target and other specific configuration can be specified per shader binary declaration
-  * Update all projects (UT, VB, Aura, Ephemeris) to use the new ShaderLists
-  * Remove all ShaderStageLoadDesc::pMacros, shaders are compiled offline through ShaderLists
-  * Remove all Renderer::pBuiltinShaderDefines, all configuration is done through FSL
-
-- Over the last few projects we had always challenges with EASTL. So over the last 9 months we slowly removed it and replaced it by new C language based containers that prefer stack allocations over heap allocations.
-
-For string management:
-[bstrlib](https://github.com/websnarf/bstrlib)
-
-For dynamic arrays and hash tables:
-[stb_ds.h](https://github.com/nothings/stb/blob/master/stb_ds.h)
-
-There is a new unit test to make sure those new containers are tested. It is called 36_AlgorithmsAndContainers
-
-- We changed the App life cycle: modern APIs have so many ways to reset the driver or reload assets, so we made a more flexible "reload" mechanism that generalizes all the special cases we had in there before.
-  * App extended with reload functionality by making use of ReloadDesc* parameter for the Load/Unload functions
-  * define reload/reset descriptors structs
-  * define reload/reset enum types
-  * Updated OS base files regarding new structs
-  * Able to reload shaders on all examples
-This is a breaking change to all of our rendering interfaces.
-
-- New Animation test that unifies most of the former animation tests into one. This way we can save some testing time in our Jenkins setup.
-
-
-- We added a new unit test called 38_AmbientOcclusion_GTAO. It implements the paper "Practical Real-Time Strategies for Accurate Indirect Occlusion" by [Jorge Jimenez](https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf) et. all.
-
-macOS
-![GTAO running on macOS](Screenshots/38_GTAO/38_GTAO_macOS.png)
-
-PC
-![GTAO running on PC](Screenshots/38_GTAO/38_GTAO_PC.png)
-
-PS4
-![GTAO running on PS4](Screenshots/38_GTAO/38_GTAO_PS4.png)
-
-PS5
-![GTAO running on PS5](Screenshots/38_GTAO/38_GTAO_PS5.png)
-
-Switch
-![GTAO running on Switch](Screenshots/38_GTAO/38_GTAO_Switch.png)
-
-XBOX
-![GTAO running on XBOX](Screenshots/38_GTAO/38_GTAO_XBOXONE.png)
-
-
-- We improved the gradient calculation in the Visibility Buffer. Thanks to Stephen Hill @self_shadow who brought this to our attention. 
-
-- We reorganized the whole TF directory structure to allow development in more areas. Here is an image representing the new structure:
-
-![The Forge Reorg](Screenshots/TheForgeOverview.png)
-
-What is still missing is the "Render Abstraction Layer", "Scene Loader" and we have to populate the "Game Layer" more.
-
-- We upgraded to ImGUI 1.88 to get access to the docking feature. In the process we improved the ImGUI integration substantially.
-
-- We started a blog for The Forge at [The-Forge-Blog](https://github.com/ConfettiFX/The-Forge-Blog). We have no idea where we can find the time to write blog posts ... let's see what is happening ...
-
-- Retired Unit/Functional Tests: 
-  * 08_GltfViewer - generally glTF is not a model format that is applicable for game development. So we use it as an intermediate format in the Resource loader. In the future we might only use it in the offline asset pipline. The main idea is to extract the data and bring it into a form that is usable in games. Unfortunately many people thought that the glTF viewer is a good model to start with. So we want to guide them in the right direction here by not offering direct access to a glTF reader anymore. 
-  * Most of the animation unit tests are now merged into 21_Animations, to reduce our hardware testing time. Our Jenkins testing environment that tests all platforms before someone can merge code is taking too long.
-
-
-- Resolved GitHub issues
 
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
@@ -1115,9 +1081,16 @@ This unit test is used to make sure the string, dynamic array and hash map imple
 
 
 # Examples
-There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
+
+## Triangle Visibility Buffer 1.0
+This is an implementation of the Triangle Visibility Buffer that utilizes indirect draw calls. An early version of this example was covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
 
 ![Image of the Visibility Buffer](Screenshots/Visibility_Buffer.png)
+
+
+## Triangle Visibility Buffer 2.0
+This is a more GPU Driven version of the Triangle Visibility Buffer. All the indirect draw calls are replaced by one large compute shader.
+
 
 
 # Tools
