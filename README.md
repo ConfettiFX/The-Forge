@@ -87,15 +87,15 @@ http://www.conffx.com/WolfgangEngelParticleSystem.pptx
 It is meant to be used to implement next-gen Mega Particle systems in which we simulate always 100000th or millions of particles at once instead of the few dozen ones contemporary systems simulate. 
 
 #### Android Samsung S22 1170x540 resolution
-This screenshot shows 4 million firefly-like particles, with 10000 lights attached to them. Those numbers were thought to be not possible on mobile phones before.
+This screenshot shows 4 million firefly-like particles, with 10000 lights attached to them and a shadow for the directional light. Those numbers were thought to be not possible on mobile phones before.
 ![Mega Particle System Android Samsung S22](Screenshots/Particle%20System/AndroidS22_1170x540.png) 
 
 #### Android Samsung S23 1170x540 resolution
-Same setting as above but this time also with 8 Shadows.
+Same setting as above but this time also with 8 Shadows from Point Lights additionally.
 ![Mega Particle System Android Samsung S23](Screenshots/Particle%20System/Android_S23_1170x540.png)
 
 #### Android Samsung S24 1170x540 resolution
-Same setting as above but this time also with 8 Shadows.
+Same setting as above but this time also with 8 Shadows from Point Lights additionally.
 ![Mega Particle System Android Samsung S24](Screenshots/Particle%20System/Android_S24_1170x540.png) 
 
 #### PS5 running at 4K
