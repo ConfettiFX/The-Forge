@@ -30,8 +30,8 @@ Particularly, the graphics layer of The Forge supports cross-platform
 - Shader reflection
 - Multi-threaded command buffer generation
 
-The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
-- Resource Loader as shown in 10_PixelProjectedReflections, capable to load textures, buffers and geometry data asynchronously
+The Forge is used to provide the rendering layer for custom next-gen game engines. It is also used to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
+- Resource Loader capable to load textures, buffers and geometry data asynchronously
 - [Lua Scripting System](https://www.lua.org/) - currently used for automatic testing and in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms. It also supports now Double precision.
@@ -109,11 +109,6 @@ Same setting as above but this time also with 8 Shadows from Point Lights additi
 we have the new compute based TVB 2.0 approach now running on all platforms (on Android only S22). You can download slides from the I3D talk from
 
 http://www.conffx.com/I3D-VisibilityBuffer2.pptx 
-
-
-
-
-
 
 
 
