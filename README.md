@@ -91,11 +91,11 @@ This screenshot shows 4 million firefly-like particles, with 10000 lights attach
 ![Mega Particle System Android Samsung S22](Screenshots/Particle%20System/AndroidS22_1170x540.png) 
 
 #### Android Samsung S23 1170x540 resolution
-Same setting as above.
+Same setting as above but this time also with 8 Shadows.
 ![Mega Particle System Android Samsung S23](Screenshots/Particle%20System/Android_S23_1170x540.png)
 
 #### Android Samsung S24 1170x540 resolution
-Same setting as above. 
+Same setting as above but this time also with 8 Shadows.
 ![Mega Particle System Android Samsung S24](Screenshots/Particle%20System/Android_S24_1170x540.png) 
 
 #### PS5 running at 4K
