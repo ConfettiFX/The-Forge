@@ -694,6 +694,70 @@ As a side note the following examples may not be current compatible with the Que
   
     It will only download and unzip required Art Assets (No plugins/extensions install). 
 
+# Building with CMake
+
+The-Forge's CMake infrastructure automatically downloads and extracts the art assets package and builds The Forge libraries, unit tests, and the asset pipeline command. By default, libraries, unit tests, and the asset pipeline command are built. You can use `-DBUILD_UNIT_TESTS=OFF` and `-DBUILD_ASSETPIPELINECMD` to disable unit tests and asset pipeline command build, respectively.
+
+## Linux
+
+```
+$ mkdir build && cd build
+$ cmake -GNinja -DCMAKE_BUILD_TYPE=<Debug|Release> ..
+$ cmake --build . --parallel
+```
+
+Tested with `g++` 14 and `clang++` 18.
+
+## macOS
+
+Ensure `XCode` and `XCode command line tools` are installed.
+
+```
+$ mkdir build && cd build
+$ cmake -GNinja -DCMAKE_BUILD_TYPE=<Debug|Release> ..
+$ cmake --build . --parallel
+```
+
+Tested with `clang++` 15 (from `XCode 15`) and `18` (from `brew`).
+
+## Windows
+
+Ensure `MSVC 2019` and `C++ CMake tools for Windows` (Visual Studio component) are installed.
+
+Start `x32 or x64 Native Tools Command Prompt` and run:
+```
+$ mkdir build && cd build
+$ cmake -G "Visual Studio 16 2019" ..
+$ cmake --build . --parallel
+```
+
+Tested with `MSVC 2019` and `Windows 11 SDK 10.0.22621.0`.
+
+## iOS
+
+Ensure XCode and XCode command line tools are installed.
+
+```
+$ mkdir build && cd build
+$ cmake -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake ..
+$ cmake --build . --parallel
+```
+
+Tested with clang++ 15 (from XCode 15).
+
+## Android
+
+Ensure Android NDK is installed.
+
+```
+$ mkdir build && cd build
+$ cmake -GNinja -DCMAKE_BUILD_TYPE=<Debug|Release> -DANDROID_PLATFORM=android-26 -DCMAKE_TOOLCHAIN_FILE=<path-to-android-ndk>/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a ..
+$ cmake --build . --parallel
+```
+
+Tested with Android NDK 26.1.10909125.
+
+__NOTE__: the asset pipeline command is built only on desktop platforms (Linux, Windows, or macOS).
 
 # Unit Tests
 There are the following unit tests in The Forge:

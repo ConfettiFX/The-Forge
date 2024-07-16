@@ -1,0 +1,1 @@
+tf_add_unit_test(14_WaveIntrinsics 14_WaveIntrinsics.cpp)
