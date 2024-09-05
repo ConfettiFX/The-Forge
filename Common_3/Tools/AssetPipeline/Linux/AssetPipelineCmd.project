@@ -50,11 +50,10 @@
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall;-Werror;-Wno-error=unused-function;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O0;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
       <Linker Options="-pthread;-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_avx.o;" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/Debug"/>
@@ -104,12 +103,11 @@
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O2;-Wall;-Werror;-Wno-error=unused-function;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O2;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
       <Linker Options="-pthread;-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_avx.o;" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Release"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/Release"/>

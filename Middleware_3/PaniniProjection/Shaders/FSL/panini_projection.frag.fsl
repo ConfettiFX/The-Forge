@@ -35,6 +35,6 @@ float4 PS_MAIN(VSOut In)
 {
 	INIT_MAIN;
 	float4 Out;
-	Out = SampleTex2D(Get(uTex), Get(uSampler), In.texcoord);
+	Out = SampleTex2D(uTex, uSampler, In.texcoord);
 	RETURN(Out);
 }

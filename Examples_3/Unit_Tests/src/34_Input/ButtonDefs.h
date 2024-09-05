@@ -143,3 +143,7 @@
 
 // buttonSet3
 #define SCROLL_DOWN_BIT           (1u << 0)
+
+#define INPUT_DEVICE_GAMEPAD      0
+#define INPUT_DEVICE_KBM          1
+#define INPUT_DEVICE_TOUCH        2

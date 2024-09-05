@@ -74,25 +74,25 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
     bool is_first_lane_of_threadgroup = group_index == 0;
 
     // First we figure out on a per thread basis if we need to shoot a reflection ray.
-    uint2 screen_size = uint2(GetDimensions(Get(g_normal_roughness), NO_SAMPLER));
+    uint2 screen_size = uint2(GetDimensions(g_normal_roughness, NO_SAMPLER));
 
     // Disable offscreen pixels
     bool needs_ray = !(did.x >= screen_size.x || did.y >= screen_size.y);
 
     // Dont shoot a ray on very rough surfaces.
-    float roughness = FfxSssrUnpackRoughness(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, did.xy, 0));
+    float roughness = FfxSssrUnpackRoughness(LoadTex2D(g_normal_roughness, NO_SAMPLER, did.xy, 0));
     needs_ray = needs_ray && IsGlossy(roughness);
 
     // Also we dont need to run the denoiser on mirror reflections.
     bool needs_denoiser = needs_ray && !IsMirrorReflection(roughness);
 
     // Decide which ray to keep
-    bool is_base_ray = IsBaseRay(did.xy, Get(g_samples_per_quad));
+    bool is_base_ray = IsBaseRay(did.xy, Constants.g_samples_per_quad);
     needs_ray = needs_ray && (!needs_denoiser || is_base_ray); // Make sure to not deactivate mirror reflection rays.
 
-    if (Get(g_temporal_variance_guided_tracing_enabled) != 0u && needs_denoiser && !needs_ray)
+    if (Constants.g_temporal_variance_guided_tracing_enabled != 0u && needs_denoiser && !needs_ray)
     {
-        float temporal_variance = LoadRWTex2D(Get(g_temporal_variance), int2(did.xy)).x;
+        float temporal_variance = LoadRWTex2D(g_temporal_variance, int2(did.xy)).x;
         bool has_temporal_variance = temporal_variance != 0.0;
 
         // If temporal variance is too high, we enforce a ray anyway.
@@ -135,13 +135,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
         uint tile_index;
         uint ray_base_index = 0;
 
-        AtomicAdd(Get(g_tile_counter)[0], denoise_count, tile_index);
-        AtomicAdd(Get(g_ray_counter)[0], ray_count, ray_base_index);
+        AtomicAdd(g_tile_counter[0], denoise_count, tile_index);
+        AtomicAdd(g_ray_counter[0], ray_count, ray_base_index);
 
         int cleaned_index = must_denoise ? int(tile_index) : -1;
 	    if(must_denoise)
 	    {
-        	Get(g_tile_list)[cleaned_index] = Pack(did.xy); // Write out pixel coords of upper left pixel
+        	g_tile_list[cleaned_index] = Pack(did.xy); // Write out pixel coords of upper left pixel
 	    }
         g_ray_base_index = ray_base_index;
     }
@@ -150,20 +150,20 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
     if(needs_ray)
     {
         int ray_index = int(g_ray_base_index + local_ray_index_of_wave + local_ray_index_in_wave);
-        Get(g_ray_list)[ray_index] = Pack(did.xy); // Write out pixel to trace
+        g_ray_list[ray_index] = Pack(did.xy); // Write out pixel to trace
     }
 
-    if(Get(g_clear_targets))
+    if(Constants.g_clear_targets)
     {
         // Clear intersection targets as there wont be any ray that overwrites them
-        Write2D(Get(g_temporally_denoised_reflections), did.xy, f4(0));
+        Write2D(g_temporally_denoised_reflections, did.xy, f4(0));
     }
 
-    Write2D(Get(g_ray_lengths), did.xy, 0.0f);
-    Write2D(Get(g_denoised_reflections), did.xy, f4(0));
+    Write2D(g_ray_lengths, did.xy, 0.0f);
+    Write2D(g_denoised_reflections, did.xy, f4(0));
 
     // Re-purpose g_temporal_variance to hold the information for the spatial pass if a ray has been shot. Always write 0 if no denoiser is running.
-    Write2D(Get(g_temporal_variance), did.xy, needs_ray ? (1.0f - Get(g_skip_denoiser)) : 0.0f);
+    Write2D(g_temporal_variance, did.xy, needs_ray ? (1.0f - Constants.g_skip_denoiser) : 0.0f);
 	RETURN();
 }
 #endif // FFX_SSSR_CLASSIFY_TILES

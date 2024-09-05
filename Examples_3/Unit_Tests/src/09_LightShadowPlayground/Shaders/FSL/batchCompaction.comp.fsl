@@ -42,7 +42,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 	UNROLL_N(NUM_CULLING_VIEWPORTS)
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		numIndices[i] = Get(uncompactedDrawArgs)[GET_UNCOMPACT_DRAW_INDEX(i, threadID.x)].numIndices;
+		numIndices[i] = uncompactedDrawArgs[GET_UNCOMPACT_DRAW_INDEX(i, threadID.x)].numIndices;
 		sum += numIndices[i];
 	}
 
@@ -58,7 +58,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 		if (numIndices[j] > 0)
 		{
 			uint instanceSlot = BatchCompaction(threadID.x, j, numIndices[j], slot);
-			Get(indirectMaterialBuffer)[instanceSlot] = Get(uncompactedDrawArgs)[GET_UNCOMPACT_DRAW_INDEX(j, threadID.x)].instanceDataIndex;
+			indirectMaterialBuffer[instanceSlot] = uncompactedDrawArgs[GET_UNCOMPACT_DRAW_INDEX(j, threadID.x)].instanceDataIndex;
 		}
 	}
 	RETURN();

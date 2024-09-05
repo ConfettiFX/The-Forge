@@ -213,13 +213,12 @@ def kwargs_ensure_no_popup_console() -> dict:
 
 def get_file_times_recursive(root: Path) -> Dict[Path, float]:
     # Skip checking text files and shader sources
-    suffixes_to_ignore = [
-        '.txt', '.json', '.fsl', '.hlsl', '.glsl',
-        '.vert', '.frag', '.tesc', '.tese', '.geom', '.comp',
+    suffixes_to_pass = [
+        '.vert', '.geom', '.frag', '.comp', '.metal'
     ]
     file_times = {}
     for path in root.rglob('*'):
-        if not path.is_dir() and path.suffix not in suffixes_to_ignore:
+        if not path.is_dir() and path.suffix in suffixes_to_pass:
             file_times[path] = path.stat().st_mtime
     return file_times
 

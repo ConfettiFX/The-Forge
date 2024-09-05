@@ -23,7 +23,7 @@
 */
 
 #define EPSILON 1e-7f
-CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(Camera)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, CamVPMatrix[VR_MULTIVIEW_COUNT], None);
@@ -34,12 +34,14 @@ CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 #endif
 	DATA(float3, camPos, None);
 };
+RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
-PUSH_CONSTANT(CapsuleRootConstant, b1)
+STRUCT(CapsuleData)
 {
 	DATA(float4, CenterRadius0, None);
 	DATA(float4, CenterRadius1, None);
 };
+RES(ROOT_CONSTANT(CapsuleData), CapsuleRootConstant, UPDATE_FREQ_NONE, b1, binding = 1);
 
 STRUCT(VSInput)
 {
@@ -113,10 +115,10 @@ VSOutput VS_MAIN( VSInput In )
 	// Collapse the capsule to a sphere.
 	pos.y -= weight * 2.0f - 1.0f;	
 
-	float3 center0 = Get(CenterRadius0).xyz;
-	float radius0  = Get(CenterRadius0).w;
-	float3 center1 = Get(CenterRadius1).xyz;
-	float radius1  = Get(CenterRadius1).w;
+	float3 center0 = CapsuleRootConstant.CenterRadius0.xyz;
+	float radius0  = CapsuleRootConstant.CenterRadius0.w;
+	float3 center1 = CapsuleRootConstant.CenterRadius1.xyz;
+	float radius1  = CapsuleRootConstant.CenterRadius1.w;
 
 	// Rotate the sphere
 	if (length(center0 - center1) > EPSILON)
@@ -132,9 +134,9 @@ VSOutput VS_MAIN( VSInput In )
 	pos += center0 * weight + center1 * (1.0f - weight);
 
 #if FT_MULTIVIEW
-	Out.Position = mul(Get(CamVPMatrix)[VR_VIEW_ID], float4(pos, 1.0f));
+	Out.Position = mul(cbCamera.CamVPMatrix[VR_VIEW_ID], float4(pos, 1.0f));
 #else
-	Out.Position = mul(Get(CamVPMatrix), float4(pos, 1.0f));
+	Out.Position = mul(cbCamera.CamVPMatrix, float4(pos, 1.0f));
 #endif
 
 	RETURN(Out);

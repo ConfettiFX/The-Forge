@@ -227,6 +227,28 @@
 #include "screenSpaceShadows.comp.fsl"
 #end
 
+#define WAVE_BASIC       1 << 0
+#define WAVE_ARITHMETIC  1 << 1
+
+#comp screenSpaceShadows_wave_SAMPLE_COUNT_1.comp
+ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT)
+#define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_ARITHMETIC)
+#define SAMPLE_COUNT 1
+#include "screenSpaceShadows.comp.fsl"
+#end
+#comp screenSpaceShadows_wave_SAMPLE_COUNT_2.comp
+ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT)
+#define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_ARITHMETIC)
+#define SAMPLE_COUNT 2
+#include "screenSpaceShadows.comp.fsl"
+#end
+#comp screenSpaceShadows_wave_SAMPLE_COUNT_4.comp
+ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT)
+#define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_ARITHMETIC)
+#define SAMPLE_COUNT 4
+#include "screenSpaceShadows.comp.fsl"
+#end
+
 #comp clearScreenSpaceShadows.comp
 #include "clearScreenSpaceShadows.comp.fsl"
 #end

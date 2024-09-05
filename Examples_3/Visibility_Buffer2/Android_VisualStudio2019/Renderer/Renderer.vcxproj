@@ -13,10 +13,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\EGLContextCreator.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLES.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
@@ -30,8 +26,6 @@
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESCapsBuilder.h" />
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\OpenGLES\GLESContextCreator.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h" />
     <ClInclude Include="..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h" />
@@ -89,7 +83,7 @@
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">

@@ -25,10 +25,11 @@
 RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 
-CBUFFER(UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(CameraSky)
 {
 	DATA(float4x4, projView, None);
 };
+RES(CBUFFER(CameraSky), UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSInput) {
 	DATA(float4, Position, POSITION);
@@ -43,7 +44,7 @@ VSOutput VS_MAIN( VSInput Input )
 {
     INIT_MAIN;
     VSOutput result;
-    result.Position = mul(Get(projView), Input.Position);
+    result.Position = mul(UniformCameraSky.projView, Input.Position);
 	result.Position = result.Position.xyww; //this makes depth buffer 1.0
 
 	result.pos = Input.Position.xyz;

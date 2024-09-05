@@ -39,7 +39,7 @@ RES(Tex2D(float), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s0, binding = 2);
 RES(SamplerState, clampMiplessNearSampler, UPDATE_FREQ_NONE, s1, binding = 3);
 
-CBUFFER(cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 4)
+STRUCT(CameraUniformBlock)
 {
     DATA(float4x4, View, None);
     DATA(float4x4, Project, None);
@@ -56,6 +56,7 @@ CBUFFER(cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 4)
 	DATA(float2, mWindowSize, None);
 	DATA(float4, mDeviceZToWorldZ, None);
 };
+RES(CBUFFER(CameraUniformBlock), cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 4);
 
 STRUCT(PsIn)
 {
@@ -70,7 +71,7 @@ STRUCT(PsOut)
 
 float ConvertFromDeviceZ(float deviceZ)
 {
-	const float4 deviceZToWorldZ = Get(mDeviceZToWorldZ);
+	const float4 deviceZToWorldZ = cameraUniformBlock.mDeviceZToWorldZ;
 	return deviceZ * deviceZToWorldZ.x + deviceZToWorldZ.y + 1.0f / (deviceZ * deviceZToWorldZ.z - deviceZToWorldZ.w);
 }
 
@@ -80,13 +81,13 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	PsOut Out;
 	float2 UV = In.TexCoord.xy;
 #if SAMPLE_COUNT > 1
-	float depthVal = LoadTex2DMS(Get(DepthTexture), Get(clampMiplessNearSampler), uint2(In.Position.xy), i).r;
+	float depthVal = LoadTex2DMS(DepthTexture, clampMiplessNearSampler, uint2(In.Position.xy), i).r;
 #else
-	float depthVal = SampleTex2D(Get(DepthTexture), Get(clampMiplessNearSampler), UV).r;
+	float depthVal = SampleTex2D(DepthTexture, clampMiplessNearSampler, UV).r;
 #endif
 	float worldDepth = ConvertFromDeviceZ(depthVal);
 	
-	float2 downSampledTextureSize = floor(Get(mWindowSize).xy / SDF_SHADOW_DOWNSAMPLE_VALUE);
+	float2 downSampledTextureSize = floor(cameraUniformBlock.mWindowSize.xy / SDF_SHADOW_DOWNSAMPLE_VALUE);
 	float2 downSampledTexelSize = 1.0f / downSampledTextureSize.xy;
 
 	//get the top left corner of this UV coord
@@ -95,14 +96,14 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	
 	float2 billinearWeights = (UV.xy - cornerUV.xy) * downSampledTextureSize;
 
-	float2 textureValues_00 = SampleTex2D(Get(SDFShadowTexture), 
-		Get(clampMiplessLinearSampler), cornerUV).xy;
-	float2 textureValues_10 = SampleTex2D(Get(SDFShadowTexture), 
-		Get(clampMiplessLinearSampler), cornerUV + float2(downSampledTexelSize.x, 0.f)).xy;
-	float2 textureValues_01 = SampleTex2D(Get(SDFShadowTexture), 
-		Get(clampMiplessLinearSampler), cornerUV + float2(0.f, downSampledTexelSize.y)).xy;
-	float2 textureValues_11 = SampleTex2D(Get(SDFShadowTexture), 
-		Get(clampMiplessLinearSampler), cornerUV + downSampledTexelSize).xy;
+	float2 textureValues_00 = SampleTex2D(SDFShadowTexture, 
+		clampMiplessLinearSampler, cornerUV).xy;
+	float2 textureValues_10 = SampleTex2D(SDFShadowTexture, 
+		clampMiplessLinearSampler, cornerUV + float2(downSampledTexelSize.x, 0.f)).xy;
+	float2 textureValues_01 = SampleTex2D(SDFShadowTexture, 
+		clampMiplessLinearSampler, cornerUV + float2(0.f, downSampledTexelSize.y)).xy;
+	float2 textureValues_11 = SampleTex2D(SDFShadowTexture, 
+		clampMiplessLinearSampler, cornerUV + downSampledTexelSize).xy;
 
 	float4 cornerWeights = float4(  ( (1.f - billinearWeights.y) * (1.f - billinearWeights.x) ),
 		(1.f - billinearWeights.y) * billinearWeights.x,

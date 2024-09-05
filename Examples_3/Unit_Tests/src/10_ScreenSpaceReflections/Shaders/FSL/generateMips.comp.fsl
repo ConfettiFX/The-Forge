@@ -25,24 +25,25 @@
 RES(RWTex2D(float), Source, UPDATE_FREQ_PER_DRAW, u0, binding = 1);
 RES(RWTex2D(float), Destination, UPDATE_FREQ_PER_DRAW, u1, binding = 2);
 
-PUSH_CONSTANT(RootConstant, b0)
+STRUCT(RootConstant)
 {
 	DATA(uint2, MipSize, None);
 };
+RES(ROOT_CONSTANT(RootConstant), uRootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
 
 NUM_THREADS(16,  16,  1)
 void CS_MAIN( SV_DispatchThreadID(uint3) id) 
 {    
 	INIT_MAIN;
-	if (id.x < Get(MipSize).x && id.y < Get(MipSize).y)
+	if (id.x < uRootConstant.MipSize.x && id.y < uRootConstant.MipSize.y)
 	{
 		float color = 0.0f;
 		UNROLL for (int x = 0; x < 2; ++x)
 		{
 			UNROLL for (int y = 0; y < 2; ++y)
-				color = max(color, LoadRWTex2D(Get(Source), id.xy * 2 + uint2(x, y)).x);
+				color = max(color, LoadRWTex2D(Source, id.xy * 2 + uint2(x, y)).x);
 		}
-		Write2D(Get(Destination), id.xy, color);
+		Write2D(Destination, id.xy, color);
 	}
 	RETURN();
 }

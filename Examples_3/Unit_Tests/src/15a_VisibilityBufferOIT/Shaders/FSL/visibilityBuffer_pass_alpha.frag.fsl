@@ -41,11 +41,11 @@ float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleI
     float2 texCoords = In.texCoord.xy + uvOffsets[i].x * uv_dx + uvOffsets[i].y * uv_dy;
 
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleGradTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), texCoords, uv_dx, uv_dy).a;
+		alpha = SampleGradTex2D(diffuseMaps[materialID], textureFilter, texCoords, uv_dx, uv_dy).a;
     EndNonUniformResourceIndex();
 #else
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+		alpha = SampleTex2D(diffuseMaps[materialID], textureFilter, In.texCoord).a;
     EndNonUniformResourceIndex();
 #endif
     

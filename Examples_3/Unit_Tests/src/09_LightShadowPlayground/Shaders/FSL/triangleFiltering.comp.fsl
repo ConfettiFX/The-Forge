@@ -60,10 +60,10 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 	INIT_MAIN;
 	if (inGroupId.x == 0)
 	{
-		for (uint i = 0; i < Get(numViewports); ++i)
+		for (uint i = 0; i < PerFrameVBConstants.numViewports; ++i)
 			AtomicStore(workGroupIndexCount[i], 0u);
 
-		filterDispatchGroupData = Get(filterDispatchGroupDataBuffer)[groupId.x];
+		filterDispatchGroupData = filterDispatchGroupDataBuffer[groupId.x];
 	}
 
 	GroupMemoryBarrier();
@@ -71,7 +71,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 	bool cull[NUM_CULLING_VIEWPORTS];
 	uint threadOutputSlot[NUM_CULLING_VIEWPORTS];
 
-	for (uint i = 0; i < Get(numViewports); ++i)
+	for (uint i = 0; i < PerFrameVBConstants.numViewports; ++i)
 	{
 		threadOutputSlot[i] = 0;
 		cull[i] = true;
@@ -80,21 +80,21 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 	uint batchMeshIndex = filterDispatchGroupData.meshIndex;
 	uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
 	uint batchFaceCount =  ((filterDispatchGroupData.geometrySet_faceCount & BATCH_FACE_COUNT_MASK) >> BATCH_FACE_COUNT_LOW_BIT);
-	uint batchInputIndexOffset = (Get(meshConstantsBuffer)[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
-	uint vertexOffset = Get(meshConstantsBuffer)[batchMeshIndex].vertexOffset;
-	bool twoSided = (Get(meshConstantsBuffer)[batchMeshIndex].twoSided == 1);
+	uint batchInputIndexOffset = (meshConstantsBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
+	uint vertexOffset = meshConstantsBuffer[batchMeshIndex].vertexOffset;
+	bool twoSided = (meshConstantsBuffer[batchMeshIndex].twoSided == 1);
 
 	uint indices[3] = { 0, 0, 0 };
 	if (inGroupId.x < batchFaceCount)
 	{
-		indices[0] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
-		indices[1] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
-		indices[2] = vertexOffset + LoadByte(Get(indexDataBuffer), (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
+		indices[0] = vertexOffset + LoadByte(indexDataBuffer, (inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = vertexOffset + LoadByte(indexDataBuffer, (inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = vertexOffset + LoadByte(indexDataBuffer, (inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
 		
 		// TODO: move to VisibilityBuffer.cpp 
-		Get(indirectDataBuffer)[indices[0]] = batchMeshIndex;
-		Get(indirectDataBuffer)[indices[1]] = batchMeshIndex;
-		Get(indirectDataBuffer)[indices[2]] = batchMeshIndex;
+		indirectDataBuffer[indices[0]] = batchMeshIndex;
+		indirectDataBuffer[indices[1]] = batchMeshIndex;
+		indirectDataBuffer[indices[2]] = batchMeshIndex;
 
 		float4 vert[3] =
 		{
@@ -103,10 +103,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 			LoadVertex(indices[2])
 		};
 
-		for (uint i = 0; i < Get(numViewports); ++i)
+		for (uint i = 0; i < PerFrameVBConstants.numViewports; ++i)
 		{
-			float4x4 worldViewProjection = Get(transform)[i].mvp.mat;
-
+			float4x4 worldViewProjection = PerFrameVBConstants.transform[i].mvp.mat;
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),
@@ -114,7 +113,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 				mul(worldViewProjection, vert[2])
 			};
 
-			CullingViewPort viewport = Get(cullingViewports)[i];
+			CullingViewPort viewport = PerFrameVBConstants.cullingViewports[i];
 			cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
 			if (!cull[i])
 				AtomicAdd(workGroupIndexCount[i], 3, threadOutputSlot[i]);
@@ -125,25 +124,25 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 
 	if (inGroupId.x == 0)
 	{
-		for (uint i = 0; i < Get(numViewports); ++i)
+		for (uint i = 0; i < PerFrameVBConstants.numViewports; ++i)
 		{
 			uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(i, batchGeomSet, 0);
-			AtomicAdd(Get(indirectDrawArgs)[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);		
+			AtomicAdd(indirectDrawArgs[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);		
 		}
 	}
 
 	GroupMemoryBarrier();
 
-	for (uint j = 0; j < Get(numViewports); ++j)
+	for (uint j = 0; j < PerFrameVBConstants.numViewports; ++j)
 	{
 		if (!cull[j])
 		{
 			uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
 
 			// Write index
-			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
-			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
-			StoreByte(Get(filteredIndicesBuffer)[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
+			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
+			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
+			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
 		}
 	}
 

@@ -48,7 +48,7 @@ float samplePrevFrameLuma(int2 nonMsaaPixelPos)
 {
 	float3 luminanceConv = float3(0.257, 0.504, 0.098);
 
-	float3 col = LoadTex2D(Get(prevFrameTex), NO_SAMPLER, nonMsaaPixelPos, 0).rgb;
+	float3 col = LoadTex2D(prevFrameTex, NO_SAMPLER, nonMsaaPixelPos, 0).rgb;
 	return dot(luminanceConv, col);
 }
 
@@ -91,8 +91,8 @@ uint calcRate1Sample(float qualityThreshold, float black,
 uint calcRate4Samples(int2 pixelPos, float qualityThreshold, float black)
 {
 	float colors[4][4];
-	uint windowWidth = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.x);
-	uint windowHeight = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.y);
+	uint windowWidth = uint(PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize.x);
+	uint windowHeight = uint(PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize.y);
 
 	for(int yOffset=-1; yOffset<=2; yOffset++)
 	{
@@ -161,7 +161,7 @@ PSOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
 	{
 		uint rate = calcRate4Samples(prevPixelPos, qualityThreshold, black);
 		int2 historyPixelPos = prevPixelPos;
-		history = LoadTex2DMS(Get(prevHistoryTex), NO_SAMPLER, historyPixelPos, 0).r;
+		history = LoadTex2DMS(prevHistoryTex, NO_SAMPLER, historyPixelPos, 0).r;
 		history = ((history << 2) | rate) & 0xff;
 	}
 

@@ -48,19 +48,23 @@
 
 // Comment/uncomment includes to disable/enable rendering APIs
 #if defined(_WINDOWS)
+#if defined(FORGE_EXPLICIT_RENDERER_API)
+#if defined(FORGE_EXPLICIT_RENDERER_API_DIRECT3D11)
+#include "Direct3D11/Direct3D11Config.h"
+#elif defined(FORGE_EXPLICIT_RENDERER_API_VULKAN)
+#include "Vulkan/VulkanConfig.h"
+#endif
+#endif
 #ifndef _WINDOWS7
+#if !defined(FORGE_EXPLICIT_RENDERER_API)
 #include "Direct3D12/Direct3D12Config.h"
 #endif
-#include "Direct3D11/Direct3D11Config.h"
-#include "Vulkan/VulkanConfig.h"
+#endif
 #elif defined(XBOX)
 #include "Direct3D12/Direct3D12Config.h"
 #elif defined(__APPLE__)
 #include "Metal/MetalConfig.h"
 #elif defined(__ANDROID__)
-#ifndef QUEST_VR
-#include "OpenGLES/GLESConfig.h"
-#endif
 #ifdef ARCH_ARM64
 #include "Vulkan/VulkanConfig.h"
 #endif
@@ -85,7 +89,6 @@ enum
     MAX_SEMANTIC_NAME_LENGTH = 128,
     MAX_DEBUG_NAME_LENGTH = 128,
     MAX_MIP_LEVELS = 0xFFFFFFFF,
-    MAX_SWAPCHAIN_IMAGES = 3,
     MAX_GPU_VENDOR_STRING_LENGTH = 64, // max size for GPUVendorPreset strings
 #if defined(VULKAN)
     MAX_PLANE_COUNT = 3,
@@ -100,7 +103,7 @@ enum
 #endif
 
 #ifdef ENABLE_PROFILER
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO) || defined(GLES)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 #define ENABLE_GPU_PROFILER
 #endif
 #endif
@@ -116,12 +119,8 @@ enum
 #endif
 #endif
 
-#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
-     defined(NX64)) == 0
+#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) == 0
 #error "No rendering API defined"
-#elif (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
-       defined(NX64)) > 1
-#define USE_MULTIPLE_RENDER_APIS
 #endif
 
 #if defined(ANDROID) || defined(SWITCH) || defined(TARGET_APPLE_ARM64)
@@ -149,7 +148,7 @@ enum
 
 struct GPUSettings;
 struct GPUCapBits;
-
+struct Renderer;
 typedef struct ExtendedSettings
 {
     uint32_t     mNumSettings;
@@ -189,7 +188,10 @@ FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, 
 FORGE_API void applyGPUConfigurationRules(struct GPUSettings* pGpuSettings, struct GPUCapBits* pCapBits);
 
 // apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
-FORGE_API void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GPUSettings* pGpuSettings);
+FORGE_API void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GPUSettings* pGpuSettings);
+FORGE_API void setupGPUConfigurationPlatformParameters(struct Renderer* pRenderer, ExtendedSettings* pExtendedSettings);
+FORGE_API void initGPUConfiguration(ExtendedSettings* pExtendedSettings);
+FORGE_API void exitGPUConfiguration();
 
 // return if the the GPUSettings validate the current driver rejection rules
 FORGE_API bool checkDriverRejectionSettings(const struct GPUSettings* pGpuSettings);

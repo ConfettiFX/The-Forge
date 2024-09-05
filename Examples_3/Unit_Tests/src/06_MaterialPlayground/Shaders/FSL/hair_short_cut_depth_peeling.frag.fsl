@@ -53,10 +53,10 @@ float PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float Coverage;
-	float3 NDC = ScreenPosToNDC(In.Position.xyz, Get(Viewport));
+	float3 NDC = ScreenPosToNDC(In.Position.xyz, cbHairGlobal.Viewport);
 	float2 p0 = In.P0P1.xy / In.W0W1.x;
 	float2 p1 = In.P0P1.zw / In.W0W1.y;
-	float coverage = ComputeCoverage(p0, p1, NDC.xy, Get(Viewport).zw);
+	float coverage = ComputeCoverage(p0, p1, NDC.xy, cbHairGlobal.Viewport.zw);
 	clip(coverage);
 	float alpha = coverage * In.Color.a;
 	clip(alpha - (1.0f / 255.0f));
@@ -75,23 +75,23 @@ float PS_MAIN( VSOutput In )
 		uint3(In.Position.x, In.Position.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 		uint3(In.Position.x, In.Position.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 	};
-	AtomicMax3D(Get(DepthsTexture), coords[0], depth, prevDepths[0]);
+	AtomicMax3D(DepthsTexture, coords[0], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
-	AtomicMax3D(Get(DepthsTexture), coords[1], depth, prevDepths[1]);
+	AtomicMax3D(DepthsTexture, coords[1], depth, prevDepths[1]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
-	AtomicMax3D(Get(DepthsTexture), coords[2], depth, prevDepths[2]);
+	AtomicMax3D(DepthsTexture, coords[2], depth, prevDepths[2]);
 #else
 	uint2 p = uint2(In.Position.xy);
 	const uint coords[] = {
-		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 0),
-		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 1),
-		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 2)
+		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 0),
+		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 1),
+		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 2)
 	};
-	AtomicMax(Get(DepthsTexture)[coords[0]], depth, prevDepths[0]);
+	AtomicMax(DepthsTexture[coords[0]], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
-	AtomicMax(Get(DepthsTexture)[coords[1]], depth, prevDepths[1]);
+	AtomicMax(DepthsTexture[coords[1]], depth, prevDepths[1]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
-	AtomicMax(Get(DepthsTexture)[coords[2]], depth, prevDepths[2]);
+	AtomicMax(DepthsTexture[coords[2]], depth, prevDepths[2]);
 #endif
 
 

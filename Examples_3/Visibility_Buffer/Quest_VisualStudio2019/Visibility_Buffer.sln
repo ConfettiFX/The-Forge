@@ -23,8 +23,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\Ques
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\gainputstatic\gainputstatic.vcxproj", "{A4C073AB-608B-4E1C-B24A-9E3919235F0C}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\SpirvTools\SpirvTools.vcxproj", "{5E22FFEA-7871-4E40-96B0-269809340C5F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visibility_Buffer", "Visibility_Buffer.vcxproj", "{610C39FA-F02B-4237-BA8C-4EED56FA8D9F}"
@@ -55,10 +53,6 @@ Global
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
@@ -76,7 +70,6 @@ Global
 		{7EA11457-ECF2-4106-B963-3BEE3AFEC428} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{945448D4-52AC-406B-9C18-BD54E83D1BA4} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{610C39FA-F02B-4237-BA8C-4EED56FA8D9F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 	EndGlobalSection

@@ -35,7 +35,7 @@ float4 PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
 	float4 Out;
-	float4 sceneColor = SampleTex2D(Get(SourceTexture), Get(repeatBillinearSampler), In.texCoord);
+	float4 sceneColor = SampleTex2D(SourceTexture, repeatBillinearSampler, In.texCoord);
 	Out = float4(sceneColor.rgb, 1.0);
 	RETURN(Out);
 }

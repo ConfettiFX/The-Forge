@@ -40,7 +40,7 @@
 
 // Internal include file
 #define OZZ_INCLUDE_PRIVATE_HEADER  // Allows to include private headers.
-#include "../src/animation/runtime/animation_keyframe.h"
+#include "../../../src/animation/runtime/animation_keyframe.h"
 
 // TheForge BEGIN
 static uint16_t FloatToHalfTemp(float _f) {

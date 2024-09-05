@@ -29,12 +29,13 @@
     #define STATIC static
     #define STRUCT(NAME) struct NAME
     #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
+    #define CBUFFER(NAME) struct NAME
+	#define RES(RESOURCE, NANE, FREQ, REGISTER, BINDING) 
 	#define float4x4 mat4
 #endif
 
 #define LIGHT_COUNT 128
-#define LIGHT_SIZE 150.0f
+#define LIGHT_SIZE 30.0f
 
 #define LIGHT_CLUSTER_WIDTH 8
 #define LIGHT_CLUSTER_HEIGHT 8
@@ -65,28 +66,29 @@ STRUCT(MeshData)
 #define MATERIAL_ID_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
 #define FLAG_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0) 
+STRUCT(PerFrameConstantsData)
 {
 	DATA(float4, camPos, None);
 	DATA(float, nearPlane, None);
 	DATA(float, farPlane, None);
-	DATA(uint, pad0, None);
-	DATA(uint, pad1, None);
+	DATA(uint, _pad0, None);
+	DATA(uint, _pad1, None);
 	//========================================
 	DATA(float4, lightDir, None);
 	//========================================
 	DATA(float4, lightColor, None);
 	//========================================
-	DATA(uint, lightingMode, None);
+	DATA(uint, _pad2, None);
 	DATA(uint, outputMode, None);
 	DATA(float2, twoOverRes, None);
 	//========================================
 	DATA(float, esmControl, None);
 	DATA(uint, screenWidth, None); 
 	DATA(uint, screenHeight, None);
-	DATA(uint, _pad0, None);
+	DATA(uint, _pad3, None);
 	DATA(float4, transAlphaPerFlag, None); // TheForge UnitTest specific, stores the alpha of each of the flags in the SanMiguel scene
 };
+RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(LightData)
 {

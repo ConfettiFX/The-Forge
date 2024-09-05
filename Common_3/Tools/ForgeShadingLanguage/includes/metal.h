@@ -80,17 +80,6 @@ float length(int2 x)
 #define CENTROID(TYPE) TYPE
 #define centroid centroid_perspective
 
-// #define SHADER_VIS_VS   1
-// #define SHADER_VIS_TC   2
-// #define SHADER_VIS_TE   4
-// #define SHADER_VIS_GS   8
-// #define SHADER_VIS_PS   16
-// #define SHADER_VIS_ALL SHADER_VIS_VS | SHADER_VIS_TC | SHADER_VIS_TE | SHADER_VIS_GS | SHADER_VIS_PS
-// #define SHADER_VIS_CS SHADER_VIS_ALL
-
-// global resource access
-#define Get(X) _Get_##X
-
 #define ddx dfdx
 #define ddy dfdy
 
@@ -153,8 +142,8 @@ float radians(float degrees)
 
 #define STRUCT(NAME) struct NAME
 #define DATA(TYPE, NAME, SEM) TYPE NAME
-#define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
-#define PUSH_CONSTANT(NAME, REG) STRUCT(NAME)
+#define CBUFFER(TYPE) struct TYPE
+#define ROOT_CONSTANT(TYPE) struct TYPE
 
 /* Matrix */
 
@@ -565,6 +554,8 @@ bool any(float3 x) { return any(x!= 0.0f); }
     #define WaveGetLaneIndex() simd_lane_id
     #define WaveIsFirstLane simd_is_first
     #define WaveGetMaxActiveIndex() simd_max(WaveGetLaneIndex())
+    #define WaveActiveMax(X) simd_max(X)
+    #define WaveGetLaneCount() simdgroup_size
     #define countbits popcount
     #define CountBallot _popcount_u4
     inline ballot_t WaveActiveBallot(bool expr)

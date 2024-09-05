@@ -4,9 +4,6 @@
     <Filter Include="Graphics">
       <UniqueIdentifier>{593e1415-0a3e-4b3c-9bfc-8cdc8f4b50c0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\OpenGLES">
-      <UniqueIdentifier>{1da64f0e-d054-4488-a78c-4b5d3031f645}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Vulkan">
       <UniqueIdentifier>{9703985a-97b9-4c10-b587-b50bf5047120}</UniqueIdentifier>
     </Filter>
@@ -60,18 +57,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\EGLContextCreator.cpp">
-      <Filter>Graphics\OpenGLES</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\GLES.cpp">
-      <Filter>Graphics\OpenGLES</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\GLESShaderReflection.cpp">
-      <Filter>Graphics\OpenGLES</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
       <Filter>Graphics\Vulkan</Filter>
     </ClCompile>
@@ -107,12 +92,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
       <Filter>Graphics\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\GLESCapsBuilder.h">
-      <Filter>Graphics\OpenGLES</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\OpenGLES\GLESContextCreator.h">
-      <Filter>Graphics\OpenGLES</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
       <Filter>Graphics\Vulkan</Filter>

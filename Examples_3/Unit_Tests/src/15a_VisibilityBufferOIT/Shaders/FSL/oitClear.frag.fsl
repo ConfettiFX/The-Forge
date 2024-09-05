@@ -47,10 +47,10 @@ void PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
 {
 	INIT_MAIN;
 	
-	Get(geometryCountBuffer)[0].count = 0;
+	geometryCountBuffer[0].count = 0;
 
-	uint windowWidth = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.x);
-	uint windowHeight = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.y);
+	uint windowWidth = uint(PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize.x);
+	uint windowHeight = uint(PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize.y);
 
 	uint data = OIT_HEAD_INVALID;
 	uint2 pixelAddr = uint2(In.position.xy);
@@ -58,7 +58,7 @@ void PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
 	if (pixelAddr.x < windowWidth && pixelAddr.y < windowHeight)
 	{
 		uint bufferIdx = pixelAddr.y * windowWidth + pixelAddr.x;
-		Get(headIndexBufferUAV)[bufferIdx] = data;
+		headIndexBufferUAV[bufferIdx] = data;
 	}
 
 	clip(-1.0f);

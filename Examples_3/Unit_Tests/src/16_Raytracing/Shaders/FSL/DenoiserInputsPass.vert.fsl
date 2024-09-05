@@ -38,10 +38,7 @@ STRUCT(VsIn)
 	DATA(float3, normal, NORMAL);
 };
 
-CBUFFER(gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-	DATA(ShadersConfigBlock, gSettingsData, None);
-};
+RES(CBUFFER(ShadersConfigBlock), gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 VSOutput VS_MAIN(VsIn In)
 {
@@ -51,10 +48,10 @@ VSOutput VS_MAIN(VsIn In)
 	float3 normal = In.normal;
 	
 	VSOutput Out;
-	Out.viewSpacePosition = mul(Get(gSettingsData).mWorldToCamera, float4(position, 1)).xyz;
+	Out.viewSpacePosition = mul(gSettings.mWorldToCamera, float4(position, 1)).xyz;
 	Out.worldSpaceNormal = normal;
-	Out.position = mul(Get(gSettingsData).mCameraToProjection, float4(Out.viewSpacePosition, 1));
-	Out.previousPosition = mul(Get(gSettingsData).mWorldToProjectionPrevious, float4(position, 1));
+	Out.position = mul(gSettings.mCameraToProjection, float4(Out.viewSpacePosition, 1));
+	Out.previousPosition = mul(gSettings.mWorldToProjectionPrevious, float4(position, 1));
 	
 	RETURN(Out);
 }

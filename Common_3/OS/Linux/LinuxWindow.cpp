@@ -33,8 +33,6 @@
 #include <ctime>
 #include <gtk/gtk.h>
 
-#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
-
 #include "../../Application/Interfaces/IFont.h"
 #include "../../Application/Interfaces/IProfiler.h"
 #include "../../Application/Interfaces/IUI.h"
@@ -110,7 +108,6 @@ Atom wmStateFocused;
 Atom wmStateMaximized;
 
 // LinuxMain.cpp
-extern CustomMessageProcessor sCustomProc;
 
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
@@ -947,10 +944,8 @@ bool handleMessages(WindowDesc* winDesc)
     {
         XNextEvent(winDesc->handle.display, &event);
 
-        if (sCustomProc != nullptr)
-        {
-            sCustomProc(winDesc, &event);
-        }
+        extern void platformInputEvent(const XEvent* event);
+        platformInputEvent(&event);
 
         switch (event.type)
         {

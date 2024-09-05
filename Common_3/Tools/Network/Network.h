@@ -60,7 +60,7 @@ typedef int Socket;
 
     // Create a new socket address from host/port
     bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port);
-#ifdef FORGE_TOOLS // Only required for UIRemoteControl tool
+#ifdef FORGE_TOOLS
     bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port);
 #endif // FORGE_TOOLS
     // Get host/port from given socket address

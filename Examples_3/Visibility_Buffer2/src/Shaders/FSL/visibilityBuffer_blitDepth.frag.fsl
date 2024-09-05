@@ -40,19 +40,20 @@ STRUCT(PSOutput)
 	DATA(float, depth, SV_Depth);
 };
 
-PUSH_CONSTANT(RootConstant, b0)
+STRUCT(RootConstantData)
 {
 	DATA(int, view, None);
 	DATA(int, width, None);
 };
+RES(ROOT_CONSTANT(RootConstantData), RootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
 
 PSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
 
-	uint index = VisibilityBufferOffset(Get(view), Get(width), In.position.x, In.position.y);
+	uint index = VisibilityBufferOffset(RootConstant.view, RootConstant.width, In.position.x, In.position.y);
 
-	uint64_t packedU64 = Get(visibilityBuffer)[index];
+	uint64_t packedU64 = visibilityBuffer[index];
 	float depth = 0.0f;
 	uint vbId = 0u;
 	unpackDepthVBId(packedU64, depth, vbId);

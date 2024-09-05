@@ -47,8 +47,8 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pTextu
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 struct Raytracing
 {
@@ -75,7 +75,7 @@ struct IOS17_API AccelerationStructure
 };
 
 IOS17_API
-bool mtl_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
     ASSERT(pRenderer);
     ASSERT(ppRaytracing);
@@ -90,7 +90,7 @@ bool mtl_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 }
 
 IOS17_API
-void mtl_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
     ASSERT(pRenderer);
     ASSERT(pRaytracing);
@@ -247,8 +247,8 @@ static inline FORGE_CONSTEXPR MTLAccelerationStructureInstanceOptions ToMTLASOpt
 }
 
 IOS17_API
-void mtl_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
-                                  AccelerationStructure** ppAccelerationStructure)
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                              AccelerationStructure** ppAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pDesc);
@@ -404,7 +404,7 @@ void mtl_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStr
 }
 
 IOS17_API
-void mtl_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pAccelerationStructure);
@@ -430,7 +430,7 @@ void mtl_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStruct
 }
 
 IOS17_API
-void mtl_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     if (!pAccelerationStructure->pScratchBuffer)
     {
@@ -441,7 +441,7 @@ void mtl_removeAccelerationStructureScratch(Raytracing* pRaytracing, Acceleratio
 }
 
 IOS17_API
-void mtl_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
     if (!pCmd->pASEncoder)
     {
@@ -491,14 +491,14 @@ struct SSVGFDenoiser
     id pDenoiser; // MPSSVGFDenoiser*
 };
 
-void mtl_addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
+void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
 {
     SSVGFDenoiser* denoiser = (SSVGFDenoiser*)tf_calloc(1, sizeof(SSVGFDenoiser));
     denoiser->pDenoiser = [[MPSSVGFDenoiser alloc] initWithDevice:pRenderer->pDevice];
     *ppDenoiser = denoiser;
 }
 
-void mtl_removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
+void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
 {
     if (!pDenoiser)
     {
@@ -509,15 +509,15 @@ void mtl_removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
     tf_free(pDenoiser);
 }
 
-void mtl_clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
+void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
 {
     ASSERT(pDenoiser);
 
     [(MPSSVGFDenoiser*)pDenoiser->pDenoiser clearTemporalHistory];
 }
 
-void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture,
-                         Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
+void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture,
+                     Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
 {
     ASSERT(pDenoiser);
     if (pCmd->pComputeEncoder)
@@ -563,25 +563,5 @@ void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTe
     (*ppOut)->mpsTextureAllocator = denoiser.textureAllocator;
 }
 #endif
-
-void initMetalRaytracingFunctions()
-{
-#if defined(MTL_RAYTRACING_AVAILABLE)
-    if (MTL_RAYTRACING_SUPPORTED)
-    {
-        initRaytracing = mtl_initRaytracing;
-        removeRaytracing = mtl_removeRaytracing;
-        addAccelerationStructure = mtl_addAccelerationStructure;
-        removeAccelerationStructure = mtl_removeAccelerationStructure;
-        removeAccelerationStructureScratch = mtl_removeAccelerationStructureScratch;
-        cmdBuildAccelerationStructure = mtl_cmdBuildAccelerationStructure;
-    }
-
-    addSSVGFDenoiser = mtl_addSSVGFDenoiser;
-    removeSSVGFDenoiser = mtl_removeSSVGFDenoiser;
-    clearSSVGFDenoiserTemporalHistory = mtl_clearSSVGFDenoiserTemporalHistory;
-    cmdSSVGFDenoise = mtl_cmdSSVGFDenoise;
-#endif
-}
 
 #endif

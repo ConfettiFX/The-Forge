@@ -24,10 +24,11 @@
 
 #include "vrs_resources.h.fsl"
 
-PUSH_CONSTANT(cbRootConstant, b0)
+STRUCT(cbRootConstantData)
 {
     DATA(float, drawVRSDebug, None);
 };
+RES(ROOT_CONSTANT(cbRootConstantData), cbRootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
 
 RES(Tex2DMS(uint, SAMPLE_COUNT), historyTex, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(Tex2DMS(float4, SAMPLE_COUNT), msaaSource, UPDATE_FREQ_NONE, t1, binding = 1);
@@ -38,7 +39,7 @@ float3 sampleOpaque(uint2 msaaSampleLocation)
 {
 	uint2 msaaLocation = msaaSampleLocation/2;
 	uint sampleIndex = (msaaSampleLocation.x&1) + ((msaaSampleLocation.y&1)*2);
-	float3 opaque = LoadTex2DMS(Get(msaaSource), NO_SAMPLER, msaaLocation, sampleIndex).xyz;
+	float3 opaque = LoadTex2DMS(msaaSource, NO_SAMPLER, msaaLocation, sampleIndex).xyz;
 	return opaque;
 }
 
@@ -49,7 +50,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid )
 
 	uint2 msaaLocation = DTid.xy;
 
-	uint rate = GetConservativeRate(LoadTex2DMS(Get(historyTex), NO_SAMPLER, msaaLocation, 0).r);
+	uint rate = GetConservativeRate(LoadTex2DMS(historyTex, NO_SAMPLER, msaaLocation, 0).r);
 
 	// top left sample is always shaded
 	bool has2HSamples = rate == SHADING_RATE_2X1;
@@ -60,7 +61,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid )
 	for(int sampleIndex=0; sampleIndex < SAMPLE_COUNT; sampleIndex++)
 		msaaSampleLocations[sampleIndex] = (msaaLocation * 2) + uint2(sampleOffsets[sampleIndex]);
 
-	int2 dim = GetDimensions(Get(resolvedTex), NO_SAMPLER);
+	int2 dim = GetDimensions(resolvedTex, NO_SAMPLER);
 	bool atRightEdge  = msaaLocation.x >= (dim.x/2)-1;
 	bool atBottomEdge = msaaLocation.y >= (dim.y/2)-1;
 
@@ -69,38 +70,38 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid )
 		for(int sampleIndex=0; sampleIndex < SAMPLE_COUNT; sampleIndex++)
 		{
 			uint2 msaaSampleLocation = msaaSampleLocations[sampleIndex];
-			Write2D(Get(resolvedTex), msaaSampleLocation, float4(sampleOpaque(msaaSampleLocation), 1));
+			Write2D(resolvedTex, msaaSampleLocation, float4(sampleOpaque(msaaSampleLocation), 1));
 		}
 	}
 	else if(has2VSamples)
 	{
-		uint rateRight = GetConservativeRate(LoadTex2DMS(Get(historyTex), NO_SAMPLER, msaaLocation + uint2(1,0), 0).r);
+		uint rateRight = GetConservativeRate(LoadTex2DMS(historyTex, NO_SAMPLER, msaaLocation + uint2(1,0), 0).r);
 		bool hasSample2Right = (rateRight&1)!=0;
 
 		float3 sample0 = sampleOpaque(msaaSampleLocations[0]);
 		float3 sample2 = sampleOpaque(msaaSampleLocations[2]);
 		
-		Write2D(Get(resolvedTex), msaaSampleLocations[0], float4(sample0, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[1], float4((sample0 + (atRightEdge ? sample0 : sampleOpaque(msaaSampleLocations[0] + uint2(2,0))))*0.5, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[2], float4(sample2, 1));
+		Write2D(resolvedTex, msaaSampleLocations[0], float4(sample0, 1));
+		Write2D(resolvedTex, msaaSampleLocations[1], float4((sample0 + (atRightEdge ? sample0 : sampleOpaque(msaaSampleLocations[0] + uint2(2,0))))*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[2], float4(sample2, 1));
 
 		uint2 sample2RightLocation = (hasSample2Right ? msaaSampleLocations[2] : msaaSampleLocations[0]) + uint2(2,0);
-		Write2D(Get(resolvedTex), msaaSampleLocations[3], float4((sample2 + (atRightEdge ? sample2 : sampleOpaque(sample2RightLocation)))*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[3], float4((sample2 + (atRightEdge ? sample2 : sampleOpaque(sample2RightLocation)))*0.5, 1));
 	}
 	else if(has2HSamples)
 	{
-		uint rateDown = GetConservativeRate(LoadTex2DMS(Get(historyTex), NO_SAMPLER, msaaLocation + uint2(0,1), 0).r);
+		uint rateDown = GetConservativeRate(LoadTex2DMS(historyTex, NO_SAMPLER, msaaLocation + uint2(0,1), 0).r);
 		bool hasSample1Down = (rateDown&2)!=0;
 
 		float3 sample0 = sampleOpaque(msaaSampleLocations[0]);
 		float3 sample1 = sampleOpaque(msaaSampleLocations[1]);
 		
-		Write2D(Get(resolvedTex), msaaSampleLocations[0], float4(sample0, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[1], float4(sample1, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[2], float4((sample0 + (atBottomEdge ? sample0 : sampleOpaque(msaaSampleLocations[0] + uint2(0,2))))*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[0], float4(sample0, 1));
+		Write2D(resolvedTex, msaaSampleLocations[1], float4(sample1, 1));
+		Write2D(resolvedTex, msaaSampleLocations[2], float4((sample0 + (atBottomEdge ? sample0 : sampleOpaque(msaaSampleLocations[0] + uint2(0,2))))*0.5, 1));
 		
 		uint2 sample1DownLocation = (hasSample1Down ? msaaSampleLocations[1] : msaaSampleLocations[0]) + uint2(0,2);
-		Write2D(Get(resolvedTex), msaaSampleLocations[3], float4((sample1 + (atBottomEdge ? sample1 : sampleOpaque(sample1DownLocation)))*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[3], float4((sample1 + (atBottomEdge ? sample1 : sampleOpaque(sample1DownLocation)))*0.5, 1));
 	}
 	else
 	{
@@ -109,13 +110,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid )
 		float3 sampleB  = sampleOpaque(msaaSampleLocations[0] + uint2(0,                   atBottomEdge ? 0 : 2));
 		float3 sampleBR = sampleOpaque(msaaSampleLocations[0] + uint2(atRightEdge ? 0 : 2, atBottomEdge ? 0 : 2));
 		
-		Write2D(Get(resolvedTex), msaaSampleLocations[0], float4(sample0, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[1], float4((sample0 + sampleR)*0.5, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[2], float4((sample0 + sampleB)*0.5, 1));
-		Write2D(Get(resolvedTex), msaaSampleLocations[3], float4((sample0 + sampleR + sampleB + sampleBR) * 0.25, 1));
+		Write2D(resolvedTex, msaaSampleLocations[0], float4(sample0, 1));
+		Write2D(resolvedTex, msaaSampleLocations[1], float4((sample0 + sampleR)*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[2], float4((sample0 + sampleB)*0.5, 1));
+		Write2D(resolvedTex, msaaSampleLocations[3], float4((sample0 + sampleR + sampleB + sampleBR) * 0.25, 1));
 	}
 
-	if (Get(drawVRSDebug) == 1.0)
+	if (cbRootConstant.drawVRSDebug == 1.0)
     {
 		float4 debugColor = float4(1.0, 1.0, 1.0, 1.0);
 		if (has4Samples)
@@ -134,7 +135,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid )
 		for(int sampleIndex=0; sampleIndex < SAMPLE_COUNT; sampleIndex++)
 		{
 			uint2 msaaSampleLocation = msaaSampleLocations[sampleIndex];
-			Write2D(Get(debugVRSTex), msaaSampleLocation, debugColor);
+			Write2D(debugVRSTex, msaaSampleLocation, debugColor);
 		}
 	}
 

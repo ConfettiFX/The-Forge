@@ -43,7 +43,7 @@ STRUCT(FSOutput)
 #endif
 	RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
 
-PUSH_CONSTANT(RootConstantSCurveInfo, b0)
+STRUCT(RootConstantSCurveInfoData)
 {
 	DATA(float, C1, None);
 	DATA(float, C2, None);
@@ -56,6 +56,7 @@ PUSH_CONSTANT(RootConstantSCurveInfo, b0)
 	DATA(float, pad0, None);
 	DATA(uint, outputMode, None);
 };
+RES(ROOT_CONSTANT(RootConstantSCurveInfoData), RootConstantSCurveInfo, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #define PQ_N  f3(0.1593017578125)
 #define PQ_M  f3(78.84375)
@@ -87,7 +88,7 @@ float3 Rec709ToRec2020(float3 color)
 float3 ApplyDolbySCurve(float3 Color, const float Scale, const float Slope)
 {
 	float3 pow_in = pow(abs(clamp(Color.rgb, f3(0.000061f), f3(65504.f)) / Scale), f3(Slope));
-	return (Get(C1) + Get(C2) * pow_in) / (1 + Get(C3) * pow_in);
+	return (RootConstantSCurveInfo.C1 + RootConstantSCurveInfo.C2 * pow_in) / (1 + RootConstantSCurveInfo.C3 * pow_in);
 }
 
 FSOutput PS_MAIN( PsIn In )
@@ -95,13 +96,13 @@ FSOutput PS_MAIN( PsIn In )
     INIT_MAIN;
     FSOutput Out;
 #if FT_MULTIVIEW
-	float4 sceneColor = SampleTex2DArray(Get(uTex0), Get(uSampler0), float3(In.texCoord, In.ViewID));
+	float4 sceneColor = SampleTex2DArray(uTex0, uSampler0, float3(In.texCoord, In.ViewID));
 #else
-    float4 sceneColor = SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord);
+    float4 sceneColor = SampleTex2D(uTex0, uSampler0, In.texCoord);
 #endif
 	float3 resultColor = float3(0.0, 0.0, 0.0);
 
-	if(Get(outputMode) == 0)
+	if(RootConstantSCurveInfo.outputMode == 0)
 	{
 		//SDR
 		//resultColor = pow(sceneColor.rgb, 0.45454545);
@@ -111,10 +112,10 @@ FSOutput PS_MAIN( PsIn In )
 	{
 		//HDR10
 
-		if(Get(UseSCurve) > 0.5f)
-			resultColor = L2PQ_float3(ApplyDolbySCurve(Rec709ToRec2020(sceneColor.rgb), Get(ScurveScale), Get(ScurveSlope)));	
+		if(RootConstantSCurveInfo.UseSCurve > 0.5f)
+			resultColor = L2PQ_float3(ApplyDolbySCurve(Rec709ToRec2020(sceneColor.rgb), RootConstantSCurveInfo.ScurveScale, RootConstantSCurveInfo.ScurveSlope));	
 		else
-			resultColor = L2PQ_float3( min(Rec709ToRec2020(sceneColor.rgb) * Get(linearScale), 10000.0f));		
+			resultColor = L2PQ_float3( min(Rec709ToRec2020(sceneColor.rgb) * RootConstantSCurveInfo.linearScale, 10000.0f));		
 	}
 
     Out.FragmentOutput = float4(resultColor, 1.0);

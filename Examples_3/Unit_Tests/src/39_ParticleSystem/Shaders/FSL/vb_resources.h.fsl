@@ -38,7 +38,6 @@ RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t4, binding
 STRUCT(PsInShadowOpaque)
 {
 	DATA(float4, position, SV_Position);
-	DATA(float4, wsPosition, POSITION);
 };
 
 STRUCT(PsOutShadow)
@@ -50,7 +49,6 @@ STRUCT(PsInShadowAlphaTested)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD0);
-	DATA(float3, wsPosition, POSITION);
 	DATA(FLAT(uint), materialID, TEXCOORD1);
 };
 
@@ -73,12 +71,12 @@ STRUCT(PsInVBAlphaTested)
 
 float4 LoadVertex(uint index)
 {
-    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1.0f);
+    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1.0f);
 }
 
 float2 LoadTexCoord(uint index)
 {
-	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
+	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
 }
 
 #endif /* vb_resources_h */

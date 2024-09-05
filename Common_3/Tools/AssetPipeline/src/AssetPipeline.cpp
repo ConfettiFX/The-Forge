@@ -2693,6 +2693,9 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         texturesParams.mContainer = CONTAINER_DDS; // default container
         texturesParams.mGenerateMipmaps = MIPMAP_NONE;
         texturesParams.mInputLinearColorSpace = false;
+        texturesParams.mSwizzle = { 'r', 'g', 'b', 'a' };
+        texturesParams.mSwizzleChannelCount = 0;
+        texturesParams.mProcessAsNormalMap = false;
 
         bool error = false;
         for (int i = 0; i < assetParams->mFlagsCount; i++)
@@ -2795,6 +2798,56 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
                 texturesParams.mCompression = COMPRESSION_ASTC;
                 texturesParams.mOverrideASTC = ASTC_4x4_SLOW;
             }
+            else if (STRCMP(flag, "--astc5x4"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_5x4;
+            }
+            else if (STRCMP(flag, "--astc5x4-slow"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_5x4_SLOW;
+            }
+            else if (STRCMP(flag, "--astc5x5"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_5x5;
+            }
+            else if (STRCMP(flag, "--astc5x5-slow"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_5x5_SLOW;
+            }
+            else if (STRCMP(flag, "--astc6x6"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_6x6;
+            }
+            else if (STRCMP(flag, "--astc6x6-slow"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_6x6_SLOW;
+            }
+            else if (STRCMP(flag, "--astc8x5"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_8x5;
+            }
+            else if (STRCMP(flag, "--astc8x5-slow"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_8x5_SLOW;
+            }
+            else if (STRCMP(flag, "--astc8x6"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_8x6;
+            }
+            else if (STRCMP(flag, "--astc8x6-slow"))
+            {
+                texturesParams.mCompression = COMPRESSION_ASTC;
+                texturesParams.mOverrideASTC = ASTC_8x6_SLOW;
+            }
             else if (STRCMP(flag, "--astc8x8"))
             {
                 texturesParams.mCompression = COMPRESSION_ASTC;
@@ -2841,6 +2894,25 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             else if (STRCMP(flag, "--vmf"))
             {
                 texturesParams.pRoughnessFilePath = assetParams->mFlags[++i];
+                texturesParams.mInputLinearColorSpace = true;
+            }
+            else if (STRCMP(flag, "--normalmap"))
+            {
+                // If normal map, put X into any of the first three channels and Y into alpha, Z is not stored and reconstructed at runtime
+                // This allows components to be separately compressed, because normals are unit vectors while colors are linear in range [0,
+                // 1] Color compression methods may mix three components, which is not suitable for normalized vectors Note: this is subject
+                // to future changes, when better compressing schemes are found
+                texturesParams.mProcessAsNormalMap = true;
+                texturesParams.mSwizzle = { 'x', 'x', 'x', 'y' };
+                texturesParams.mSwizzleChannelCount = 4;
+                texturesParams.mInputLinearColorSpace = true;
+            }
+            else if (STRCMP(flag, "--swizzle"))
+            {
+                const char* pChannels = assetParams->mFlags[++i];
+                texturesParams.mSwizzle = { 0, 0, 0, 0 };
+                texturesParams.mSwizzleChannelCount = min(4u, (uint32_t)strlen(pChannels));
+                memcpy(texturesParams.mSwizzle.mIndices, pChannels, texturesParams.mSwizzleChannelCount);
             }
             else if (STRCMP(flag, "--in-linear"))
             {

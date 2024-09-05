@@ -36,7 +36,7 @@ RES(Tex2D(float4), FrontText,      UPDATE_FREQ_NONE, t8,  binding = 8);
 RES(Tex2D(float4), BackText,       UPDATE_FREQ_NONE, t9,  binding = 9);
 RES(SamplerState,  uSkyboxSampler, UPDATE_FREQ_NONE, s10, binding = 10);
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
     DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
@@ -44,15 +44,17 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float4x4, mvp, None);
 #endif
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 // limit push_constant decl to particle shader for metal
 #if !defined(METAL) || defined(PARTICLE)
-PUSH_CONSTANT(particleRootConstant, b1)
+STRUCT(RootConstant)
 {
     DATA(float, paletteFactor, None);
     DATA(uint, data, None);
     DATA(uint, textureIndex, None);
 };
+RES(ROOT_CONSTANT(RootConstant), particleRootConstant, UPDATE_FREQ_NONE, b1, binding = 1);
 #endif
 
 #endif

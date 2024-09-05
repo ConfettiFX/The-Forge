@@ -69,7 +69,7 @@ t PBR/bronze_01/2K/vMF/Normal.tex
 T WoodenPlanks05
 t PBR/wooden_planks_05/2K/Albedo.tex srgb
 t PBR/wooden_planks_05/2K/Normal.tex
-t PBR/wooden_planks_05/2K/Normal.tex
+t PBR/wooden_planks_05/2K/Metallic.tex
 t PBR/wooden_planks_05/2K/Roughness.tex
 t PBR/wooden_planks_05/2K/AO.tex
 t PBR/wooden_planks_05/2K/vMF/Normal.tex
@@ -77,7 +77,7 @@ t PBR/wooden_planks_05/2K/vMF/Normal.tex
 T WoodenPlanks06
 t PBR/wooden_planks_06/2K/Albedo.tex srgb
 t PBR/wooden_planks_06/2K/Normal.tex
-t PBR/wooden_planks_06/2K/Normal.tex
+t PBR/wooden_planks_06/2K/Metallic.tex
 t PBR/wooden_planks_06/2K/Roughness.tex
 t PBR/wooden_planks_06/2K/AO.tex
 t PBR/wooden_planks_06/2K/vMF/Normal.tex
@@ -85,7 +85,7 @@ t PBR/wooden_planks_06/2K/vMF/Normal.tex
 T Wood03
 t PBR/wood_#03/2K/Albedo.tex srgb
 t PBR/wood_#03/2K/Normal.tex
-t PBR/wood_#03/2K/Normal.tex
+t PBR/wood_#03/2K/Metallic.tex
 t PBR/wood_#03/2K/Roughness.tex
 t PBR/wood_#03/2K/AO.tex
 t PBR/wood_#03/2K/vMF/Normal.tex
@@ -93,7 +93,7 @@ t PBR/wood_#03/2K/vMF/Normal.tex
 T Wood08
 t PBR/wood_#08/2K/Albedo.tex srgb
 t PBR/wood_#08/2K/Normal.tex
-t PBR/wood_#08/2K/Normal.tex
+t PBR/wood_#08/2K/Metallic.tex
 t PBR/wood_#08/2K/Roughness.tex
 t PBR/wood_#08/2K/AO.tex
 t PBR/wood_#08/2K/vMF/Normal.tex
@@ -101,7 +101,7 @@ t PBR/wood_#08/2K/vMF/Normal.tex
 T Wood16
 t PBR/wood_#16/2K/Albedo.tex srgb
 t PBR/wood_#16/2K/Normal.tex
-t PBR/wood_#16/2K/Normal.tex
+t PBR/wood_#16/2K/Metallic.tex
 t PBR/wood_#16/2K/Roughness.tex
 t PBR/wood_#16/2K/AO.tex
 t PBR/wood_#16/2K/vMF/Normal.tex
@@ -109,7 +109,7 @@ t PBR/wood_#16/2K/vMF/Normal.tex
 T Wood18
 t PBR/wood_#18/2K/Albedo.tex srgb
 t PBR/wood_#18/2K/Normal.tex
-t PBR/wood_#18/2K/Normal.tex
+t PBR/wood_#18/2K/Metallic.tex
 t PBR/wood_#18/2K/Roughness.tex
 t PBR/wood_#18/2K/AO.tex
 t PBR/wood_#18/2K/vMF/Normal.tex

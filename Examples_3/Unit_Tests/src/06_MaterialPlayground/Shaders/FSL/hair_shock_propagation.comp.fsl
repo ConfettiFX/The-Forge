@@ -56,13 +56,13 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	float4 rootPosPrev[2];
 	float4 rootPos[2];
 
-	rootPosPrevPrev = Get(HairVertexPositionsPrevPrev)[indices.globalRootVertexIndex + 1];
+	rootPosPrevPrev = HairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
 
-	rootPosPrev[0] = Get(HairVertexPositionsPrev)[indices.globalRootVertexIndex];
-	rootPosPrev[1] = Get(HairVertexPositionsPrev)[indices.globalRootVertexIndex + 1];
+	rootPosPrev[0] = HairVertexPositionsPrev[indices.globalRootVertexIndex];
+	rootPosPrev[1] = HairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
 
-	rootPos[0] = Get(HairVertexPositions)[indices.globalRootVertexIndex];
-	rootPos[1] = Get(HairVertexPositions)[indices.globalRootVertexIndex + 1];
+	rootPos[0] = HairVertexPositions[indices.globalRootVertexIndex];
+	rootPos[1] = HairVertexPositions[indices.globalRootVertexIndex + 1];
 
 	float3 u = normalize(rootPosPrev[1].xyz - rootPosPrev[0].xyz);
 	float3 v = normalize(rootPos[1].xyz - rootPos[0].xyz);
@@ -70,24 +70,24 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	float4 rotation = QuatFromUnitVectors(u, v);
 	float3 RotateVecation = rootPos[0].xyz - RotateVec(rotation, rootPosPrev[0].xyz);
 
-	float vspStrength = Get(VSPStrength);
+	float vspStrength = cbSimulation.VSPStrength;
 	float acceleration = length((rootPos[1] - 2.0f * rootPosPrev[1] + rootPosPrevPrev[1]).xyz);
 
-	if (acceleration > Get(VSPAccelerationThreshold))
+	if (acceleration > cbSimulation.VSPAccelerationThreshold)
 		vspStrength = 1.0f;
 
-	for(uint localVertexIndex = 2; localVertexIndex < Get(NumVerticesPerStrand); ++localVertexIndex)
+	for(uint localVertexIndex = 2; localVertexIndex < cbSimulation.NumVerticesPerStrand; ++localVertexIndex)
 	{
 		uint globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
 
-		float4 pos = Get(HairVertexPositions)[globalVertexIndex];
-		float4 posPrev = Get(HairVertexPositionsPrev)[globalVertexIndex];
+		float4 pos = HairVertexPositions[globalVertexIndex];
+		float4 posPrev = HairVertexPositionsPrev[globalVertexIndex];
 
 		pos.xyz = (1.0f - vspStrength) * pos.xyz + vspStrength * (RotateVec(rotation, pos.xyz) + RotateVecation);
 		posPrev.xyz = (1.0f - vspStrength) * posPrev.xyz + vspStrength * (RotateVec(rotation, posPrev.xyz) + RotateVecation);
 
-		Get(HairVertexPositions)[globalVertexIndex] = pos;
-		Get(HairVertexPositionsPrev)[globalVertexIndex] = posPrev;
+		HairVertexPositions[globalVertexIndex] = pos;
+		HairVertexPositionsPrev[globalVertexIndex] = posPrev;
 	}
 	RETURN();
 }

@@ -22,49 +22,70 @@
  * under the License.
 */
 
-#include "shading.h.fsl"
+#include "shader_defs.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "light_cull_resources.h.fsl"
-
-// This compute shader determines if a light of index groupId overlaps
-// the cluster (thread.x,thread.y). Then the light is added to the cluster.
 
 NUM_THREADS(DEPTH_BOUNDS_GROUP_AMOUNT_X, DEPTH_BOUNDS_GROUP_AMOUNT_Y, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 {
 	INIT_MAIN;
 
-	float2 windowSize = Get(cullingViewports)[VIEW_CAMERA].windowSize;
-	uint2 coords = threadInDispatch.xy;
-	if (coords.x >= windowSize.x || coords.y >= windowSize.y)
+	float2 windowSize = PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
+	uint2 coords;
+	uint clusterId = 0, depthBitmask = 0;
+
+	// Each thread computes the bitmask for 4 neighboring pixels. Atomic operations are expensive, so in the best case we
+	// only perform 1/4 of the operations in comparison to computing a bitmask per thread.
+	UNROLL_N(DEPTH_ClUSTERS_KERNEL_SIZE)
+	for (uint i=0; i<DEPTH_ClUSTERS_KERNEL_SIZE; i++)
 	{
-		RETURN();
+		UNROLL_N(DEPTH_ClUSTERS_KERNEL_SIZE)
+		for (uint j=0; j<DEPTH_ClUSTERS_KERNEL_SIZE; j++)
+		{
+			coords = threadInDispatch.xy * DEPTH_ClUSTERS_KERNEL_SIZE + uint2(i, j);
+			if (coords.x >= windowSize.x || coords.y >= windowSize.y)
+			{
+				continue;
+			}
+	
+			float2 subclusterSize = windowSize / float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
+			uint2 subclusterCoords = uint2(float2(coords) / subclusterSize);
+			coords.y = uint(windowSize.y) - coords.y;
+
+			// Set default state
+			uint currClusterId = subclusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT + subclusterCoords.x;
+			if (currClusterId >= LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT * LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)
+			{
+				continue;
+			}
+
+			// We might be at the edge of a cluster. In that case, we update the bitmask immediately and compute a new one
+			if (currClusterId != clusterId && !(i == 0 && j == 0))
+			{
+				uint tmp;
+				if (depthBitmask != 0)
+					AtomicOr(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
+				
+				depthBitmask = 0;
+			}
+
+			clusterId = currClusterId;
+
+			float2 minMaxDepth;
+			minMaxDepth.x = float(DepthBoundsBuffer[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE]);
+			minMaxDepth.y = float(DepthBoundsBuffer[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1]);
+			minMaxDepth = (minMaxDepth / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
+	
+			// Build bitmask
+			float depth = linearizeDepthReverseZ(LoadTex2D(DepthBuffer, NO_SAMPLER, coords, 0).x, CAMERA_NEAR, CAMERA_FAR);
+			depthBitmask = depthBitmask | (1 << GetDepthBitmaskIndex(minMaxDepth.x, minMaxDepth.y, depth));
+		}
 	}
 	
-	float2 subclusterSize = windowSize / float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
-	uint2 subclusterCoords = uint2(float2(coords) / subclusterSize);
-
-	coords.y = uint(windowSize.y) - coords.y;
-
-	uint depthBitmask = 0;
-	float2 minMaxDepth;
-
-	// Set default state
-	uint clusterId = subclusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT + subclusterCoords.x;
-	if (clusterId >= LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT * LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)
-	{
-		RETURN();
-	}
-
-	minMaxDepth.x = float(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE]);
-	minMaxDepth.y = float(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1]);
-	minMaxDepth = (minMaxDepth / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
-	
-	// Build bitmask
-	float depth = linearizeDepthReverseZ(LoadTex2D(Get(DepthBuffer), NO_SAMPLER, coords, 0).x, CAMERA_NEAR, CAMERA_FAR);
-	depthBitmask = depthBitmask | (1 << GetDepthBitmaskIndex(minMaxDepth.x, minMaxDepth.y, depth));
-
 	uint tmp;
-	AtomicOr(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
-
+	if (depthBitmask != 0)
+		AtomicOr(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
+	
 	RETURN();
 }

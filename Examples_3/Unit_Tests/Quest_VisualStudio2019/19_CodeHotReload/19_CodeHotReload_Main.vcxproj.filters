@@ -34,8 +34,14 @@
     <Filter Include="Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders">
       <UniqueIdentifier>{23a56349-7e52-4ec9-b215-966330bbb337}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\19_CodeHotReload\Scripts">
-      <UniqueIdentifier>{c1106eb9-4762-464a-a364-2bd5ce587c1b}</UniqueIdentifier>
+    <Filter Include="Art\Scripts\19_CodeHotReload">
+      <UniqueIdentifier>{d378d0ca-24be-4e97-9e4f-472816a05c3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{ce2c8069-87e6-49f3-8134-343397a0c1f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{190c23f4-44b2-4699-a116-e649aa8c87da}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -57,8 +63,8 @@
     <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\ShaderList.fsl">
       <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\src\19_CodeHotReload\Scripts\Test_HotReload.lua">
-      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\19_CodeHotReload\Test_HotReload.lua">
+      <Filter>Art\Scripts\19_CodeHotReload</Filter>
     </None>
   </ItemGroup>
 </Project>

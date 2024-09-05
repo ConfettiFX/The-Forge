@@ -83,9 +83,10 @@ typedef uint64_t uint64;
 #include <stddef.h>
 #include <time.h>
 
+#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
+
 #if defined(FORGE_DEBUG) && (defined(_WINDOWS) || (defined(__linux__) && !defined(__ANDROID__)) || defined(__APPLE__))
 #define WINDOW_DETAILS 1
-#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
 #else
 #define WINDOW_DETAILS 0
 #endif
@@ -307,6 +308,7 @@ FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
 FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
 FORGE_API void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height);
 FORGE_API void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
+FORGE_API void toggleFullscreen(WindowDesc* winDesc);
 FORGE_API void setFullscreen(WindowDesc* winDesc);
 FORGE_API void showWindow(WindowDesc* winDesc);
 FORGE_API void hideWindow(WindowDesc* winDesc);

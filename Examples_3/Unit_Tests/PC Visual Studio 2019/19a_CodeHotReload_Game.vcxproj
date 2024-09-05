@@ -41,20 +41,20 @@
   </ImportGroup>
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>;$(SolutionDir)\..\..\..\Common_3;;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\19_CodeHotReload_Main\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>;$(SolutionDir)\..\..\..\Common_3;;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\19_CodeHotReload_Main\</OutDir>
   </PropertyGroup>
@@ -64,8 +64,6 @@
       </PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
@@ -78,12 +76,9 @@
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>%(Command) 
-      </Command>
-    </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -96,7 +91,7 @@
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
@@ -109,8 +104,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
@@ -125,12 +118,9 @@
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>%(Command) 
-      </Command>
-    </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -143,7 +133,7 @@
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>

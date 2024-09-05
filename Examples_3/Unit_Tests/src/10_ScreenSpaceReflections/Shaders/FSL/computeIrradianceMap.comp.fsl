@@ -55,7 +55,7 @@ float4 computeIrradiance(float3 N)
 			float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
 
-			float4 sampledValue = SampleLvlTexCube(Get(srcTexture), Get(skyboxSampler), sampleVec, 0);
+			float4 sampledValue = SampleLvlTexCube(srcTexture, skyboxSampler, sampleVec, 0);
 		
 			irradiance += float4(sampledValue.rgb * cos(theta) * sin(theta), sampledValue.a);
 			nrSamples++;
@@ -106,6 +106,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 
 	float4 irradiance = computeIrradiance(sphereDir);
 
-	Write3D(Get(dstTexture), int3(threadPos), irradiance);
+	Write3D(dstTexture, int3(threadPos), irradiance);
 	RETURN();
 }

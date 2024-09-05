@@ -65,8 +65,8 @@ struct AccelerationStructure
     VkAccelerationStructureTypeKHR       mType;
 };
 
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDeviceSize   get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
@@ -133,7 +133,7 @@ VkGeometryInstanceFlagsKHR util_to_vk_instance_flags(AccelerationStructureInstan
     return ret;
 }
 
-bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
     ASSERT(pRenderer);
     ASSERT(ppRaytracing);
@@ -161,7 +161,7 @@ bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
     return true;
 }
 
-void vk_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
     UNREF_PARAM(pRenderer);
     // Do nothing here because in case of Vulkan struct Raytracing contains
@@ -169,8 +169,8 @@ void vk_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
     tf_free(pRaytracing);
 }
 
-void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
-                                 AccelerationStructure** ppAccelerationStructure)
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                              AccelerationStructure** ppAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pRaytracing->pRenderer);
@@ -409,7 +409,7 @@ void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStru
     *ppAccelerationStructure = pAS;
 }
 
-void vk_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
     UNREF_PARAM(pRaytracing);
     ASSERT(pDesc);
@@ -449,7 +449,7 @@ void vk_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytra
     }
 }
 
-void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pAccelerationStructure);
@@ -472,7 +472,7 @@ void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructu
     tf_free(pAccelerationStructure);
 }
 
-void vk_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     if (!pAccelerationStructure->pScratchBuffer)
     {
@@ -485,16 +485,6 @@ void vk_removeAccelerationStructureScratch(Raytracing* pRaytracing, Acceleration
 void vk_FillRaytracingDescriptorData(AccelerationStructure* ppAccelerationStructures, VkAccelerationStructureKHR* pOutHandle)
 {
     *pOutHandle = ppAccelerationStructures->mAccelerationStructure;
-}
-
-void initVulkanRaytracingFunctions()
-{
-    initRaytracing = vk_initRaytracing;
-    removeRaytracing = vk_removeRaytracing;
-    addAccelerationStructure = vk_addAccelerationStructure;
-    removeAccelerationStructure = vk_removeAccelerationStructure;
-    removeAccelerationStructureScratch = vk_removeAccelerationStructureScratch;
-    cmdBuildAccelerationStructure = vk_cmdBuildAccelerationStructure;
 }
 
 #endif

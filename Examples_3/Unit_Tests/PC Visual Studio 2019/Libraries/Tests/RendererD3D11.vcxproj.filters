@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Direct3D11">
+      <UniqueIdentifier>{03461acd-dbde-41b8-a507-cca08f5314c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{c637e3ce-22ae-4548-a6da-66afbc4b1385}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11.cpp">
+      <Filter>Direct3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11ShaderReflection.cpp">
+      <Filter>Direct3D11</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11CapBuilder.h">
+      <Filter>Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Config.h">
+      <Filter>Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

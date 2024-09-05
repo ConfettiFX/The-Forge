@@ -197,47 +197,6 @@ NSRect getCenteredWindowRect(WindowDesc* winDesc);
     [self makeFirstResponder:responder];
 }
 
-- (void)waitOnUpSpinning
-{
-    // See "Cocoa Event Handling Guide" for reference.
-    NSView*     firstResponderView = (NSView * __nullable)[self firstResponder];
-    NSEvent*    current = [self currentEvent];
-    NSEventType currentEventType = [current type];
-
-    if (currentEventType == NSEventTypeLeftMouseDown || currentEventType == NSEventTypeRightMouseDown ||
-        currentEventType == NSEventTypeOtherMouseDown || currentEventType == NSEventTypeKeyDown || currentEventType == NSEventTypePressure)
-    {
-        BOOL waitingForUp = YES;
-        while (waitingForUp)
-        {
-            NSEvent* event =
-                [self nextEventMatchingMask:NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp | NSEventMaskOtherMouseUp | NSEventMaskKeyUp];
-
-            switch ([event type])
-            {
-            case NSEventTypeLeftMouseUp:
-            case NSEventTypeRightMouseUp:
-            case NSEventTypeOtherMouseUp:
-            {
-                [firstResponderView mouseUp:event];
-                waitingForUp = NO;
-                break;
-            }
-
-            case NSEventTypeKeyUp:
-            {
-                [firstResponderView keyUp:event];
-                waitingForUp = NO;
-                break;
-            }
-
-            default:
-                break;
-            }
-        }
-    }
-}
-
 @end
 
 @protocol RenderDestinationProvider
@@ -484,14 +443,20 @@ void windowMovedOrResized(RectDesc* centeredRect)
 - (void)updateTrackingAreas
 {
     NSArray<NSTrackingArea*>* trackingAreas = [self trackingAreas];
-    if ([trackingAreas count] != 0)
+    for (uint32_t t = 0; t < [trackingAreas count]; ++t)
     {
-        [self removeTrackingArea:trackingAreas[0]];
+        [self removeTrackingArea:trackingAreas[t]];
     }
 
-    NSRect                bounds = [self bounds];
-    NSTrackingAreaOptions options = (NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited |
-                                     NSTrackingMouseMoved | NSTrackingActiveInKeyWindow);
+    NSRect bounds = [self.window contentLayoutRect];
+    // Borderless - Trim edges so edges can respond to resize
+    // #TODO: Check if better way
+    if (gCurrentWindow.borderlessWindow)
+    {
+        bounds.size.width -= 2;
+        bounds.size.height -= 2;
+    }
+    NSTrackingAreaOptions options = (NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways);
     NSTrackingArea*       trackingArea = [[NSTrackingArea alloc] initWithRect:bounds options:options owner:self userInfo:nil];
 
     [self addTrackingArea:trackingArea];
@@ -506,6 +471,42 @@ void windowMovedOrResized(RectDesc* centeredRect)
 - (void)mouseExited:(NSEvent*)nsEvent
 {
     gCursorInsideTrackingArea = false;
+}
+
+- (void)keyDown:(NSEvent*)nsEvent
+{
+    extern void platformKeyChar(char32_t c);
+    // if using characters and we have modifiers such as ctrl where it shouldn't print text
+    // we won't have any input in characters string but it will be in charactersIgnoringModifiers
+    // It will still have correct Case if shift is pressed.
+    NSString*   characters = nsEvent.charactersIgnoringModifiers;
+    for (uint32_t c = 0; c < [characters length]; ++c)
+    {
+        if ([characters characterAtIndex:c])
+        {
+            platformKeyChar([characters characterAtIndex:c]);
+        }
+    }
+}
+
+- (void)keyUp:(NSEvent*)nsEvent
+{
+}
+
+// Helps with performance
+- (BOOL)isOpaque
+{
+    return YES;
+}
+
+- (BOOL)canBecomeKeyView
+{
+    return YES;
+}
+
+- (BOOL)acceptsFirstResponder
+{
+    return YES;
 }
 
 @end
@@ -983,6 +984,8 @@ void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
     {
         setWindowSize(winDesc, width, height);
     }
+
+    [view updateTrackingAreas];
 }
 
 void toggleFullscreen(WindowDesc* winDesc)

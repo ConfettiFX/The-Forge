@@ -2,31 +2,28 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Examples_3\Unit_Tests\src\01_Transformations">
-      <UniqueIdentifier>{89dbee9c-b96f-4b8e-b12a-beacf1e1d203}</UniqueIdentifier>
+      <UniqueIdentifier>{f7aa9619-ed87-4743-a271-64b9567262d4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{f798c756-a610-4721-8a22-25aed2ad21fe}</UniqueIdentifier>
+      <UniqueIdentifier>{cd79a2ac-82ad-4a9b-8ec6-f1c798b56169}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{0e6b65fb-d763-4548-84c1-a2594e7f7f29}</UniqueIdentifier>
+      <UniqueIdentifier>{9ebd7add-74d7-4682-8336-3988cacb5912}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3">
-      <UniqueIdentifier>{6987eb54-f7a6-48e0-8a25-a467aa13f072}</UniqueIdentifier>
+      <UniqueIdentifier>{958193b9-89d4-4f20-a558-149145be1f4c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL">
-      <UniqueIdentifier>{10407422-596a-4426-b3d6-9ba2c809a043}</UniqueIdentifier>
+      <UniqueIdentifier>{93b01490-f193-42fb-bccf-116eceff5877}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders">
-      <UniqueIdentifier>{1f84e71f-5059-4fea-8b57-b7c0e8b5572d}</UniqueIdentifier>
+      <UniqueIdentifier>{4044f7b7-41e9-4dd4-b37b-a8edc8ece61b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Art\UnitTestResources\Scripts">
-      <UniqueIdentifier>{21cd3bc1-f913-4a7a-9cbe-566d841ca7e3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\UnitTestResources">
-      <UniqueIdentifier>{2a391a60-6593-4ed1-b455-cf49cc7befa5}</UniqueIdentifier>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{cbffcb5f-a56e-4606-afbf-9546cd31c3f8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Art">
-      <UniqueIdentifier>{274ca479-6ff4-449b-95ab-49487dde60d8}</UniqueIdentifier>
+      <UniqueIdentifier>{e53a0a40-61e2-4322-a5a7-d88285e23905}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -51,17 +48,17 @@
     <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
       <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\TestBorderless.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\TestBorderless.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\TestCenteredWindow.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\TestCenteredWindow.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\TestFullScreen.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\TestFullScreen.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\TestNonCenteredWindow.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\TestNonCenteredWindow.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

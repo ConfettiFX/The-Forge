@@ -72,9 +72,9 @@ static void threadSystemCleanup(struct ThreadSystemData* t)
 {
     ASSERT(tfrg_atomic32_load_relaxed(&t->references_Atomic) == 0);
 
-    destroyMutex(&t->mutex);
-    destroyConditionVariable(&t->conditionTasks);
-    destroyConditionVariable(&t->conditionIsIdle);
+    exitMutex(&t->mutex);
+    exitConditionVariable(&t->conditionTasks);
+    exitConditionVariable(&t->conditionIsIdle);
 
     arrfree(t->tasks);
     tf_free(t);

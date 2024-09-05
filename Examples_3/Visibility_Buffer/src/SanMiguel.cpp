@@ -39,13 +39,14 @@ static void setTextures(Scene* pScene, int index, const char* albedo, const char
     pScene->materialFlags[index] = matFlags;
 
     // default textures
-    pScene->textures[index] = (char*)tf_calloc(strlen(albedo) + 5, sizeof(char));
-    pScene->specularMaps[index] = (char*)tf_calloc(strlen(specular) + 5, sizeof(char));
-    pScene->normalMaps[index] = (char*)tf_calloc(strlen(normal) + 5, sizeof(char));
+    int32_t extraStrLength = 17; //-- len('SanMiguel_3/') + len('.tex') + len('/0') = 17
+    pScene->textures[index] = (char*)tf_calloc(strlen(albedo) + extraStrLength, sizeof(char));
+    pScene->specularMaps[index] = (char*)tf_calloc(strlen(specular) + extraStrLength, sizeof(char));
+    pScene->normalMaps[index] = (char*)tf_calloc(strlen(normal) + extraStrLength, sizeof(char));
 
-    snprintf(pScene->textures[index], strlen(albedo) + 5, "%s.tex", albedo);
-    snprintf(pScene->specularMaps[index], strlen(specular) + 5, "%s.tex", specular);
-    snprintf(pScene->normalMaps[index], strlen(normal) + 5, "%s.tex", normal);
+    snprintf(pScene->textures[index], strlen(albedo) + extraStrLength, "SanMiguel_3/%s.tex", albedo);
+    snprintf(pScene->specularMaps[index], strlen(specular) + extraStrLength, "SanMiguel_3/%s.tex", specular);
+    snprintf(pScene->normalMaps[index], strlen(normal) + extraStrLength, "SanMiguel_3/%s.tex", normal);
 }
 
 static void setDefaultTextures(Scene* pScene, int index)
@@ -789,7 +790,7 @@ Scene* initSanMiguel(const GeometryLoadDesc* pTemplate, SyncToken& token, bool t
         loadDesc.pVertexLayout = &vertexLayout;
     }
 
-    loadDesc.pFileName = "SanMiguel.bin";
+    loadDesc.pFileName = "SanMiguel_3/SanMiguel.bin";
     loadDesc.ppGeometryData = &scene->geomData;
     loadDesc.ppGeometry = &scene->geom;
 

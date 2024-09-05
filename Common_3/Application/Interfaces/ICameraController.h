@@ -75,6 +75,8 @@ FORGE_API ICameraController* initGuiCameraController(const vec3& startPosition, 
 /// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
 FORGE_API ICameraController* initFpsCameraController(const vec3& startPosition, const vec3& startLookAt);
 
+FORGE_API bool loadCameraPath(const char* pFileName, uint32_t& outNumCameraPoints, float3** pOutCameraPoints);
+
 FORGE_API void exitCameraController(ICameraController* pCamera);
 
 class FORGE_API CameraMatrix

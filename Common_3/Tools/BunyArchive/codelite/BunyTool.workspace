@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="BunyTool" Database="" Version="10000">
   <Project Name="Buny" Path="Buny.project" Active="No"/>
-  <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
+  <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/OSBase.project" Active="No"/>
   <Project Name="BunyTool" Path="BunyTool.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">

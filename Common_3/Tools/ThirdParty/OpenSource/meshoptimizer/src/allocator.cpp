@@ -1,8 +1,8 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
-#include "../../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
 #include "meshoptimizer.h"
 
-#include "../../../../../../Utilities/Math/MathTypes.h"
+#include "../../../../../Utilities/Math/MathTypes.h"
 
 #define MEM_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN_ALLOC_ALIGNMENT (MEM_MAX(VECTORMATH_MIN_ALIGN, MIN_MALLOC_ALIGNMENT))

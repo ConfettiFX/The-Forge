@@ -30,11 +30,12 @@
 STATIC float Pi = 3.14159265359;
 STATIC int SampleCount = IMPORTANCE_SAMPLE_COUNT;
 
-PUSH_CONSTANT(RootConstant, b0)
+STRUCT(SpecularConfig)
 {
 	DATA(uint, pcMipSize, None);
 	DATA(float, pcRoughness, None);
 };
+RES(ROOT_CONSTANT(SpecularConfig), RootConstant, UPDATE_FREQ_NONE, b0, binding=0);
 
 RES(TexCube(float4), srcTexture, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(WTex2DArray(float4), dstTexture, UPDATE_FREQ_PER_DRAW, u2, binding = 2);
@@ -98,8 +99,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	INIT_MAIN;
 	uint3 threadPos = DTid;
 
-	float mipRoughness = Get(pcRoughness);
-	uint mipSize = Get(pcMipSize);
+	float mipRoughness = RootConstant.pcRoughness;
+	uint mipSize = RootConstant.pcMipSize;
 
 	if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
 
@@ -127,7 +128,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	float totalWeight = 0.0;
 	float4 prefilteredColor = float4(0.0, 0.0, 0.0, 0.0);
 	
-	float2 dim = float2(GetDimensions(Get(srcTexture), Get(skyboxSampler)));
+	float2 dim = float2(GetDimensions(srcTexture, skyboxSampler));
 	float srcTextureSize = max(dim[0], dim[1]);
 
 	for (int i = 0; i < SampleCount; ++i)
@@ -150,13 +151,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 
 			float mipLevel = mipRoughness == 0.0 ? 0.0 : max(0.5 * log2(saSample / saTexel) + 1.0f, 0.0f);
 
-			prefilteredColor += SampleLvlTexCube(Get(srcTexture), Get(skyboxSampler), L, mipLevel) * NdotL;
+			prefilteredColor += SampleLvlTexCube(srcTexture, skyboxSampler, L, mipLevel) * NdotL;
 
 			totalWeight += NdotL;
 		}
 	}
 
 	prefilteredColor = prefilteredColor / totalWeight;
-	Write3D(Get(dstTexture), threadPos.xyz, prefilteredColor);
+	Write3D(dstTexture, threadPos.xyz, prefilteredColor);
 	RETURN();
 }

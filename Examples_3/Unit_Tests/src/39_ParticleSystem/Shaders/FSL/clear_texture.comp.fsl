@@ -28,19 +28,19 @@
 RES(WTex2D(float), shadowCollector, UPDATE_FREQ_NONE, u0, binding = 0);
 RES(RWBuffer(uint), transparencyListHeads, UPDATE_FREQ_NONE, u1, binding = 1);
 
-NUM_THREADS(16, 16, 1)
+NUM_THREADS(TEXTURE_CLEAR_THREAD_COUNT, TEXTURE_CLEAR_THREAD_COUNT, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
 	INIT_MAIN;
 
-	uint2 screenSize = uint2(GetDimensions(Get(shadowCollector), NO_SAMPLER));
+	uint2 screenSize = uint2(GetDimensions(shadowCollector, NO_SAMPLER));
 	if (threadID.x >= screenSize.x || threadID.y >= screenSize.y)
 	{
 		RETURN();
 	}
 
-	Write2D(Get(shadowCollector), threadID.xy, 1.0);
-	Get(transparencyListHeads)[threadID.y * screenSize.x + threadID.x] = 0;
+	Write2D(shadowCollector, threadID.xy, 1.0);
+	transparencyListHeads[threadID.y * screenSize.x + threadID.x] = 0;
 
 	RETURN();
 }

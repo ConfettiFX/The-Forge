@@ -108,13 +108,13 @@
 		76C882D97F4A4B8885E9A86B /* track_triggering_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = track_triggering_job.h; path = include/ozz/animation/runtime/track_triggering_job.h; sourceTree = SOURCE_ROOT; };
 		76E86DCA018846688B72C202 /* soa_math_archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = soa_math_archive.cc; path = src/base/maths/soa_math_archive.cc; sourceTree = SOURCE_ROOT; };
 		7D429F4EACC545598471D16B /* map.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = map.h; path = include/ozz/base/containers/map.h; sourceTree = SOURCE_ROOT; };
-		7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../../../IDE/XCode Build Configs/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E008A2A93DA8A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../../IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6E008B2A93DA8A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../../IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E008A2A93DA8A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E008B2A93DA8A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
 		812DB072C4224A1C8307E7FE /* sampling_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = sampling_job.h; path = include/ozz/animation/runtime/sampling_job.h; sourceTree = SOURCE_ROOT; };
 		8CD3CA6CE9CB41BE81431880 /* skeleton_utils.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = skeleton_utils.cc; path = src/animation/runtime/skeleton_utils.cc; sourceTree = SOURCE_ROOT; };
 		93B830B3E8C54EEB91FA9060 /* allocator.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = allocator.cc; path = src/base/memory/allocator.cc; sourceTree = SOURCE_ROOT; };
@@ -581,10 +581,7 @@
 			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src",
-					"$(PROJECT_DIR)/include",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = NO;
 			};
@@ -603,10 +600,7 @@
 			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = ozz_animation;
 			};
 			name = Debug;
@@ -616,10 +610,7 @@
 			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -629,10 +620,7 @@
 			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -642,10 +630,7 @@
 			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src",
-					"$(PROJECT_DIR)/include",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = NO;
 			};
@@ -676,10 +661,7 @@
 			baseConfigurationReference = 7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src",
-					"$(PROJECT_DIR)/include",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 			};
@@ -690,10 +672,7 @@
 			baseConfigurationReference = 7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src",
-					"$(PROJECT_DIR)/include",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 			};
@@ -704,10 +683,7 @@
 			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
+				HEADER_SEARCH_PATHS = ();
 				PRODUCT_NAME = ozz_animation;
 			};
 			name = Release;

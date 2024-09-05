@@ -31,8 +31,8 @@
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
-#include "../ThirdParty/OpenSource/Direct3d12Agility/include/d3d12shader.h"
-#include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
+#include "../../../Data/Libraries/Direct3d12Agility/include/d3d12shader.h"
+#include "../../../Data/Libraries/DirectXShaderCompiler/inc/dxcapi.h"
 #endif
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -221,7 +221,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
 }
 
 // template<typename RefInterface = ID3D12ShaderReflection>
-void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, ShaderStage shaderStage, ShaderReflection& reflection)
+void d3d12_addShaderReflection(ID3D12ShaderReflection* d3d12reflection, ShaderStage shaderStage, ShaderReflection& reflection)
 {
     ASSERT(d3d12reflection);
 
@@ -302,7 +302,7 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
 }
 
 // template<typename RefInterface = ID3D12LibraryReflection>
-void d3d12_createShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, ShaderStage shaderStage, ShaderReflection& reflection)
+void d3d12_addShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, ShaderStage shaderStage, ShaderReflection& reflection)
 {
     ASSERT(d3d12LibReflection);
 
@@ -322,7 +322,7 @@ void d3d12_createShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, S
     fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
 }
 
-void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void d3d12_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
     // Check to see if parameters are valid
     if (!VERIFY(shaderCode) || !VERIFY(shaderSize > 0) || !VERIFY(pOutReflection))
@@ -356,7 +356,7 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
     ShaderReflection reflection = {}; // initialize the struct to 0
 
     ASSERT(d3d12reflection);
-    d3d12_createShaderReflection(d3d12reflection, shaderStage, reflection);
+    d3d12_addShaderReflection(d3d12reflection, shaderStage, reflection);
     d3d12reflection->Release();
 
     reflection.mShaderStage = shaderStage;

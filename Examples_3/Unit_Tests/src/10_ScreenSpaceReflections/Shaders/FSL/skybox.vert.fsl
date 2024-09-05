@@ -22,10 +22,11 @@
  * under the License.
 */
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(uniformBlockData)
 {
 	DATA(float4x4, projView, None);
 };
+RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSInput)
 {
@@ -43,7 +44,7 @@ VSOutput VS_MAIN( VSInput In )
 	INIT_MAIN;
 	VSOutput Out;
     VSOutput result;
-    result.Position = mul(Get(projView), In.Position);
+    result.Position = mul(uniformBlock.projView, In.Position);
 	result.Position = result.Position.xyww;
 
 	result.pos = In.Position.xyz;

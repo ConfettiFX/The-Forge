@@ -25,7 +25,6 @@
 #include "../../Application/Config.h"
 
 #include "../../Application/Interfaces/IApp.h"
-#include "../../Application/Interfaces/IInput.h"
 #include "../../Application/Interfaces/IScreenshot.h"
 #include "../../Application/Interfaces/IUI.h"
 #include "../../Game/Interfaces/IScripting.h"
@@ -193,7 +192,7 @@ void wndUpdateCaptureCursor(void* pUserData)
 {
     UNREF_PARAM(pUserData);
 #ifdef ENABLE_FORGE_INPUT
-    setEnableCaptureInput(pWindowRef->mCursorCaptured);
+    captureCursor(pWindowRef, pWindowRef->mCursorCaptured);
 #endif
 }
 
@@ -330,7 +329,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
     uiDesc.mStartSize = UIPanelSize;
     uiDesc.mFontID = 0;
     uiDesc.mFontSize = 16.0f;
-    uiCreateComponent("Window and Resolution Controls", &uiDesc, &pWindowControlsComponent);
+    uiAddComponent("Window and Resolution Controls", &uiDesc, &pWindowControlsComponent);
     uiSetComponentFlags(pWindowControlsComponent, GUI_COMPONENT_FLAGS_START_COLLAPSED);
 
 #if defined(_WINDOWS)
@@ -345,13 +344,13 @@ void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget Textbox;
     Textbox.pText = &gPlatformName;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Platform Name", &Textbox, WIDGET_TYPE_TEXTBOX));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Platform Name", &Textbox, WIDGET_TYPE_TEXTBOX));
 
 #if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
     RadioButtonWidget rbWindowed;
     rbWindowed.pData = &pWindowRef->mWindowMode;
     rbWindowed.mRadioId = WM_WINDOWED;
-    UIWidget* pWindowed = uiCreateComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
+    UIWidget* pWindowed = uiAddComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pWindowed, nullptr, wndSetWindowed);
     uiSetWidgetDeferred(pWindowed, true);
     REGISTER_LUA_WIDGET(pWindowed);
@@ -359,7 +358,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
     RadioButtonWidget rbFullscreen;
     rbFullscreen.pData = &pWindowRef->mWindowMode;
     rbFullscreen.mRadioId = WM_FULLSCREEN;
-    UIWidget* pFullscreen = uiCreateComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
+    UIWidget* pFullscreen = uiAddComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pFullscreen, nullptr, wndSetFullscreen);
     uiSetWidgetDeferred(pFullscreen, true);
     REGISTER_LUA_WIDGET(pFullscreen);
@@ -367,26 +366,26 @@ void platformSetupWindowSystemUI(IApp* pApp)
     RadioButtonWidget rbBorderless;
     rbBorderless.pData = &pWindowRef->mWindowMode;
     rbBorderless.mRadioId = WM_BORDERLESS;
-    UIWidget* pBorderless = uiCreateComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
+    UIWidget* pBorderless = uiAddComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pBorderless, nullptr, wndSetBorderless);
     uiSetWidgetDeferred(pBorderless, true);
     REGISTER_LUA_WIDGET(pBorderless);
 
     ButtonWidget bMaximize;
-    UIWidget*    pMaximize = uiCreateComponentWidget(pWindowControlsComponent, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
+    UIWidget*    pMaximize = uiAddComponentWidget(pWindowControlsComponent, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pMaximize, nullptr, wndMaximizeWindow);
     uiSetWidgetDeferred(pMaximize, true);
     REGISTER_LUA_WIDGET(pMaximize);
 
     ButtonWidget bMinimize;
-    UIWidget*    pMinimize = uiCreateComponentWidget(pWindowControlsComponent, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
+    UIWidget*    pMinimize = uiAddComponentWidget(pWindowControlsComponent, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pMinimize, nullptr, wndMinimizeWindow);
     uiSetWidgetDeferred(pMinimize, true);
     REGISTER_LUA_WIDGET(pMinimize);
 
     CheckboxWidget rbCentered;
     rbCentered.pData = &(pWindowRef->centered);
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Toggle Window Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Toggle Window Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
 
     RectDesc recRes;
     getRecommendedResolution(&recRes);
@@ -398,35 +397,35 @@ void platformSetupWindowSystemUI(IApp* pApp)
     setRectSliderX.pData = &pWindowRef->mWndX;
     setRectSliderX.mMin = 0;
     setRectSliderX.mMax = recWidth;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderY;
     setRectSliderY.pData = &pWindowRef->mWndY;
     setRectSliderY.mMin = 0;
     setRectSliderY.mMax = recHeight;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderW;
     setRectSliderW.pData = &pWindowRef->mWndW;
     setRectSliderW.mMin = 144;
     setRectSliderW.mMax = getRectWidth(&pWindowRef->fullscreenRect);
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderH;
     setRectSliderH.pData = &pWindowRef->mWndH;
     setRectSliderH.mMin = 144;
     setRectSliderH.mMax = getRectHeight(&pWindowRef->fullscreenRect);
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
 
     ButtonWidget bSetRect;
-    UIWidget*    pSetRect = uiCreateComponentWidget(pWindowControlsComponent, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
+    UIWidget*    pSetRect = uiAddComponentWidget(pWindowControlsComponent, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pSetRect, nullptr, wndMoveWindow);
     uiSetWidgetDeferred(pSetRect, true);
     REGISTER_LUA_WIDGET(pSetRect);
 
     ButtonWidget bRecWndSize;
     UIWidget*    pRecWndSize =
-        uiCreateComponentWidget(pWindowControlsComponent, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
+        uiAddComponentWidget(pWindowControlsComponent, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pRecWndSize, nullptr, wndSetRecommendedWindowSize);
     uiSetWidgetDeferred(pRecWndSize, true);
     REGISTER_LUA_WIDGET(pRecWndSize);
@@ -559,7 +558,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
     CollapsingHeaderWidget windowDetailsHeader;
     windowDetailsHeader.mWidgetsCount = windowDetailsWidgetCount;
     windowDetailsHeader.pGroupedWidgets = windowDetailsWidgetGroup;
-    uiCreateComponentWidget(pWindowControlsComponent, "Window Details", &windowDetailsHeader, WIDGET_TYPE_COLLAPSING_HEADER);
+    uiAddComponentWidget(pWindowControlsComponent, "Window Details", &windowDetailsHeader, WIDGET_TYPE_COLLAPSING_HEADER);
 #endif
 
     uint32_t numMonitors = getMonitorCount();
@@ -572,7 +571,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
     strcat(label, monitors);
 
     LabelWidget labelWidget;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, label, &labelWidget, WIDGET_TYPE_LABEL));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, label, &labelWidget, WIDGET_TYPE_LABEL));
 
     for (uint32_t i = 0; i < numMonitors; ++i)
     {
@@ -644,7 +643,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
             uiSetWidgetDeferred(monitorWidgets[j], false);
         }
 
-        uiCreateComponentWidget(pWindowControlsComponent, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER);
+        uiAddComponentWidget(pWindowControlsComponent, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER);
         tf_free(radioWidgets);
         tf_free(monitorWidgetsBases);
         tf_free(monitorWidgets);
@@ -698,23 +697,23 @@ void platformSetupWindowSystemUI(IApp* pApp)
     inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->mType = WIDGET_TYPE_CHECKBOX;
     uiSetWidgetOnEditedCallback(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET], nullptr, wndUpdateCaptureCursor);
 
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
 #endif
 
 #if defined(AUTOMATED_TESTING)
     LabelWidget lScreenshotName;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Screenshot Name", &lScreenshotName, WIDGET_TYPE_LABEL));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Screenshot Name", &lScreenshotName, WIDGET_TYPE_LABEL));
 
     snprintf(gAppName, sizeof(gAppName), "%s", pApp->GetName());
 
     TextboxWidget bTakeScreenshotName;
     bTakeScreenshotName.pText = &gScriptName;
     UIWidget* pTakeScreenshotName =
-        uiCreateComponentWidget(pWindowControlsComponent, "Screenshot Name", &bTakeScreenshotName, WIDGET_TYPE_TEXTBOX);
+        uiAddComponentWidget(pWindowControlsComponent, "Screenshot Name", &bTakeScreenshotName, WIDGET_TYPE_TEXTBOX);
     REGISTER_LUA_WIDGET(pTakeScreenshotName);
 
     ButtonWidget bTakeScreenshot;
-    UIWidget* pTakeScreenshot = uiCreateComponentWidget(pWindowControlsComponent, "Take Screenshot", &bTakeScreenshot, WIDGET_TYPE_BUTTON);
+    UIWidget*    pTakeScreenshot = uiAddComponentWidget(pWindowControlsComponent, "Take Screenshot", &bTakeScreenshot, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pTakeScreenshot, nullptr, wndTakeScreenshot);
     uiSetWidgetDeferred(pTakeScreenshot, true);
     REGISTER_LUA_WIDGET(pTakeScreenshot);

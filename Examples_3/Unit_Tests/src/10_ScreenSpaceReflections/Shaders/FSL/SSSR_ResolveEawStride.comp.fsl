@@ -58,12 +58,12 @@ RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u2, binding = 4);
 
 min16float3 LoadRadiance(int2 idx)
 {
-    return min16float3(LoadRWTex2D(Get(g_temporally_denoised_reflections), idx).xyz);
+    return min16float3(LoadRWTex2D(g_temporally_denoised_reflections, idx).xyz);
 }
 
 min16float LoadRoughnessValue(int2 idx)
 {
-    return min16float(FfxSssrUnpackRoughness(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, idx, 0)));
+    return min16float(FfxSssrUnpackRoughness(LoadTex2D(g_normal_roughness, NO_SAMPLER, idx, 0)));
 }
 
 min16float GetRoughnessRadiusWeight(min16float roughness_p, min16float roughness_q, min16float dist)
@@ -109,14 +109,14 @@ void Resolve(int2 did)
     {
         return;
     }
-    Write2D(Get(g_denoised_reflections), did, float4(ResolveScreenspaceReflections(did, center_roughness)));
+    Write2D(g_denoised_reflections, did, float4(ResolveScreenspaceReflections(did, center_roughness)));
 }
 
 NUM_THREADS(8,  8,  1)
 void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id, SV_GroupID(uint3) group_id )
 {
 	INIT_MAIN;
-    uint packed_base_coords = Get(g_tile_list)[group_id.x];
+    uint packed_base_coords = g_tile_list[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
     uint2 coords = base_coords + group_thread_id.xy;
     Resolve(int2(coords));

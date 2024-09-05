@@ -33,10 +33,11 @@ RES(Tex2D(float), shadowCollector, UPDATE_FREQ_NONE, t1, binding = 5);
 RES(Buffer(PackedParticleTransparencyNode), transparencyList, UPDATE_FREQ_NONE, t2, binding = 6);
 RES(Buffer(uint), transparencyListHeads, UPDATE_FREQ_NONE, t3, binding = 7);
 
-PUSH_CONSTANT(fsqRootConstants, b0)
+STRUCT(fsqRootConstantsData)
 {
 	DATA(uint2, size, None);
 };
+RES(ROOT_CONSTANT(fsqRootConstantsData), fsqRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 STRUCT(PsIn)
 {
@@ -50,12 +51,12 @@ float4 PS_MAIN( PsIn In )
 	float4 Out;
 	uint2 screenCoords = uint2(In.position.xy);
 
-	float2 uv = float2(In.position.xy) / float2(Get(size).x, Get(size).y);
-	Out = SampleTex2D(Get(g_inputTexture), Get(bilinearSampler), uv);
-	Out.xyz *= SampleTex2D(Get(shadowCollector), Get(pointClampSampler), uv).x;
+	float2 uv = float2(In.position.xy) / float2(fsqRootConstants.size.x, fsqRootConstants.size.y);
+	Out = SampleTex2D(g_inputTexture, bilinearSampler, uv);
+	Out.xyz *= SampleTex2D(shadowCollector, pointClampSampler, uv).x;
 
-	uint bufferIdx = screenCoords.y * Get(size).x + screenCoords.x;
-	uint nodeCount = Get(transparencyListHeads)[bufferIdx];
+	uint bufferIdx = screenCoords.y * fsqRootConstants.size.x + screenCoords.x;
+	uint nodeCount = transparencyListHeads[bufferIdx];
 	
 	PackedParticleTransparencyNode nodes[MAX_TRANSPARENCY_LAYERS];
 	uint validNodeCount = 0;
@@ -63,7 +64,7 @@ float4 PS_MAIN( PsIn In )
 	// Save all nodes for this pixel
 	for (uint i=0; i<nodeCount && i<MAX_TRANSPARENCY_LAYERS; i++)
 	{
-		nodes[i] = Get(transparencyList)[bufferIdx*MAX_TRANSPARENCY_LAYERS + i];
+		nodes[i] = transparencyList[bufferIdx*MAX_TRANSPARENCY_LAYERS + i];
 		validNodeCount++;
 	}
 

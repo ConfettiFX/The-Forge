@@ -41,7 +41,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
            {
                for (uint ty = 0; ty < TILE_COUNTY; ++ty)
                {
-                   Get(binBuffer)[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
+                   binBuffer[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
                }
            }
        }

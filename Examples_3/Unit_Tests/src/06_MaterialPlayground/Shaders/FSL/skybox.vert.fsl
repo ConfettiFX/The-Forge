@@ -22,7 +22,7 @@
  * under the License.
 */
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
@@ -33,6 +33,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 #endif
 	DATA(float3, camPos, None);
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s2, binding = 2);
@@ -53,9 +54,9 @@ VSOutput VS_MAIN( VSInput In )
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-	Out.Position = mul(Get(projView)[VR_VIEW_ID], In.Position);
+	Out.Position = mul(uniformBlock.projView[VR_VIEW_ID], In.Position);
 #else
-	Out.Position = mul(Get(projView), In.Position);
+	Out.Position = mul(uniformBlock.projView, In.Position);
 #endif
 	Out.pos = In.Position.xyz;
     RETURN(Out);

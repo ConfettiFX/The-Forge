@@ -50,27 +50,27 @@
 uint BatchCompaction(const uint threadIDx, const uint view, const uint numIndices, inout(uint) slot )
 {
 	uint uncompactIndex = GET_UNCOMPACT_DRAW_INDEX(view, threadIDx);
-	uint geometrySet = Get(uncompactedDrawArgs)[uncompactIndex].geometrySet;
+	uint geometrySet = uncompactedDrawArgs[uncompactIndex].geometrySet;
 	uint baseInstanceSlot = BaseInstanceBuffer(geometrySet, view);
 	
 	uint indexCountOffset = INDIRECT_DRAW_ARGUMENTS_INDEX_COUNT_OFFSET;
 	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
 	uint vertexOffsetOffset = INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET;
 
-	uint startIndex = Get(uncompactedDrawArgs)[uncompactIndex].startIndex;
-	uint vertexOffset = Get(uncompactedDrawArgs)[uncompactIndex].vertexOffset;
+	uint startIndex = uncompactedDrawArgs[uncompactIndex].startIndex;
+	uint vertexOffset = uncompactedDrawArgs[uncompactIndex].vertexOffset;
 
 	uint baseIndex = GET_INDIRECT_DRAW_ELEM_INDEX(view, geometrySet, 0);
 
-	AtomicAdd(Get(indirectDrawArgsBuffer)[baseIndex + DRAW_COUNTER_SLOT_POS], 1, slot);
-	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices);
-	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
-	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + vertexOffsetOffset], vertexOffset);
+	AtomicAdd(indirectDrawArgsBuffer[baseIndex + DRAW_COUNTER_SLOT_POS], 1, slot);
+	AtomicStore(indirectDrawArgsBuffer[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices);
+	AtomicStore(indirectDrawArgsBuffer[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+	AtomicStore(indirectDrawArgsBuffer[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + vertexOffsetOffset], vertexOffset);
 #if defined(INDIRECT_COMMAND_BUFFER)
 	uint startInstanceOffset = INDIRECT_DRAW_ARGUMENTS_START_INSTANCE_OFFSET;
-	uint startInstance = AtomicLoad(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+	uint startInstance = AtomicLoad(indirectDrawArgsBuffer[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
 	uint icbIndex = ((view * NUM_GEOMETRY_SETS) + geometrySet) * MAX_DRAWS_INDIRECT + slot;
-	cmdDrawIndexedInstanced(Get(icb), icbIndex , PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[view], numIndices, startIndex, vertexOffset, 1, startInstance);
+	cmdDrawIndexedInstanced(icb, icbIndex , PRIMITIVE_TYPE_TRIANGLE, filteredIndicesBuffer[view], numIndices, startIndex, vertexOffset, 1, startInstance);
 #endif
 
 	//VB_REPEAT(NUM_GEOMETRY_SETS, BATCH_GEOM_SET)

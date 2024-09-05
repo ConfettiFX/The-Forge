@@ -195,6 +195,11 @@ void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
     // No-op
 }
 
+void toggleFullscreen(WindowDesc* pWindow)
+{
+    // No-op
+}
+
 void setFullscreen(WindowDesc* pWindow)
 {
     // No-op
@@ -308,14 +313,18 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes) {
 void handleMessages(WindowDesc* winDesc) { return; }
 
 // Process the next main command.
+#define ANDROID_FLUSH_LOG(msg)                                                 \
+    while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", msg)) \
+    {                                                                          \
+    }
+
 void handle_cmd(android_app* app, int32_t cmd)
 {
     switch (cmd)
     {
     case APP_CMD_INIT_WINDOW:
     {
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "init window"))
-            ;
+        ANDROID_FLUSH_LOG("init window")
 
 #if !defined(QUEST_VR)
         int32_t screenWidth = ANativeWindow_getWidth(app->window);
@@ -351,9 +360,7 @@ void handle_cmd(android_app* app, int32_t cmd)
     }
     case APP_CMD_TERM_WINDOW:
     {
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "term window"))
-            ;
-
+        ANDROID_FLUSH_LOG("term window")
         windowReady = false;
 
         // The window is being hidden or closed, clean it up.
@@ -383,71 +390,53 @@ void handle_cmd(android_app* app, int32_t cmd)
     }
     case APP_CMD_START:
     {
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "start app"))
-            ;
+        ANDROID_FLUSH_LOG("start app")
+        extern JNIEnv* pMainJavaEnv;
+        extern void    platformInputOnStart(JNIEnv*);
+        platformInputOnStart(pMainJavaEnv);
         break;
     }
     case APP_CMD_GAINED_FOCUS:
     {
         isActive = true;
         onFocusChanged(true);
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app"))
-            ;
+        ANDROID_FLUSH_LOG("resume app")
         break;
     }
     case APP_CMD_LOST_FOCUS:
     {
         isActive = false;
         onFocusChanged(false);
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app"))
-            ;
+        ANDROID_FLUSH_LOG("pause app")
         break;
     }
     case APP_CMD_PAUSE:
     {
         isActive = false;
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app"))
-            ;
+        ANDROID_FLUSH_LOG("pause app")
         break;
     }
     case APP_CMD_RESUME:
     {
         isActive = true;
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app"))
-            ;
+        ANDROID_FLUSH_LOG("resume app")
         break;
     }
     case APP_CMD_STOP:
     {
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "stop app"))
-            ;
+        ANDROID_FLUSH_LOG("stop app")
+        extern JNIEnv* pMainJavaEnv;
+        extern void    platformInputOnStop(JNIEnv*);
+        platformInputOnStop(pMainJavaEnv);
         break;
     }
     case APP_CMD_DESTROY:
     {
         // Activity is destroyed and waiting app to clean up. Request app to shut down.
-        while (0 > __android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "shutting down app"))
-            ;
+        ANDROID_FLUSH_LOG("shutting down app")
     }
     default:
     {
     }
     }
-}
-
-int32_t handle_input(struct android_app* app, AInputEvent* event)
-{
-    if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK)
-    {
-        app->destroyRequested = 1;
-        isActive = false;
-        return 1;
-    }
-
-    if (sCustomProc != nullptr)
-    {
-        sCustomProc(&gWindow, event);
-    }
-
-    return 0;
 }

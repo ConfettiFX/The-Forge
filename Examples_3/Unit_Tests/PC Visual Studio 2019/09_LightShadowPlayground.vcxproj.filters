@@ -2,40 +2,37 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Examples_3\Visibility_Buffer\src">
-      <UniqueIdentifier>{3ec973e0-b4bc-414c-a8fc-0be0e8930403}</UniqueIdentifier>
+      <UniqueIdentifier>{16f7c114-6ecf-47e7-97c0-95a4696e4805}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Visibility_Buffer">
-      <UniqueIdentifier>{f518f417-aa75-428c-ae08-df3998f6bda3}</UniqueIdentifier>
+      <UniqueIdentifier>{225406bb-2a27-4f62-94d8-8fa1ffb0f04f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3">
-      <UniqueIdentifier>{6bf42c93-9e50-49d5-a35e-a9c3de6d69b0}</UniqueIdentifier>
+      <UniqueIdentifier>{06513999-4f94-4113-a774-d8952260efb1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground">
-      <UniqueIdentifier>{e1140214-9087-430f-a2f4-a6786059b607}</UniqueIdentifier>
+      <UniqueIdentifier>{a2427df0-c273-4505-8392-a7e54b8c1288}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{84d206e6-5ff4-4be1-80cd-0bb5dda1de4d}</UniqueIdentifier>
+      <UniqueIdentifier>{073476fa-35e2-4b20-8f14-ecefc535c342}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{3c7e43a7-9783-4afe-95c5-a0696c9c2ce6}</UniqueIdentifier>
+      <UniqueIdentifier>{a5d618e7-721f-4a6b-8968-14aeacac40d7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL">
-      <UniqueIdentifier>{77dc9204-0de5-4147-9585-b7f00c03e795}</UniqueIdentifier>
+      <UniqueIdentifier>{94da785a-9bad-4d91-8f22-8fb9391f2194}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders">
-      <UniqueIdentifier>{ab4b5b6c-0b3f-48e1-8273-257d63cc2379}</UniqueIdentifier>
+      <UniqueIdentifier>{272031f3-68ed-46e2-88b6-8d6b9c989258}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts">
-      <UniqueIdentifier>{b8c46600-3db8-4dc6-9250-221f108019cf}</UniqueIdentifier>
+    <Filter Include="Art\Scripts\09_LightShadowPlayground">
+      <UniqueIdentifier>{70689a8e-e849-4b56-a3d7-d2107a248d4c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Art\UnitTestResources\Scripts">
-      <UniqueIdentifier>{dbbc7625-e9ef-4667-93a3-92ba3a2f8ae9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\UnitTestResources">
-      <UniqueIdentifier>{c9920db1-c261-4368-8b54-e8c431b33391}</UniqueIdentifier>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{f6a0748a-9fda-421a-88e1-958cec680277}</UniqueIdentifier>
     </Filter>
     <Filter Include="Art">
-      <UniqueIdentifier>{e1abc8d7-0108-4b12-8b3a-10d02c8fbe26}</UniqueIdentifier>
+      <UniqueIdentifier>{0fd4cb4c-2bee-43f0-8757-fa206bff5af1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -144,9 +141,6 @@
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\Shader_Defs.h.fsl">
       <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\shading.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\skybox.frag.fsl">
       <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
     </FSLShader>
@@ -192,29 +186,29 @@
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visualizeSDFMesh.comp.fsl">
       <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ASM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ESM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\09_LightShadowPlayground\Test_MSM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\09_LightShadowPlayground\Test_SDF.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\09_LightShadowPlayground\Test_VSM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_0.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\Test_MSAA_0.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_2.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\Test_MSAA_2.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_4.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\Test_MSAA_4.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

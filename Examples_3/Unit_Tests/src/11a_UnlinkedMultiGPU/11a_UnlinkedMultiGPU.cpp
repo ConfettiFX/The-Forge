@@ -33,7 +33,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -168,14 +168,18 @@ uint32_t         gSelectedGpuIndices[gViewCount] = { 0, 1 };
 float*           pSpherePoints;
 
 uint32_t    gCurrentScriptIndex = 0;
-const char* gTestScripts[] = { "Test0.lua" };
+const char* gTestScripts[] = { "11a_UnlinkedMultiGPU/Test0.lua" };
 #ifdef AUTOMATED_TESTING
 // For this UT the test ordering is done manually..
 // It is done based of the number of times we reset the APP..
-const char* gSwapRendererTestScriptFileName = "Test_SwapRenderers_Swap.lua";
-const char* gSwapRendererScreenshotTestScriptFileName = "Test_SwapRenderers_Screenshot.lua";
-int32_t     gNumResetsFromTestScripts = 0; // number of times we have reset the app..
+const char*    gSwapRendererTestScriptFileName = "11a_UnlinkedMultiGPU/Test_SwapRenderers_Swap.lua";
+const char*    gSwapRendererScreenshotTestScriptFileName = "11a_UnlinkedMultiGPU/Test_SwapRenderers_Screenshot.lua";
+int32_t        gNumResetsFromTestScripts = 0; // number of times we have reset the app..
+const uint32_t gNumScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0])) + 1;
+#else
+const uint32_t gNumScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0]));
 #endif
+uint32_t gNumScriptsToDefine = gNumScripts;
 
 void RunScript(void* pUserData)
 {
@@ -205,11 +209,13 @@ public:
 
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         gClearColor.r = 0.0f;
         gClearColor.g = 0.0f;
@@ -325,6 +331,8 @@ public:
 
         RendererContextDesc contextSettings;
         memset(&contextSettings, 0, sizeof(contextSettings));
+        ExtendedSettings* extendedSettings = NULL;
+        addGPUConfigurationRules(extendedSettings);
         initRendererContext(GetName(), &contextSettings, &pContext);
         if (!pContext || pContext->mGpuCount < 1)
         {
@@ -334,11 +342,15 @@ public:
             memset(&settings, 0, sizeof(settings));
             settings.mGpuMode = GPU_MODE_SINGLE;
 
+            initGPUConfiguration(settings.pExtendedSettings);
             initRenderer(GetName(), &settings, &pRenderer[0]);
             // check for init success
             if (!pRenderer[0])
+            {
+                ShowUnsupportedMessage("Failed To Initialize renderer!");
                 return false;
-
+            }
+            setupGPUConfigurationPlatformParameters(pRenderer[0], settings.pExtendedSettings);
             for (uint32_t i = 1; i < gViewCount; ++i)
                 pRenderer[i] = pRenderer[0];
 
@@ -372,8 +384,19 @@ public:
                     initRenderer(GetName(), &settings, &pRenderer[i]);
                     // check for init success
                     if (!pRenderer[i])
+                    {
+                        ShowUnsupportedMessage("Failed To Initialize renderer!");
                         return false;
+                    }
+                    setupGPUConfigurationPlatformParameters(pRenderer[i], settings.pExtendedSettings);
                 }
+            }
+
+            // fill gpu names to be used later by UI
+            for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
+            {
+                snprintf(gGpuNames[i], sizeof(gGpuNames), "GPU %u : %s", i, //-V512
+                         pContext->mGpus[i].mSettings.mGpuVendorPreset.mGpuName);
             }
         }
 
@@ -389,7 +412,7 @@ public:
             queueDesc.mNodeIndex = i;
 
             if (gMultiGPUCurrent || i == 0)
-                addQueue(pRenderer[i], &queueDesc, &pGraphicsQueue[i]);
+                initQueue(pRenderer[i], &queueDesc, &pGraphicsQueue[i]);
             else
                 pGraphicsQueue[i] = pGraphicsQueue[0];
 
@@ -416,23 +439,17 @@ public:
         uiRenderDesc.mFrameCount = gDataBufferCount;
         initUserInterface(&uiRenderDesc);
 
-#ifdef AUTOMATED_TESTING
-        const uint32_t numScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0])) + 1;
-#else
-        const uint32_t numScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-#endif
-        uint32_t      numScriptsToDefine = numScripts;
-        LuaScriptDesc scriptDescs[numScripts] = {};
+        LuaScriptDesc scriptDescs[gNumScripts] = {};
 
 #ifdef AUTOMATED_TESTING
         if (gNumResetsFromTestScripts == 0)
         {
             // add all non swap renderscripts
-            for (uint32_t i = 0; i < numScripts - 1; ++i)
+            for (uint32_t i = 0; i < gNumScripts - 1; ++i)
                 scriptDescs[i].pScriptFileName = gTestScripts[i];
 
             // last slot is for render swapping..
-            scriptDescs[numScripts - 1].pScriptFileName = gSwapRendererTestScriptFileName;
+            scriptDescs[gNumScripts - 1].pScriptFileName = gSwapRendererTestScriptFileName;
         }
         else if (gNumResetsFromTestScripts == 1) // we only want to take a screenshot for swapped renderer
         {
@@ -441,27 +458,23 @@ public:
         }
         else if (gNumResetsFromTestScripts == 2) // just take a default screenshot again (since first one gets overriden)..
         {
-            numScriptsToDefine = 0;
+            gNumScriptsToDefine = 0;
             gNumResetsFromTestScripts = -1;
         }
 #endif
-        luaDefineScripts(scriptDescs, numScriptsToDefine);
-
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-        uiCreateComponent(GetName(), &guiDesc, &pGui);
+        luaDefineScripts(scriptDescs, gNumScriptsToDefine);
 
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer[0];
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
+
         for (uint32_t i = 0; i < gViewCount; ++i)
         {
-            gGpuProfilerTokens[i] = addGpuProfiler(pRenderer[i], pGraphicsQueue[i], gGpuProfilerNames[i]);
+            gGpuProfilerTokens[i] = initGpuProfiler(pRenderer[i], pGraphicsQueue[i], gGpuProfilerNames[i]);
         }
-        gGpuProfilerTokens[gViewCount] = addGpuProfiler(pRenderer[0], pGraphicsQueue[0], gGpuProfilerNames[gViewCount]);
+
+        gGpuProfilerTokens[gViewCount] = initGpuProfiler(pRenderer[0], pGraphicsQueue[0], gGpuProfilerNames[gViewCount]);
         gReadBackCpuToken = getCpuProfileToken("Stalls", "Reading results", 0xff00ffff);
         gUploadCpuToken = getCpuProfileToken("Stalls", "Upload results", 0xff00ffff);
         gGpuExecCpuToken = getCpuProfileToken("Stalls", "Gpu execution", 0xff00ffff);
@@ -473,10 +486,10 @@ public:
             cmdRingDesc.mPoolCount = gDataBufferCount;
             cmdRingDesc.mCmdPerPoolCount = j == 0 ? 2 : 1;
             cmdRingDesc.mAddSyncPrimitives = true;
-            addGpuCmdRing(pRenderer[j], &cmdRingDesc, &gGraphicsCmdRing[j]);
+            initGpuCmdRing(pRenderer[j], &cmdRingDesc, &gGraphicsCmdRing[j]);
         }
 
-        addSemaphore(pRenderer[0], &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer[0], &pImageAcquiredSemaphore);
 
         for (uint32_t i = 0; i < gViewCount; ++i)
         {
@@ -606,97 +619,6 @@ public:
         }
 
         // Multi gpu controls
-        if (pContext)
-        {
-            CheckboxWidget multiGpuCheckbox;
-            multiGpuCheckbox.pData = &gMultiGPU;
-            UIWidget* pMultiRendererToggle =
-                uiCreateComponentWidget(pGui, "Enable Multi Renderer", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
-            uiSetWidgetOnEditedCallback(pMultiRendererToggle, nullptr, SwitchGpuMode);
-            luaRegisterWidget(pMultiRendererToggle);
-
-            for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
-            {
-                snprintf(gGpuNames[i], sizeof(gGpuNames), "GPU %u : %s", i, pContext->mGpus[i].mSettings.mGpuVendorPreset.mGpuName); //-V512
-            }
-
-            char renderer[20] = {};
-            for (uint32_t i = 0; i < rendererCount; ++i)
-            {
-                DropdownWidget ddGpuSelect;
-                ddGpuSelect.pData = &gSelectedGpuIndices[i];
-                ddGpuSelect.pNames = gGpuNamePtrs;
-                ddGpuSelect.mCount = pContext->mGpuCount;
-
-                snprintf(renderer, 20, "Renderer %d", i);
-                UIWidget* pGpuSelect = uiCreateComponentWidget(pGui, renderer, &ddGpuSelect, WIDGET_TYPE_DROPDOWN);
-                uiSetWidgetOnEditedCallback(pGpuSelect, nullptr, SwitchGpuMode);
-                luaRegisterWidget(pGpuSelect);
-            }
-
-#ifdef AUTOMATED_TESTING
-            ButtonWidget btnSwapRenderers;
-            UIWidget*    pSwapRenderers = uiCreateComponentWidget(pGui, "Swap Renderers", &btnSwapRenderers, WIDGET_TYPE_BUTTON);
-            uiSetWidgetOnEditedCallback(pSwapRenderers, this,
-                                        [](void* pUserData)
-                                        {
-                                            UNREF_PARAM(pUserData);
-                                            uint32_t temporary = gSelectedGpuIndices[0];
-                                            gSelectedGpuIndices[0] = gSelectedGpuIndices[1];
-                                            gSelectedGpuIndices[1] = temporary;
-
-                                            ResetDesc resetDescriptor;
-                                            resetDescriptor.mType = RESET_TYPE_GRAPHIC_CARD_SWITCH;
-                                            requestReset(&resetDescriptor);
-                                        });
-            luaRegisterWidget(pSwapRenderers);
-#endif
-        }
-        SliderUintWidget frameLatencyWidget;
-        frameLatencyWidget.mMin = 0;
-        frameLatencyWidget.mMax = gDataBufferCount - 1;
-        frameLatencyWidget.pData = &gFrameLatency;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Frame Latency", &frameLatencyWidget, WIDGET_TYPE_SLIDER_UINT));
-
-        SliderFloatWidget camHorFovSlider;
-        camHorFovSlider.pData = &gPaniniParams.FoVH;
-        camHorFovSlider.mMin = 30.0f;
-        camHorFovSlider.mMax = 179.0f;
-        camHorFovSlider.mStep = 1.0f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget paniniSliderD;
-        paniniSliderD.pData = &gPaniniParams.D;
-        paniniSliderD.mMin = 0.0f;
-        paniniSliderD.mMax = 1.0f;
-        paniniSliderD.mStep = 0.001f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget paniniSliderS;
-        paniniSliderS.pData = &gPaniniParams.S;
-        paniniSliderS.mMin = 0.0f;
-        paniniSliderS.mMax = 1.0f;
-        paniniSliderS.mStep = 0.001f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget screenScaleSlider;
-        screenScaleSlider.pData = &gPaniniParams.scale;
-        screenScaleSlider.mMin = 1.0f;
-        screenScaleSlider.mMax = 10.0f;
-        screenScaleSlider.mStep = 0.01f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-        DropdownWidget ddTestScripts;
-        ddTestScripts.pData = &gCurrentScriptIndex;
-        ddTestScripts.pNames = gTestScripts;
-        ddTestScripts.mCount = numScriptsToDefine;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
-
-        ButtonWidget bRunScript;
-        UIWidget*    pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-        uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
-        luaRegisterWidget(pRunScript);
-
         if (!gPanini.Init(pRenderer[0]))
             return false;
 
@@ -709,103 +631,8 @@ public:
         pCameraController = initFpsCameraController(camPos, lookAt);
         pCameraController->setMotionParameters(cmp);
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer[0];
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer[0], pGraphicsQueue[0]);
         gFrameIndex = 0;
         gMultiGPURestart = false;
 
@@ -820,9 +647,8 @@ public:
         // In case if SwapRenderer, this decides what scripts get executed...
         gNumResetsFromTestScripts++;
 #endif
+        exitScreenshotInterface();
         const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
-
-        exitInputSystem();
 
         exitCameraController(pCameraController);
 
@@ -853,25 +679,24 @@ public:
 
         for (uint32_t j = 0; j < gViewCount; ++j)
         {
-            removeGpuCmdRing(pRenderer[j], &gGraphicsCmdRing[j]);
+            exitGpuCmdRing(pRenderer[j], &gGraphicsCmdRing[j]);
         }
 
         for (uint32_t view = 0; view < rendererCount; ++view)
         {
-            removeQueue(pRenderer[view], pGraphicsQueue[view]);
+            exitQueue(pRenderer[view], pGraphicsQueue[view]);
         }
 
-        removeSemaphore(pRenderer[0], pImageAcquiredSemaphore);
+        exitSemaphore(pRenderer[0], pImageAcquiredSemaphore);
 
         exitResourceLoaderInterface(pRenderer, rendererCount);
-
         for (uint32_t view = 0; view < gViewCount; ++view)
         {
             if (view < rendererCount)
                 exitRenderer(pRenderer[view]);
             pRenderer[view] = NULL;
         }
-
+        removeGPUConfigurationRules();
         if (pContext)
         {
             exitRendererContext(pContext);
@@ -901,6 +726,99 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGui);
+
+            if (pContext)
+            {
+                CheckboxWidget multiGpuCheckbox;
+                multiGpuCheckbox.pData = &gMultiGPU;
+                UIWidget* pMultiRendererToggle =
+                    uiAddComponentWidget(pGui, "Enable Multi Renderer", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
+                uiSetWidgetOnEditedCallback(pMultiRendererToggle, nullptr, SwitchGpuMode);
+                luaRegisterWidget(pMultiRendererToggle);
+
+                char           renderer[20] = {};
+                const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
+                for (uint32_t i = 0; i < rendererCount; ++i)
+                {
+                    DropdownWidget ddGpuSelect;
+                    ddGpuSelect.pData = &gSelectedGpuIndices[i];
+                    ddGpuSelect.pNames = gGpuNamePtrs;
+                    ddGpuSelect.mCount = pContext->mGpuCount;
+
+                    snprintf(renderer, 20, "Renderer %d", i);
+                    UIWidget* pGpuSelect = uiAddComponentWidget(pGui, renderer, &ddGpuSelect, WIDGET_TYPE_DROPDOWN);
+                    uiSetWidgetOnEditedCallback(pGpuSelect, nullptr, SwitchGpuMode);
+                    luaRegisterWidget(pGpuSelect);
+                }
+
+#ifdef AUTOMATED_TESTING
+                ButtonWidget btnSwapRenderers;
+                UIWidget*    pSwapRenderers = uiAddComponentWidget(pGui, "Swap Renderers", &btnSwapRenderers, WIDGET_TYPE_BUTTON);
+                uiSetWidgetOnEditedCallback(pSwapRenderers, this,
+                                            [](void* pUserData)
+                                            {
+                                                UNREF_PARAM(pUserData);
+                                                uint32_t temporary = gSelectedGpuIndices[0];
+                                                gSelectedGpuIndices[0] = gSelectedGpuIndices[1];
+                                                gSelectedGpuIndices[1] = temporary;
+
+                                                ResetDesc resetDescriptor;
+                                                resetDescriptor.mType = RESET_TYPE_GRAPHIC_CARD_SWITCH;
+                                                requestReset(&resetDescriptor);
+                                            });
+                luaRegisterWidget(pSwapRenderers);
+#endif
+            }
+            SliderUintWidget frameLatencyWidget;
+            frameLatencyWidget.mMin = 0;
+            frameLatencyWidget.mMax = gDataBufferCount - 1;
+            frameLatencyWidget.pData = &gFrameLatency;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Frame Latency", &frameLatencyWidget, WIDGET_TYPE_SLIDER_UINT));
+
+            SliderFloatWidget camHorFovSlider;
+            camHorFovSlider.pData = &gPaniniParams.FoVH;
+            camHorFovSlider.mMin = 30.0f;
+            camHorFovSlider.mMax = 179.0f;
+            camHorFovSlider.mStep = 1.0f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget paniniSliderD;
+            paniniSliderD.pData = &gPaniniParams.D;
+            paniniSliderD.mMin = 0.0f;
+            paniniSliderD.mMax = 1.0f;
+            paniniSliderD.mStep = 0.001f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget paniniSliderS;
+            paniniSliderS.pData = &gPaniniParams.S;
+            paniniSliderS.mMin = 0.0f;
+            paniniSliderS.mMax = 1.0f;
+            paniniSliderS.mStep = 0.001f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget screenScaleSlider;
+            screenScaleSlider.pData = &gPaniniParams.scale;
+            screenScaleSlider.mMin = 1.0f;
+            screenScaleSlider.mMax = 10.0f;
+            screenScaleSlider.mStep = 0.01f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            DropdownWidget ddTestScripts;
+            ddTestScripts.pData = &gCurrentScriptIndex;
+            ddTestScripts.pNames = gTestScripts;
+            ddTestScripts.mCount = gNumScriptsToDefine;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+            ButtonWidget bRunScript;
+            UIWidget*    pRunScript = uiAddComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+            uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
+            luaRegisterWidget(pRunScript);
+
             if (!addSwapChain())
                 return false;
 
@@ -939,8 +857,6 @@ public:
         fontLoad.mWidth = mSettings.mWidth;
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
-
-        initScreenshotInterface(pRenderer[0], pGraphicsQueue[0]);
 
         memset(gReadbackSyncTokens, 0, sizeof(gReadbackSyncTokens));
         gFrameIndex = 0;
@@ -984,6 +900,9 @@ public:
 
             for (uint32_t i = 0; i < gViewCount; ++i)
                 removeRenderTarget(pRenderer[i], pDepthBuffers[i]);
+
+            uiRemoveComponent(pGui);
+            unloadProfilerUI();
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -992,13 +911,36 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
-        updateInputSystem(deltaTime, mSettings.mHeight, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
         /************************************************************************/
         // Update GUI
         /************************************************************************/
@@ -1454,11 +1396,11 @@ public:
             else
             {
                 ShaderLoadDesc skyShader = {};
-                skyShader.mStages[0].pFileName = "skybox.vert";
-                skyShader.mStages[1].pFileName = "skybox.frag";
+                skyShader.mVert.pFileName = "skybox.vert";
+                skyShader.mFrag.pFileName = "skybox.frag";
                 ShaderLoadDesc basicShader = {};
-                basicShader.mStages[0].pFileName = "basic.vert";
-                basicShader.mStages[1].pFileName = "basic.frag";
+                basicShader.mVert.pFileName = "basic.vert";
+                basicShader.mFrag.pFileName = "basic.frag";
 
                 addShader(pRenderer[i], &skyShader, &pSkyBoxDrawShader[i]);
                 addShader(pRenderer[i], &basicShader, &pSphereShader[i]);
@@ -1694,14 +1636,14 @@ public:
                 resetCmdPool(pRenderer[j], gGraphicsCmdRing[j].pCmdPools[i]);
 
                 // Recycle fence and semaphores to reset signaled state.
-                removeFence(pRenderer[j], gGraphicsCmdRing[j].pFences[i][0]);
-                removeSemaphore(pRenderer[j], gGraphicsCmdRing[j].pSemaphores[i][0]);
+                exitFence(pRenderer[j], gGraphicsCmdRing[j].pFences[i][0]);
+                exitSemaphore(pRenderer[j], gGraphicsCmdRing[j].pSemaphores[i][0]);
 
                 if (j > 0)
                     gReadbackSyncTokens[i][j - 1] = {};
 
-                addFence(pRenderer[j], &gGraphicsCmdRing[j].pFences[i][0]);
-                addSemaphore(pRenderer[j], &gGraphicsCmdRing[j].pSemaphores[i][0]);
+                initFence(pRenderer[j], &gGraphicsCmdRing[j].pFences[i][0]);
+                initSemaphore(pRenderer[j], &gGraphicsCmdRing[j].pSemaphores[i][0]);
             }
         }
         gBufferedFrames = 0;

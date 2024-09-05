@@ -50,9 +50,6 @@ typedef struct ProfilerDesc
     ProfileToken* pProfileTokens = NULL;
 
     uint32_t mGpuProfilerCount = 0;
-    uint32_t mWidthUI = 0;
-    uint32_t mHeightUI = 0;
-
 } ProfilerDesc;
 
 // Must be called before adding any profiling
@@ -60,6 +57,12 @@ FORGE_API void initProfiler(ProfilerDesc* pDesc);
 
 // Call on application exit
 FORGE_API void exitProfiler();
+
+// setups Profiler's UI. Call on Load stage.
+FORGE_API void loadProfilerUI(uint32_t widthUI, uint32_t heightUI);
+
+// Call on Unload stage.
+FORGE_API void unloadProfilerUI();
 
 // Call once per frame to update profiler
 FORGE_API void flipProfiler();
@@ -95,10 +98,10 @@ FORGE_API void toggleProfilerDrawing(bool active);
 //------ Gpu profiler ------------//
 
 // Call only after initProfiler(), for manually adding Gpu Profilers
-FORGE_API ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pProfilerName);
+FORGE_API ProfileToken initGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pProfilerName);
 
 // Call only before exitProfiler(), for manually removing Gpu Profilers
-FORGE_API void removeGpuProfiler(ProfileToken nProfileToken);
+FORGE_API void exitGpuProfiler(ProfileToken nProfileToken);
 
 // Must be called before any call to cmdBeginGpuTimestampQuery
 // Preferred time to call this function is right after calling beginCmd

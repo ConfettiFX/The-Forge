@@ -66,11 +66,6 @@ inline float2 f2(uint x) { return float2(x, x); }
 #define min16float4 half4
 #endif
 
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define Get(X) X
-#else
-#define Get(X) srt_##X
-#endif
 
 /* Matrix */
 
@@ -342,12 +337,6 @@ EXPR(int) \
 EXPR(uint) \
 EXPR(half) \
 EXPR(float)
-
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define GetRes(X) X
-#else
-#define GetRes(X) srt_##X
-#endif
 
 #if defined(DIRECT3D12) || defined(DIRECT3D11)
 // #define _DECL_AtomicAdd(TYPE) \
@@ -750,9 +739,11 @@ _DECL_AtomicMax2D(uint)
 #define FLATTEN [flatten]
 
 #if defined(ORBIS) || defined(PROSPERO)
-#define PUSH_CONSTANT(NAME, REG) struct NAME
+#define ROOT_CONSTANT(T) T
+#elif defined(DIRECT3D11)
+#define ROOT_CONSTANT(T) cbuffer
 #else
-#define PUSH_CONSTANT(NAME, REG) cbuffer NAME : register(REG)
+#define ROOT_CONSTANT(T) ConstantBuffer<T>
 #endif
 
 
@@ -854,13 +845,13 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 #define ToFloat3x3(NAME) ((float3x3) NAME )
 
 #if defined(DIRECT3D12)
-    #define CBUFFER(NAME, FREQ, REG, BINDING) cbuffer NAME : register(REG, FREQ)
+    #define CBUFFER(T) ConstantBuffer<T>
     #define RES(TYPE, NAME, FREQ, REG, BINDING) TYPE NAME : register(REG, FREQ)
 #elif defined(ORBIS) || defined(PROSPERO)
-    #define CBUFFER(NAME, FREQ, REG, BINDING) struct NAME
+    #define CBUFFER(T) T
     #define RES(TYPE, NAME, FREQ, REG, BINDING)
 #else
-    #define CBUFFER(NAME, FREQ, REG, BINDING) cbuffer NAME : register(REG)
+    #define CBUFFER(T) cbuffer
     #define RES(TYPE, NAME, FREQ, REG, BINDING) TYPE NAME : register(REG)
 #endif
 

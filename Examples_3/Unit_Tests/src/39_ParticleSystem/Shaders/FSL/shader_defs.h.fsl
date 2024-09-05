@@ -36,18 +36,19 @@
 #define MAX_LIGHTS_PER_CLUSTER		(LIGHT_COUNT / 10)
 #define VERTICAL_SUBCLUSTER_COUNT	3
 #define HORIZONTAL_SUBCLUSTER_COUNT	2
+
 // 3 elements per depth bounds buffer entry: 0 = minDepth, 1 = maxDepth, 2 = bitmask
 #define DEPTH_BOUNDS_ENTRY_SIZE		3
 #define DEPTH_BOUNDS_GROUP_AMOUNT_X		32
 #define DEPTH_BOUNDS_GROUP_AMOUNT_Y		32
+#define DEPTH_ClUSTERS_KERNEL_SIZE		2
 
 #define LIGHT_CLUSTER_COUNT_POS(ix, iy) ( ((iy)*LIGHT_CLUSTER_WIDTH)+(ix) )
 #define LIGHT_CLUSTER_DATA_POS(il, ix, iy) ( LIGHT_CLUSTER_COUNT_POS(ix, iy)*MAX_LIGHTS_PER_CLUSTER + (il) )
 
-#define MAX_SHADOW_DISTANCE				10
-#define MIN_CUBE_SHADOWS_FACE_SIZE		16
-#define MAX_CUBE_SHADOWS_FACE_SIZE		128
-#define CUBE_SHADOWS_COARSE_BLOCK_SIZE	16
+#define TEXTURE_CLEAR_THREAD_COUNT		16
+#define SHADOWMAP_BLUR_THREAD_COUNT		16
+#define DOWNSAMPLED_DEPTH_DIVISOR		2
 
 // Override default VB culling viewports
 #define NUM_CULLING_VIEWPORTS (2 + SHADOW_COUNT)
@@ -78,7 +79,7 @@ STRUCT(MeshConstants)
 	DATA(uint, twoSided, None); // 0 or 1
 };
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(PerFrameConstantsData)
 {
 	DATA(float4, camPos, None);
 	//========================================
@@ -87,13 +88,14 @@ CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float4, lightColor, None);
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
-	DATA(uint, lightingMode, None);
+	DATA(uint, _pad0, None);
 	DATA(uint, outputMode, None);
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
 	//========================================
 };
+RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(LightData)
 {

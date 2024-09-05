@@ -50,11 +50,12 @@ STRUCT(DirectionalLight)
 };
 
 // UPDATE_FREQ_NONE
-CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b2, binding = 2)
+STRUCT(PointLightData)
 {
 	DATA(PointLight, PointLights[MAX_NUM_POINT_LIGHTS], None);
 	DATA(uint, NumPointLights, None);
 };
+RES(CBUFFER(PointLightData), cbPointLights, UPDATE_FREQ_NONE, b2, binding = 2);
 
 RES(Tex2D(float2), brdfIntegrationMap, UPDATE_FREQ_NONE, t3, binding = 4);
 RES(TexCube(float4), irradianceMap, UPDATE_FREQ_NONE, t4, binding = 5);
@@ -67,7 +68,7 @@ RES(SamplerState, environmentSampler, UPDATE_FREQ_NONE, s3, binding = 16);
 RES(SamplerState, pointSampler, UPDATE_FREQ_NONE, s4, binding = 17);
 
 // UPDATE_FREQ_PER_FRAME
-CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(Camera)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
@@ -87,15 +88,17 @@ CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(int, renderMode, None);
 	DATA(float, fNormalMapIntensity, None);
 };
+RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
-CBUFFER(cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
+STRUCT(DirectionalLightData)
 {
 	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
 	DATA(uint, NumDirectionalLights, None);
 };
+RES(CBUFFER(DirectionalLightData), cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b3, binding = 3);
 
 // UPDATE_FREQ_PER_DRAW
-CBUFFER(cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1)
+STRUCT(Object)
 {
 	DATA(float4x4, worldMat, None);
 	DATA(float4, albedoAndRoughness, None);
@@ -106,6 +109,7 @@ CBUFFER(cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1)
 	// instead of the constant buffer values above.
 	DATA(int, textureConfig, None);
 };
+RES(CBUFFER(Object), cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1);
 RES(Tex2D(float4), albedoMap, UPDATE_FREQ_PER_DRAW, t7, binding = 7);
 RES(Tex2D(float4), normalMap, UPDATE_FREQ_PER_DRAW, t8, binding = 8);
 RES(Tex2D(float4), metallicMap, UPDATE_FREQ_PER_DRAW, t9, binding = 9);

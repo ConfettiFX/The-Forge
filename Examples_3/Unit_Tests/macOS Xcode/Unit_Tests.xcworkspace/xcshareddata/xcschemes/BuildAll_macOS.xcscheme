@@ -71,6 +71,20 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "09a_HybridRaytracing.app"
+               BlueprintName = "09a_HybridRaytracing"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "10_ScreenSpaceReflections.app"
                BlueprintName = "10_ScreenSpaceReflections"
                ReferencedContainer = "container:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
@@ -113,37 +127,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "15_Transparency.app"
-               BlueprintName = "15_Transparency"
-               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "16_Raytracing.app"
                BlueprintName = "16_Raytracing"
                ReferencedContainer = "container:16_Raytracing/16_Raytracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "17_EntityComponentSystem.app"
-               BlueprintName = "17_EntityComponentSystem"
-               ReferencedContainer = "container:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry

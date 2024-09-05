@@ -52,15 +52,15 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	INIT_MAIN;
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
 
-	float4 restPosition = Get(HairRestPositions)[indices.globalVertexIndex];
-	restPosition.xyz = mul(Get(Transform), float4(restPosition.xyz, 1.0f)).xyz;
-	float4 currentPosition = Get(sharedPos)[indices.indexSharedMem] = Get(HairVertexPositions)[indices.globalVertexIndex];
+	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
+	restPosition.xyz = mul(cbSimulation.Transform, float4(restPosition.xyz, 1.0f)).xyz;
+	float4 currentPosition = sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
 	float weight = currentPosition.w;
 
 	GroupMemoryBarrier();
 
 	// Integrate
-	float4 prevPosition = Get(HairVertexPositionsPrev)[indices.globalVertexIndex];
+	float4 prevPosition = HairVertexPositionsPrev[indices.globalVertexIndex];
 	float4 force = f4(0.0f);
 
 	if (weight > 0.0f)	// Is movable
@@ -69,16 +69,16 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 		sharedPos[indices.indexSharedMem] = restPosition;
 
 	// Global shape constraint
-	if (Get(GlobalConstraintStiffness) > 0.0f && 
-		Get(GlobalConstraintRange) > 0.0f && 
+	if (cbSimulation.GlobalConstraintStiffness > 0.0f && 
+		cbSimulation.GlobalConstraintRange > 0.0f && 
 		sharedPos[indices.indexSharedMem].w > 0.0f && 
-		float(indices.localVertexIndex) < Get(GlobalConstraintRange) * float(Get(NumVerticesPerStrand)))
+		float(indices.localVertexIndex) < cbSimulation.GlobalConstraintRange * float(cbSimulation.NumVerticesPerStrand))
 	{
-		sharedPos[indices.indexSharedMem].xyz += Get(GlobalConstraintStiffness) * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
+		sharedPos[indices.indexSharedMem].xyz += cbSimulation.GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
 	}
 
-	Get(HairVertexPositionsPrevPrev)[indices.globalVertexIndex] = Get(HairVertexPositionsPrev)[indices.globalVertexIndex];
-	Get(HairVertexPositionsPrev)[indices.globalVertexIndex] = currentPosition;
-	Get(HairVertexPositions)[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = HairVertexPositionsPrev[indices.globalVertexIndex];
+	HairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
+	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 	RETURN();
 }

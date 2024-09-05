@@ -30,19 +30,17 @@
 
 ParticleSet GetParticleSet(uint idx)
 {
-	const float gSteeringStrength = 0.4f;
-	const float gBoidsSeek = 4.0f;
-	const float gBoidsAvoid = 0.01f;
+	const float gSteeringStrength = 1.0f;
+	const float gBoidsSeek = 1.0f;
+	const float gBoidsAvoid = 0.25f;
 	const float gBoidsFlee = 0.0f;
-	const float gBoidsSeparation = 0.001f;
-	const float gBoidsCohesion = 5.0f;
-	const float gBoidsAlignment = 2.0f;
+	const float gBoidsSeparation = 0.5f;
+	const float gBoidsCohesion = 1.0f;
+	const float gBoidsAlignment = 1.0f;
 
 	ParticleSet swarm;
 	swarm.Position = float3(8,6,11);
-	swarm.ParticleType = PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS;
-	swarm.Color = float3(1.0, 0.9, 0.0);
-	swarm.LightBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_NONE;
+	swarm.ParticleSetBitfield = PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS | PARTICLE_BITFIELD_LIGHTING_MODE_NONE | PARTICLE_MODULATION_TYPE_SPEED;
 	swarm.MaxParticles = 1000000;
 #if defined(AUTOMATED_TESTING)
 	swarm.ParticlesPerSecond = 400000;
@@ -54,37 +52,44 @@ ParticleSet GetParticleSet(uint idx)
 	swarm.BoidsAvoidSeekStrength = pack2Floats(gBoidsAvoid, gBoidsSeek);
 	swarm.BoidsCohesionAlignmentStrength = pack2Floats(gBoidsCohesion, gBoidsAlignment);
 	swarm.BoidsSeparationFleeStrength = pack2Floats(gBoidsSeparation, gBoidsFlee);
-	swarm.SteeringStrengthMaxSpeed = pack2Floats(gSteeringStrength, 5.0f);
-	swarm.LightRadius = LIGHT_SIZE;
-	swarm.Size = float4(float3(8,8,8)/8, 0.007);
+	swarm.SteeringStrengthMaxSpeed = pack2Floats(gSteeringStrength, 1.0f);
+	swarm.Size = uint2(pack2Floats(1, 1), pack2Floats(1, 0.001));
+	swarm.MaxSizeAndSpeed = pack2Floats(0.014, 0.5);
+	swarm.LightRadiusAndVelocityNoise = 0;
+	swarm.StartSizeAndTime = pack2Floats(0.0, 0.3);
+	swarm.EndSizeAndTime = pack2Floats(0.0, 0.7);
 
 	ParticleSet lightSet;
-	lightSet.ParticleType = PARTICLE_BITFIELD_TYPE_FIREFLIES;
-	lightSet.Color = float3(1.0, 0.9, 0.0);
-	lightSet.LightBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT;
-	lightSet.MaxParticles = 10000;
-	lightSet.ParticlesPerSecond = 1000;
+	lightSet.ParticleSetBitfield = PARTICLE_BITFIELD_TYPE_FIREFLIES | PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT | PARTICLE_MODULATION_TYPE_LIFETIME;
+	lightSet.StartColor = packUnorm4x8(float4(1.0, 1.0, 0.2, 0.1));
+	lightSet.EndColor = packUnorm4x8(float4(1.0, 0.2, 0.0, 0.9));
 	lightSet.SteeringStrengthMaxSpeed = pack2Floats(gSteeringStrength, 0.05);
 	lightSet.InitialAge = 10.0;
-	lightSet.LightRadius = LIGHT_SIZE;
-	lightSet.Size = float4(8, 1, 8, 0.05);
+	lightSet.LightRadiusAndVelocityNoise = pack2Floats(LIGHT_SIZE, 0.01);
+	lightSet.LightPulseSpeedAndOffset = pack2Floats(0.1, 0.5);
+	lightSet.Size = uint2(pack2Floats(10, 6), pack2Floats(8, 0.002));
+	lightSet.Position = float3(2, 8, 5);
+	lightSet.MaxSizeAndSpeed = pack2Floats(0.15, 0.25);
+	lightSet.MaxParticles = LIGHT_ONLY_COUNT;
+	lightSet.ParticlesPerSecond = LIGHT_ONLY_COUNT / lightSet.InitialAge;
+	lightSet.StartSizeAndTime = pack2Floats(0.0, 0.1);
+	lightSet.EndSizeAndTime = pack2Floats(0.0, 0.9);
 
 	switch (idx)
 	{
 		case 0:
 		{
 			swarm.Position = float3(6,6,10);
-			swarm.Color = float3(1.0, 0.1, 0.0);
-			swarm.MaxParticles = 1000000;
-			swarm.ParticlesPerSecond = 100000;
-			swarm.InitialAge = 20.0;
-			swarm.ParticlesPerSecond = 50000;
+			swarm.StartColor = packUnorm4x8(float4(1.0, 0.1, 0.0, 0.2));
+			swarm.EndColor = packUnorm4x8(float4(1.0, 0.1, 0.0, 0.8));
+			swarm.Size = uint2(pack2Floats(4, 4), pack2Floats(4, 0.001));
 			return swarm;
 		}
 		case 1:
 		{
 			swarm.Position = float3(-6, 6, 10);
-			swarm.Color = float3(0.5, 1.0, 0.0);
+			swarm.StartColor = packUnorm4x8(float4(0.5, 1.0, 0.0, 0.1));
+			swarm.EndColor = packUnorm4x8(float4(0.5, 1.0, 0.0, 0.9));
 			swarm.SteeringStrengthMaxSpeed = pack2Floats(0.5, 1.0f);
 			return swarm;
 		}
@@ -92,61 +97,68 @@ ParticleSet GetParticleSet(uint idx)
 		{
 			swarm.Position = float3(6,6,-2);
 			swarm.SteeringStrengthMaxSpeed = pack2Floats(0.5, 1.0f);
+			swarm.StartColor = packUnorm4x8(float4(0.8, 1.0, 0.0, 0.2));
+			swarm.EndColor = packUnorm4x8(float4(0.8, 1.0, 0.0, 0.8));
 			return swarm;
 		}
 		case 3:
 		{
 			swarm.Position = float3(-6,6,-2);
-			swarm.Color = float3(1.0, 1.0, 0.5);
+			swarm.StartColor = packUnorm4x8(float4(1.0, 1.0, 0.5, 0.1));
+			swarm.EndColor = packUnorm4x8(float4(1.0, 1.0, 0.5, 0.9));
 			swarm.SteeringStrengthMaxSpeed = pack2Floats(0.5, 1.0f);
 			return swarm;
 		}
 		case 4:
 		{
-			lightSet.Position = float3(2, 8, 5);
-			lightSet.MaxParticles = 10000;
-			lightSet.ParticlesPerSecond = 1000;
-			lightSet.Size = float4(10, 6, 8, 0.02);
-			lightSet.Color = float3(0.9, 0.8, 0.0);
 			return lightSet;
 		}
 		case 5:
 		{
 			swarm.Position = float3(4, 3, 4);
-			swarm.Color = float3(1.0, 1.0, 0.0);
-			swarm.ParticleType = PARTICLE_BITFIELD_TYPE_FIREFLIES;
-			swarm.MaxParticles = 20;
-			swarm.ParticlesPerSecond = 1;
+			swarm.StartColor = packUnorm4x8(float4(1.0, 0.5, 0.8, 0.3));
+			swarm.EndColor = packUnorm4x8(float4(0.6, 0.1, 0.1, 0.8));
+			swarm.ParticleSetBitfield = PARTICLE_BITFIELD_TYPE_FIREFLIES | PARTICLE_MODULATION_TYPE_LIFETIME;
+			swarm.MaxParticles = 40;
+			swarm.ParticlesPerSecond = 2;
 			swarm.InitialAge = 20.0;
 			swarm.SteeringStrengthMaxSpeed = pack2Floats(0, 0.05f);
-			swarm.Size = float4(4,1,4, 2);
+			swarm.Size = uint2(pack2Floats(4, 1), pack2Floats(4, 1.5));
+			swarm.MaxSizeAndSpeed = pack2Floats(2.0, 0.1);
+			swarm.StartSizeAndTime = pack2Floats(0.75, 0.2);
+			swarm.EndSizeAndTime = pack2Floats(0.75, 0.8);
 			return swarm;
 		}
 		case 6:
 		{
 			swarm.Position = float3(8, 3, 4);
-			swarm.Color = float3(0.0, 0.0, 1.0);
-			swarm.ParticleType = PARTICLE_BITFIELD_TYPE_FIREFLIES;
-			swarm.MaxParticles = 20;
-			swarm.ParticlesPerSecond = 1;
+			swarm.StartColor = packUnorm4x8(float4(0.0, 0.0, 1.0, 0.3));
+			swarm.EndColor = packUnorm4x8(float4(0.0, 1.0, 0.5, 0.8));
+			swarm.ParticleSetBitfield = PARTICLE_BITFIELD_TYPE_FIREFLIES | PARTICLE_MODULATION_TYPE_LIFETIME;
+			swarm.MaxParticles = 40;
+			swarm.ParticlesPerSecond = 2;
 			swarm.InitialAge = 20.0;
 			swarm.SteeringStrengthMaxSpeed = pack2Floats(0, 0.05f);
-			swarm.Size = float4(4,1,4, 2);
+			swarm.Size = uint2(pack2Floats(4, 1), pack2Floats(4, 1.5));
+			swarm.MaxSizeAndSpeed = pack2Floats(2.0, 0.1);
+			swarm.StartSizeAndTime = pack2Floats(0.75, 0.2);
+			swarm.EndSizeAndTime = pack2Floats(0.75, 0.8);
 			return swarm;
 		}
 		default:
 		{
-			ParticleSet shadowCasting;
+			ParticleSet shadowCasting = lightSet;
 			shadowCasting.Position = float3(5,7,5);
-			shadowCasting.ParticleType = PARTICLE_BITFIELD_TYPE_FIREFLIES;
-			shadowCasting.Color = float3(0.8, 1.0, 0.1);
-			shadowCasting.LightBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW;
+			shadowCasting.ParticleSetBitfield = PARTICLE_BITFIELD_TYPE_FIREFLIES | PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW;
+			shadowCasting.StartColor = packUnorm4x8(float4(0.8, 1.0, 0.1, 0.2));
+			shadowCasting.EndColor = packUnorm4x8(float4(0.8, 1.0, 0.1, 0.8));
 			shadowCasting.MaxParticles = SHADOW_COUNT;
-			shadowCasting.LightRadius = SHADOW_PARTICLE_RADIUS;
+			shadowCasting.LightRadiusAndVelocityNoise = pack2Floats(SHADOW_PARTICLE_RADIUS, 0.0);
 			shadowCasting.ParticlesPerSecond = float(SHADOW_COUNT) / 10.0;
 			shadowCasting.InitialAge = 10.0;
-			shadowCasting.Size = float4(10, 6, 8, 0.1);
+			shadowCasting.Size = uint2(pack2Floats(10, 6), pack2Floats(8, 0.1));
 			shadowCasting.SteeringStrengthMaxSpeed = pack2Floats(gSteeringStrength, 1.0f);
+			shadowCasting.LightPulseSpeedAndOffset = pack2Floats(0.0, 1.0);
 			return shadowCasting;
 		}
 	}

@@ -26,6 +26,50 @@
 #define PARTICLE_PACKING_H
 
 #include "../../../Graphics/ShaderUtilities.h.fsl"
+#include "particle_random.h.fsl"
+
+// Utility macros to unpack particle set data
+// Random interpolator
+#define UnpackRandomInterpolator(seed)								randFloat_zeroToPlusOneFixedSeed(seed)			
+
+/*****************************************/
+// ParticleSet size and Particle scale
+/*****************************************/
+#define UnpackParticleSetSize(packedSize)							float3(unpack2Floats(packedSize.x).xy, unpack2Floats(packedSize.y).x)
+
+																	// Interpolate between minimum and maximum size using a random t, then multiply by fade in and by fade out
+#define UnpackParticleSize(particleSet, seed, ageOverMaxAge)		(lerp(unpack2Floats(particleSet.Size.y).y, unpack2Floats(particleSet.MaxSizeAndSpeed).x, UnpackRandomInterpolator(seed)) \
+																		* saturate(lerp(unpack2Floats(particleSet.StartSizeAndTime).x, 1.0, saturate((ageOverMaxAge) / unpack2Floats(particleSet.StartSizeAndTime).y))) \
+																		* saturate(lerp(unpack2Floats(particleSet.EndSizeAndTime).x, 1.0, saturate((1.0 - (ageOverMaxAge)) / (1.0 - unpack2Floats(particleSet.EndSizeAndTime).y)))))
+
+/*****************************************/
+// Particle struct attributes
+/*****************************************/
+#define UnpackParticleAgeOverMaxAge(particleData)					(1.0 - unpack2Floats(particleData.VelocityAndAge.y).y)
+#define UnpackParticleSpeedOverMaxSpeed(particleData, particleSet)	(length(float3(unpack2Floats(particleData.VelocityAndAge.x), unpack2Floats(particleData.VelocityAndAge.y).x)) / \
+																		unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y)
+#define UnpackParticleVelocity(particleSet, particleData)			(float3(unpack2Floats(particleData.VelocityAndAge.x), unpack2Floats(particleData.VelocityAndAge.y).x) * \
+																		unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y)
+#define UnpackParticlePosition(particleSet, particleData)			(unpackFloat3FixedPoint(particleData.Position) * PARTICLE_PACKING_SCALE + particleSet.Position);
+
+/*****************************************/
+// Color
+/*****************************************/
+#define UnpackFadeValue(ageOverMaxAge, startColor, endColor)								saturate(lerp(0.0, 1.0, (ageOverMaxAge) / unpackUnorm4x8(startColor).w) * \
+																								lerp(1.0, 0.0, (ageOverMaxAge) / unpackUnorm4x8(endColor).w))
+#define UnpackParticleColorLifetime(startColor, endColor, ageOverMaxAge)					float4(lerp(unpackUnorm4x8(startColor).xyz, unpackUnorm4x8(endColor).xyz, ageOverMaxAge), \
+																								UnpackFadeValue(ageOverMaxAge, startColor, endColor))
+#define UnpackParticleColorSpeed(startColor, endColor, ageOverMaxAge, speedOverMaxSpeed)	float4(lerp(unpackUnorm4x8(startColor).xyz, unpackUnorm4x8(endColor).xyz, speedOverMaxSpeed), \
+																								UnpackFadeValue(ageOverMaxAge, startColor, endColor))
+
+/*****************************************/
+// Other
+/*****************************************/
+// Speed: we multiply the seed by 2 to avoid having a correlation between size and speed
+#define UnpackSpeed(particleSet, seed)									lerp(unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y, unpack2Floats(particleSet.MaxSizeAndSpeed).y, UnpackRandomInterpolator(seed*2))
+
+// Lights
+#define UnpackLightModulationFactor(particleSet, time, particleIdx)		clamp(unpack2Floats(particleSet.LightPulseSpeedAndOffset).x * sin(float(time + particleIdx)) + unpack2Floats(particleSet.LightPulseSpeedAndOffset).y, 0.0, 1.0)
 
 uint FirstBits(uint v, uint nBits)
 {
@@ -93,24 +137,6 @@ void UnpackParticle(ParticleSet particleSet, ParticleData particleData, inout(fl
 	velocityAndAge.zw = unpack2Floats(particleData.VelocityAndAge.y);
 	velocityAndAge.xyz *= unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y;
 	velocityAndAge.w *= particleSet.InitialAge;
-}
-
-float3 GetParticleVelocity(ParticleSet particleSet, ParticleData particleData)
-{
-	float3 velocity;
-	velocity.xy = unpack2Floats(particleData.VelocityAndAge.x);
-	velocity.z = unpack2Floats(particleData.VelocityAndAge.y).x;
-
-	return velocity * unpack2Floats(particleSet.SteeringStrengthMaxSpeed).y;
-}
-
-float3 GetParticlePosition(ParticleSet particleSet, ParticleData particleData)
-{
-	float3 position = unpackFloat3FixedPoint(particleData.Position);
-	position.xyz *= PARTICLE_PACKING_SCALE;
-	position.xyz += particleSet.Position;
-
-	return position;
 }
 
 ParticleData PackParticle(ParticleSet particleSet, float3 position, float4 velocityAndAge)

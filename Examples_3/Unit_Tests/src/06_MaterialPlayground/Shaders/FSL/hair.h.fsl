@@ -25,6 +25,16 @@
 #ifndef hair_h
 #define hair_h
 
+#ifndef __fsl
+//#define STATIC static
+//#define STRUCT(NAME) struct NAME
+//#define DATA(TYPE, NAME, SEM) TYPE NAME
+//#define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
+//#define float4x4 mat4
+//#define float4 vec4
+//#define uint uint32_t
+#endif
+
 #define SHORT_CUT_MIN_ALPHA 0.02f
 #define PI 3.1415926
 #define e 2.71828183
@@ -34,6 +44,12 @@
 #else
 #define TEXTURE_ATOMIC_SUPPORTED 1
 #endif // defined(METAL)
+#ifndef MAX_NUM_DIRECTIONAL_LIGHTS
+#define MAX_NUM_DIRECTIONAL_LIGHTS 1
+#endif
+#ifndef MAX_NUM_POINT_LIGHTS
+#define MAX_NUM_POINT_LIGHTS 1
+#endif
 
 struct PointLight
 {
@@ -77,19 +93,21 @@ struct Camera
 
 // UPDATE_FREQ_NONE
 #ifndef HAIR_SHADOW
-CBUFFER(cbHairGlobal, UPDATE_FREQ_NONE, b5, binding = 2)
+STRUCT(HairGlobal)
 {
 	DATA(float4, Viewport, None);
 	DATA(float4, Gravity, None);
 	DATA(float4, Wind, None);
 	DATA(float, TimeStep, None);
 };
+RES(CBUFFER(HairGlobal), cbHairGlobal, UPDATE_FREQ_NONE, b5, binding = 2);
 
-CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6)
+STRUCT(PointLightsData)
 {
 	DATA(PointLight, PointLights[MAX_NUM_POINT_LIGHTS], None);
 	DATA(uint, NumPointLights, None);
 };
+RES(CBUFFER(PointLightsData), cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6);
 
 RES(SamplerState, pointSampler,  UPDATE_FREQ_NONE, s1, binding = 9);
 
@@ -115,27 +133,21 @@ RES(Tex2D(float), InvAlphaTexture,  UPDATE_FREQ_NONE, t6, binding = 7);
 #endif
 
 // UPDATE_FREQ_PER_FRAME
-CBUFFER(cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
+STRUCT(DirectionalLightsData)
 {
 	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
 	DATA(uint, NumDirectionalLights, None);
 };
+RES(CBUFFER(DirectionalLightsData), cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b4, binding = 7);
 
 #if !defined(HAIR_SHADOW)
-CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-	DATA(Camera, Cam, None);
-};
-// UPDATE_FREQ_PER_BATCH
+RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 #else
-CBUFFER(cbCamera, UPDATE_FREQ_PER_BATCH, b0, binding = 0)
-{
-	DATA(Camera, Cam, None);
-};
+RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_BATCH, b0, binding = 0);
 #endif
 
 // UPDATE_FREQ_PER_DRAW
-CBUFFER(cbHair, UPDATE_FREQ_PER_DRAW, b2, binding = 1)
+STRUCT(HairData)
 {
 	DATA(float4x4, Transform, None);
 	DATA(uint, RootColor, None);
@@ -150,15 +162,17 @@ CBUFFER(cbHair, UPDATE_FREQ_PER_DRAW, b2, binding = 1)
 	DATA(float, FiberSpacing, None);
 	DATA(uint, NumVerticesPerStrand, None);
 };
+RES(CBUFFER(HairData), cbHair, UPDATE_FREQ_PER_DRAW, b2, binding = 1);
 RES(Buffer(float4), GuideHairVertexPositions,  UPDATE_FREQ_PER_DRAW, t0, binding = 3);
 RES(Buffer(float4), GuideHairVertexTangents,   UPDATE_FREQ_PER_DRAW, t1, binding = 4);
 RES(Buffer(float),  HairThicknessCoefficients, UPDATE_FREQ_PER_DRAW, t2, binding = 5);
 
 #ifdef SHORT_CUT_FILL_COLOR
-CBUFFER(cbDirectionalLightShadowCameras, UPDATE_FREQ_PER_BATCH, b6, binding = 10)
+STRUCT(DirectionalLightShadowCameras)
 {
     DATA(Camera, ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS], None);
 };
+RES(CBUFFER(DirectionalLightShadowCameras), cbDirectionalLightShadowCameras, UPDATE_FREQ_PER_BATCH, b6, binding = 10);
 
 RES(Tex2D(float), DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS],  UPDATE_FREQ_PER_BATCH, t3, binding = 8);
 #endif

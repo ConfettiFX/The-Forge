@@ -32,11 +32,12 @@ RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 2);
 RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t1, binding = 3);
 RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t2, binding = 4);
 
-CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(objectUniformBlockData)
 {
     DATA(float4x4, worldViewProjMat, None);
     DATA(float4x4, prevWorldViewProjMat, None);
 };
+RES(CBUFFER(objectUniformBlockData), objectUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(PsInOpaque)
 {
@@ -62,12 +63,12 @@ STRUCT(PsOut)
 
 float4 LoadVertex(uint index)
 {
-    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1.0f);
+    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1.0f);
 }
 
 float2 LoadTexCoord(uint index)
 {
-	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
+	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
 }
 
 #endif /* vb_resources_h */

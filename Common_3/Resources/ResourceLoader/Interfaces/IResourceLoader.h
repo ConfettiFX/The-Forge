@@ -444,7 +444,12 @@ typedef struct ShaderStageLoadDesc
 
 typedef struct ShaderLoadDesc
 {
-    ShaderStageLoadDesc   mStages[SHADER_STAGE_COUNT];
+    ShaderStageLoadDesc   mVert;
+    ShaderStageLoadDesc   mFrag;
+    ShaderStageLoadDesc   mGeom;
+    ShaderStageLoadDesc   mHull;
+    ShaderStageLoadDesc   mDomain;
+    ShaderStageLoadDesc   mComp;
     const ShaderConstant* pConstants;
     uint32_t              mConstantCount;
 } ShaderLoadDesc;

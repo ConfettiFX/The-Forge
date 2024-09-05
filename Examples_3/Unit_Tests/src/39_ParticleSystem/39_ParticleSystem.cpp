@@ -34,7 +34,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -56,8 +56,16 @@
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h" // Must be the last include in a cpp file
 
-#define RETINA_SCALING 1.0f
+#define SCENE_SCALE    1.0f
+
 #define SHADOWMAP_SIZE 1024
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS 16
+#elif (defined(PROSPERO) || defined(WINDOWS)) && defined(AUTOMATED_TESTING)
+#define MAX_TRANSPARENCY_LAYERS 64
+#else
+#define MAX_TRANSPARENCY_LAYERS 24
+#endif
 
 #define FOREACH_SETTING(X)       \
     X(BindlessSupported, 1)      \
@@ -67,6 +75,12 @@
 #define GENERATE_ENUM(x, y)   x,
 #define GENERATE_STRING(x, y) #x,
 #define GENERATE_STRUCT(x, y) uint32_t m##x = y;
+
+#if defined(ANDROID) || defined(AUTOMATED_TESTING)
+#define DEFAULT_ASYNC_COMPUTE false
+#else
+#define DEFAULT_ASYNC_COMPUTE true
+#endif
 
 typedef enum ESettings
 {
@@ -113,8 +127,8 @@ Texture*      pFilteredShadowCollector = NULL;
 // Fireflies
 /******************************************************/
 float gFirefliesFlockRadius = 4.0f;
-float gFirefliesMinHeight = 4.5f;
-float gFirefliesMaxHeight = 9.0f;
+float gFirefliesMinHeight = 1.5f;
+float gFirefliesMaxHeight = 6.0f;
 
 float gFirefliesElevationSpeed = 0.15f;
 float gFirefliesWhirlSpeed = 0.2f;
@@ -135,6 +149,7 @@ float3 gLightPosition = { 2.0f, 8.1f, -2.4f };
 uint32_t gCurrParticlesAmount = 0;
 uint32_t gCurrLightAmount = 0;
 uint32_t gCurrShadowsAmount = 0;
+float    gESMControl = 120.0f;
 
 uint32_t gShadowPushConstsIndex = 0;
 uint32_t gShadowFilteringPushConstsIndex = 0;
@@ -142,15 +157,11 @@ uint32_t gShadowFilteringPushConstsIndex = 0;
 UIComponent* pGuiWindow = NULL;
 float4       gTextColor = { 1, 1, 1, 1 };
 
+// True on the first frame
 bool gJustLoaded = true;
-bool gTakeScreenshot = false;
-
-void takeScreenshot(void* pUserData)
-{
-    UNREF_PARAM(pUserData);
-    if (!gTakeScreenshot)
-        gTakeScreenshot = true;
-}
+bool gAsyncComputeEnabled = DEFAULT_ASYNC_COMPUTE;
+// True after 10 seconds since the start of the app
+bool gParticlesLoaded = false;
 
 /************************************************************************/
 // Per frame staging data
@@ -158,9 +169,9 @@ void takeScreenshot(void* pUserData)
 struct PerFrameData
 {
     // Stores the camera/eye position in object space for cluster culling
-    vec3                gEyeObjectSpace[NUM_CULLING_VIEWPORTS] = {};
-    PerFrameConstants   gPerFrameUniformData = {};
-    PerFrameVBConstants gPerFrameVBUniformData = {};
+    vec3                    gEyeObjectSpace[NUM_CULLING_VIEWPORTS] = {};
+    PerFrameConstantsData   gPerFrameUniformData = {};
+    PerFrameVBConstantsData gPerFrameVBUniformData = {};
 
     uint32_t gDrawCount[NUM_GEOMETRY_SETS] = {};
 };
@@ -169,6 +180,7 @@ struct PerFrameData
 // Profiling
 /************************************************************************/
 ProfileToken      gGraphicsProfileToken;
+ProfileToken      gComputeProfileToken;
 /************************************************************************/
 // Rendering data
 /************************************************************************/
@@ -177,17 +189,18 @@ VisibilityBuffer* pVisibilityBuffer = NULL;
 /************************************************************************/
 // Queues and Command buffers
 /************************************************************************/
-// Hack for texture bug on Xclipse 920
-Queue*            pDummyComputeQueue = NULL;
+Queue*            pComputeQueue = NULL;
 Queue*            pGraphicsQueue = NULL;
 GpuCmdRing        gGraphicsCmdRing = {};
+GpuCmdRing        gComputeCmdRing = {};
 /************************************************************************/
 // Swapchain
 /************************************************************************/
 SwapChain*        pSwapChain = NULL;
 Semaphore*        pImageAcquiredSemaphore = NULL;
 Semaphore*        pPresentSemaphore = NULL;
-Semaphore*        pSemaphorePreParticles = NULL;
+Semaphore*        gPrevGraphicsSemaphore = NULL;
+Semaphore*        gComputeSemaphores[gDataBufferCount] = {};
 /************************************************************************/
 // Clear buffers pipeline
 /************************************************************************/
@@ -243,7 +256,6 @@ Pipeline*         pPipelineShadowPass[NUM_GEOMETRY_SETS] = { NULL };
 Shader*           pShaderVisibilityBufferPass[NUM_GEOMETRY_SETS] = {};
 Pipeline*         pPipelineVisibilityBufferPass[NUM_GEOMETRY_SETS] = {};
 RootSignature*    pRootSignatureVBPass = NULL;
-CommandSignature* pCmdSignatureVBPass = NULL;
 DescriptorSet*    pDescriptorSetVBPass[2] = { NULL };
 /************************************************************************/
 // VB shade pipeline
@@ -321,7 +333,7 @@ uint32_t     gMeshCount = 0;
 uint32_t     gMaterialCount = 0;
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
-float        gCurrTime = 0;
+float        gCurrTime = 0.0f;
 
 /************************************************************************/
 ICameraController* pCameraController = NULL;
@@ -336,7 +348,7 @@ bstring            gParticlesCountText = bempty();
 // Camera walking
 /************************************************************************/
 static float gCameraWalkingTime = 0.0f;
-float3       gCameraPathData[29084];
+float3*      gCameraPathData;
 uint         gCameraPoints;
 float        gTotalElpasedTime;
 bool         gCameraWalking = false;
@@ -362,18 +374,9 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         // Camera Walking
-        FileStream fh = {};
-        if (fsOpenStreamFromPath(RD_OTHER_FILES, "cameraPath.bin", FM_READ, &fh))
-        {
-            fsReadFromStream(&fh, gCameraPathData, sizeof(float3) * 29084);
-            fsCloseStream(&fh);
-        }
-
+        loadCameraPath("cameraPath.txt", gCameraPoints, &gCameraPathData);
         gCameraPoints = (uint)29084 / 2;
         gTotalElpasedTime = (float)gCameraPoints * 0.00833f;
-        for (uint32_t i = 0; i < 29084; i++)
-            for (uint32_t j = 0; j < 3; j++)
-                gCameraPathData[i][j] /= 50.0f;
 
         /************************************************************************/
         // Initialize the Forge renderer with the appropriate parameters.
@@ -386,30 +389,55 @@ public:
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         settings.pExtendedSettings = &extendedSettings;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
-        if (pRenderer == NULL)
+        if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
+
+        if (!gGpuSettings.mBindlessSupported)
+        {
+            ShowUnsupportedMessage("Visibility Buffer does not run on this device. Doesn't support enough bindless texture entries");
+            return false;
+        }
+
+        if (!gGpuSettings.mOITSupported)
+        {
+            ShowUnsupportedMessage(
+                "Order Independent Transparency does not work on this device. Adreno doesn't support big enough storage buffers.");
+            return false;
+        }
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_COMPUTE;
-        addQueue(pRenderer, &queueDesc, &pDummyComputeQueue);
+        queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+        initQueue(pRenderer, &queueDesc, &pComputeQueue);
 
         queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pGraphicsQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 2;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-        addSemaphore(pRenderer, &pPresentSemaphore);
-        addSemaphore(pRenderer, &pSemaphorePreParticles);
+        cmdRingDesc = {};
+        cmdRingDesc.pQueue = pComputeQueue;
+        cmdRingDesc.mPoolCount = gDataBufferCount;
+        cmdRingDesc.mCmdPerPoolCount = 1;
+        cmdRingDesc.mAddSyncPrimitives = true;
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gComputeCmdRing);
+
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pPresentSemaphore);
 
         /************************************************************************/
         // Initialize helper interfaces (resource loader, profiler)
@@ -430,88 +458,19 @@ public:
         uiRenderDesc.pRenderer = pRenderer;
         initUserInterface(&uiRenderDesc);
 
-        // Setup the UI components
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(((float)mSettings.mWidth / 100) * 80, mSettings.mHeight * 0.05f);
-        uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
-
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
+        // Setup scripts
+        LuaScriptDesc scriptDesc = {};
+        scriptDesc.pScriptFileName = "39_ParticleSystem/Test_AllSets.lua";
+        scriptDesc.pWaitCondition = &gParticlesLoaded;
+        luaDefineScripts(&scriptDesc, 1);
 
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
-        // Particles amounts
-        bformat(&gParticlesCountText, "Light particles: %d\nShadow particles: %d\nStandard particles: %d\nTotal: %d", LIGHT_COUNT,
-                SHADOW_COUNT, STANDARD_COUNT, LIGHT_COUNT + STANDARD_COUNT);
-        gParticlesCountsWidget.pText = &gParticlesCountText;
-        gParticlesCountsWidget.pColor = &gTextColor;
-        uiCreateComponentWidget(pGuiWindow, "Particles count", &gParticlesCountsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
-
-        // Take a screenshot with a button.
-        ButtonWidget screenshot;
-        UIWidget*    pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-        uiSetWidgetOnEditedCallback(pScreenshot, nullptr, takeScreenshot);
-        REGISTER_LUA_WIDGET(pScreenshot);
-
-        CheckboxWidget cameraWalkingCheckbox;
-        cameraWalkingCheckbox.pData = &gCameraWalking;
-        luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cinematic Camera walking", &cameraWalkingCheckbox, WIDGET_TYPE_CHECKBOX));
-
-        SliderFloatWidget cameraWalkingSpeedSlider;
-        cameraWalkingSpeedSlider.pData = &gCameraWalkingSpeed;
-        cameraWalkingSpeedSlider.mMin = 0.0f;
-        cameraWalkingSpeedSlider.mMax = 20.0f;
-        luaRegisterWidget(
-            uiCreateComponentWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraWalkingSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloat3Widget lightPosSlider;
-        lightPosSlider.pData = &gLightPosition;
-        lightPosSlider.mMin = float3(-20.0f);
-        lightPosSlider.mMax = float3(20.0f);
-        lightPosSlider.mStep = float3(0.1f);
-        UIWidget* pLightDirWidget = uiCreateComponentWidget(pGuiWindow, "Light direction", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3);
-        REGISTER_LUA_WIDGET(pLightDirWidget);
-
-        SliderFloatWidget whirlSpeedSlider;
-        whirlSpeedSlider.pData = &gFirefliesWhirlSpeed;
-        whirlSpeedSlider.mMin = 0.0f;
-        whirlSpeedSlider.mMax = 1.0f;
-        whirlSpeedSlider.mStep = 0.01f;
-        uiCreateComponentWidget(pGuiWindow, "Fireflies whirl speed", &whirlSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
-
-        SliderFloatWidget elevationSpeedSlider;
-        elevationSpeedSlider.pData = &gFirefliesElevationSpeed;
-        elevationSpeedSlider.mMin = 0.0f;
-        elevationSpeedSlider.mMax = 1.0f;
-        elevationSpeedSlider.mStep = 0.01f;
-        uiCreateComponentWidget(pGuiWindow, "Fireflies elevation speed", &elevationSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
-
-        /************************************************************************/
-        /************************************************************************/
-
-        if (!gGpuSettings.mBindlessSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. Doesn't support enough bindless texture entries");
-            return false;
-        }
-
-        if (!gGpuSettings.mOITSupported)
-        {
-            ShowUnsupportedMessage(
-                "Order Independent Transparency does not work on this device. Adreno doesn't support big enough storage buffers.");
-            return false;
-        }
-
-        gGraphicsProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+        gGraphicsProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+        gComputeProfileToken = initGpuProfiler(pRenderer, pComputeQueue, "Compute");
         /************************************************************************/
         // Start timing the scene load
         /************************************************************************/
@@ -591,31 +550,30 @@ public:
             addResource(&bufferLoadDesc, nullptr);
         }
 
-        // buffers
-        {
-            // Buffer containing data for all particles
-            BufferLoadDesc bufferLoadDesc = {};
-            bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-            bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-            bufferLoadDesc.mDesc.mFirstElement = 0;
-            bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleData);
-            bufferLoadDesc.mDesc.mElementCount = PARTICLE_COUNT;
-            bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
-            bufferLoadDesc.pData = NULL;
-            bufferLoadDesc.mForceReset = false;
-            bufferLoadDesc.mDesc.pName = "ParticlesDataBuffer";
-            bufferLoadDesc.ppBuffer = &pParticlesBuffer;
-            bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            addResource(&bufferLoadDesc, NULL);
+        // Buffer containing data for all particles
+        BufferLoadDesc bufferLoadDesc = {};
+        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+        bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        bufferLoadDesc.mDesc.mFirstElement = 0;
+        bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleData);
+        bufferLoadDesc.mDesc.mElementCount = PARTICLE_COUNT;
+        bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
+        bufferLoadDesc.pData = NULL;
+        bufferLoadDesc.mForceReset = false;
+        bufferLoadDesc.mDesc.pName = "ParticlesDataBuffer";
+        bufferLoadDesc.ppBuffer = &pParticlesBuffer;
+        bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        addResource(&bufferLoadDesc, NULL);
 
-            bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-            bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-            bufferLoadDesc.mDesc.mStructStride = sizeof(uint32_t);
-            bufferLoadDesc.mDesc.mSize = sizeof(uint32_t) * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
-            bufferLoadDesc.mDesc.pName = "ParticlesBitfields";
-            bufferLoadDesc.ppBuffer = &pParticleBitfields;
-            addResource(&bufferLoadDesc, NULL);
-        }
+        // Buffer containing the bitfields of the particles
+        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+        bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        bufferLoadDesc.mDesc.mStructStride = sizeof(uint32_t);
+        bufferLoadDesc.mDesc.mSize = sizeof(uint32_t) * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
+        bufferLoadDesc.mDesc.pName = "ParticlesBitfields";
+        bufferLoadDesc.ppBuffer = &pParticleBitfields;
+        bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        addResource(&bufferLoadDesc, NULL);
 
         /************************************************************************/
         // Load textures
@@ -623,21 +581,21 @@ public:
         // Particle textures
         TextureLoadDesc particleTexLoad = {};
         particleTexLoad.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
-        particleTexLoad.pFileName = "star_05.tex";
+        particleTexLoad.pFileName = "Particles/FireflyTmp.tex";
         particleTexLoad.ppTexture = &ppParticleTextures[0];
         addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "smoke_01.tex";
+        particleTexLoad.pFileName = "Particles/smoke_01.tex";
         particleTexLoad.ppTexture = &ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3];
         addResource(&particleTexLoad, NULL);
         waitForAllResourceLoads();
 
         // Lights, swarms, shadows
-        for (uint i = 1; i < MAX_PARTICLE_SET_COUNT - 3; i++)
+        for (uint32_t i = 1; i < MAX_PARTICLE_SET_COUNT - 3; i++)
             ppParticleTextures[i] = ppParticleTextures[0];
         ppParticleTextures[MAX_PARTICLE_SET_COUNT - 1] = ppParticleTextures[0];
 
         // Smoke
-        for (uint i = MAX_PARTICLE_SET_COUNT - 3; i < MAX_PARTICLE_SET_COUNT - 1; i++)
+        for (uint32_t i = MAX_PARTICLE_SET_COUNT - 3; i < MAX_PARTICLE_SET_COUNT - 1; i++)
             ppParticleTextures[i] = ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3];
 
         // Depth bounds buffer
@@ -657,8 +615,8 @@ public:
         /************************************************************************/
         // Setup the fps camera for navigating through the scene
         /************************************************************************/
-        vec3                   startPosition(10.0f, 10.0f, 2.0f);
-        vec3                   startLookAt = vec3(9.0f, 9.0, 2.0f);
+        vec3                   startPosition(8.765f, 4.544f, 12.593f);
+        vec3                   startLookAt = vec3(0.0f, 4.0f, 1.0f);
         CameraMotionParameters camParams;
         camParams.acceleration = 100;
         camParams.braking = 800;
@@ -667,79 +625,8 @@ public:
         pCameraController->setMotionParameters(camParams);
 
         // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
         initScreenshotInterface(pRenderer, pGraphicsQueue);
-
         return true;
     }
 
@@ -795,9 +682,10 @@ public:
 
     void Exit()
     {
-        exitInputSystem();
-
+        exitScreenshotInterface();
         exitCameraController(pCameraController);
+
+        tf_free(gCameraPathData);
 
         removeTriangleFilteringBuffers();
 
@@ -812,13 +700,12 @@ public:
         removeResource(ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3]);
         removeResource(pDepthBoundsBuffer);
 
-        removeGpuProfiler(gGraphicsProfileToken);
+        exitGpuProfiler(gGraphicsProfileToken);
+        exitGpuProfiler(gComputeProfileToken);
         exitProfiler();
 
         exitUserInterface();
         exitFontSystem();
-
-        exitScreenshotInterface();
 
         /************************************************************************/
         // Remove loaded scene
@@ -841,13 +728,13 @@ public:
 
         /************************************************************************/
         /************************************************************************/
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeSemaphore(pRenderer, pPresentSemaphore);
-        removeSemaphore(pRenderer, pSemaphorePreParticles);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitSemaphore(pRenderer, pPresentSemaphore);
 
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
-        removeQueue(pRenderer, pGraphicsQueue);
-        removeQueue(pRenderer, pDummyComputeQueue);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitGpuCmdRing(pRenderer, &gComputeCmdRing);
+        exitQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pComputeQueue);
 
         removeSampler(pRenderer, pSamplerTrilinearAniso);
         removeSampler(pRenderer, pSamplerBilinear);
@@ -859,6 +746,7 @@ public:
 
         exitResourceLoaderInterface(pRenderer);
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
         bdestroy(&gParticlesCountText);
         gFrameCount = 0;
@@ -874,6 +762,58 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            // Setup the UI components
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGuiWindow);
+
+            // Particles amounts
+            bformat(&gParticlesCountText, "Light particles: %d\nShadow particles: %d\nStandard particles: %d\nTotal: %d", LIGHT_COUNT,
+                    SHADOW_COUNT, STANDARD_COUNT, LIGHT_COUNT + STANDARD_COUNT);
+            gParticlesCountsWidget.pText = &gParticlesCountText;
+            gParticlesCountsWidget.pColor = &gTextColor;
+            uiAddComponentWidget(pGuiWindow, "Particles count", &gParticlesCountsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
+
+            CheckboxWidget asyncCompute;
+            asyncCompute.pData = &gAsyncComputeEnabled;
+            UIWidget* pAsyncCompute = uiAddComponentWidget(pGuiWindow, "Enable async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX);
+            REGISTER_LUA_WIDGET(pAsyncCompute);
+
+            CheckboxWidget cameraWalkingCheckbox;
+            cameraWalkingCheckbox.pData = &gCameraWalking;
+            luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Cinematic Camera walking", &cameraWalkingCheckbox, WIDGET_TYPE_CHECKBOX));
+
+            SliderFloatWidget cameraWalkingSpeedSlider;
+            cameraWalkingSpeedSlider.pData = &gCameraWalkingSpeed;
+            cameraWalkingSpeedSlider.mMin = 0.0f;
+            cameraWalkingSpeedSlider.mMax = 20.0f;
+            luaRegisterWidget(
+                uiAddComponentWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraWalkingSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloat3Widget lightPosSlider;
+            lightPosSlider.pData = &gLightPosition;
+            lightPosSlider.mMin = float3(-20.0f);
+            lightPosSlider.mMax = float3(20.0f);
+            lightPosSlider.mStep = float3(0.1f);
+            UIWidget* pLightDirWidget = uiAddComponentWidget(pGuiWindow, "Light direction", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3);
+            REGISTER_LUA_WIDGET(pLightDirWidget);
+
+            SliderFloatWidget whirlSpeedSlider;
+            whirlSpeedSlider.pData = &gFirefliesWhirlSpeed;
+            whirlSpeedSlider.mMin = 0.0f;
+            whirlSpeedSlider.mMax = 1.0f;
+            whirlSpeedSlider.mStep = 0.01f;
+            uiAddComponentWidget(pGuiWindow, "Fireflies whirl speed", &whirlSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
+
+            SliderFloatWidget elevationSpeedSlider;
+            elevationSpeedSlider.pData = &gFirefliesElevationSpeed;
+            elevationSpeedSlider.mMin = 0.0f;
+            elevationSpeedSlider.mMax = 1.0f;
+            elevationSpeedSlider.mStep = 0.01f;
+            uiAddComponentWidget(pGuiWindow, "Fireflies elevation speed", &elevationSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
+
             if (!addSwapChain())
                 return false;
             addRenderTargets();
@@ -951,7 +891,7 @@ public:
             addResource(&transparencyListDesc, NULL);
 
             BufferLoadDesc transparencyListHeadDesc = transparencyListDesc;
-            transparencyListHeadDesc.mDesc.mStructStride = sizeof(uint);
+            transparencyListHeadDesc.mDesc.mStructStride = sizeof(uint32_t);
             transparencyListHeadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
             transparencyListHeadDesc.mDesc.mSize =
                 transparencyListHeadDesc.mDesc.mStructStride * transparencyListHeadDesc.mDesc.mElementCount;
@@ -1007,12 +947,24 @@ public:
         loadFontSystem(&fontLoad);
 
         gJustLoaded = true;
+        gParticlesLoaded = false;
+
+        gCurrTime = 0.0f;
+        gFirefliesWhirlAngle = 0.5;
+        gFirefliesElevationT = 0.5;
+
+        LuaScriptDesc runDesc = {};
+        runDesc.pScriptFileName = "39_ParticleSystem/Test_AllSets.lua";
+        runDesc.pWaitCondition = &gParticlesLoaded;
+        luaQueueScriptToRun(&runDesc);
+
         return true;
     }
 
     void Unload(ReloadDesc* pReloadDesc)
     {
         waitQueueIdle(pGraphicsQueue);
+        waitQueueIdle(pComputeQueue);
 
         unloadFontSystem(pReloadDesc->mType);
         unloadUserInterface(pReloadDesc->mType);
@@ -1024,8 +976,6 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
-            ESRAM_RESET_ALLOCS(pRenderer);
-
             removeRenderTargets();
             removeResource(pShadowCollector);
             removeResource(pFilteredShadowCollector);
@@ -1036,6 +986,10 @@ public:
             removeResource(pTransparencyListHeadBuffer);
 
             removeSwapChain(pRenderer, pSwapChain);
+
+            uiRemoveComponent(pGuiWindow);
+            unloadProfilerUI();
+
             particleSystemExit();
         }
 
@@ -1049,11 +1003,49 @@ public:
 
     void Update(float deltaTime)
     {
-        // Make screenshot testing deterministic and simulate at a stable 30 FPS
+        // Make screenshot testing deterministic and simulate at a stable 60 FPS
 #if defined(AUTOMATED_TESTING)
-        deltaTime = 0.033f;
+        deltaTime = 0.016f;
 #endif
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        // On Apple platforms, Screenshots.cpp currently has to wait one frame after the capture is requested in order to take a
+        // screenshot. Since the app is closed after 240 frames have passed and all scripts have been launched, if a script finishes
+        // after 240 frames, then no screenshot is taken. For this reason we only wait 210 frames on Apple platforms.
+#if defined(__APPLE__)
+        if (gCurrTime >= 3.5f)
+#else
+        if (gCurrTime >= 10.0f)
+#endif
+        {
+            gParticlesLoaded = true;
+        }
+
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
+
         if (gCameraWalking)
         {
             if (gTotalElpasedTime - (0.033333f * gCameraWalkingSpeed) <= gCameraWalkingTime)
@@ -1063,16 +1055,16 @@ public:
 
             gCameraWalkingTime += deltaTime * gCameraWalkingSpeed;
 
-            uint  currentCameraFrame = (uint)(gCameraWalkingTime / 0.00833f);
-            float remind = gCameraWalkingTime - (float)currentCameraFrame * 0.00833f;
+            uint32_t currentCameraFrame = (uint32_t)(gCameraWalkingTime / 0.00833f);
+            float    remind = gCameraWalkingTime - (float)currentCameraFrame * 0.00833f;
 
             float3 newPos = v3ToF3(
                 lerp(f3Tov3(gCameraPathData[2 * currentCameraFrame]), f3Tov3(gCameraPathData[2 * (currentCameraFrame + 1)]), remind));
-            pCameraController->moveTo(f3Tov3(newPos));
+            pCameraController->moveTo(f3Tov3(newPos) * SCENE_SCALE);
 
             float3 newLookat = v3ToF3(lerp(f3Tov3(gCameraPathData[2 * currentCameraFrame + 1]),
                                            f3Tov3(gCameraPathData[2 * (currentCameraFrame + 1) + 1]), remind));
-            pCameraController->lookAt(f3Tov3(newLookat));
+            pCameraController->lookAt(f3Tov3(newLookat) * SCENE_SCALE);
         }
 
         pCameraController->update(deltaTime);
@@ -1081,10 +1073,8 @@ public:
 
     void Draw()
     {
-        if (gTakeScreenshot)
-        {
-            setCaptureScreenshot("Screen");
-        }
+        uint32_t presentIndex = 0;
+        uint32_t frameIdx = gFrameCount % gDataBufferCount;
 
         if ((bool)pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
@@ -1092,217 +1082,342 @@ public:
             ::toggleVSync(pRenderer, &pSwapChain);
         }
 
-        static Fence* pPrevFence;
-        if (gFrameCount == 0)
-            pPrevFence = NULL;
-        uint32_t          presentIndex = 0;
-        uint32_t          frameIdx = gFrameCount % gDataBufferCount;
-        GpuCmdRingElement graphicsElem = getNextGpuCmdRingElement(&gGraphicsCmdRing, true, 2);
-
-        BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_COMPUTE][frameIdx] };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
-        endUpdateResource(&update);
-
-        update = { pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][frameIdx] };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
-        endUpdateResource(&update);
-
-        update = { pPerFrameUniformBuffers[frameIdx] };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameUniformData, sizeof(gPerFrame[frameIdx].gPerFrameUniformData));
-        endUpdateResource(&update);
-
-        particleSystemUpdateConstantBuffers(frameIdx, &pParticleSystemConstantData[frameIdx]);
-
-        // check to see if we can use the cmd buffer
-        FenceStatus fenceStatus;
-        getFenceStatus(pRenderer, graphicsElem.pFence, &fenceStatus);
-        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+        /*****************************************/
+        // ASYNC COMPUTE PASS
+        /*****************************************/
+        if (gAsyncComputeEnabled)
         {
-            waitForFences(pRenderer, 1, &graphicsElem.pFence);
+            GpuCmdRingElement computeElem = getNextGpuCmdRingElement(&gComputeCmdRing, true, 1);
+            // check to see if we can use the cmd buffer
+            FenceStatus       fenceStatus;
+            getFenceStatus(pRenderer, computeElem.pFence, &fenceStatus);
+            if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+                waitForFences(pRenderer, 1, &computeElem.pFence);
+
+            BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_COMPUTE][frameIdx] };
+            beginUpdateResource(&update);
+            memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+            endUpdateResource(&update);
+
+            Cmd* computeCmd = computeElem.pCmds[0];
+
+            resetCmdPool(pRenderer, computeElem.pCmdPool);
+            beginCmd(computeCmd);
+
+            // Filter triangles
+            cmdBeginGpuFrameProfile(computeCmd, gComputeProfileToken);
+            triangleFilteringPass(computeCmd, frameIdx, gComputeProfileToken);
+            cmdEndGpuFrameProfile(computeCmd, gComputeProfileToken);
+
+            endCmd(computeCmd);
+
+            FlushResourceUpdateDesc flushUpdateDesc = {};
+            flushResourceUpdates(&flushUpdateDesc);
+            Semaphore* computeWaitSemaphores[] = { flushUpdateDesc.pOutSubmittedSemaphore,
+                                                   gFrameCount > 1 ? gPrevGraphicsSemaphore : NULL };
+
+            QueueSubmitDesc submitDesc = {};
+            submitDesc.mCmdCount = 1;
+            submitDesc.mSignalSemaphoreCount = 1;
+            submitDesc.mWaitSemaphoreCount = computeWaitSemaphores[1] ? TF_ARRAY_COUNT(computeWaitSemaphores) : 1;
+            submitDesc.ppCmds = &computeCmd;
+            submitDesc.ppSignalSemaphores = &computeElem.pSemaphore;
+            submitDesc.ppWaitSemaphores = computeWaitSemaphores;
+            submitDesc.pSignalFence = computeElem.pFence;
+            submitDesc.mSubmitDone = (gFrameCount < 1);
+            queueSubmit(pComputeQueue, &submitDesc);
+
+            gComputeSemaphores[frameIdx] = computeElem.pSemaphore;
         }
-        resetCmdPool(pRenderer, graphicsElem.pCmdPool);
 
         /************************************************************************/
-        // Compute pass
+        // GRAPHICS PASS
         /************************************************************************/
-        Cmd* graphicsCmd = graphicsElem.pCmds[0];
-        beginCmd(graphicsCmd);
-        cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
+        if (!gAsyncComputeEnabled || gFrameCount > 0)
         {
-            /************************************************************************/
-            // Triangle filtering pass
-            /************************************************************************/
-            TriangleFilteringPassDesc triangleFilteringDesc = {};
-            triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
-            triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
-            triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetClearBuffers;
-            triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
-            triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
-            triangleFilteringDesc.mFrameIndex = frameIdx;
-            triangleFilteringDesc.mBuffersIndex = 0;
-            triangleFilteringDesc.mGpuProfileToken = gGraphicsProfileToken;
-            triangleFilteringDesc.mVBPreFilterStats = gVBPreFilterStats[frameIdx];
+            GpuCmdRingElement graphicsElem = getNextGpuCmdRingElement(&gGraphicsCmdRing, true, 2);
+            // check to see if we can use the cmd buffer
+            FenceStatus       fenceStatus;
+            getFenceStatus(pRenderer, graphicsElem.pFence, &fenceStatus);
+            if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+            {
+                waitForFences(pRenderer, 1, &graphicsElem.pFence);
+            }
+            resetCmdPool(pRenderer, graphicsElem.pCmdPool);
+
+            BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][frameIdx] };
+            beginUpdateResource(&update);
+            memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+            endUpdateResource(&update);
+
+            update = { pPerFrameUniformBuffers[frameIdx] };
+            beginUpdateResource(&update);
+            memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameUniformData, sizeof(gPerFrame[frameIdx].gPerFrameUniformData));
+            endUpdateResource(&update);
+
+            if (!gAsyncComputeEnabled)
+            {
+                update = { pPerFrameVBUniformBuffers[VB_UB_COMPUTE][frameIdx] };
+                beginUpdateResource(&update);
+                memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+                endUpdateResource(&update);
+            }
+
+            particleSystemUpdateConstantBuffers(frameIdx, &pParticleSystemConstantData[frameIdx]);
+
+            Cmd* graphicsCmd = graphicsElem.pCmds[0];
+            beginCmd(graphicsCmd);
+            cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
+
+            /************************/
+            // Triangle filtering
+            /************************/
+            if (!gAsyncComputeEnabled)
+            {
+                triangleFilteringPass(graphicsCmd, frameIdx, gGraphicsProfileToken);
+            }
 
             TextureBarrier texBarriers[] = { { pShadowCollector, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
             BufferBarrier  bufBarriers[] = {
                 { pTransparencyListBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
                 { pTransparencyListHeadBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
-                { pParticleBitfields, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
-                { pParticlesBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS }
             };
-            cmdResourceBarrier(graphicsCmd, 4, bufBarriers, 1, texBarriers, 0, NULL);
-
-            cmdVBTriangleFilteringPass(pVisibilityBuffer, graphicsCmd, &triangleFilteringDesc);
+            cmdResourceBarrier(graphicsCmd, 2, bufBarriers, 1, texBarriers, 0, NULL);
 
             // Clear shadow collector
             cmdBindPipeline(graphicsCmd, pPipelineCleanTexture);
             cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetCleanTexture);
-            cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / 16), (uint32_t)ceil((float)mSettings.mHeight / 16), 1);
-        }
+            cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / TEXTURE_CLEAR_THREAD_COUNT),
+                        (uint32_t)ceil((float)mSettings.mHeight / TEXTURE_CLEAR_THREAD_COUNT), 1);
 
-        /************************/
-        // Draw Pass
-        /************************/
-        {
-            // Transition swapchain buffer to be used as a render target
-            const uint32_t      rtBarriersCount = 5;
-            RenderTargetBarrier rtBarriers[rtBarriersCount] = {
-                { pScreenRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-                { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
-                { pRenderTargetVBPass, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-                { pRenderTargetShadow, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
-                { pDepthCube, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
-            };
-
-            // Sync resources
-            const uint32_t maxNumBarriers = NUM_UNIQUE_GEOMETRIES + 3;
-            uint32_t       barrierCount = 0;
-            BufferBarrier  barriers2[maxNumBarriers] = {};
+            /************************/
+            // Draw Pass
+            /************************/
             {
-                // VB barriers
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0], RESOURCE_STATE_UNORDERED_ACCESS,
-                                              RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS,
-                                              RESOURCE_STATE_SHADER_RESOURCE };
-                for (uint32_t i = 0; i < NUM_UNIQUE_GEOMETRIES; i++)
+                const uint32_t      rtBarriersCount = 5;
+                RenderTargetBarrier rtBarriers[rtBarriersCount] = {
+                    { pScreenRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+                    { pDepthBuffer, RESOURCE_STATE_DEPTH_READ, RESOURCE_STATE_DEPTH_WRITE },
+                    { pRenderTargetVBPass, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+                    { pRenderTargetShadow, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+                    { pDepthCube, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
+                };
+
+                // Sync resources
+                const uint32_t maxNumBarriers = NUM_UNIQUE_GEOMETRIES + 5;
+                uint32_t       barrierCount = 0;
+                BufferBarrier  barriers2[maxNumBarriers] = {};
                 {
-                    barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+                    // VB barriers
+                    barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+                    barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  RESOURCE_STATE_SHADER_RESOURCE };
+                    for (uint32_t i = 0; i < NUM_UNIQUE_GEOMETRIES; i++)
+                    {
+                        barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i], RESOURCE_STATE_UNORDERED_ACCESS,
+                                                      RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+                    }
                 }
-            }
-            cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, rtBarriersCount, rtBarriers);
+                cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, rtBarriersCount, rtBarriers);
 
-            drawScene(graphicsCmd, frameIdx);
-            cmdBindRenderTargets(graphicsCmd, NULL);
+                /***********************************/
+                // Shadow pass
+                /***********************************/
+                drawShadowMapPass(graphicsCmd, gGraphicsProfileToken, frameIdx);
 
-            {
-                // VB barriers
-                barrierCount = 0;
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[0],
-                                              RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE,
-                                              RESOURCE_STATE_UNORDERED_ACCESS };
-                barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[frameIdx], RESOURCE_STATE_SHADER_RESOURCE,
-                                              RESOURCE_STATE_UNORDERED_ACCESS };
-                for (uint32_t i = 0; i < NUM_UNIQUE_GEOMETRIES; ++i)
+                /***********************************/
+                // VB filling pass
+                /***********************************/
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "VB Filling Pass");
                 {
-                    barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i],
-                                                  RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE,
-                                                  RESOURCE_STATE_UNORDERED_ACCESS };
+                    drawVisibilityBufferPass(graphicsCmd, frameIdx);
+
+                    rtBarriers[0] = { pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    rtBarriers[1] = { pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    rtBarriers[2] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
+                    rtBarriers[3] = { pDepthCube, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+
+                    BufferBarrier bBarriers[3] = {
+                        { pLightClustersCount, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+                        { pLightClusters, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+                        { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS }
+                    };
+                    cmdResourceBarrier(graphicsCmd, 3, bBarriers, 0, NULL, 4, rtBarriers);
                 }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
-                RenderTargetBarrier rtBarrier = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
-                cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, 1, &rtBarrier);
-            }
+                /***********************************/
+                // Particle system simulation
+                /***********************************/
+                BufferBarrier particlesBarriers[] = {
+                    { pParticleBitfields, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+                    { pParticlesBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS }
+                };
+                cmdResourceBarrier(graphicsCmd, 2, particlesBarriers, 0, NULL, 0, NULL);
 
-            endCmd(graphicsCmd);
-
-            // Submit the available work, so that while waiting for the previous simulation the GPU can already start doing work
-            FlushResourceUpdateDesc flushUpdateDesc = {};
-            flushResourceUpdates(&flushUpdateDesc);
-
-            QueueSubmitDesc submitDesc = {};
-            submitDesc.mCmdCount = 1;
-            submitDesc.mSignalSemaphoreCount = 1;
-            submitDesc.ppCmds = &graphicsCmd;
-            submitDesc.ppSignalSemaphores = &pSemaphorePreParticles;
-            submitDesc.pSignalFence = NULL;
-            submitDesc.ppWaitSemaphores = &flushUpdateDesc.pOutSubmittedSemaphore;
-            submitDesc.mWaitSemaphoreCount = 1;
-            queueSubmit(pGraphicsQueue, &submitDesc);
-
-            graphicsCmd = graphicsElem.pCmds[1];
-
-            beginCmd(graphicsCmd);
-
-            /*************************/
-            // Particle system drawing
-            /*************************/
-            particleSystemCmdBegin(graphicsCmd, frameIdx);
-
-            cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemRender");
-            {
-                // Render particle system
-                BindRenderTargetsDesc bindDesc = {};
-                bindDesc.mRenderTargetCount = 1;
-                bindDesc.mRenderTargets[0].pRenderTarget = pScreenRenderTarget;
-                bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
-                bindDesc.mDepthStencil.pDepthStencil = pDepthBuffer;
-                bindDesc.mDepthStencil.mLoadAction = LOAD_ACTION_LOAD;
-                cmdBindRenderTargets(graphicsCmd, &bindDesc);
-
-                cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f,
-                               1.0f);
-                cmdSetScissor(graphicsCmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
-
-                if (pPrevFence != NULL)
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemSimulate");
                 {
-                    FenceStatus prevFenceStatus;
-                    getFenceStatus(pRenderer, pPrevFence, &prevFenceStatus);
-                    if (prevFenceStatus != FENCE_STATUS_COMPLETE)
-                        waitForFences(pRenderer, 1, &pPrevFence);
+                    particleSystemCmdBegin(graphicsCmd, frameIdx);
+                    particleSystemCmdSimulate(graphicsCmd, frameIdx);
+
+                    RenderTargetBarrier depthBarrier = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
+                    cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, &depthBarrier);
                 }
-                particleSystemCmdRender(graphicsCmd, frameIdx);
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                /***********************************/
+                // Particle system rendering
+                /***********************************/
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemRender");
+                {
+                    // Render particle system
+                    BindRenderTargetsDesc bindDesc = {};
+                    bindDesc.mRenderTargetCount = 1;
+                    bindDesc.mRenderTargets[0].pRenderTarget = pScreenRenderTarget;
+                    bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
+                    bindDesc.mDepthStencil.pDepthStencil = pDepthBuffer;
+                    bindDesc.mDepthStencil.mLoadAction = LOAD_ACTION_LOAD;
+                    cmdBindRenderTargets(graphicsCmd, &bindDesc);
+
+                    cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f,
+                                   1.0f);
+                    cmdSetScissor(graphicsCmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
+
+                    particleSystemCmdRender(graphicsCmd, frameIdx);
+                    cmdBindRenderTargets(graphicsCmd, NULL);
+                }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                BufferBarrier bufferBarriers[] = {
+                    { pTransparencyListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+                    { pTransparencyListHeadBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+                    { pParticleBitfields, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+                    { pParticlesBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+                };
+                rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
+                cmdResourceBarrier(graphicsCmd, 4, bufferBarriers, 0, NULL, 1, rtBarriers);
+
+                /***********************************/
+                // Light clustering
+                /***********************************/
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Compute depth clusters");
+                {
+                    clearLightClusters(graphicsCmd, frameIdx);
+                    computeDepthBounds(graphicsCmd, frameIdx);
+                }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Compute light clusters");
+                {
+                    // Wait for depth bounds
+                    BufferBarrier depthBoundsBarrier = { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS,
+                                                         RESOURCE_STATE_UNORDERED_ACCESS };
+                    cmdResourceBarrier(graphicsCmd, 1, &depthBoundsBarrier, 0, NULL, 0, NULL);
+                    // Light clustering
+                    computeLightClusters(graphicsCmd, frameIdx);
+
+                    BufferBarrier lightBarriers[4];
+                    lightBarriers[0] = { pLightClustersCount, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    lightBarriers[1] = { pLightClusters, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    lightBarriers[2] = { pParticleBitfields, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    lightBarriers[3] = { pParticlesBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    cmdResourceBarrier(graphicsCmd, 4, lightBarriers, 0, NULL, 0, NULL);
+                }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                /***********************************/
+                // VB shading
+                /***********************************/
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "VB Shading Pass");
+                {
+                    drawVisibilityBufferShade(graphicsCmd, frameIdx);
+                }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                /***********************************/
+                // Shadow filtering
+                /***********************************/
+                if (SHADOW_COUNT > 0)
+                {
+                    cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Point shadows filtering pass");
+                    {
+                        struct FilterConsts
+                        {
+                            uint2    ScreenSize;
+                            uint32_t Horizontal;
+                            uint32_t Pad;
+                        };
+
+                        FilterConsts   constants = { { pShadowCollector->mWidth, pShadowCollector->mHeight }, 1, 0 };
+                        TextureBarrier texBarrier = { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
+
+                        cmdBindPipeline(graphicsCmd, pPipelineFilterShadows);
+                        cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
+                        cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
+                        // Horizontal pass
+                        cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / SHADOWMAP_BLUR_THREAD_COUNT),
+                                    (uint32_t)ceil((float)mSettings.mHeight / SHADOWMAP_BLUR_THREAD_COUNT), 1);
+
+                        texBarrier = { pFilteredShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
+
+                        // Vertical pass, write on the shadow collector
+                        constants.Horizontal = 0;
+
+                        cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
+                        cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
+                        cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / SHADOWMAP_BLUR_THREAD_COUNT),
+                                    (uint32_t)ceil((float)mSettings.mHeight / SHADOWMAP_BLUR_THREAD_COUNT), 1);
+                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
+                    }
+                    cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+                }
                 cmdBindRenderTargets(graphicsCmd, NULL);
 
-                RenderTargetBarrier rtBarrier = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
-                cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, &rtBarrier);
-            }
-            cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
-
-            // Simulate particle system
-            cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemSimulate");
-            {
-                particleSystemCmdSimulate(graphicsCmd, frameIdx);
-            }
-            cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
-
-            BufferBarrier bufferBarriers[] = {
-                { pParticlesBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-                { pParticleBitfields, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-                { pTransparencyListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-                { pTransparencyListHeadBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE }
-            };
-            RenderTargetBarrier screenBarrier = { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            cmdResourceBarrier(graphicsCmd, 4, bufferBarriers, 0, NULL, 1, &screenBarrier);
-
-            // Full screen quad
-            acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
-            RenderTarget*       finalTarget = pSwapChain->ppRenderTargets[presentIndex];
-            RenderTargetBarrier rtBarrier[] = {
-                { finalTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
-            };
-            TextureBarrier texBarrier[] = { { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
-
-            cmdResourceBarrier(graphicsCmd, 0, NULL, 1, texBarrier, 1, rtBarrier);
-            {
-                BindRenderTargetsDesc bindDesc = {};
-
-                // Draw full screen quad
-                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Full Screen Quad");
+                /***********************************/
+                // Synchronization
+                /***********************************/
                 {
+                    // VB barriers
+                    barrierCount = 0;
+                    barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx],
+                                                  RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE,
+                                                  RESOURCE_STATE_UNORDERED_ACCESS };
+                    barriers2[barrierCount++] = { pVisibilityBuffer->ppIndirectDataBuffer[frameIdx], RESOURCE_STATE_SHADER_RESOURCE,
+                                                  RESOURCE_STATE_UNORDERED_ACCESS };
+                    for (uint32_t i = 0; i < NUM_UNIQUE_GEOMETRIES; ++i)
+                    {
+                        barriers2[barrierCount++] = { pVisibilityBuffer->ppFilteredIndexBuffer[i],
+                                                      RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE,
+                                                      RESOURCE_STATE_UNORDERED_ACCESS };
+                    }
+
+                    barriers2[barrierCount++] = { pParticleBitfields, RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                                                  RESOURCE_STATE_SHADER_RESOURCE };
+                    barriers2[barrierCount++] = { pParticlesBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_SHADER_RESOURCE };
+                    cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, 0, NULL);
+                }
+
+                /***********************************/
+                // Resolve transparency
+                /***********************************/
+                acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
+                RenderTarget* finalTarget = pSwapChain->ppRenderTargets[presentIndex];
+                rtBarriers[0] = { finalTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
+                rtBarriers[1] = { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                rtBarriers[2] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_READ };
+
+                TextureBarrier texBarrier[] = { { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
+
+                cmdResourceBarrier(graphicsCmd, 0, NULL, 1, texBarrier, 3, rtBarriers);
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Full Screen Quad");
+                // Draw full screen quad
+                {
+                    BindRenderTargetsDesc bindDesc = {};
+
                     bindDesc.mRenderTargetCount = 1;
                     bindDesc.mRenderTargets[0].pRenderTarget = finalTarget;
                     bindDesc.mRenderTargets[0].mClearValue = finalTarget->mClearValue;
@@ -1326,11 +1441,15 @@ public:
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
-                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Draw UI");
+                /***********************************/
                 // Draw UI
+                /***********************************/
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Draw UI");
                 {
+                    BindRenderTargetsDesc bindDesc = {};
+                    bindDesc.mRenderTargetCount = 1;
                     bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
-                    bindDesc.mDepthStencil = {};
+                    bindDesc.mRenderTargets[0].pRenderTarget = finalTarget;
 
                     cmdBindRenderTargets(graphicsCmd, &bindDesc);
                     cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)finalTarget->mWidth, (float)finalTarget->mHeight, 0.0f, 1.0f);
@@ -1339,49 +1458,45 @@ public:
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
-                rtBarrier[0] = { finalTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
-                cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, rtBarrier);
+                RenderTargetBarrier rtBarrier = { finalTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+                cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, &rtBarrier);
+
+                cmdEndGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
+                endCmd(graphicsCmd);
+
+                FlushResourceUpdateDesc flushUpdateDesc = {};
+                flushResourceUpdates(&flushUpdateDesc);
+
+                Semaphore* waitSemaphores[] = { pImageAcquiredSemaphore, flushUpdateDesc.pOutSubmittedSemaphore,
+                                                gComputeSemaphores[frameIdx] };
+                Semaphore* signalSemaphores[] = { graphicsElem.pSemaphore, pPresentSemaphore };
+
+                QueueSubmitDesc submitDesc = {};
+                submitDesc.mCmdCount = 1;
+                submitDesc.mSignalSemaphoreCount = TF_ARRAY_COUNT(signalSemaphores);
+                submitDesc.ppCmds = &graphicsCmd;
+                submitDesc.ppSignalSemaphores = signalSemaphores;
+                submitDesc.pSignalFence = graphicsElem.pFence;
+                submitDesc.ppWaitSemaphores = waitSemaphores;
+                submitDesc.mWaitSemaphoreCount = TF_ARRAY_COUNT(waitSemaphores) - (gAsyncComputeEnabled ? 0 : 1);
+                queueSubmit(pGraphicsQueue, &submitDesc);
+
+                gPrevGraphicsSemaphore = graphicsElem.pSemaphore;
+
+                QueuePresentDesc presentDesc = {};
+                presentDesc.mIndex = (uint8_t)presentIndex;
+                presentDesc.mWaitSemaphoreCount = 1;
+                presentDesc.ppWaitSemaphores = &pPresentSemaphore;
+                presentDesc.pSwapChain = pSwapChain;
+                presentDesc.mSubmitDone = true;
+                queuePresent(pGraphicsQueue, &presentDesc);
+                flipProfiler();
+
+                gJustLoaded = false;
             }
-            cmdEndGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
-            endCmd(graphicsCmd);
-
-            flushUpdateDesc = {};
-            flushResourceUpdates(&flushUpdateDesc);
-
-            Semaphore* waitSemaphores[] = { pImageAcquiredSemaphore, pSemaphorePreParticles, flushUpdateDesc.pOutSubmittedSemaphore };
-            Semaphore* signalSemaphores[] = { graphicsElem.pSemaphore, pPresentSemaphore };
-
-            submitDesc = {};
-            submitDesc.mCmdCount = 1;
-            submitDesc.mSignalSemaphoreCount = TF_ARRAY_COUNT(signalSemaphores);
-            submitDesc.ppCmds = &graphicsCmd;
-            submitDesc.ppSignalSemaphores = signalSemaphores;
-            submitDesc.pSignalFence = graphicsElem.pFence;
-            submitDesc.ppWaitSemaphores = waitSemaphores;
-            submitDesc.mWaitSemaphoreCount = TF_ARRAY_COUNT(waitSemaphores);
-            queueSubmit(pGraphicsQueue, &submitDesc);
-
-            pPrevFence = graphicsElem.pFence;
-
-            QueuePresentDesc presentDesc = {};
-            presentDesc.mIndex = (uint8_t)presentIndex;
-            presentDesc.mWaitSemaphoreCount = 1;
-            presentDesc.ppWaitSemaphores = &pPresentSemaphore;
-            presentDesc.pSwapChain = pSwapChain;
-            presentDesc.mSubmitDone = true;
-            queuePresent(pGraphicsQueue, &presentDesc);
-
-            if (gTakeScreenshot)
-            {
-                gTakeScreenshot = false;
-                captureScreenshot(pSwapChain, presentIndex, false, false);
-            }
-
-            flipProfiler();
         }
 
         ++gFrameCount;
-        gJustLoaded = false;
     }
 
     const char* GetName() { return "Particle_System"; }
@@ -1397,6 +1512,8 @@ public:
         setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[1]);
         // Light Clustering
+        setDesc = { pRootSignatureLightClusters, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetLightClusters[0]);
         setDesc = { pRootSignatureLightClusters, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetLightClusters[1]);
         // VB, Shadow
@@ -1405,7 +1522,7 @@ public:
         setDesc = { pRootSignatureVBPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVBPass[1]);
 
-        setDesc = { pRootSignatureFilterShadows, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, 1 };
+        setDesc = { pRootSignatureFilterShadows, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFilterShadows);
         setDesc = { pRootSignatureCleanTexture, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCleanTexture);
@@ -1432,6 +1549,7 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSetVBPass[1]);
         removeDescriptorSet(pRenderer, pDescriptorSetVBShade[0]);
         removeDescriptorSet(pRenderer, pDescriptorSetVBShade[1]);
+        removeDescriptorSet(pRenderer, pDescriptorSetLightClusters[0]);
         removeDescriptorSet(pRenderer, pDescriptorSetLightClusters[1]);
         removeDescriptorSet(pRenderer, pDescriptorSetClearBuffers);
         removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[0]);
@@ -1458,7 +1576,7 @@ public:
                 uint32_t       clearParamsCount = 0;
                 DescriptorData clearParams[2] = {};
                 clearParams[clearParamsCount].pName = "indirectDrawArgs";
-                clearParams[clearParamsCount++].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+                clearParams[clearParamsCount++].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[i];
                 clearParams[clearParamsCount].pName = "VBConstantBuffer";
                 clearParams[clearParamsCount++].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
                 updateDescriptorSet(pRenderer, i, pDescriptorSetClearBuffers, clearParamsCount, clearParams);
@@ -1466,7 +1584,7 @@ public:
         }
         // Triangle Filtering
         {
-            DescriptorData filterParams[5] = {};
+            DescriptorData filterParams[6] = {};
             uint32_t       paramsCount = 0;
             filterParams[paramsCount].pName = "vertexPositionBuffer";
             filterParams[paramsCount++].ppBuffers = &pGeom->pVertexBuffers[0];
@@ -1476,7 +1594,14 @@ public:
             filterParams[paramsCount++].ppBuffers = &pMeshConstantsBuffer;
             filterParams[paramsCount].pName = "VBConstantBuffer";
             filterParams[paramsCount++].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount, filterParams);
+            filterParams[paramsCount].pName = "ParticlesDataBuffer";
+            filterParams[paramsCount].ppBuffers = &pParticlesBuffer;
+            filterParams[paramsCount++].pRanges = &particleShadowRange;
+
+            filterParams[paramsCount].pName = "BitfieldBuffer";
+            filterParams[paramsCount].ppBuffers = &pParticleBitfields;
+            filterParams[paramsCount++].pRanges = &bitfieldShadowRange;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount - (SHADOW_COUNT > 0 ? 0 : 2), filterParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
@@ -1489,52 +1614,42 @@ public:
                 filterParamsPerFrame[2].pName = "PerFrameVBConstants";
                 filterParamsPerFrame[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
                 filterParamsPerFrame[3].pName = "indirectDrawArgs";
-                filterParamsPerFrame[3].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+                filterParamsPerFrame[3].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[i];
                 filterParamsPerFrame[4].pName = "indirectDataBuffer";
                 filterParamsPerFrame[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-
-                filterParamsPerFrame[5].pName = "ParticlesDataBuffer";
-                filterParamsPerFrame[5].ppBuffers = &pParticlesBuffer;
-                filterParamsPerFrame[5].pRanges = &particleShadowRange;
-
-                filterParamsPerFrame[6].pName = "BitfieldBuffer";
-                filterParamsPerFrame[6].ppBuffers = &pParticleBitfields;
-                filterParamsPerFrame[6].pRanges = &bitfieldShadowRange;
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], SHADOW_COUNT > 0 ? 7 : 5, filterParamsPerFrame);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParamsPerFrame);
             }
         }
 
         // Light Clustering
         {
             DescriptorData params[9] = {};
-            params[0].pName = "DepthSampler";
-            params[0].ppSamplers = &pSamplerPointClamp;
-            // updateDescriptorSet(pRenderer, 0, pDescriptorSetLightClusters[0], 1, params);
+            params[0].pName = "lightClustersCount";
+            params[0].ppBuffers = &pLightClustersCount;
+            params[1].pName = "lightClusters";
+            params[1].ppBuffers = &pLightClusters;
+            params[2].pName = "DownsampledDepthBuffer";
+            params[2].ppTextures = &pRenderTargetDownsampleDepth->pTexture;
+            params[3].pName = "BitfieldBuffer";
+            params[3].ppBuffers = &pParticleBitfields;
+            params[3].pRanges = &bitfieldLightRange;
+            params[4].pName = "ParticlesDataBuffer";
+            params[4].ppBuffers = &pParticlesBuffer;
+            params[4].pRanges = &particleLightRange;
+            params[5].pName = "DepthBuffer";
+            params[5].ppTextures = &pDepthBuffer->pTexture;
+            params[6].pName = "DepthBoundsBuffer";
+            params[6].ppBuffers = &pDepthBoundsBuffer;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetLightClusters[0], 7, params);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                params[0].pName = "lightClustersCount";
-                params[0].ppBuffers = &pLightClustersCount;
-                params[1].pName = "lightClusters";
-                params[1].ppBuffers = &pLightClusters;
-                params[2].pName = "PerFrameVBConstants";
-                params[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
+                params[0].pName = "PerFrameVBConstants";
+                params[0].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
+                params[1].pName = "ParticleConstantBuffer";
+                params[1].ppBuffers = &pParticleConstantBuffer[i];
 
-                params[3].pName = "BitfieldBuffer";
-                params[3].ppBuffers = &pParticleBitfields;
-                params[3].pRanges = &bitfieldLightRange;
-
-                params[4].pName = "ParticlesDataBuffer";
-                params[4].ppBuffers = &pParticlesBuffer;
-                params[4].pRanges = &particleLightRange;
-
-                params[5].pName = "DepthBuffer";
-                params[5].ppTextures = &pDepthBuffer->pTexture;
-                params[6].pName = "DepthBoundsBuffer";
-                params[6].ppBuffers = &pDepthBoundsBuffer;
-                params[7].pName = "DownsampledDepthBuffer";
-                params[7].ppTextures = &pRenderTargetDownsampleDepth->pTexture;
-                updateDescriptorSet(pRenderer, i, pDescriptorSetLightClusters[1], 8, params);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetLightClusters[1], 2, params);
             }
         }
         // Texture cleaning
@@ -1548,7 +1663,7 @@ public:
         }
         // VB, Shadow
         {
-            DescriptorData params[4] = {};
+            DescriptorData params[5] = {};
             params[0].pName = "diffuseMaps";
             params[0].mCount = gMaterialCount;
             params[0].ppTextures = gDiffuseMapsStorage;
@@ -1556,7 +1671,13 @@ public:
             params[1].ppBuffers = &pGeom->pVertexBuffers[0];
             params[2].pName = "vertexTexCoordBuffer";
             params[2].ppBuffers = &pGeom->pVertexBuffers[1];
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 3, params);
+            params[3].pName = "BitfieldBuffer";
+            params[3].ppBuffers = &pParticleBitfields;
+            params[3].pRanges = &bitfieldShadowRange;
+            params[4].pName = "ParticlesDataBuffer";
+            params[4].ppBuffers = &pParticlesBuffer;
+            params[4].pRanges = &particleShadowRange;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], SHADOW_COUNT > 0 ? 5 : 3, params);
 
             params[0] = {};
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
@@ -1566,19 +1687,12 @@ public:
                 params[1].pName = "PerFrameVBConstants";
                 params[1].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
 
-                params[2].pName = "BitfieldBuffer";
-                params[2].ppBuffers = &pParticleBitfields;
-                params[2].pRanges = &bitfieldShadowRange;
-
-                params[3].pName = "ParticlesDataBuffer";
-                params[3].ppBuffers = &pParticlesBuffer;
-                params[3].pRanges = &particleShadowRange;
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], SHADOW_COUNT > 0 ? 4 : 2, params);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 2, params);
             }
         }
         // VB Shade
         {
-            DescriptorData vbShadeParams[11] = {};
+            DescriptorData vbShadeParams[17] = {};
             DescriptorData vbShadeParamsPerFrame[12] = {};
             vbShadeParams[0].pName = "vbTex";
             vbShadeParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
@@ -1592,7 +1706,6 @@ public:
             vbShadeParams[4].ppTextures = &pRenderTargetShadow->pTexture;
             vbShadeParams[5].pName = "meshConstantsBuffer";
             vbShadeParams[5].ppBuffers = &pMeshConstantsBuffer;
-
             vbShadeParams[6].pName = "shadowCollector";
             vbShadeParams[6].ppTextures = &pShadowCollector;
             vbShadeParams[7].pName = "diffuseMaps";
@@ -1606,37 +1719,33 @@ public:
             vbShadeParams[9].ppTextures = gSpecularMapsStorage;
             vbShadeParams[10].pName = "VBConstantBuffer";
             vbShadeParams[10].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 11, vbShadeParams);
+            vbShadeParams[11].pName = "BitfieldBuffer";
+            vbShadeParams[11].ppBuffers = &pParticleBitfields;
+            vbShadeParams[11].pRanges = &bitfieldLightRange;
+            vbShadeParams[12].pName = "ParticlesDataBuffer";
+            vbShadeParams[12].ppBuffers = &pParticlesBuffer;
+            vbShadeParams[12].pRanges = &particleLightRange;
+            vbShadeParams[13].pName = "lightClustersCount";
+            vbShadeParams[13].ppBuffers = &pLightClustersCount;
+            vbShadeParams[14].pName = "lightClusters";
+            vbShadeParams[14].ppBuffers = &pLightClusters;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 15, vbShadeParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                vbShadeParamsPerFrame[0].pName = "lightClustersCount";
-                vbShadeParamsPerFrame[0].ppBuffers = &pLightClustersCount;
-                vbShadeParamsPerFrame[1].pName = "lightClusters";
-                vbShadeParamsPerFrame[1].ppBuffers = &pLightClusters;
+                vbShadeParamsPerFrame[0].pName = "filteredIndexBuffer";
+                vbShadeParamsPerFrame[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
+                vbShadeParamsPerFrame[1].pName = "depthCube";
+                vbShadeParamsPerFrame[1].ppTextures = &pDepthCube->pTexture;
                 vbShadeParamsPerFrame[2].pName = "PerFrameConstants";
                 vbShadeParamsPerFrame[2].ppBuffers = &pPerFrameUniformBuffers[i];
                 vbShadeParamsPerFrame[3].pName = "PerFrameVBConstants";
                 vbShadeParamsPerFrame[3].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
                 vbShadeParamsPerFrame[4].pName = "indirectDataBuffer";
                 vbShadeParamsPerFrame[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                vbShadeParamsPerFrame[5].pName = "filteredIndexBuffer";
-                vbShadeParamsPerFrame[5].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-
-                vbShadeParamsPerFrame[6].pName = "ParticleConstantBufferData";
-                vbShadeParamsPerFrame[6].ppBuffers = &pParticleConstantBuffer[i];
-
-                vbShadeParamsPerFrame[7].pName = "ParticlesDataBuffer";
-                vbShadeParamsPerFrame[7].ppBuffers = &pParticlesBuffer;
-                vbShadeParamsPerFrame[7].pRanges = &particleLightRange;
-
-                vbShadeParamsPerFrame[8].pName = "BitfieldBuffer";
-                vbShadeParamsPerFrame[8].ppBuffers = &pParticleBitfields;
-                vbShadeParamsPerFrame[8].pRanges = &bitfieldLightRange;
-
-                vbShadeParamsPerFrame[9].pName = "depthCube";
-                vbShadeParamsPerFrame[9].ppTextures = &pDepthCube->pTexture;
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], SHADOW_COUNT > 0 ? 10 : 9, vbShadeParamsPerFrame);
+                vbShadeParamsPerFrame[5].pName = "ParticleConstantBuffer";
+                vbShadeParamsPerFrame[5].ppBuffers = &pParticleConstantBuffer[i];
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], SHADOW_COUNT > 0 ? 6 : 5, vbShadeParamsPerFrame);
             }
         }
 
@@ -1717,11 +1826,10 @@ public:
         depthRT.mDepth = 1;
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
-        depthRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        depthRT.mStartState = RESOURCE_STATE_DEPTH_READ;
         depthRT.mHeight = height;
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         depthRT.mWidth = width;
         depthRT.pName = "Depth Buffer RT";
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
@@ -1734,12 +1842,11 @@ public:
         shadowRTDesc.mClearValue = optimizedDepthClear;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        shadowRTDesc.mFormat = TinyImageFormat_D16_UNORM;
         shadowRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         shadowRTDesc.mWidth = SHADOWMAP_SIZE;
         shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
         shadowRTDesc.mSampleQuality = 0;
-        shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         shadowRTDesc.mHeight = SHADOWMAP_SIZE;
         shadowRTDesc.pName = "Shadow Map RT";
         addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
@@ -1753,7 +1860,7 @@ public:
         faceDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         faceDesc.mWidth = CUBE_SHADOWS_FACE_SIZE;
         faceDesc.mHeight = CUBE_SHADOWS_FACE_SIZE;
-        faceDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        faceDesc.mFormat = TinyImageFormat_D16_UNORM;
         faceDesc.pName = "DepthCubemap";
         faceDesc.mSampleCount = SAMPLE_COUNT_1;
         faceDesc.mSampleQuality = 0;
@@ -1772,7 +1879,6 @@ public:
         vbRTDesc.mHeight = height;
         vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
         vbRTDesc.mSampleQuality = 0;
-        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         vbRTDesc.mWidth = width;
         vbRTDesc.pName = "VB RT";
         addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
@@ -1804,8 +1910,8 @@ public:
         downsampledDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         downsampledDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
         downsampledDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        downsampledDesc.mHeight = height / 2;
-        downsampledDesc.mWidth = width / 2;
+        downsampledDesc.mHeight = height / DOWNSAMPLED_DEPTH_DIVISOR;
+        downsampledDesc.mWidth = width / DOWNSAMPLED_DEPTH_DIVISOR;
         downsampledDesc.mSampleCount = SAMPLE_COUNT_1;
         downsampledDesc.mSampleQuality = 0;
         downsampledDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -1883,11 +1989,6 @@ public:
         RootSignatureDesc downsampleRootDesc = { pDownsampleShaders, 1 };
         addRootSignature(pRenderer, &downsampleRootDesc, &pRootSignatureDownsampleDepth);
 
-        IndirectArgumentDescriptor indirectArg = {};
-        indirectArg.mType = INDIRECT_DRAW_INDEX;
-        CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, &indirectArg, 1 };
-        addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
-
         gPresentPushConstantsIndex = getDescriptorIndexFromName(pRootSignaturePresent, "fsqRootConstants");
         gShadowPushConstsIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "ShadowRootConstants");
         gShadowFilteringPushConstsIndex = getDescriptorIndexFromName(pRootSignatureFilterShadows, "RootConstant");
@@ -1905,9 +2006,6 @@ public:
         removeRootSignature(pRenderer, pRootSignatureDownsampleDepth);
         removeRootSignature(pRenderer, pRootSignatureFilterShadows);
         removeRootSignature(pRenderer, pRootSignatureCleanTexture);
-
-        // Remove indirect command signatures
-        removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
     }
 
     void addShaders()
@@ -1931,58 +2029,54 @@ public:
         ShaderLoadDesc downsampleDepth = {};
         ShaderLoadDesc present = {};
 
-        shadowPass.mStages[0].pFileName = "shadow_pass.vert";
-        shadowPass.mStages[1].pFileName = "shadow_pass.frag";
-        shadowPassAlpha.mStages[0].pFileName = "shadow_pass_alpha.vert";
-        shadowPassAlpha.mStages[1].pFileName = "shadow_pass_alpha.frag";
+        shadowPass.mVert.pFileName = "shadow_pass.vert";
+        shadowPass.mFrag.pFileName = "shadow_pass.frag";
+        shadowPassAlpha.mVert.pFileName = "shadow_pass_alpha.vert";
+        shadowPassAlpha.mFrag.pFileName = "shadow_pass_alpha.frag";
 
-        vbPass.mStages[0].pFileName = "visibilityBuffer_pass.vert";
-        vbPass.mStages[1].pFileName = "visibilityBuffer_pass.frag";
-        vbPassAlpha.mStages[0].pFileName = "visibilityBuffer_pass_alpha.vert";
-        vbPassAlpha.mStages[1].pFileName = "visibilityBuffer_pass_alpha.frag";
+        vbPass.mVert.pFileName = "visibilityBuffer_pass.vert";
+        vbPass.mFrag.pFileName = "visibilityBuffer_pass.frag";
+        vbPassAlpha.mVert.pFileName = "visibilityBuffer_pass_alpha.vert";
+        vbPassAlpha.mFrag.pFileName = "visibilityBuffer_pass_alpha.frag";
 
-#if defined(VULKAN)
         // Some vulkan driver doesn't generate glPrimitiveID without a geometry pass (steam deck as 03/30/2023)
-        bool addGeometryPassThrough = gGpuSettings.mAddGeometryPassThrough && pRenderer->mRendererApi == RENDERER_API_VULKAN;
-#else
-        bool addGeometryPassThrough = false;
-#endif
-        // No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
-#if defined(ORBIS) || defined(PROSPERO)
-        addGeometryPassThrough = true;
-#endif
+        bool addGeometryPassThrough = gGpuSettings.mAddGeometryPassThrough;
         if (addGeometryPassThrough)
         {
-            vbPass.mStages[2].pFileName = "visibilityBuffer_pass.geom";
-            vbPassAlpha.mStages[2].pFileName = "visibilityBuffer_pass_alpha.geom";
+            vbPass.mGeom.pFileName = "visibilityBuffer_pass.geom";
+            vbPassAlpha.mGeom.pFileName = "visibilityBuffer_pass_alpha.geom";
         }
 
-        vbShade.mStages[0].pFileName = "visibilityBuffer_shade.vert";
-        vbShade.mStages[1].pFileName = "visibilityBuffer_shade_SAMPLE_1.frag";
+        vbShade.mVert.pFileName = "visibilityBuffer_shade.vert";
+        vbShade.mFrag.pFileName = "visibilityBuffer_shade_SAMPLE_1.frag";
 
         // Triangle culling compute shader
-        triangleCulling.mStages[0].pFileName = "triangle_filtering.comp";
+        triangleCulling.mComp.pFileName = "triangle_filtering.comp";
         // Clear buffers compute shader
-        clearBuffer.mStages[0].pFileName = "clear_buffers.comp";
+        clearBuffer.mComp.pFileName = "clear_buffers.comp";
         // Clear light clusters compute shader
-        clearLights.mStages[0].pFileName = "clear_light_clusters.comp";
+        clearLights.mComp.pFileName = "clear_light_clusters.comp";
         // Cluster lights compute shader
-        clusterLights.mStages[0].pFileName = "cluster_lights.comp";
+        clusterLights.mComp.pFileName = "cluster_lights.comp";
         // Shadow filtering compute shader
-        filterShadows.mStages[0].pFileName = "shadow_filtering.comp";
+        filterShadows.mComp.pFileName = "shadow_filtering.comp";
         // Texture clearing shader
-        clearTexture.mStages[0].pFileName = "clear_texture.comp";
+        clearTexture.mComp.pFileName = "clear_texture.comp";
         // Depth bounds shader
-        depthBounds.mStages[0].pFileName = "compute_depth_bounds.comp";
+        depthBounds.mComp.pFileName = "compute_depth_bounds.comp";
         // Depth clusters shader
-        depthClusters.mStages[0].pFileName = "compute_depth_clusters.comp";
+        depthClusters.mComp.pFileName = "compute_depth_clusters.comp";
         // Downsample depth shader
-        downsampleDepth.mStages[0].pFileName = "fsq.vert";
-        downsampleDepth.mStages[1].pFileName = "downsample_depth.frag";
+        downsampleDepth.mVert.pFileName = "fsq.vert";
+        downsampleDepth.mFrag.pFileName = "downsample_depth.frag";
 
         // Present shader
-        present.mStages[0].pFileName = "fsq.vert";
-        present.mStages[1].pFileName = "fsq.frag";
+        present.mVert.pFileName = "fsq.vert";
+#if defined(AUTOMATED_TESTING)
+        present.mFrag.pFileName = "fsq_hq.frag";
+#else
+        present.mFrag.pFileName = "fsq.frag";
+#endif
 
         addShader(pRenderer, &shadowPass, &pShaderShadowPass[GEOMSET_OPAQUE]);
         addShader(pRenderer, &shadowPassAlpha, &pShaderShadowPass[GEOMSET_ALPHA_CUTOUT]);
@@ -2268,7 +2362,7 @@ public:
         // Init visibility buffer
         VisibilityBufferDesc vbDesc = {};
         vbDesc.mNumFrames = gDataBufferCount;
-        vbDesc.mNumBuffers = 1;
+        vbDesc.mNumBuffers = gDataBufferCount;
         vbDesc.mNumGeometrySets = NUM_GEOMETRY_SETS;
         vbDesc.mNumViews = NUM_CULLING_VIEWPORTS;
         vbDesc.mComputeThreads = VB_COMPUTE_THREADS;
@@ -2304,7 +2398,7 @@ public:
         /************************************************************************/
         // Per Frame Constant Buffers
         /************************************************************************/
-        uint64_t       size = sizeof(PerFrameConstants);
+        uint64_t       size = sizeof(PerFrameConstantsData);
         BufferLoadDesc ubDesc = {};
         ubDesc.mDesc.mSize = size;
         ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2319,7 +2413,7 @@ public:
             addResource(&ubDesc, NULL);
         }
 
-        ubDesc.mDesc.mSize = sizeof(PerFrameVBConstants);
+        ubDesc.mDesc.mSize = sizeof(PerFrameVBConstantsData);
         ubDesc.mDesc.pName = "PerFrameVBConstants Uniform Buffer Desc";
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
@@ -2382,11 +2476,11 @@ public:
 
         float firefliesX = cos(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
         float firefliesZ = 6.0f + sin(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
-        gFirefliesWhirlAngle += deltaTime * gFirefliesWhirlSpeed;
 
         static int elevationDirection = 1;
         float      firefliesY = lerp(gFirefliesMinHeight, gFirefliesMaxHeight, ((float)sin(gFirefliesElevationT) + 1.0f) / 2.0f);
 
+        gFirefliesWhirlAngle += deltaTime * gFirefliesWhirlSpeed;
         gFirefliesElevationT += deltaTime * gFirefliesElevationSpeed * elevationDirection;
         if ((gFirefliesElevationT >= 1.0f && elevationDirection == 1) || (gFirefliesElevationT <= 0.0f && elevationDirection == -1))
             elevationDirection *= -1;
@@ -2394,10 +2488,10 @@ public:
         pParticleSystemConstantData[currentFrameIdx].ResetParticles = gJustLoaded ? 1 : 0;
         pParticleSystemConstantData[currentFrameIdx].Time = gCurrTime;
         pParticleSystemConstantData[currentFrameIdx].ParticleSetCount = MAX_PARTICLE_SET_COUNT;
-        pParticleSystemConstantData[currentFrameIdx].SeekPosition = float3(firefliesX, firefliesY, firefliesZ);
+        pParticleSystemConstantData[currentFrameIdx].SeekPosition = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
 #if defined(AUTOMATED_TESTING)
         pParticleSystemConstantData[currentFrameIdx].Seed = INT_MAX / 2;
-        pParticleSystemConstantData[currentFrameIdx].TimeDelta = 1.0f / 30.0f;
+        pParticleSystemConstantData[currentFrameIdx].TimeDelta = 1.0f / 60.0f;
 #else
         pParticleSystemConstantData[currentFrameIdx].TimeDelta = deltaTime;
         pParticleSystemConstantData[currentFrameIdx].Seed = randomInt(0, INT_MAX);
@@ -2419,16 +2513,14 @@ public:
         mat4         lightView = mat4::lookAtLH(Point3(lightSourcePos), Point3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
         CameraMatrix lightProj = CameraMatrix::orthographicReverseZ(-30, 30, -55, 55, 0.1f, 200.0f);
 
-        float2 twoOverRes;
-        twoOverRes.setX(2.0f / float(width));
-        twoOverRes.setY(2.0f / float(height));
+        float2 twoOverRes = { 2.0f / float(width), 2.0f / float(height) };
         /************************************************************************/
         // Lighting data
         /************************************************************************/
         currentFrame->gPerFrameUniformData.camPos = v4ToF4(vec4(pCameraController->getViewPosition()));
         currentFrame->gPerFrameUniformData.lightDir = v4ToF4(vec4(lightDir));
         currentFrame->gPerFrameUniformData.twoOverRes = twoOverRes;
-        currentFrame->gPerFrameUniformData.esmControl = 80.0f;
+        currentFrame->gPerFrameUniformData.esmControl = gESMControl;
         /************************************************************************/
         // Matrix data
         /************************************************************************/
@@ -2514,11 +2606,28 @@ public:
         // Shading data
         /************************************************************************/
         currentFrame->gPerFrameUniformData.lightColor = float4(1.0f, 1.0f, 0.9f, 1.0f);
-        currentFrame->gPerFrameUniformData.lightingMode = 1;
         currentFrame->gPerFrameUniformData.outputMode = 0;
         currentFrame->gPerFrameUniformData.CameraPlane = { CAMERA_NEAR, CAMERA_FAR };
 
         gCurrTime += deltaTime;
+    }
+
+    void triangleFilteringPass(Cmd* cmd, uint32_t frameIndex, ProfileToken profileToken)
+    {
+        /************************************************************************/
+        // Triangle filtering pass
+        /************************************************************************/
+        TriangleFilteringPassDesc triangleFilteringDesc = {};
+        triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
+        triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
+        triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetClearBuffers;
+        triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
+        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
+        triangleFilteringDesc.mFrameIndex = frameIndex;
+        triangleFilteringDesc.mBuffersIndex = frameIndex;
+        triangleFilteringDesc.mGpuProfileToken = profileToken;
+        triangleFilteringDesc.mVBPreFilterStats = gVBPreFilterStats[frameIndex];
+        cmdVBTriangleFilteringPass(pVisibilityBuffer, cmd, &triangleFilteringDesc);
     }
 
     void drawShadowGeometry(Cmd* cmd, uint32_t frameIdx, bool alphaTested, uint32_t cubeIndex, uint32_t particleIndex)
@@ -2534,8 +2643,8 @@ public:
 
         uint32_t view = cubeIndex == 0 ? VIEW_SHADOW : VIEW_POINT_SHADOW + particleIndex;
         uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(view, geomSets[resourceIndex], 0) * sizeof(uint32_t);
-        Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
+        Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx];
+        cmdExecuteIndirect(cmd, INDIRECT_DRAW_INDEX, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
     }
 
     /************************************************************************/
@@ -2634,8 +2743,8 @@ public:
             cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetVBPass[1]);
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
-            Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-            cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
+            Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx];
+            cmdExecuteIndirect(cmd, INDIRECT_DRAW_INDEX, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
         }
         cmdBindRenderTargets(cmd, NULL);
     }
@@ -2693,19 +2802,21 @@ public:
     {
         downsampleDepthBuffer(cmd);
 
-        uint2 dispatchSize = uint2((uint)ceil((float)pRenderTargetDownsampleDepth->mWidth / DEPTH_BOUNDS_GROUP_AMOUNT_X),
-                                   (uint)ceil((float)pRenderTargetDownsampleDepth->mHeight / DEPTH_BOUNDS_GROUP_AMOUNT_Y));
+        uint2 dispatchSize = uint2((uint32_t)ceil((float)pRenderTargetDownsampleDepth->mWidth / DEPTH_BOUNDS_GROUP_AMOUNT_X),
+                                   (uint32_t)ceil((float)pRenderTargetDownsampleDepth->mHeight / DEPTH_BOUNDS_GROUP_AMOUNT_Y));
 
         cmdBindPipeline(cmd, pPipelineComputeDepthBounds);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetLightClusters[0]);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetLightClusters[1]);
         cmdDispatch(cmd, dispatchSize.x, dispatchSize.y, 1);
 
         BufferBarrier bb = { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
         cmdResourceBarrier(cmd, 1, &bb, 0, NULL, 0, NULL);
 
-        dispatchSize = uint2((uint)ceil((float)pDepthBuffer->mWidth / DEPTH_BOUNDS_GROUP_AMOUNT_X),
-                             (uint)ceil((float)pDepthBuffer->mHeight / DEPTH_BOUNDS_GROUP_AMOUNT_Y));
+        dispatchSize = uint2((uint32_t)ceil((float)pDepthBuffer->mWidth / (DEPTH_BOUNDS_GROUP_AMOUNT_X * DEPTH_ClUSTERS_KERNEL_SIZE)),
+                             (uint32_t)ceil((float)pDepthBuffer->mHeight / (DEPTH_BOUNDS_GROUP_AMOUNT_Y * DEPTH_ClUSTERS_KERNEL_SIZE)));
         cmdBindPipeline(cmd, pPipelineComputeDepthCluster);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetLightClusters[0]);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetLightClusters[1]);
         cmdDispatch(cmd, dispatchSize.x, dispatchSize.y, 1);
     }
@@ -2714,6 +2825,7 @@ public:
     void clearLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
         cmdBindPipeline(cmd, pPipelineClearLightClusters);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetLightClusters[0]);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetLightClusters[1]);
         cmdDispatch(cmd, 1, 1, 1);
     }
@@ -2724,115 +2836,17 @@ public:
         uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)LIGHT_COUNT));
 
         cmdBindPipeline(cmd, pPipelineClusterLights);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetLightClusters[0]);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetLightClusters[1]);
         cmdDispatch(cmd, dispatchCount, dispatchCount, 1);
-    }
-
-    // This is the main scene rendering function. It shows the different steps / rendering passes.
-    void drawScene(Cmd* cmd, uint32_t frameIdx)
-    {
-        {
-            drawShadowMapPass(cmd, gGraphicsProfileToken, frameIdx);
-
-            RenderTargetBarrier rtBarrier = { pDepthCube, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &rtBarrier);
-        }
-
-        cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Filling Pass");
-        {
-            drawVisibilityBufferPass(cmd, frameIdx);
-
-            RenderTargetBarrier rtBarriers[3] = { { pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET,
-                                                    RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-                                                  { pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-                                                  { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE } };
-
-            BufferBarrier bBarriers[3] = { { pLightClustersCount, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
-                                           { pLightClusters, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
-                                           { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS } };
-            cmdResourceBarrier(cmd, 3, bBarriers, 0, NULL, 3, rtBarriers);
-        }
-        cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
-
-        cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Compute depth clusters");
-        clearLightClusters(cmd, frameIdx);
-        // Compute depth bounds and light clusters
-        computeDepthBounds(cmd, frameIdx);
-        cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
-
-        BufferBarrier barriers[4] = { { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS },
-                                      { pLightClustersCount, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS },
-                                      { pLightClusters, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS } };
-
-        cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Compute light clusters");
-        {
-            // Wait for depth bounds
-            cmdResourceBarrier(cmd, 2, barriers, 0, NULL, 0, NULL);
-            // Light clustering
-            computeLightClusters(cmd, frameIdx);
-
-            barriers[0] = { pLightClustersCount, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            barriers[1] = { pLightClusters, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            barriers[2] = { pParticleBitfields, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            barriers[3] = { pParticlesBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-            cmdResourceBarrier(cmd, 4, barriers, 0, NULL, 0, NULL);
-        }
-        cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
-
-        cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Shading Pass");
-        {
-            drawVisibilityBufferShade(cmd, frameIdx);
-
-            BufferBarrier particleBarriers[2] = {
-                { pParticleBitfields, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
-                { pParticlesBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS }
-            };
-            cmdResourceBarrier(cmd, 2, particleBarriers, 0, NULL, 0, NULL);
-        }
-        cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
-
-        if (SHADOW_COUNT > 0)
-        {
-            cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Shadowmap filtering pass");
-            {
-                struct FilterConsts
-                {
-                    uint2    ScreenSize;
-                    uint32_t Horizontal;
-                    uint32_t Pad;
-                };
-
-                FilterConsts   constants = { { pShadowCollector->mWidth, pShadowCollector->mHeight }, 1, 0 };
-                TextureBarrier texBarrier = { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-                cmdResourceBarrier(cmd, 0, NULL, 1, &texBarrier, 0, NULL);
-
-                cmdBindPipeline(cmd, pPipelineFilterShadows);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetFilterShadows);
-                cmdBindPushConstants(cmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
-                // Horizontal pass
-                cmdDispatch(cmd, (uint32_t)ceil((float)mSettings.mWidth / 16), (uint32_t)ceil((float)mSettings.mHeight / 16), 1);
-
-                texBarrier = { pFilteredShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-                cmdResourceBarrier(cmd, 0, NULL, 1, &texBarrier, 0, NULL);
-
-                // Vertical pass, write on the shadow collector
-                constants.Horizontal = 0;
-
-                cmdBindPushConstants(cmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetFilterShadows);
-                cmdDispatch(cmd, (uint32_t)ceil((float)mSettings.mWidth / 16), (uint32_t)ceil((float)mSettings.mHeight / 16), 1);
-                cmdResourceBarrier(cmd, 0, NULL, 1, &texBarrier, 0, NULL);
-            }
-            cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
-        }
     }
 
     // Draw GUI / 2D elements
     void drawGUI(Cmd* cmd)
     {
         gFrameTimeDraw.mFontColor = 0xff00ffff;
-#if defined(ANDROID)
-        gFrameTimeDraw.mFontSize = 10.0f;
+#if defined(ANDROID) || defined(IOS)
+        gFrameTimeDraw.mFontSize = 4.0f;
         gFrameTimeDraw.mFontID = gFontID;
 #else
         gFrameTimeDraw.mFontSize = 14.0f;
@@ -2841,6 +2855,7 @@ public:
 
         cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
         cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+        cmdDrawGpuProfile(cmd, float2(8.0f, 500.0f), gComputeProfileToken, &gFrameTimeDraw);
         cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, NULL);

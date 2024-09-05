@@ -290,36 +290,36 @@ inline const Matrix3 Matrix3::identity()
 inline const Matrix3 Matrix3::rotationX(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix3(Vector3::xAxis(), Vector3(0.0f, c, s), Vector3(0.0f, -s, c));
 }
 
 inline const Matrix3 Matrix3::rotationY(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix3(Vector3(c, 0.0f, -s), Vector3::yAxis(), Vector3(s, 0.0f, c));
 }
 
 inline const Matrix3 Matrix3::rotationZ(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix3(Vector3(c, s, 0.0f), Vector3(-s, c, 0.0f), Vector3::zAxis());
 }
 
 inline const Matrix3 Matrix3::rotationZYX(const Vector3 & radiansXYZ)
 {
     float sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
-    sX = std::sinf(radiansXYZ.getX());
-    cX = std::cosf(radiansXYZ.getX());
-    sY = std::sinf(radiansXYZ.getY());
-    cY = std::cosf(radiansXYZ.getY());
-    sZ = std::sinf(radiansXYZ.getZ());
-    cZ = std::cosf(radiansXYZ.getZ());
+    sX = sinf(radiansXYZ.getX());
+    cX = cosf(radiansXYZ.getX());
+    sY = sinf(radiansXYZ.getY());
+    cY = cosf(radiansXYZ.getY());
+    sZ = sinf(radiansXYZ.getZ());
+    cZ = cosf(radiansXYZ.getZ());
     tmp0 = (cZ * sY);
     tmp1 = (sZ * sY);
     return Matrix3(Vector3((cZ * cY), (sZ * cY), -sY),
@@ -330,8 +330,8 @@ inline const Matrix3 Matrix3::rotationZYX(const Vector3 & radiansXYZ)
 inline const Matrix3 Matrix3::rotation(float radians, const Vector3 & unitVec)
 {
     float x, y, z, s, c, oneMinusC, xy, yz, zx;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     x = unitVec.getX();
     y = unitVec.getY();
     z = unitVec.getZ();
@@ -388,7 +388,7 @@ inline void print(const Matrix3 & mat)
 
 inline void print(const Matrix3 & mat, const char * name)
 {
-    std::printf("%s:\n", name);
+    printf("%s:\n", name);
     print(mat);
 }
 
@@ -646,36 +646,36 @@ inline const Matrix3d Matrix3d::identity()
 inline const Matrix3d Matrix3d::rotationX(double radians)
 {
 	double s, c;
-	s = std::sin(radians);
-	c = std::cos(radians);
+	s = sin(radians);
+	c = cos(radians);
 	return Matrix3d(Vector3d::xAxis(), Vector3d(0.0f, c, s), Vector3d(0.0f, -s, c));
 }
 
 inline const Matrix3d Matrix3d::rotationY(double radians)
 {
 	double s, c;
-	s = std::sin(radians);
-	c = std::cos(radians);
+	s = sin(radians);
+	c = cos(radians);
 	return Matrix3d(Vector3d(c, 0.0f, -s), Vector3d::yAxis(), Vector3d(s, 0.0f, c));
 }
 
 inline const Matrix3d Matrix3d::rotationZ(double radians)
 {
 	double s, c;
-	s = std::sin(radians);
-	c = std::cos(radians);
+	s = sin(radians);
+	c = cos(radians);
 	return Matrix3d(Vector3d(c, s, 0.0f), Vector3d(-s, c, 0.0f), Vector3d::zAxis());
 }
 
 inline const Matrix3d Matrix3d::rotationZYX(const Vector3d & radiansXYZ)
 {
 	double sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
-	sX = std::sin(radiansXYZ.getX());
-	cX = std::cos(radiansXYZ.getX());
-	sY = std::sin(radiansXYZ.getY());
-	cY = std::cos(radiansXYZ.getY());
-	sZ = std::sin(radiansXYZ.getZ());
-	cZ = std::cos(radiansXYZ.getZ());
+	sX = sin(radiansXYZ.getX());
+	cX = cos(radiansXYZ.getX());
+	sY = sin(radiansXYZ.getY());
+	cY = cos(radiansXYZ.getY());
+	sZ = sin(radiansXYZ.getZ());
+	cZ = cos(radiansXYZ.getZ());
 	tmp0 = (cZ * sY);
 	tmp1 = (sZ * sY);
 	return Matrix3d(Vector3d((cZ * cY), (sZ * cY), -sY),
@@ -686,8 +686,8 @@ inline const Matrix3d Matrix3d::rotationZYX(const Vector3d & radiansXYZ)
 inline const Matrix3d Matrix3d::rotation(double radians, const Vector3d & unitVec)
 {
 	double x, y, z, s, c, oneMinusC, xy, yz, zx;
-	s = std::sin(radians);
-	c = std::cos(radians);
+	s = sin(radians);
+	c = cos(radians);
 	x = unitVec.getX();
 	y = unitVec.getY();
 	z = unitVec.getZ();
@@ -744,7 +744,7 @@ inline void print(const Matrix3d & mat)
 
 inline void print(const Matrix3d & mat, const char * name)
 {
-	std::printf("%s:\n", name);
+	printf("%s:\n", name);
 	print(mat);
 }
 
@@ -1188,8 +1188,8 @@ inline const Vector3 Matrix4::getTranslation() const
 inline const Matrix4 Matrix4::rotationX(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix4(Vector4::xAxis(),
                    Vector4(0.0f,  c, s, 0.0f),
                    Vector4(0.0f, -s, c, 0.0f),
@@ -1199,8 +1199,8 @@ inline const Matrix4 Matrix4::rotationX(float radians)
 inline const Matrix4 Matrix4::rotationY(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix4(Vector4(c, 0.0f, -s, 0.0f),
                    Vector4::yAxis(),
                    Vector4(s, 0.0f, c, 0.0f),
@@ -1210,8 +1210,8 @@ inline const Matrix4 Matrix4::rotationY(float radians)
 inline const Matrix4 Matrix4::rotationZ(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Matrix4(Vector4( c, s, 0.0f, 0.0f),
                    Vector4(-s, c, 0.0f, 0.0f),
                    Vector4::zAxis(),
@@ -1221,12 +1221,12 @@ inline const Matrix4 Matrix4::rotationZ(float radians)
 inline const Matrix4 Matrix4::rotationZYX(const Vector3 & radiansXYZ)
 {
     float sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
-    sX = std::sinf(radiansXYZ.getX());
-    cX = std::cosf(radiansXYZ.getX());
-    sY = std::sinf(radiansXYZ.getY());
-    cY = std::cosf(radiansXYZ.getY());
-    sZ = std::sinf(radiansXYZ.getZ());
-    cZ = std::cosf(radiansXYZ.getZ());
+    sX = sinf(radiansXYZ.getX());
+    cX = cosf(radiansXYZ.getX());
+    sY = sinf(radiansXYZ.getY());
+    cY = cosf(radiansXYZ.getY());
+    sZ = sinf(radiansXYZ.getZ());
+    cZ = cosf(radiansXYZ.getZ());
     tmp0 = (cZ * sY);
     tmp1 = (sZ * sY);
     return Matrix4(Vector4((cZ * cY), (sZ * cY), -sY, 0.0f),
@@ -1238,8 +1238,8 @@ inline const Matrix4 Matrix4::rotationZYX(const Vector3 & radiansXYZ)
 inline const Matrix4 Matrix4::rotation(float radians, const Vector3 & unitVec)
 {
     float x, y, z, s, c, oneMinusC, xy, yz, zx;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     x = unitVec.getX();
     y = unitVec.getY();
     z = unitVec.getZ();
@@ -1403,12 +1403,12 @@ inline const Matrix4 Matrix4::perspectiveRH(float fovRadians, float aspectInvers
 inline const Matrix4 Matrix4::perspectiveLH_ReverseZ(float fovRadians, float aspectInverse, float zNear, float zFar)
 {
 	Matrix4 perspMatrix = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
-	
+
 	const Vector4 &col2 = perspMatrix.mCol2;
 	const Vector4 &col3 = perspMatrix.mCol3;
 	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
 	perspMatrix.mCol3.setZ(-col3.getZ());
-	
+
 	return perspMatrix;
 }
 
@@ -1605,7 +1605,7 @@ inline void print(const Matrix4 & mat)
 
 inline void print(const Matrix4 & mat, const char * name)
 {
-    std::printf("%s:\n", name);
+    printf("%s:\n", name);
     print(mat);
 }
 
@@ -2051,8 +2051,8 @@ inline const Vector3d Matrix4d::getTranslation() const
 inline const Matrix4d Matrix4d::rotationX(double radians)
 {
     double s, c;
-    s = std::sin(radians);
-    c = std::cos(radians);
+    s = sin(radians);
+    c = cos(radians);
     return Matrix4d(Vector4d::xAxis(),
                    Vector4d(0.0,  c, s, 0.0),
                    Vector4d(0.0, -s, c, 0.0),
@@ -2062,8 +2062,8 @@ inline const Matrix4d Matrix4d::rotationX(double radians)
 inline const Matrix4d Matrix4d::rotationY(double radians)
 {
     double s, c;
-    s = std::sin(radians);
-    c = std::cos(radians);
+    s = sin(radians);
+    c = cos(radians);
     return Matrix4d(Vector4d(c, 0.0, -s, 0.0),
                    Vector4d::yAxis(),
                    Vector4d(s, 0.0, c, 0.0),
@@ -2073,8 +2073,8 @@ inline const Matrix4d Matrix4d::rotationY(double radians)
 inline const Matrix4d Matrix4d::rotationZ(double radians)
 {
     double s, c;
-    s = std::sin(radians);
-    c = std::cos(radians);
+    s = sin(radians);
+    c = cos(radians);
     return Matrix4d(Vector4d( c, s, 0.0, 0.0),
                    Vector4d(-s, c, 0.0, 0.0),
                    Vector4d::zAxis(),
@@ -2084,12 +2084,12 @@ inline const Matrix4d Matrix4d::rotationZ(double radians)
 inline const Matrix4d Matrix4d::rotationZYX(const Vector3d & radiansXYZ)
 {
     double sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
-    sX = std::sin(radiansXYZ.getX());
-    cX = std::cos(radiansXYZ.getX());
-    sY = std::sin(radiansXYZ.getY());
-    cY = std::cos(radiansXYZ.getY());
-    sZ = std::sin(radiansXYZ.getZ());
-    cZ = std::cos(radiansXYZ.getZ());
+    sX = sin(radiansXYZ.getX());
+    cX = cos(radiansXYZ.getX());
+    sY = sin(radiansXYZ.getY());
+    cY = cos(radiansXYZ.getY());
+    sZ = sin(radiansXYZ.getZ());
+    cZ = cos(radiansXYZ.getZ());
     tmp0 = (cZ * sY);
     tmp1 = (sZ * sY);
     return Matrix4d(Vector4d((cZ * cY), (sZ * cY), -sY, 0.0),
@@ -2101,8 +2101,8 @@ inline const Matrix4d Matrix4d::rotationZYX(const Vector3d & radiansXYZ)
 inline const Matrix4d Matrix4d::rotation(double radians, const Vector3d & unitVec)
 {
     double x, y, z, s, c, oneMinusC, xy, yz, zx;
-    s = std::sin(radians);
-    c = std::cos(radians);
+    s = sin(radians);
+    c = cos(radians);
     x = unitVec.getX();
     y = unitVec.getY();
     z = unitVec.getZ();
@@ -2256,7 +2256,7 @@ inline const Matrix4d Matrix4d::perspectiveLH_ReverseZ(double fovRadians, double
 	const Vector4d &col3 = perspMatrix.mCol3;
 	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
 	perspMatrix.mCol3.setZ(-col3.getZ());
-	
+
 	return perspMatrix;
 }
 
@@ -2441,7 +2441,7 @@ inline void print(const Matrix4d & mat)
 
 inline void print(const Matrix4d & mat, const char * name)
 {
-    std::printf("%s:\n", name);
+    printf("%s:\n", name);
     print(mat);
 }
 
@@ -2694,8 +2694,8 @@ inline const Vector3 Transform3::getTranslation() const
 inline const Transform3 Transform3::rotationX(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Transform3(Vector3::xAxis(),
                       Vector3(0.0f,  c, s),
                       Vector3(0.0f, -s, c),
@@ -2705,8 +2705,8 @@ inline const Transform3 Transform3::rotationX(float radians)
 inline const Transform3 Transform3::rotationY(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Transform3(Vector3(c, 0.0f, -s),
                       Vector3::yAxis(),
                       Vector3(s, 0.0f, c),
@@ -2716,8 +2716,8 @@ inline const Transform3 Transform3::rotationY(float radians)
 inline const Transform3 Transform3::rotationZ(float radians)
 {
     float s, c;
-    s = std::sinf(radians);
-    c = std::cosf(radians);
+    s = sinf(radians);
+    c = cosf(radians);
     return Transform3(Vector3( c, s, 0.0f),
                       Vector3(-s, c, 0.0f),
                       Vector3::zAxis(),
@@ -2727,12 +2727,12 @@ inline const Transform3 Transform3::rotationZ(float radians)
 inline const Transform3 Transform3::rotationZYX(const Vector3 & radiansXYZ)
 {
     float sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
-    sX = std::sinf(radiansXYZ.getX());
-    cX = std::cosf(radiansXYZ.getX());
-    sY = std::sinf(radiansXYZ.getY());
-    cY = std::cosf(radiansXYZ.getY());
-    sZ = std::sinf(radiansXYZ.getZ());
-    cZ = std::cosf(radiansXYZ.getZ());
+    sX = sinf(radiansXYZ.getX());
+    cX = cosf(radiansXYZ.getX());
+    sY = sinf(radiansXYZ.getY());
+    cY = cosf(radiansXYZ.getY());
+    sZ = sinf(radiansXYZ.getZ());
+    cZ = cosf(radiansXYZ.getZ());
     tmp0 = (cZ * sY);
     tmp1 = (sZ * sY);
     return Transform3(Vector3((cZ * cY), (sZ * cY), -sY),
@@ -2802,7 +2802,7 @@ inline void print(const Transform3 & tfrm)
 
 inline void print(const Transform3 & tfrm, const char * name)
 {
-    std::printf("%s:\n", name);
+    printf("%s:\n", name);
     print(tfrm);
 }
 
@@ -2832,7 +2832,7 @@ inline void print(const AffineTransform & tfrm)
 
 inline void print(const AffineTransform & tfrm, const char * name)
 {
-	std::printf("%s:\n", name);
+	printf("%s:\n", name);
 	print(tfrm);
 }
 
@@ -2887,7 +2887,7 @@ inline Quat::Quat(const Matrix3 & tfrm)
     }
 
     radicand = (((xx + yy) + zz) + 1.0f);
-    scale = (0.5f * (1.0f / std::sqrtf(radicand)));
+    scale = (0.5f * (1.0f / sqrtf(radicand)));
 
     tmpx = ((zy - yz) * scale);
     tmpy = ((xz - zx) * scale);

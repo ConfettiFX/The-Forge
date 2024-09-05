@@ -158,7 +158,7 @@ void exitLog(void)
             pCallback->mClose(pCallback->mUserData);
     }
 
-    destroyMutex(&gLogger.mLogMutex);
+    exitMutex(&gLogger.mLogMutex);
     tf_free(gLogger.pCallbacks);
     gIsLoggerInitialized = false;
 }

@@ -2,79 +2,79 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Prospero\Common_3\Tools\AssetPipeline">
-      <UniqueIdentifier>{0c879523-f17f-4598-9f24-812441a8828c}</UniqueIdentifier>
+      <UniqueIdentifier>{be7ba5d8-1fd6-4af8-858f-36c4ec4a340b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero\Common_3\Tools">
-      <UniqueIdentifier>{c23a4fa7-e8c9-4018-b1d9-fbb1c36c0842}</UniqueIdentifier>
+      <UniqueIdentifier>{891e17e0-6521-4927-8e9d-a30e2f5fb447}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero\Common_3">
-      <UniqueIdentifier>{d8217cfa-f363-4b02-88fa-a35d09403e66}</UniqueIdentifier>
+      <UniqueIdentifier>{4108ea85-a8e2-4d56-9144-df35fbf05822}</UniqueIdentifier>
     </Filter>
     <Filter Include="Prospero">
-      <UniqueIdentifier>{498a82f8-0079-4935-a4a1-74ea7a783cad}</UniqueIdentifier>
+      <UniqueIdentifier>{3df177d7-66e0-43ea-b4fa-5a646a0a8af7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Xbox\Common_3\Tools\AssetPipeline">
-      <UniqueIdentifier>{2b488841-8172-4ab0-be44-6fb914588f99}</UniqueIdentifier>
+      <UniqueIdentifier>{e2709eb9-0362-4173-815d-92e84d096c6c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Xbox\Common_3\Tools">
-      <UniqueIdentifier>{7606a01b-c5c1-4490-97c8-5c7711b4551e}</UniqueIdentifier>
+      <UniqueIdentifier>{8a58b408-5eda-4fa7-8cc1-98c55de51223}</UniqueIdentifier>
     </Filter>
     <Filter Include="Xbox\Common_3">
-      <UniqueIdentifier>{57155bab-21da-4970-9fc1-6204bc812eb9}</UniqueIdentifier>
+      <UniqueIdentifier>{4b412478-f0cc-4b45-afe9-ffc7746674ca}</UniqueIdentifier>
     </Filter>
     <Filter Include="Xbox">
-      <UniqueIdentifier>{d907bc28-e25c-465e-8f36-8ce218acaa24}</UniqueIdentifier>
+      <UniqueIdentifier>{b79a661d-9c19-4879-9350-eac4c20f7828}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\OS\Windows">
-      <UniqueIdentifier>{b6cc8caa-278d-4621-b407-3bd6818d9816}</UniqueIdentifier>
+      <UniqueIdentifier>{938df7bb-7ee7-4acd-ac90-908290309416}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\OS">
-      <UniqueIdentifier>{e2feba57-6897-4474-a485-f0fb6344c889}</UniqueIdentifier>
+      <UniqueIdentifier>{c8e0b278-ed8c-43e1-b1d3-fb6d0a5f17f7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3">
-      <UniqueIdentifier>{78675258-79ef-4b7c-9ca0-a1d4f0ddfcb8}</UniqueIdentifier>
+      <UniqueIdentifier>{92415d17-a220-4ef7-b4c3-e6c35706e7dc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX">
-      <UniqueIdentifier>{f18d3505-df4a-4ed7-9f26-86d3dd1b6555}</UniqueIdentifier>
+      <UniqueIdentifier>{82561ce7-2c3c-4a4b-9bc8-c6698e294bd8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty\OpenSource">
-      <UniqueIdentifier>{c53b5a8b-3baf-4521-8b8d-6f7c42f0324c}</UniqueIdentifier>
+      <UniqueIdentifier>{a105a3bb-2466-4131-8b26-916feac4b276}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty">
-      <UniqueIdentifier>{3f68c037-e8e8-4053-986b-1c1de1130609}</UniqueIdentifier>
+      <UniqueIdentifier>{b0ee00ee-0b78-485b-9248-954a110b2bd2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Resources\AnimationSystem">
-      <UniqueIdentifier>{78eac248-1ad1-4a1b-aca5-991a00301da4}</UniqueIdentifier>
+      <UniqueIdentifier>{f04c1441-2793-4273-a074-9f16cbb99ab5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Resources">
-      <UniqueIdentifier>{6d4f298a-4555-404c-b4a3-315105d8a819}</UniqueIdentifier>
+      <UniqueIdentifier>{cfcb4fc5-215c-4eee-96bd-d559120085ca}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src">
-      <UniqueIdentifier>{95480503-9be5-4610-add0-af6797ef2c83}</UniqueIdentifier>
+      <UniqueIdentifier>{e1a09a7e-aba8-4265-b7da-a176f30790bd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\ThirdParty\OpenSource\meshoptimizer">
-      <UniqueIdentifier>{61a61533-f110-477e-8897-a8a275fd39a8}</UniqueIdentifier>
+      <UniqueIdentifier>{8b83dd05-2570-4e00-83c4-1f8ee6570253}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\ThirdParty\OpenSource">
-      <UniqueIdentifier>{c3581767-81a3-4d35-aa5f-ebeb66215e8f}</UniqueIdentifier>
+      <UniqueIdentifier>{19d4dda2-056b-4155-b1d4-2df96bf56f32}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\ThirdParty">
-      <UniqueIdentifier>{ff104f14-e849-4a84-8ed1-8c55808b5757}</UniqueIdentifier>
+      <UniqueIdentifier>{aca76095-9300-4111-a387-45eb91ebaf5b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools">
-      <UniqueIdentifier>{814a736c-6b31-4e08-a68e-822000cbf1fb}</UniqueIdentifier>
+      <UniqueIdentifier>{9f85bf2e-32af-41e3-8d2c-fc23de4dd7fe}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\FileSystem">
-      <UniqueIdentifier>{4672bc9a-6cbd-465c-87e0-86cdd5715019}</UniqueIdentifier>
+      <UniqueIdentifier>{0eb5373a-1b5c-41dd-ae16-f0ea1620d267}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities">
-      <UniqueIdentifier>{da9203b0-ae35-42a4-8361-5729e3a0d409}</UniqueIdentifier>
+      <UniqueIdentifier>{f27df22b-f539-48b1-b48b-26c0c41887c2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\AssetPipeline\src">
-      <UniqueIdentifier>{e9a074ce-b926-440b-8bde-72da1bf51203}</UniqueIdentifier>
+      <UniqueIdentifier>{588c8e6c-b692-4c46-8476-09fc94cd96e4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Tools\AssetPipeline">
-      <UniqueIdentifier>{6f766b23-d529-4fab-b90b-a995f6f28a54}</UniqueIdentifier>
+      <UniqueIdentifier>{65547066-6064-486d-b7d3-dd09611c1098}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

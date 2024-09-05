@@ -22,7 +22,6 @@
     <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl" />
@@ -50,9 +49,7 @@
     <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
-      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
-    </ProjectReference>
+
     <ProjectReference Include="..\..\Unit_Tests\Quest_VisualStudio2019\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
       <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
     </ProjectReference>
@@ -66,10 +63,10 @@
     <RootNamespace>Visibility_Buffer</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <Import Project="AGDEVersions.props" />
+  <Import Project="..\..\Build_Props\VS\AGDEVersions.Quest.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
@@ -83,7 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
     <CustomBuildAfterTargets>
@@ -114,18 +111,18 @@ set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformT
 
 xcopy /Y /S /D "%ART%\Meshes\*" "%ASSETS%Meshes\"
 xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "%ASSETS%Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "%ASSETS%"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.txt" "%ASSETS%"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "%ASSETS%Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "%ASSETS%Scripts\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VULKAN\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%gpu.data*"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -160,18 +157,18 @@ set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformT
 
 xcopy /Y /S /D "%ART%\Meshes\*" "%ASSETS%Meshes\"
 xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "%ASSETS%Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "%ASSETS%"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.txt" "%ASSETS%"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "%ASSETS%Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "%ASSETS%Scripts\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\UnitTestResources\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\..\Unit_Tests\Textures\ktx\circlepad.tex" "%ASSETS%Textures\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VULKAN\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%gpu.data*"
 
 </Command>
     </PostBuildEvent>

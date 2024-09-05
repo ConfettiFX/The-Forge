@@ -94,15 +94,15 @@ float2 PaniniProjection(float2 V, float d, float s)
 
 float2 PaniniProjectionScreenPosition(float2 screenPosition)
 {
-	float _fovH	= Get(FoVH) * (3.14159265359 / 180.f);
-    float upscale	= Get(Scale);
+	float _fovH	= PaniniRootConstants.FoVH * (3.14159265359 / 180.f);
+    float upscale	= PaniniRootConstants.Scale;
 
     float2 unproject = f2(tan(0.5f * _fovH));
     float2 project = 1.0f / unproject;
 
 	// unproject the screenspace position, get the viewSpace xy and use it as direction
     float2 viewDirection = screenPosition * unproject;
-    float2 paniniPosition = PaniniProjection(viewDirection, Get(D), Get(S));
+    float2 paniniPosition = PaniniProjection(viewDirection, PaniniRootConstants.D, PaniniRootConstants.S);
 
 	// project & upscale the panini position 
 	return paniniPosition * project * upscale;

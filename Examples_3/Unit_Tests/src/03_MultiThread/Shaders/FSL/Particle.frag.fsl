@@ -36,9 +36,10 @@ float4 PS_MAIN( VSOutput In )
     INIT_MAIN;
     float4 Out;
 
-	float4 ca = SampleTex1D(Get(uTex0)[Get(textureIndex)], Get(uSampler0), In.TexCoord);
-    float4 cb = SampleTex1D(Get(uTex0)[(Get(textureIndex) + 1) % 5], Get(uSampler0), In.TexCoord);
+    const uint textureIndex = particleRootConstant.textureIndex;
+	float4 ca = SampleTex1D(uTex0[textureIndex], uSampler0, In.TexCoord);
+    float4 cb = SampleTex1D(uTex0[(textureIndex + 1) % 5], uSampler0, In.TexCoord);
 
-    Out = 0.05*lerp(ca, cb, Get(paletteFactor));
+    Out = 0.05*lerp(ca, cb, particleRootConstant.paletteFactor);
     RETURN(Out);
 }

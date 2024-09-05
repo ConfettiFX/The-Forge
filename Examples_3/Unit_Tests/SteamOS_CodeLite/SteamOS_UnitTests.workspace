@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="SteamOS_UnitTests" Database="" Version="10.0.0">
+  <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
+  <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
+  <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
+  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="No"/>
+  <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
+  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
+  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
+  <Project Name="10_ScreenSpaceReflections" Path="10_ScreenSpaceReflections/10_ScreenSpaceReflections.project" Active="No"/>
+  <Project Name="12_ZipFileSystem" Path="12_ZipFileSystem/12_ZipFileSystem.project" Active="No"/>
+  <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
+  <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
+  <Project Name="19_CodeHotReload_Main" Path="19_CodeHotReload/19_CodeHotReload_Main.project" Active="No"/>
+  <Project Name="19a_CodeHotReload_Game" Path="19_CodeHotReload/19a_CodeHotReload_Game.project" Active="No"/>
+  <Project Name="21_Animations" Path="21_Animations/21_Animations.project" Active="No"/>
+  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="No"/>
+  <Project Name="ozz_base" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
+  <Project Name="ozz_animation" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
+  <Project Name="ozz_animation_offline" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
+  <Project Name="15a_VisibilityBufferOIT" Path="15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.project" Active="No"/>
+  <Project Name="34_Input" Path="34_Input/34_Input.project" Active="Yes"/>
+  <Project Name="36_AlgorithmsAndContainers" Path="36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.project" Active="No"/>
+  <Project Name="39_ParticleSystem" Path="39_ParticleSystem/39_ParticleSystem.project" Active="Yes"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug">
+      <Environment/>
+      <Project Name="SpirVTools" ConfigName="Debug"/>
+      <Project Name="Renderer" ConfigName="Debug"/>
+      <Project Name="OS" ConfigName="Debug"/>
+      <Project Name="01_Transformations" ConfigName="Debug"/>
+      <Project Name="03_MultiThread" ConfigName="Debug"/>
+      <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
+      <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
+      <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
+      <Project Name="10_ScreenSpaceReflections" ConfigName="Debug"/>
+      <Project Name="12_ZipFileSystem" ConfigName="Debug"/>
+      <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
+      <Project Name="16_Raytracing" ConfigName="Debug"/>
+      <Project Name="21_Playback" ConfigName="Debug"/>
+      <Project Name="22_Blending" ConfigName="Debug"/>
+      <Project Name="23_JointAttachment" ConfigName="Debug"/>
+      <Project Name="24_PartialBlending" ConfigName="Debug"/>
+      <Project Name="25_AdditiveBlending" ConfigName="Debug"/>
+      <Project Name="26_BakedPhysics" ConfigName="Debug"/>
+      <Project Name="27_MultiThread" ConfigName="Debug"/>
+      <Project Name="28_Skinning" ConfigName="Debug"/>
+      <Project Name="ozz_base" ConfigName="Debug"/>
+      <Project Name="ozz_animation" ConfigName="Debug"/>
+      <Project Name="ozz_animation_offline" ConfigName="Debug"/>
+      <Project Name="29_InverseKinematic" ConfigName="Debug"/>
+      <Project Name="15a_VisibilityBufferOIT" ConfigName="Debug"/>
+      <Project Name="34_Input" ConfigName="Debug"/>
+      <Project Name="19_CodeHotReload_Main" ConfigName="Debug"/>
+      <Project Name="19a_CodeHotReload_Game" ConfigName="Debug"/>
+      <Project Name="36_AlgorithmsAndContainers" ConfigName="Debug"/>
+      <Project Name="21_Animations" ConfigName="Debug"/>
+      <Project Name="39_ParticleSystem" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release">
+      <Environment/>
+      <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="Renderer" ConfigName="Release"/>
+      <Project Name="ozz_base" ConfigName="Release"/>
+      <Project Name="ozz_animation_offline" ConfigName="Release"/>
+      <Project Name="ozz_animation" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
+      <Project Name="28_Skinning" ConfigName="Release"/>
+      <Project Name="27_MultiThread" ConfigName="Release"/>
+      <Project Name="26_BakedPhysics" ConfigName="Release"/>
+      <Project Name="25_AdditiveBlending" ConfigName="Release"/>
+      <Project Name="24_PartialBlending" ConfigName="Release"/>
+      <Project Name="23_JointAttachment" ConfigName="Release"/>
+      <Project Name="22_Blending" ConfigName="Release"/>
+      <Project Name="21_Playback" ConfigName="Release"/>
+      <Project Name="16_Raytracing" ConfigName="Release"/>
+      <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
+      <Project Name="12_ZipFileSystem" ConfigName="Release"/>
+      <Project Name="10_ScreenSpaceReflections" ConfigName="Release"/>
+      <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
+      <Project Name="06_MaterialPlayground" ConfigName="Release"/>
+      <Project Name="03_MultiThread" ConfigName="Release"/>
+      <Project Name="01_Transformations" ConfigName="Release"/>
+      <Project Name="29_InverseKinematic" ConfigName="Release"/>
+      <Project Name="15a_VisibilityBufferOIT" ConfigName="Release"/>
+      <Project Name="34_Input" ConfigName="Release"/>
+      <Project Name="19_CodeHotReload_Main" ConfigName="Release"/>
+      <Project Name="19a_CodeHotReload_Game" ConfigName="Release"/>
+      <Project Name="36_AlgorithmsAndContainers" ConfigName="Release"/>
+      <Project Name="21_Animations" ConfigName="Release"/>
+      <Project Name="39_ParticleSystem" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

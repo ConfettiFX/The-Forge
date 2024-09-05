@@ -4,7 +4,6 @@ VisualStudioVersion = 16.0.0.0
 MinimumVisualStudioVersion = 16.0.0.0
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visibility_Buffer2", "Visibility_Buffer2.vcxproj", "{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}"
 	ProjectSection(ProjectDependencies) = postProject
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A} = {339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421} = {DB6193E0-3C12-450F-B344-DC4DAED8C421}
 	EndProjectSection
@@ -16,11 +15,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\Tools\SpirvCross.vcxproj", "{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A} = {339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -50,10 +44,6 @@ Global
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug|x64.Build.0 = Debug|x64
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release|x64.ActiveCfg = Release|x64
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release|x64.Build.0 = Release|x64
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}.Debug|x64.ActiveCfg = Debug|x64
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}.Debug|x64.Build.0 = Debug|x64
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}.Release|x64.ActiveCfg = Release|x64
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}.Release|x64.Build.0 = Release|x64
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Debug|x64.ActiveCfg = Debug|x64
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Debug|x64.Build.0 = Debug|x64
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Release|x64.ActiveCfg = Release|x64
@@ -65,7 +55,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
-		{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {82CAE356-DDF7-45D6-BE15-E529BDB0F93E}

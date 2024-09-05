@@ -1857,14 +1857,7 @@ inline const Matrix4 Matrix4::perspectiveRH(float fovRadians, float aspectInvers
 
 inline const Matrix4 Matrix4::perspectiveLH_ReverseZ(float fovRadians, float aspectInverse, float zNear, float zFar)
 {
-	Matrix4 perspMatrix = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
-	
-	const Vector4 &col2 = perspMatrix.mCol2;
-	const Vector4 &col3 = perspMatrix.mCol3;
-	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
-	perspMatrix.mCol3.setZ(-col3.getZ());
-	
-	return perspMatrix;
+	return perspectiveLH(fovRadians, aspectInverse, zFar, zNear);
 }
 
 inline const Matrix4 Matrix4::orthographicLH(float left, float right, float bottom, float top, float zNear, float zFar)
@@ -1909,14 +1902,7 @@ inline const Matrix4 Matrix4::orthographicRH(float left, float right, float bott
 
 inline const Matrix4 Matrix4::orthographicLH_ReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
 {
-	Matrix4 orthoMatrix = orthographicLH(left, right, bottom, top, zNear, zFar);
-
-	const Vector4 &col2 = orthoMatrix.mCol2;
-	const Vector4 &col3 = orthoMatrix.mCol3;
-	orthoMatrix.mCol2.setZ(-col2.getZ());
-	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
-
-	return orthoMatrix;
+	return orthographicLH(left, right, bottom, top, zFar, zNear);
 }
 
 inline const Matrix4 Matrix4::cubeProjectionLH(const float zNear, const float zFar)
@@ -2972,14 +2958,7 @@ inline const Matrix4d Matrix4d::perspectiveRH(double fovRadians, double aspectIn
 
 inline const Matrix4d Matrix4d::perspectiveLH_ReverseZ(double fovRadians, double aspectInverse, double zNear, double zFar)
 {
-	Matrix4d perspMatrix = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
-
-	const Vector4d &col2 = perspMatrix.mCol2;
-	const Vector4d &col3 = perspMatrix.mCol3;
-	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
-	perspMatrix.mCol3.setZ(-col3.getZ());
-
-	return perspMatrix;
+    return perspectiveLH(fovRadians, aspectInverse, zFar, zNear);
 }
 
 inline const Matrix4d Matrix4d::orthographicLH(double left, double right, double bottom, double top, double zNear, double zFar)
@@ -3024,14 +3003,7 @@ inline const Matrix4d Matrix4d::orthographicRH(double left, double right, double
 
 inline const Matrix4d Matrix4d::orthographicLH_ReverseZ(double left, double right, double bottom, double top, double zNear, double zFar)
 {
-	Matrix4d orthoMatrix = orthographicLH(left, right, bottom, top, zNear, zFar);
-
-	const Vector4d &col2 = orthoMatrix.mCol2;
-	const Vector4d &col3 = orthoMatrix.mCol3;
-	orthoMatrix.mCol2.setZ(-col2.getZ());
-	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
-
-	return orthoMatrix;
+	return orthographicLH(left, right, bottom, top, zFar, zNear);
 }
 
 inline const Matrix4d Matrix4d::cubeProjectionLH(const double zNear, const double zFar)

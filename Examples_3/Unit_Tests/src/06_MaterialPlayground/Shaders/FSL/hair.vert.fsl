@@ -53,11 +53,11 @@
 
 float4 GetStrandColor(int index)
 {
-	float4 rootColor = float4(Get(RootColor) >> 24, (Get(RootColor) >> 16) & 0xFF, (Get(RootColor) >> 8) & 0xFF, Get(RootColor) & 0xFF) * (1.0f / 255.0f);
-	float4 strandColor = float4(Get(StrandColor) >> 24, (Get(StrandColor) >> 16) & 0xFF, (Get(StrandColor) >> 8) & 0xFF, Get(StrandColor) & 0xFF) * (1.0f / 255.0f);
+	float4 rootColor = float4(cbHair.RootColor >> 24, (cbHair.RootColor >> 16) & 0xFF, (cbHair.RootColor >> 8) & 0xFF, cbHair.RootColor & 0xFF) * (1.0f / 255.0f);
+	float4 strandColor = float4(cbHair.StrandColor >> 24, (cbHair.StrandColor >> 16) & 0xFF, (cbHair.StrandColor >> 8) & 0xFF, cbHair.StrandColor & 0xFF) * (1.0f / 255.0f);
 
-	float strandPos = (index % Get(NumVerticesPerStrand)) / float(Get(NumVerticesPerStrand));
-	float colorWeight = 1.0f - saturate(pow(1.0f - strandPos, Get(ColorBias)));
+	float strandPos = (index % cbHair.NumVerticesPerStrand) / float(cbHair.NumVerticesPerStrand);
+	float colorWeight = 1.0f - saturate(pow(1.0f - strandPos, cbHair.ColorBias));
 
 	return lerp(rootColor, strandColor, colorWeight);
 }
@@ -68,37 +68,37 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 	VSOutput Out;
 	uint index = vertexID / 2;
 
-	float3 v = Get(GuideHairVertexPositions)[index].xyz;
-	float3 t = Get(GuideHairVertexTangents)[index].xyz;
+	float3 v = GuideHairVertexPositions[index].xyz;
+	float3 t = GuideHairVertexTangents[index].xyz;
 
-	v = mul(Get(Transform), float4(v, 1.0f)).xyz;
-	t = normalize(mul(Get(Transform), float4(t, 0.0f)).xyz);
+	v = mul(cbHair.Transform, float4(v, 1.0f)).xyz;
+	t = normalize(mul(cbHair.Transform, float4(t, 0.0f)).xyz);
 
-	float3 right = normalize(cross(t, normalize(v - Get(Cam).Pos)));
+	float3 right = normalize(cross(t, normalize(v - cbCamera.Pos)));
 #if FT_MULTIVIEW
-	float2 projRight = normalize(mul(Get(Cam).VPMatrix[VR_VIEW_ID], float4(right, 0)).xy);
+	float2 projRight = normalize(mul(cbCamera.VPMatrix[VR_VIEW_ID], float4(right, 0)).xy);
 #else
-	float2 projRight = normalize(mul(Get(Cam).VPMatrix, float4(right, 0)).xy);
+	float2 projRight = normalize(mul(cbCamera.VPMatrix, float4(right, 0)).xy);
 #endif
 
 	float expandPixels = 0.71f;
 
-	float thickness = Get(HairThicknessCoefficients)[index];
+	float thickness = HairThicknessCoefficients[index];
 
 	float4 hairEdgePositions[2];
-	hairEdgePositions[0] = float4(v + -right * thickness * Get(FiberRadius), 1.0f);
-	hairEdgePositions[1] = float4(v + right * thickness * Get(FiberRadius), 1.0f);
+	hairEdgePositions[0] = float4(v + -right * thickness * cbHair.FiberRadius, 1.0f);
+	hairEdgePositions[1] = float4(v + right * thickness * cbHair.FiberRadius, 1.0f);
 #if FT_MULTIVIEW
-	hairEdgePositions[0] = mul(Get(Cam).VPMatrix[VR_VIEW_ID], hairEdgePositions[0]);
-	hairEdgePositions[1] = mul(Get(Cam).VPMatrix[VR_VIEW_ID], hairEdgePositions[1]);
+	hairEdgePositions[0] = mul(cbCamera.VPMatrix[VR_VIEW_ID], hairEdgePositions[0]);
+	hairEdgePositions[1] = mul(cbCamera.VPMatrix[VR_VIEW_ID], hairEdgePositions[1]);
 #else
-	hairEdgePositions[0] = mul(Get(Cam).VPMatrix, hairEdgePositions[0]);
-	hairEdgePositions[1] = mul(Get(Cam).VPMatrix, hairEdgePositions[1]);
+	hairEdgePositions[0] = mul(cbCamera.VPMatrix, hairEdgePositions[0]);
+	hairEdgePositions[1] = mul(cbCamera.VPMatrix, hairEdgePositions[1]);
 #endif
 
 	float dir = (vertexID & 1) != 0 ? 1.0f : -1.0f;
 
-	Out.Position = hairEdgePositions[vertexID & 1] + dir * float4(projRight * expandPixels / Get(Viewport).w, 0.0f, 0.0f) * hairEdgePositions[vertexID & 1].w;
+	Out.Position = hairEdgePositions[vertexID & 1] + dir * float4(projRight * expandPixels / cbHairGlobal.Viewport.w, 0.0f, 0.0f) * hairEdgePositions[vertexID & 1].w;
 	Out.Tangent = float4(t, thickness);
 	Out.P0P1 = float4(hairEdgePositions[0].xy, hairEdgePositions[1].xy);
 	Out.Color = GetStrandColor(int(index));

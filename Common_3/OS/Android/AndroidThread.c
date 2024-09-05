@@ -58,7 +58,7 @@ bool initMutex(Mutex* pMutex)
     return status == 0;
 }
 
-void destroyMutex(Mutex* pMutex) { pthread_mutex_destroy(&pMutex->pHandle); }
+void exitMutex(Mutex* pMutex) { pthread_mutex_destroy(&pMutex->pHandle); }
 
 void acquireMutex(Mutex* pMutex)
 {
@@ -86,7 +86,7 @@ bool initConditionVariable(ConditionVariable* pCv)
     return res == 0;
 }
 
-void destroyConditionVariable(ConditionVariable* pCv) { pthread_cond_destroy(&pCv->pHandle); }
+void exitConditionVariable(ConditionVariable* pCv) { pthread_cond_destroy(&pCv->pHandle); }
 
 void waitConditionVariable(ConditionVariable* pCv, Mutex* mutex, uint32_t ms)
 {

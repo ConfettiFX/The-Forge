@@ -199,52 +199,12 @@ float random(float3 seed, float3 freq)
 /************************************************************************/
 // Shading / PBR functions...
 /************************************************************************/
-
-float2 LightingFunGGX_FV(float dotLH, float roughness)
-{
-	float alpha = roughness * roughness;
-
-	//F
-	float F_a, F_b;
-	float dotLH5 = Pow5(saturate(1.0f - dotLH));
-	F_a = 1.0f;
-	F_b = dotLH5;
-
-	//V
-	float vis;
-	float k  = alpha * 0.5f;
-	float k2 = k * k;
-	float invK2 = 1.0f - k2;
-	vis = 1.0f / (dotLH*dotLH*invK2 + k2);
-
-	return float2((F_a - F_b)*vis, F_b*vis);
-}
-
-float LightingFuncGGX_D(float dotNH, float roughness)
-{
-	float alpha = roughness * roughness;
-	float alphaSqr = alpha * alpha;
-	float denom = max(dotNH * dotNH * (alphaSqr - 1.0f) + 1.0f, 0.001f);
-
-	return alphaSqr / (PI*denom*denom);
-}
-
-float3 GGX_Spec(float3 Normal, float3 HalfVec, float Roughness, float3 SpecularColor, float2 paraFV)
-{
-	float NoH = saturate(dot(Normal, HalfVec));
-	float NoH2 = NoH * NoH;
-	float NoH4 = NoH2 * NoH2;
-	float D = LightingFuncGGX_D(NoH4, Roughness);
-	float2 FV_helper = paraFV;
-
-	float3 FV = SpecularColor * FV_helper.x + float3(FV_helper.y, FV_helper.y, FV_helper.y);
-
-	return D * FV;
-}
-
+// Produces similar values as F_Schlick but fixes glancing angles issues (For ex. going white for rough surfaces)..
+// -- normal F_Schlick when applied to prefiltered cubemap shows higher specColor at edges even with high roughness values.
+// [Lagarde. 2011, "Adopting a physically based shading model"]
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-	//return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+	// return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 	float3 ret = f3(0.0f);
 	float powTheta = Pow5(1.0f - cosTheta);
 	float oneMinusRough = float(1.0f - roughness);
@@ -271,7 +231,7 @@ float Vis_SmithJointApprox(float a2, float NoV, float NoL)
 	float a = sqrt(a2);
 	float Vis_SmithV = NoL * (NoV * (1.0f - a) + a);
 	float Vis_SmithL = NoV * (NoL * (1.0f - a) + a);
-	return 0.5f * rcp(max(Vis_SmithV + Vis_SmithL, 0.001f));
+	return 0.5f * rcp(max(Vis_SmithV + Vis_SmithL, 0.01f));
 }
 
 // [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]
@@ -284,74 +244,156 @@ float3 F_Schlick(float3 SpecularColor, float VoH)
 	return saturate(SpecularColor.g) * Fc + (1.0f - Fc) * SpecularColor;
 }
 
+// Cook-Torrance Specular BRDF term
 float3 SpecularGGX(float Roughness, inout(float3) SpecularColor, float NoL, float Nov, float NoH, float VoH)
 {
 	float a = Roughness * Roughness;
 	float a2 = a * a;
 
 	// Generalized microfacet specular
+	// Calculate normal distribution.. Approx. microfacets..
 	float D = D_GGX(a2, NoH);
+	// Calculate Geometry func.. Self-shadowing for microfacets..
 	float Vis = Vis_SmithJointApprox(a2, Nov, NoL);
+	// Calculate surface reflection..
 	SpecularColor = F_Schlick(SpecularColor, VoH);
 
 	return (D * Vis) * SpecularColor;
 }
 
-float3 PBR_shadowFactor(float NoL, float NoV, float3 LightVec, float3 ViewVec,
-	float3 HalfVec, float3 NormalVec, inout(float3) albedo,
-	inout(float3) specColor, float Roughness, float Metallic, bool isBackface, float shadowFactor)
+float3 PBR_shadowFactor(
+	float NoL, float NoV, 
+	float3 ViewVec, float3 HalfVec, float3 NormalVec,
+	float3 albedo, inout(float3) specColor, float Roughness, float Metallic, float shadowFactor)
 {
 	float NoH = saturate(dot(NormalVec, HalfVec));
 	float VoH = saturate(dot(ViewVec, HalfVec));
 
-	// SPECULAR
-	float3 specularTerm = f3(0.0f);
-	if (!isBackface)
-		specularTerm = lerp(f3(0.0f), SpecularGGX(Roughness, specColor, NoL, NoV, NoH, VoH), shadowFactor);
-
+	// -- Do not copy outside implementation for this.. 
+	float3 specularTerm = lerp(f3(0.0f), SpecularGGX(Roughness, specColor, NoL, NoV, NoH, VoH), shadowFactor);
 	return (albedo + specularTerm);
 }
 
-float3 PBR(float NoL, float NoV, float3 LightVec, float3 ViewVec,
-	float3 HalfVec, float3 NormalVec, inout(float3) albedo,
-	inout(float3) specColor, float Roughness, float Metallic, bool isBackface)
+float3 PBR(
+	float NoL, float NoV, 
+	float3 ViewVec, float3 HalfVec, float3 NormalVec, 
+	float3 albedo, inout(float3) specColor, float Roughness, float Metallic)
 {
 	float NoH = saturate(dot(NormalVec, HalfVec));
 	float VoH = saturate(dot(ViewVec, HalfVec));
 
-	// SPECULAR
-	float3 specularTerm = f3(0.0f);
-	if (!isBackface)
-		specularTerm = SpecularGGX(Roughness, specColor, NoL, NoV, NoH, VoH);
-
+	// -- Do not copy outside implementation for this..
+	float3 specularTerm = SpecularGGX(Roughness, specColor, NoL, NoV, NoH, VoH);
 	return (albedo + specularTerm);
 }
 
-float3 calculateSpecular(float3 specularColor, float3 camPos, float3 pixelPos, float3 normalizedDirToLight, float3 normal)
+float3 calcPointLightShade(
+	float NoV, 
+	float3 ViewVec, float3 NormalVec, 
+	float3 albedo, inout(float3) specColor, float Roughness, float Metallic,
+	float3 fragWorldPos, float3 lightPos, float3 lightCol, float lightRadius, bool isTwoSided)
 {
-	float3 viewVec = normalize(camPos - pixelPos);
-	float3 halfVec = normalize(viewVec + normalizedDirToLight);
-	float specIntensity = 128.0f;
-	float specular = pow(saturate(dot(halfVec, normal)), specIntensity);
+	// Vec pointing to light
+	float3 toLight = lightPos - fragWorldPos;
+	
+	// Calculate attenuation
+	float3 lVec = toLight * (1.0f / lightRadius);
+	float attenuation = saturate(1.0f - dot(lVec, lVec));
 
-	return specularColor * specular;
+	// Direction to light. 
+	toLight = normalize(toLight);
+
+	// Get light strength..
+	float NoL = dot(NormalVec, toLight);	
+	// We need to handle two-sided fragments differently as they can be viewed from any direction...
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	// halfway vec
+	float3 HalfVec = normalize(ViewVec + toLight);
+
+	float3 shadedColor = PBR(
+				NoL, NoV, 
+				ViewVec, HalfVec, NormalVec,
+				albedo, specColor,
+				Roughness, Metallic);
+
+	return shadedColor * lightCol * attenuation * NoL;
 }
 
-float calcESMShadowFactor(float4 posLS, Tex2D(float) pShadowMap, SamplerState sh, float pEsmControl)
+float calcESMShadowFactor(inout(float4) posLS, Tex2D(float) pShadowMap, SamplerState sh, float pEsmControl)
 {
 	float shadowFactor = 0.0;
 
-	if( AllGreaterThan(abs(posLS.xy-f2(0.5)), 0.5) )
+	// Project light space frag position to NDC...
+	posLS /= posLS.w;
+	posLS.y *= -1;
+	posLS.xy = posLS.xy * 0.5 + f2(0.5);
+
+	if (all(GreaterThan(posLS.xy, 0.0f)) && all(LessThan(posLS.xy, 1.0f)))
 	{
-		return shadowFactor;
+		if( AllGreaterThan(abs(posLS.xy-f2(0.5)), 0.5) )
+		{
+			return shadowFactor;
+		}
+
+		// 3x3 Gaussian kernel
+		const float GaussianKernel[3][3] =
+		{
+			{ 1.0, 2.0, 1.0 },
+			{ 2.0, 4.0, 2.0 },
+			{ 1.0, 2.0, 1.0 }
+		};
+
+		float avgShadowDepthSample = 0.0;
+
+		// 9-tap Gaussian filtering produces softer appearance than averaging
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(-1, -1)).r * GaussianKernel[0][0];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(-1,  0)).r * GaussianKernel[0][1];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(-1,  1)).r * GaussianKernel[0][2];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 0, -1)).r * GaussianKernel[1][0];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 0,  0)).r * GaussianKernel[1][1];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 0,  1)).r * GaussianKernel[1][2];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 1, -1)).r * GaussianKernel[2][0];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 1,  0)).r * GaussianKernel[2][1];
+		avgShadowDepthSample += SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2( 1,  1)).r * GaussianKernel[2][2];
+		// Divide by the sum of Gaussian kernel weights (16.0)
+		avgShadowDepthSample /= 16.0;
+
+		shadowFactor = saturate(exp((posLS.z - avgShadowDepthSample) * pEsmControl));
 	}
 
-	float4 shadowDepthSample = float4(0, 0, 0, 0);
-	shadowDepthSample.x = SampleLvlTex2D(pShadowMap, sh, posLS.xy, 0).r;
-	shadowDepthSample.y = SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(1, 0)).r;
-	shadowDepthSample.z = SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(0, 1)).r;
-	shadowDepthSample.w = SampleLvlOffsetTex2D(pShadowMap, sh, posLS.xy, 0, int2(1, 1)).r;
-	float avgShadowDepthSample = (shadowDepthSample.x + shadowDepthSample.y + shadowDepthSample.z + shadowDepthSample.w) * 0.25f;
-	shadowFactor = saturate(2.0 - exp((posLS.z - avgShadowDepthSample) * pEsmControl));
 	return shadowFactor;
+}
+
+// Calculates the local (barycentric coordinates) position of a ray hitting a triangle (Muller-Trumbore algorithm)
+// Parameters: p0,p1,p2 -> World space coordinates of triangle
+// o -> Origin of ray in world space (Mainly view camera here)
+// d-> Unit vector direction of ray from origin
+float3 rayTriangleIntersection(float3 p0, float3 p1, float3 p2, float3 o, float3 d)
+{
+	float3 v0v1 = p1-p0;
+	float3 v0v2 = p2-p0;
+	float3 pvec = cross(d,v0v2);
+	float det = dot(v0v1,pvec);
+	float invDet = 1/det;
+	float3 tvec = o - p0;
+	float u = dot(tvec,pvec) * invDet;
+	float3 qvec = cross(tvec,v0v1);
+	float v = dot(d,qvec) *invDet;
+	float w = 1.0f - v - u;
+	return float3(w,u,v);
+}
+
+// Calculates the inverse of a reverse z perspective projection matrix
+// This is faster than regular 4x4 matrix inversion since it can be split to two 2x2 submatrix inverses
+float4x4 InverseProjectionMatrixPerspectiveReverseZ(float4x4 proj)
+{
+	float4x4 ret = proj;
+	ret[0][0] = 1.0 / proj[0][0];
+	ret[1][1] = 1.0 / proj[1][1];
+	ret[2][2] = 0;
+	ret[2][3] = 1.0 / proj[3][2];
+	ret[3][2] = 1;
+	ret[3][3] = -proj[3][2] / proj[2][2];
+	return ret;
 }

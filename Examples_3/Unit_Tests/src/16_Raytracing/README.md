@@ -8,7 +8,7 @@ This Raytracing test applies to the following Raytracing executables:
 
 * Windows x64 DirectX - The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2019\x64\ReleaseDx\16_Raytracing
 
-* Linux	Vulkan - The-Forge\Examples_3\Unit_Tests\UbuntuCodelite\16_Raytracing\Release\16_Raytracing
+* Linux	Vulkan - The-Forge\Examples_3\Unit_Tests\SteamOS_Codelite\16_Raytracing\Release\16_Raytracing
 
 
 ## Quick run

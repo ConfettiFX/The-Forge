@@ -22,7 +22,7 @@
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes">
-        <LibraryPath Value="$(ProjectPath)/../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/Debug"/>
         <LibraryPath Value="./Debug"/>
         <Library Value="libBuny.a"/>
         <Library Value="libOS.a"/>
@@ -67,7 +67,7 @@
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
       <Linker Options="" Required="yes">
-        <LibraryPath Value="$(ProjectPath)/../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Release"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/Release"/>
         <LibraryPath Value="./Release"/>
         <Library Value="libBuny.a"/>
         <Library Value="libOS.a"/>

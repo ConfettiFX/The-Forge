@@ -27,14 +27,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06_MaterialPlayground", "06
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "12_ZipFileSystem", "12_ZipFileSystem\12_ZipFileSystem.vcxproj", "{66C74525-1E43-483E-8DAE-A7C5836FDBDF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "15_Transparency", "15_Transparency\15_Transparency.vcxproj", "{69CBDFA9-4368-4749-9417-08F68C856C94}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "17_EntityComponentSystem", "17_EntityComponentSystem\17_EntityComponentSystem.vcxproj", "{A6E3EA66-19D5-46EE-B111-877DD965AB89}"
-	ProjectSection(ProjectDependencies) = postProject
-		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
-		{DB6193E0-3C12-450F-B344-DC4DAED8C421} = {DB6193E0-3C12-450F-B344-DC4DAED8C421}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_base", "..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\base\ozz_base\ozz_base.vcxproj", "{055FAD37-A3D6-4D9A-A63A-C81716339982}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\offline\ozz_animation_offline\ozz_animation_offline.vcxproj", "{7EA11457-ECF2-4106-B963-3BEE3AFEC428}"
@@ -42,8 +34,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\runtime\ozz_animation\ozz_animation.vcxproj", "{2F0E7E67-FF8E-4A4E-8271-11614A284790}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "Libraries\Tools\SpirvTools\SpirvTools.vcxproj", "{5E22FFEA-7871-4E40-96B0-269809340C5F}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "Libraries\Tools\gainputstatic\gainputstatic.vcxproj", "{A4C073AB-608B-4E1C-B24A-9E3919235F0C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "28_Skinning", "28_Skinning\28_Skinning.vcxproj", "{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}"
 EndProject
@@ -89,14 +79,6 @@ Global
 		{66C74525-1E43-483E-8DAE-A7C5836FDBDF}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{66C74525-1E43-483E-8DAE-A7C5836FDBDF}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{66C74525-1E43-483E-8DAE-A7C5836FDBDF}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{69CBDFA9-4368-4749-9417-08F68C856C94}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{69CBDFA9-4368-4749-9417-08F68C856C94}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{69CBDFA9-4368-4749-9417-08F68C856C94}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{69CBDFA9-4368-4749-9417-08F68C856C94}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{A6E3EA66-19D5-46EE-B111-877DD965AB89}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{A6E3EA66-19D5-46EE-B111-877DD965AB89}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{A6E3EA66-19D5-46EE-B111-877DD965AB89}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{A6E3EA66-19D5-46EE-B111-877DD965AB89}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 		{055FAD37-A3D6-4D9A-A63A-C81716339982}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{055FAD37-A3D6-4D9A-A63A-C81716339982}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{055FAD37-A3D6-4D9A-A63A-C81716339982}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
@@ -113,10 +95,6 @@ Global
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
@@ -145,13 +123,10 @@ Global
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{611831C0-6301-4DB2-A61E-2596129C9239} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{66C74525-1E43-483E-8DAE-A7C5836FDBDF} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
-		{69CBDFA9-4368-4749-9417-08F68C856C94} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
-		{A6E3EA66-19D5-46EE-B111-877DD965AB89} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{7EA11457-ECF2-4106-B963-3BEE3AFEC428} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365} = {28423D1E-F232-4C3F-9872-F24CFC9D8493}
 		{945448D4-52AC-406B-9C18-BD54E83D1BA4} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{50434FC0-BDB1-4AC6-9A49-ABB92E7CBB13} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}

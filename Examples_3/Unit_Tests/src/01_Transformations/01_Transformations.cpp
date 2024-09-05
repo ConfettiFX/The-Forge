@@ -31,7 +31,6 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -73,8 +72,8 @@ struct UniformBlock
     float        mGeometryWeight[MAX_PLANETS][4];
 
     // Point Light Information
-    vec3 mLightPosition;
-    vec3 mLightColor;
+    vec4 mLightPosition;
+    vec4 mLightColor;
 };
 
 struct UniformBlockSky
@@ -436,21 +435,26 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         // window and renderer setup
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
-        settings.mD3D11Supported = true;
-        settings.mGLESSupported = true;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
         if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
         {
@@ -459,23 +463,23 @@ public:
             poolDesc.mType = QUERY_TYPE_PIPELINE_STATISTICS;
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
-                addQueryPool(pRenderer, &poolDesc, &pPipelineStatsQueryPool[i]);
+                initQueryPool(pRenderer, &poolDesc, &pPipelineStatsQueryPool[i]);
             }
         }
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pGraphicsQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         initResourceLoaderInterface(pRenderer);
 
@@ -543,36 +547,10 @@ public:
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
         // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-        /************************************************************************/
-        // GUI
-        /************************************************************************/
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-        uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
-
-        SliderUintWidget vertexLayoutWidget;
-        vertexLayoutWidget.mMin = 0;
-        vertexLayoutWidget.mMax = 1;
-        vertexLayoutWidget.mStep = 1;
-        vertexLayoutWidget.pData = &gSphereLayoutType;
-        UIWidget* pVLw = uiCreateComponentWidget(pGuiWindow, "Vertex Layout", &vertexLayoutWidget, WIDGET_TYPE_SLIDER_UINT);
-        uiSetWidgetOnEditedCallback(pVLw, nullptr, reloadRequest);
-
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
-        {
-            static float4     color = { 1.0f, 1.0f, 1.0f, 1.0f };
-            DynamicTextWidget statsWidget;
-            statsWidget.pText = &gPipelineStats;
-            statsWidget.pColor = &color;
-            uiCreateComponentWidget(pGuiWindow, "Pipeline Stats", &statsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
-        }
+        gGpuProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
         const uint32_t numScripts = TF_ARRAY_COUNT(gWindowTestScripts);
         LuaScriptDesc  scriptDescs[numScripts] = {};
@@ -701,104 +679,8 @@ public:
 
         pCameraController->setMotionParameters(cmp);
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onAnyInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pGraphicsQueue);
         gFrameIndex = 0;
 
         return true;
@@ -806,7 +688,7 @@ public:
 
     void Exit()
     {
-        exitInputSystem();
+        exitScreenshotInterface();
 
         exitCameraController(pCameraController);
 
@@ -823,7 +705,7 @@ public:
             removeResource(pSkyboxUniformBuffer[i]);
             if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
             {
-                removeQueryPool(pRenderer, pPipelineStatsQueryPool[i]);
+                exitQueryPool(pRenderer, pPipelineStatsQueryPool[i]);
             }
         }
 
@@ -834,14 +716,15 @@ public:
 
         removeSampler(pRenderer, pSamplerSkyBox);
 
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
 
         exitResourceLoaderInterface(pRenderer);
 
-        removeQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pGraphicsQueue);
 
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
     }
 
@@ -856,6 +739,30 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            // we only need to reload gui when the size of window changed
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGuiWindow);
+
+            SliderUintWidget vertexLayoutWidget;
+            vertexLayoutWidget.mMin = 0;
+            vertexLayoutWidget.mMax = 1;
+            vertexLayoutWidget.mStep = 1;
+            vertexLayoutWidget.pData = &gSphereLayoutType;
+            UIWidget* pVLw = uiAddComponentWidget(pGuiWindow, "Vertex Layout", &vertexLayoutWidget, WIDGET_TYPE_SLIDER_UINT);
+            uiSetWidgetOnEditedCallback(pVLw, nullptr, reloadRequest);
+
+            if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+            {
+                static float4     color = { 1.0f, 1.0f, 1.0f, 1.0f };
+                DynamicTextWidget statsWidget;
+                statsWidget.pText = &gPipelineStats;
+                statsWidget.pColor = &color;
+                uiAddComponentWidget(pGuiWindow, "Pipeline Stats", &statsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
+            }
+
             if (!addSwapChain())
                 return false;
 
@@ -885,8 +792,6 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
-
         return true;
     }
 
@@ -908,6 +813,8 @@ public:
         {
             removeSwapChain(pRenderer, pSwapChain);
             removeRenderTarget(pRenderer, pDepthBuffer);
+            uiRemoveComponent(pGuiWindow);
+            unloadProfilerUI();
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -916,13 +823,36 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
 
         pCameraController->update(deltaTime);
         /************************************************************************/
@@ -940,8 +870,8 @@ public:
         gUniformData.mProjectView = projMat * viewMat;
 
         // point light parameters
-        gUniformData.mLightPosition = vec3(0, 0, 0);
-        gUniformData.mLightColor = vec3(0.9f, 0.9f, 0.7f); // Pale Yellow
+        gUniformData.mLightPosition = vec4(0, 0, 0, 0);
+        gUniformData.mLightColor = vec4(0.9f, 0.9f, 0.7f, 1.0f); // Pale Yellow
 
         // update planet transformations
         for (unsigned int i = 0; i < gNumPlanets; i++)
@@ -1237,12 +1167,12 @@ public:
     void addShaders()
     {
         ShaderLoadDesc skyShader = {};
-        skyShader.mStages[0].pFileName = "skybox.vert";
-        skyShader.mStages[1].pFileName = "skybox.frag";
+        skyShader.mVert.pFileName = "skybox.vert";
+        skyShader.mFrag.pFileName = "skybox.frag";
 
         ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0].pFileName = "basic.vert";
-        basicShader.mStages[1].pFileName = "basic.frag";
+        basicShader.mVert.pFileName = "basic.vert";
+        basicShader.mFrag.pFileName = "basic.frag";
 
         addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
         addShader(pRenderer, &basicShader, &pSphereShader);

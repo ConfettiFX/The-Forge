@@ -25,7 +25,7 @@
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\11_LinkedMultiGPU\Scripts\Test0.lua" />
+    <None Include="..\..\..\Art\Scripts\11_LinkedMultiGPU\Test0.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3C4D4A39-3CD2-4462-A655-8F18CF045F2B}</ProjectGuid>
@@ -51,7 +51,7 @@
   </ImportGroup>
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -72,21 +72,26 @@
       </PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        Renderer.lib;
+        OS.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
       <Message>
       </Message>
@@ -94,27 +99,22 @@
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
+        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
 
-xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
-xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
-
-xcopy /Y /S /D "$(ProjectDir)..\src\11_LinkedMultiGPU\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
-xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
-</Command>
+        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
+        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+      </Command>
     </PostBuildEvent>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12</Language>
+      <Language>DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,8 +125,6 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -134,7 +132,13 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        Renderer.lib;
+        OS.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <FxCompile>
@@ -145,7 +149,8 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
       <Message>
       </Message>
@@ -153,27 +158,22 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Skybox_*.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\circlepad.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
+        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
 
-xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
-xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
-
-xcopy /Y /S /D "$(ProjectDir)..\src\11_LinkedMultiGPU\Scripts\*.lua" "$(OutDir)Scripts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
-xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
-</Command>
+        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
+        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+      </Command>
     </PostBuildEvent>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12</Language>
+      <Language>DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

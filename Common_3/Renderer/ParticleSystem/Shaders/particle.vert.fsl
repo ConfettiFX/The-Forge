@@ -25,46 +25,39 @@
 #include "../../../Graphics/ShaderUtilities.h.fsl"
 #include "particle_shared.h.fsl"
 #include "particle_sets.h.fsl"
-#include "particle_utils.h.fsl"
+#include "particle_packing.h.fsl"
 
 STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
-	DATA(FLAT(uint), InstanceId, TEXCOORD1);
-	DATA(FLAT(uint), ParticleSetIndex, TEXCOORD2);
+	// First 16 bits: age over max age, last 16 bits: speed over max speed
+	DATA(FLAT(uint), Modulator, TEXCOORD1);
+	// First bit: modulation type, remaining 31 bits: particle set index
+	DATA(FLAT(uint), ParticleSetIndexModulationType, TEXCOORD2);
 };
 
-VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
+VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 {
 	INIT_MAIN;
 
 	VSOutput result;
 	result.Position = float4(0,0,0,0);
 	result.TexCoord = float2(0,0);
-	result.InstanceId = 0;
-	result.ParticleSetIndex = 0;
+	result.Modulator = 0;
+	result.ParticleSetIndexModulationType = 0;
 
-	// Each quad has 6 vertices
-	uint instanceId = vertexId / 6;
-	uint instanceVertexId = vertexId % 6;
+	uint particleIdx = ParticlesToRasterize[instanceId];
 
-	uint particleIdx = Get(ParticlesToRasterize)[instanceId];
-
-	uint Bitfield = Get(BitfieldBuffer)[particleIdx];
-	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) == 0)
-	{
-		RETURN(result);
-	}
-
-	ParticleData particleData = Get(ParticlesDataBuffer)[particleIdx];
+	uint Bitfield = BitfieldBuffer[particleIdx];
+	ParticleData particleData = ParticlesDataBuffer[particleIdx];
 
 	float4 VelocityAge;
 	float3 position;
 
 	UnpackParticle(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particleData, position, VelocityAge);
 
-	float scale = GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK).Size.w;
+	float scale = UnpackParticleSize(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particleIdx, UnpackParticleAgeOverMaxAge(particleData));
 	const float3 vertexPosCache_indexed[4] =
 	{
 		float3(-scale, -scale, 0.0f),
@@ -101,19 +94,19 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 		vertexTexCache_indexed[0],
 	};
 
-	float4 offset = float4(vertexPosCache[instanceVertexId], 1.0f);
+	float4 offset = float4(vertexPosCache[vertexId], 1.0f);
 	uint billboardMode = Bitfield & PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK;
 
-	float3 right = getCol(Get(ViewTransform), 0).xyz;
-	float3 up = getCol(Get(ViewTransform), 1).xyz;
-	float3 forward = getCol(Get(ViewTransform), 2).xyz;
+	float3 right = getCol(ParticleConstantBuffer.ViewTransform, 0).xyz;
+	float3 up = getCol(ParticleConstantBuffer.ViewTransform, 1).xyz;
+	float3 forward = getCol(ParticleConstantBuffer.ViewTransform, 2).xyz;
 
 	switch (billboardMode)
 	{
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_SCREEN_ALIGNED:
 		{
-			result.Position = mul(Get(ViewTransform), float4(position, 1.0f));
-			result.Position.xyz += vertexPosCache[instanceVertexId].xyz;
+			result.Position = mul(ParticleConstantBuffer.ViewTransform, float4(position, 1.0f));
+			result.Position.xyz += vertexPosCache[vertexId].xyz;
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_VELOCITY_ORIENTED:
 		{
@@ -123,7 +116,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 			forward = cross(up, right);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
 			result.Position = mul(billboard, offset);
-			result.Position = mul(Get(ViewTransform), result.Position);
+			result.Position = mul(ParticleConstantBuffer.ViewTransform, result.Position);
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_HORIZONTAL:
 		{
@@ -132,16 +125,16 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId )
 			right = float3(1.0f, 0.0f, 0.0f);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
 			result.Position = mul(billboard, offset);
-			result.Position = mul(Get(ViewTransform), result.Position);
+			result.Position = mul(ParticleConstantBuffer.ViewTransform, result.Position);
 		} break;
 		default:
 			break;
 	}
 
-	result.Position = mul(Get(ProjTransform), result.Position);
-	result.TexCoord = vertexTexCache[instanceVertexId];
-	result.InstanceId = instanceId;
-	result.ParticleSetIndex = Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+	result.Position = mul(ParticleConstantBuffer.ProjTransform, result.Position);
+	result.TexCoord = vertexTexCache[vertexId];
+	result.Modulator = pack2Floats(UnpackParticleAgeOverMaxAge(particleData), UnpackParticleSpeedOverMaxSpeed(particleData, GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK)));
+	result.ParticleSetIndexModulationType = (Bitfield & 0xFF) | ((Bitfield & PARTICLE_MODULATION_TYPE_LIFETIME) > 0 ? 1 << 31 : 0);
 
 	RETURN(result);
 }

@@ -25,10 +25,6 @@
 
 #include "wchar.h"
 
-#if !defined(TARGET_IOS)
-#include "../ThirdParty/OpenSource/rmem/inc/rmem.h"
-#endif
-
 #include <memory.h>
 #include <stdlib.h>
 
@@ -54,20 +50,6 @@
 #endif
 
 #define MIN_ALLOC_ALIGNMENT MEM_MAX(VECTORMATH_MIN_ALIGN, PLATFORM_MIN_MALLOC_ALIGNMENT)
-
-#ifdef ENABLE_MTUNER
-#define MTUNER_ALLOC(_handle, _ptr, _size, _overhead) rmemAlloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead))
-#define MTUNER_ALIGNED_ALLOC(_handle, _ptr, _size, _overhead, _align) \
-    rmemAllocAligned((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead), (uint32_t)(_align))
-#define MTUNER_REALLOC(_handle, _ptr, _size, _overhead, _prevPtr) \
-    rmemRealloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead), (_prevPtr))
-#define MTUNER_FREE(_handle, _ptr) rmemFree((_handle), (_ptr))
-#else
-#define MTUNER_ALLOC(_handle, _ptr, _size, _overhead)
-#define MTUNER_ALIGNED_ALLOC(_handle, _ptr, _size, _overhead, _align)
-#define MTUNER_REALLOC(_handle, _ptr, _size, _overhead, _prevPtr)
-#define MTUNER_FREE(_handle, _ptr)
-#endif
 
 #if defined(ENABLE_MEMORY_TRACKING)
 
@@ -105,9 +87,6 @@ void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, cons
 {
     void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, size);
 
-    // If using MTuner, report allocation to rmem.
-    MTUNER_ALIGNED_ALLOC(0, pMemAlign, size, 0, align);
-
     // Return handle to allocated memory.
     return pMemAlign;
 }
@@ -118,9 +97,6 @@ void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const
 
     void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_calloc, align, size * count);
 
-    // If using MTuner, report allocation to rmem.
-    MTUNER_ALIGNED_ALLOC(0, pMemAlign, size, 0, align);
-
     // Return handle to allocated memory.
     return pMemAlign;
 }
@@ -129,22 +105,13 @@ void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const ch
 {
     void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr);
 
-    // If using MTuner, report reallocation to rmem.
-    MTUNER_REALLOC(0, pRealloc, size, 0, ptr);
-
     // Return handle to reallocated memory.
     return pRealloc;
 }
 
-void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
-{
-    // If using MTuner, report free to rmem.
-    MTUNER_FREE(0, ptr);
+void tf_free_internal(void* ptr, const char* f, int l, const char* sf) { mmgrDeallocator(f, l, sf, m_alloc_free, ptr); }
 
-    mmgrDeallocator(f, l, sf, m_alloc_free, ptr);
-}
-
-#else // defined(ENABLE_MEMORY_TRACKING) || defined(ENABLE_MTUNER)
+#else // defined(ENABLE_MEMORY_TRACKING)
 
 #include "stdbool.h"
 
@@ -164,10 +131,8 @@ void* tf_malloc(size_t size)
 {
 #ifdef _MSC_VER
     void* ptr = _aligned_malloc(size, MIN_ALLOC_ALIGNMENT);
-    MTUNER_ALIGNED_ALLOC(0, ptr, size, 0, MIN_ALLOC_ALIGNMENT);
 #else
     void* ptr = malloc(size);
-    MTUNER_ALLOC(0, ptr, size, 0);
 #endif
 
     return ptr;
@@ -181,7 +146,6 @@ void* tf_calloc(size_t count, size_t size)
     memset(ptr, 0, sz); //-V575
 #else
     void* ptr = calloc(count, size);
-    MTUNER_ALLOC(0, ptr, count * size, 0);
 #endif
 
     return ptr;
@@ -199,8 +163,6 @@ void* tf_memalign(size_t alignment, size_t size)
         ptr = NULL;
     }
 #endif
-
-    MTUNER_ALIGNED_ALLOC(0, ptr, size, 0, alignment);
 
     return ptr;
 }
@@ -224,15 +186,11 @@ void* tf_realloc(void* ptr, size_t size)
     void* reallocPtr = realloc(ptr, size);
 #endif
 
-    MTUNER_REALLOC(0, reallocPtr, size, 0, ptr);
-
     return reallocPtr;
 }
 
 void tf_free(void* ptr)
 {
-    MTUNER_FREE(0, ptr);
-
 #ifdef _MSC_VER
     _aligned_free(ptr);
 #else
@@ -288,4 +246,4 @@ void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
     tf_free(ptr);
 }
 
-#endif // defined(ENABLE_MEMORY_TRACKING) || defined(ENABLE_MTUNER)
+#endif // defined(ENABLE_MEMORY_TRACKING)

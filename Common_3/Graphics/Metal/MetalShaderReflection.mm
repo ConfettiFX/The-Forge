@@ -562,7 +562,7 @@ void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType 
     *ppCurrentName += pResources[idx].name_size + 1;
 }
 
-void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void mtl_addShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
     if (pOutReflection == NULL)
     {

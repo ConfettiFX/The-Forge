@@ -5,7 +5,6 @@ VisualStudioVersion = 16.0.33214.272
 MinimumVisualStudioVersion = 16.0.0.0
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visibility_Buffer", "Visibility_Buffer.vcxproj", "{610C39FA-F02B-4237-BA8C-4EED56FA8D9F}"
 	ProjectSection(ProjectDependencies) = postProject
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {A4C073AB-608B-4E1C-B24A-9E3919235F0C}
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421} = {DB6193E0-3C12-450F-B344-DC4DAED8C421}
 	EndProjectSection
@@ -17,11 +16,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "..\..\Unit_Tests\Android_VisualStudio2019\Libraries\Tools\SpirvTools\SpirvTools.vcxproj", "{5E22FFEA-7871-4E40-96B0-269809340C5F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\Android_VisualStudio2019\Libraries\OS\OS.vcxproj", "{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {A4C073AB-608B-4E1C-B24A-9E3919235F0C}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\Unit_Tests\Android_VisualStudio2019\Libraries\Tools\gainputstatic\gainputstatic.vcxproj", "{A4C073AB-608B-4E1C-B24A-9E3919235F0C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -59,10 +53,6 @@ Global
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
@@ -86,7 +76,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{610C39FA-F02B-4237-BA8C-4EED56FA8D9F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{1F21F4BD-5ADE-42AF-B861-E6C7D72DB227} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {1F21F4BD-5ADE-42AF-B861-E6C7D72DB227}
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {1F21F4BD-5ADE-42AF-B861-E6C7D72DB227}

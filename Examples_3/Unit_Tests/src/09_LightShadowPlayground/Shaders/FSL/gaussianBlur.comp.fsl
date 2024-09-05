@@ -36,10 +36,10 @@ float4 Pass(int2 id, uint passType)
 	uint textureIndex = uint(passType != PASS_TYPE_HORIZONTAL);
 
 	float sum = 0.0f;
-	for (int i = - int(Get(mFilterRadius)); i <= int(Get(mFilterRadius)); i++)
+	for (int i = - int(BlurRootConstants.mFilterRadius); i <= int(BlurRootConstants.mFilterRadius); i++)
 	{
-		float weight = Get(mBlurWeights[abs(i)/4][abs(i)%4]);
-		result += LoadRWTex2D(Get(ShadowMapTextures[textureIndex]), id + offsetDir * i).rgba * weight;
+		float weight = BlurWeights.mBlurWeights[abs(i)/4][abs(i)%4];
+		result += LoadRWTex2D(ShadowMapTextures[textureIndex], id + offsetDir * i).rgba * weight;
 		sum += weight;
 	}
 	return result / sum;
@@ -49,8 +49,8 @@ NUM_THREADS(THREADX, THREADY, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;
-	float4 result = Pass(int2(threadID.xy), Get(mBlurPassType));
-	uint textureIndex = uint(Get(mBlurPassType) == PASS_TYPE_HORIZONTAL);
-	Write2D(Get(ShadowMapTextures[textureIndex]), threadID.xy, result);
+	float4 result = Pass(int2(threadID.xy), BlurRootConstants.mBlurPassType);
+	uint textureIndex = uint(BlurRootConstants.mBlurPassType == PASS_TYPE_HORIZONTAL);
+	Write2D(ShadowMapTextures[textureIndex], threadID.xy, result);
 	RETURN();
 }

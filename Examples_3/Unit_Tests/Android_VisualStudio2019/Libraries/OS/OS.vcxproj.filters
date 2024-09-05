@@ -124,6 +124,9 @@
     <Filter Include="Common_3\Application\Fonts\Shaders">
       <UniqueIdentifier>{92677230-7018-497a-939d-119a2700c3dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common_3\OS\Input">
+      <UniqueIdentifier>{06374619-502e-4b68-bb71-0489163c61b2}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common_3\OS\Interfaces">
       <UniqueIdentifier>{f7dc3199-4a61-4b28-89b8-1154baba3118}</UniqueIdentifier>
     </Filter>
@@ -162,17 +165,11 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp">
       <Filter>Common_3\Application</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp">
-      <Filter>Common_3\Application</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.cpp">
       <Filter>Common_3\Application\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.cpp">
       <Filter>Common_3\Application\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp">
-      <Filter>Common_3\Application</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp">
       <Filter>Common_3\Application</Filter>
@@ -315,6 +312,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
       <Filter>Common_3\OS\Android</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidInput.cpp">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c">
       <Filter>Common_3\OS\Android</Filter>
     </ClCompile>
@@ -441,9 +441,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\ICameraController.h">
       <Filter>Common_3\Application\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h">
-      <Filter>Common_3\Application\Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IMiddleware.h">
       <Filter>Common_3\Application\Interfaces</Filter>
     </ClInclude>
@@ -482,6 +479,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h">
       <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\TouchInput.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
+      <Filter>Common_3\OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>Common_3\OS\Interfaces</Filter>

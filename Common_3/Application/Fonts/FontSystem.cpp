@@ -214,6 +214,35 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 }
 
 void fonsImplementationRemoveTexture(void*) {}
+
+void fonsImplementationErrorCallback(void* userPtr, int error, int val)
+{
+    UNREF_PARAM(userPtr);
+    UNREF_PARAM(val);
+    switch (error)
+    {
+    case FONS_STATES_OVERFLOW:
+    {
+        ASSERT(false && "Font stash state overflow. Consider increasing FONS_MAX_STATES.");
+        break;
+    }
+    case FONS_STATES_UNDERFLOW:
+    {
+        ASSERT(false && "Font stash state underflow. Popped too many states.");
+        break;
+    }
+    case FONS_SCRATCH_FULL:
+    {
+        ASSERT(false && "Font stash scratch buffer full. Consider increasing FONS_SCRATCH_BUF_SIZE.");
+        break;
+    }
+    case FONS_ATLAS_FULL:
+    {
+        ASSERT(false && "Font atlas is full. Consider resize atlas.");
+        break;
+    }
+    }
+}
 #endif
 
 bool platformInitFontSystem()
@@ -241,6 +270,7 @@ bool platformInitFontSystem()
     params.renderDelete = fonsImplementationRemoveTexture;
     params.renderDraw = fonsImplementationRenderText;
     gFontstash.pContext = fonsCreateInternal(&params);
+    fonsSetErrorCallback(gFontstash.pContext, fonsImplementationErrorCallback, NULL);
 
     return gFontstash.pContext != NULL;
 #else
@@ -339,11 +369,11 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         if (pDesc->mLoadType & RELOAD_TYPE_SHADER)
         {
             ShaderLoadDesc text2DShaderDesc = {};
-            text2DShaderDesc.mStages[0] = { "fontstash2D.vert" };
-            text2DShaderDesc.mStages[1] = { "fontstash.frag" };
+            text2DShaderDesc.mVert = { "fontstash2D.vert" };
+            text2DShaderDesc.mFrag = { "fontstash.frag" };
             ShaderLoadDesc text3DShaderDesc = {};
-            text3DShaderDesc.mStages[0] = { "fontstash3D.vert" };
-            text3DShaderDesc.mStages[1] = { "fontstash.frag" };
+            text3DShaderDesc.mVert = { "fontstash3D.vert" };
+            text3DShaderDesc.mFrag = { "fontstash.frag" };
 
             addShader(gFontstash.pRenderer, &text2DShaderDesc, &gFontstash.pShaders[0]);
             addShader(gFontstash.pRenderer, &text3DShaderDesc, &gFontstash.pShaders[1]);
@@ -608,11 +638,12 @@ int2 fntGetFontAtlasSize()
 {
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(gFontstash.mRenderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
-
     int2         size = {};
     FONScontext* fs = gFontstash.pContext;
     fonsGetAtlasSize(fs, &size.x, &size.y);
     return size;
+#else
+    return int2(0, 0);
 #endif
 }
 

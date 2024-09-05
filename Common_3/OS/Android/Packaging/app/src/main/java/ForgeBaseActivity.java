@@ -7,17 +7,26 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
+import android.view.Surface;
 import android.view.View;
+import android.view.Display;
+import android.view.WindowManager;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
+import java.util.Set;
+import java.util.HashSet;
+import androidx.annotation.Keep;
 
 public class ForgeBaseActivity extends NativeActivity
 {
     private Activity activity;
+
+    public static final String LOGTAG = "TheForgeJava";
 
     private HashMap<Integer, Integer> mMobileThermalMap;
     private static final int          MOBILE_THERMAL_NOT_SUPPORTED = -2;
@@ -78,7 +87,7 @@ public class ForgeBaseActivity extends NativeActivity
         }
         catch (Exception e)
         {
-            Log.i("TheForge", "Failed to populate mMobileThermalMap: " + e.getMessage());
+            Log.i(LOGTAG, "Failed to populate mMobileThermalMap: " + e.getMessage());
         }
 
         try
@@ -100,8 +109,25 @@ public class ForgeBaseActivity extends NativeActivity
         }
         catch (Exception e)
         {
-            Log.i("TheForge", "Failed to setup thermal status listener: " + e.getMessage());
+            Log.i(LOGTAG, "Failed to setup thermal status listener: " + e.getMessage());
         }
+
+        DisplayManager displayManager = (DisplayManager)getSystemService(DISPLAY_SERVICE);
+        if (displayManager != null)
+        {
+            displayManager.registerDisplayListener(
+                new DisplayManager.DisplayListener()
+                {
+                    @Override public void onDisplayAdded(int displayId) { Log.i(LOGTAG, "onDisplayAdded"); }
+
+                    @Override public void onDisplayChanged(int displayId) { Log.i(LOGTAG, "onDisplayChanged"); }
+
+                    @Override public void onDisplayRemoved(int displayId) { Log.i(LOGTAG, "onDisplayRemoved"); }
+                },
+                null);
+        }
+
+        initializeJni();
     }
 
     protected void onResume()
@@ -109,6 +135,8 @@ public class ForgeBaseActivity extends NativeActivity
         super.onResume();
         setImmersiveSticky();
     }
+
+    public void onBackKeyPressed() { runOnUiThread(() -> this.onBackPressed()); }
 
     void setImmersiveSticky()
     {
@@ -121,7 +149,7 @@ public class ForgeBaseActivity extends NativeActivity
     private static native void nativeOnAlertClosed();
 
     // This function will be called from C++ by name and signature
-    public void showAlert(final String title, final String message)
+    @Keep public void showAlert(final String title, final String message)
     {
         this.runOnUiThread(new Runnable()
                            {
@@ -141,6 +169,56 @@ public class ForgeBaseActivity extends NativeActivity
                            });
     }
 
+    @Keep public float[] getSupportedRefreshRates()
+    {
+        if (Build.VERSION.SDK_INT < 23)
+        {
+            Log.i(LOGTAG, "Supported Refresh rate API is only avaible in SDK >= 23.");
+            return null;
+        }
+
+        WindowManager wm = (WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display       display = wm.getDefaultDisplay();
+        Display.Mode[] modes = display.getSupportedModes();
+
+        Set<Float> refreshRatesSet = new HashSet<Float>();
+        for (int i = 0; i < modes.length; i += 1)
+        {
+            refreshRatesSet.add(modes[i].getRefreshRate());
+        }
+
+        // Unique rates
+        int i = 0;
+        float[] refreshRates = new float[refreshRatesSet.size()];
+        refreshRates[i++] = display.getRefreshRate();
+        refreshRatesSet.remove(display.getRefreshRate());
+        for (Float x : refreshRatesSet)
+        {
+            refreshRates[i++] = x;
+        }
+        return refreshRates;
+    }
+
+    @Keep public void setRefreshRate(Surface surface, float frameRate)
+    {
+        if (Build.VERSION.SDK_INT < 30)
+        {
+            Log.i(LOGTAG, "Refresh rate API is only avaible in SDK >= 30.");
+            return;
+        }
+
+        try
+        {
+            surface.setFrameRate(frameRate, android.view.Surface.FRAME_RATE_COMPATIBILITY_DEFAULT);
+            Log.i(LOGTAG, "Called setRefreshRate: " + frameRate);
+        }
+        catch (Exception e)
+        {
+            Log.i(LOGTAG, "Failed calling setRefreshRate: " + e);
+        }
+    }
+
     // Native thermal event entry point defined in AndroidBase.cpp
     private static native void nativeThermalEvent(int nativeStatus);
+    private native void        initializeJni();
 }

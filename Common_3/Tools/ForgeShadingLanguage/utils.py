@@ -28,6 +28,7 @@ from shutil import copyfile
 import subprocess, hashlib
 from os.path import dirname, join
 import tempfile
+import re
 
 class Platforms(Enum):
     DIRECT3D11 =      0
@@ -39,10 +40,9 @@ class Platforms(Enum):
     PROSPERO =        6
     XBOX =            7
     SCARLETT =        8
-    ANDROID_GLES =    9
-    SWITCH =         10
-    ANDROID_VULKAN = 11
-    QUEST =          12
+    SWITCH =          9
+    ANDROID_VULKAN = 10
+    QUEST =          11
 
 platform_langs = {
     Platforms.DIRECT3D11:      'DIRECT3D11',
@@ -56,12 +56,11 @@ platform_langs = {
     Platforms.SCARLETT :       'DIRECT3D12',
     Platforms.SWITCH :         'VULKAN',
     Platforms.ANDROID_VULKAN : 'VULKAN',
-    Platforms.ANDROID_GLES :   'GLES',
     Platforms.QUEST :          'VULKAN',
 }
 
 def get_target(platform: Platforms):
-    if platform in [Platforms.ANDROID_VULKAN, Platforms.ANDROID_GLES]:
+    if platform is Platforms.ANDROID_VULKAN:
         return 'ANDROID'
     return platform.name
 
@@ -136,30 +135,16 @@ def fsl_platform_assert(platform: Platforms, condition, filepath, message ):
     if condition: return False
 
     if platform in [Platforms.ANDROID_VULKAN, Platforms.VULKAN]:
-        for error in message.split('ERROR: '):
+        for error in re.split('ERROR: |WARNING: |\r\n', message):
             fne = error.find(':', 2)
             if fne > 0:
                 src = error[:fne]
                 line, msg = error[fne+1:].split(':', 1)
-                message = '{}({}): ERROR : {}\n'.format(src, line, msg )
+                if 'ERROR:' in message:
+                    message = '{}({}): ERROR : {}\n'.format(src, line, msg)
+                elif 'WARNING:' in message:
+                    message = '{}({}): WARNING : {}\n'.format(src, line, msg)
                 break
-
-    if Platforms.ANDROID_GLES == platform:
-        errors = message.strip().splitlines()[:-1]
-        src = errors.pop(0)
-        for error in errors:
-            sl, desc = error.split(' ', maxsplit=2)[1:]
-            source_index, line = sl.split(':')[:2]
-            error_src = 'UNKNOWN'
-            with open(src) as gen_src:
-                for l in gen_src.readlines():
-                    if l.startswith('#line'):
-                        index, filepath = l.split()[2:]
-                        if source_index == index:
-                            error_src = filepath[3:].strip('"')
-                            break
-            message = f'{error_src}({line}): ERROR: {desc}'
-            break
     
     if platform in [Platforms.MACOS, Platforms.IOS]:
         if "metal2.4" in message:
@@ -200,11 +185,9 @@ def internal_dependencies():
         os.path.join(os.path.dirname(__file__), 'includes', 'metal.h'),
         os.path.join(os.path.dirname(__file__), 'includes', 'vulkan.h'),
         os.path.join(os.path.dirname(__file__), 'includes', 'd3d.h'),
-        os.path.join(os.path.dirname(__file__), 'includes', 'gles.h'),
         os.path.join(os.path.dirname(__file__), 'generators', 'metal.py'),
         os.path.join(os.path.dirname(__file__), 'generators', 'vulkan.py'),
         os.path.join(os.path.dirname(__file__), 'generators', 'd3d.py'),
-        os.path.join(os.path.dirname(__file__), 'generators', 'gles.py'),
     ]
 
 def internal_timestamp():
@@ -228,8 +211,8 @@ def iter_lines(lines):
     file, lineno = None, 0
     for line in lines:
         if line.startswith('#line ') or line.startswith('# '):
-            _, lineno, file = line.split()[:3]
-            lineno, file = int(lineno) - 1, file.strip('"')
+            _, lineno, file = re.split('\"| ', line, maxsplit=2)[:3]
+            lineno, file = int(lineno) - 1, file.replace('"', '').replace('\r', '').replace('\n', '')
         else:
             lineno += 1
         yield file, lineno, line
@@ -379,19 +362,13 @@ def collect_resources(lines: list):
         if 'PUSH_CONSTANT(' in line:
             dt = StructType.PUSH_CONSTANT
             decl = tuple(getMacro(line))
-            fsl_assert(2 == len(decl), fi, ln, f"Malformed PUSH_CONSTANT declaration, should be PUSH_CONSTANT(name, register)")
-            decls[dt][decl] = []
-
-        elif 'CBUFFER(' in line:
-            decl = tuple(getMacro(line))
-            dt = StructType.CBUFFER
-            fsl_assert(4 == len(decl), fi, ln, f"Malformed CBUFFER declaration, should be CBUFFER(name, freq, register, binding)")
+            fsl_assert(2 == len(decl), fi, ln, f"Malformed PUSH_CONSTANT declaration: \"{decl}\", should be PUSH_CONSTANT(name, register)")
             decls[dt][decl] = []
 
         elif 'STRUCT(' in line:
             decl = getMacro(line)
             dt = StructType.STRUCT
-            fsl_assert(str == type(decl), fi, ln, f"Malformed STRUCT declaration, should be STRUCT(name)")
+            fsl_assert(str == type(decl), fi, ln, f"Malformed STRUCT declaration: \"{decl}\", should be STRUCT(name)") 
             decls[dt][decl] = []
 
     return \
@@ -542,7 +519,7 @@ def needs_regen(args, dependency_filepath, platforms, regen, dependencies):
 def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, binary_declarations):
     pp = []
     if os.name == 'nt':
-        pp += [join(dirname(dirname(dirname(__file__))), 'Utilities', 'ThirdParty', 'OpenSource', 'mcpp', 'bin', 'mcpp.exe')]
+        pp += [join(dirname(dirname(dirname(dirname(__file__)))), 'Data', 'Tools', 'mcpp', 'bin', 'mcpp.exe')]
     else:
         pp += ['cc', '-E', '-']
 

@@ -36,7 +36,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -771,7 +771,8 @@ DynamicUIWidgets                  GuiController::materialDynamicWidgets;
 MaterialType                      GuiController::currentMaterialType;
 uint                              GuiController::currentHairType = 0;
 
-const char* gTestScripts[] = { "Test_Metal.lua", "Test_Wood.lua", "Test_Hair.lua" };
+const char* gTestScripts[] = { "06_MaterialPlayground/Test_Metal.lua", "06_MaterialPlayground/Test_Wood.lua",
+                               "06_MaterialPlayground/Test_Hair.lua" };
 
 uint32_t gCurrentScriptIndex = 0;
 
@@ -830,6 +831,7 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
@@ -838,6 +840,7 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         // Vulkan can be debugged in RenderDoc
         //	extern RendererApi gSelectedRendererApi;
@@ -845,10 +848,15 @@ public:
 
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
-        settings.mD3D11Supported = false;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
+        // check for init success
         if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
         gGPUPresetLevel = pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel;
 
@@ -860,16 +868,16 @@ public:
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pGraphicsQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         bool threadSystemInitialized = threadSystemInit(&gThreadSystem, &gThreadSystemInitDescDefault);
         ASSERT(threadSystemInitialized);
@@ -922,7 +930,7 @@ public:
                                     state->PushResultInteger(gbAnimateCamera ? 1 : 0);
                                     return 1; // return amount of arguments
                                 });
-        gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
+        gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("06_MaterialPlayground/updateCamera.lua", "Update", "Exit");
 
         // SET MATERIAL LIGHTING MODELS
         //
@@ -1013,125 +1021,14 @@ public:
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
-        gMetalWoodGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-        gHairGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+        gMetalWoodGpuProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+        gHairGpuProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
         gCurrentGpuProfileToken = gMetalWoodGpuProfileToken;
 
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(5, 220.0f);
-        guiDesc.mStartSize = vec2(450, 600);
-        uiCreateComponent(GetName(), &guiDesc, &pGuiWindowMain);
-
-        // guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
-        guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
-        uiCreateComponent("Material Properties", &guiDesc, &pGuiWindowMaterial);
-
-        guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 200.0f);
-        guiDesc.mStartSize = vec2(450, 600);
-        uiCreateComponent("Hair simulation", &guiDesc, &pGuiWindowHairSimulation);
-        GuiController::AddGui();
-
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pGraphicsQueue);
         gFrameIndex = 0;
 
         return true;
@@ -1139,9 +1036,8 @@ public:
 
     void Exit() override
     {
+        exitScreenshotInterface();
         exitAnimations();
-
-        exitInputSystem();
 
         gLuaManager.Exit();
 
@@ -1160,8 +1056,8 @@ public:
             gHairTypeInfo[i] = {};
         gHairDynamicDescriptorSetCount = 0;
 
-        removeGpuProfiler(gHairGpuProfileToken);
-        removeGpuProfiler(gMetalWoodGpuProfileToken);
+        exitGpuProfiler(gHairGpuProfileToken);
+        exitGpuProfiler(gMetalWoodGpuProfileToken);
 
         exitProfiler();
 
@@ -1176,21 +1072,22 @@ public:
 
         removeSamplers();
 
-        GuiController::Exit();
         exitUserInterface();
 
         exitFontSystem();
 
         // Remove commands and command pool&
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
-        removeQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pGraphicsQueue);
 
         // Remove resource loader and renderer
         exitResourceLoaderInterface(pRenderer);
 
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
+
         pRenderer = NULL;
     }
 
@@ -1205,6 +1102,22 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            guiDesc.mStartSize = vec2(450, 600);
+            uiAddComponent(GetName(), &guiDesc, &pGuiWindowMain);
+
+            // guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
+            guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
+            uiAddComponent("Material Properties", &guiDesc, &pGuiWindowMaterial);
+
+            guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 200.0f);
+            guiDesc.mStartSize = vec2(450, 600);
+            uiAddComponent("Hair simulation", &guiDesc, &pGuiWindowHairSimulation);
+            GuiController::AddGui();
+
             if (!addSwapChain())
                 return false;
 
@@ -1250,8 +1163,6 @@ public:
 
         gSkeletonBatcher.Load(&skeletonLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
-
         return true;
     }
 
@@ -1277,6 +1188,12 @@ public:
         {
             removeSwapChain(pRenderer, pSwapChain);
             removeRenderTargets();
+
+            GuiController::Exit();
+            uiRemoveComponent(pGuiWindowMain);
+            uiRemoveComponent(pGuiWindowHairSimulation);
+            uiRemoveComponent(pGuiWindowMaterial);
+            unloadProfilerUI();
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -1285,13 +1202,36 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime) override
     {
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
 
         // UPDATE UI & CAMERA
         //
@@ -2421,73 +2361,73 @@ public:
     void addShaders()
     {
         ShaderLoadDesc skyboxShaderDesc = {};
-        skyboxShaderDesc.mStages[0].pFileName = "skybox.vert";
+        skyboxShaderDesc.mVert.pFileName = "skybox.vert";
 
-        skyboxShaderDesc.mStages[1].pFileName = "skybox.frag";
+        skyboxShaderDesc.mFrag.pFileName = "skybox.frag";
         addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
         ShaderLoadDesc shadowPassShaderDesc = {};
-        shadowPassShaderDesc.mStages[0].pFileName = "renderSceneShadows.vert";
-        shadowPassShaderDesc.mStages[1].pFileName = "renderSceneShadows.frag";
+        shadowPassShaderDesc.mVert.pFileName = "renderSceneShadows.vert";
+        shadowPassShaderDesc.mFrag.pFileName = "renderSceneShadows.frag";
         addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
 
         ShaderLoadDesc hairClearShaderDesc = {};
-        hairClearShaderDesc.mStages[0].pFileName = "fullscreen.vert";
-        hairClearShaderDesc.mStages[1].pFileName = "hair_short_cut_clear.frag";
+        hairClearShaderDesc.mVert.pFileName = "fullscreen.vert";
+        hairClearShaderDesc.mFrag.pFileName = "hair_short_cut_clear.frag";
         addShader(pRenderer, &hairClearShaderDesc, &pShaderHairClear);
 
         ShaderLoadDesc hairDepthPeelingShaderDesc = {};
-        hairDepthPeelingShaderDesc.mStages[0].pFileName = "hair.vert";
-        hairDepthPeelingShaderDesc.mStages[1].pFileName = "hair_short_cut_depth_peeling.frag";
+        hairDepthPeelingShaderDesc.mVert.pFileName = "hair.vert";
+        hairDepthPeelingShaderDesc.mFrag.pFileName = "hair_short_cut_depth_peeling.frag";
         addShader(pRenderer, &hairDepthPeelingShaderDesc, &pShaderHairDepthPeeling);
 
         ShaderLoadDesc hairDepthResolveShaderDesc = {};
-        hairDepthResolveShaderDesc.mStages[0].pFileName = "fullscreen.vert";
-        hairDepthResolveShaderDesc.mStages[1].pFileName = "hair_short_cut_resolve_depth.frag";
+        hairDepthResolveShaderDesc.mVert.pFileName = "fullscreen.vert";
+        hairDepthResolveShaderDesc.mFrag.pFileName = "hair_short_cut_resolve_depth.frag";
         addShader(pRenderer, &hairDepthResolveShaderDesc, &pShaderHairDepthResolve);
 
         ShaderLoadDesc hairFillColorShaderDesc = {};
-        hairFillColorShaderDesc.mStages[0].pFileName = "hair.vert";
-        hairFillColorShaderDesc.mStages[1].pFileName = "hair_short_cut_fill_color.frag";
+        hairFillColorShaderDesc.mVert.pFileName = "hair.vert";
+        hairFillColorShaderDesc.mFrag.pFileName = "hair_short_cut_fill_color.frag";
         addShader(pRenderer, &hairFillColorShaderDesc, &pShaderHairFillColors);
 
         ShaderLoadDesc hairColorResolveShaderDesc = {};
-        hairColorResolveShaderDesc.mStages[0].pFileName = "fullscreen.vert";
-        hairColorResolveShaderDesc.mStages[1].pFileName = "hair_short_cut_resolve_color.frag";
+        hairColorResolveShaderDesc.mVert.pFileName = "fullscreen.vert";
+        hairColorResolveShaderDesc.mFrag.pFileName = "hair_short_cut_resolve_color.frag";
         addShader(pRenderer, &hairColorResolveShaderDesc, &pShaderHairResolveColor);
 
         ShaderLoadDesc hairShadowShaderDesc = {};
-        hairShadowShaderDesc.mStages[0].pFileName = "hair_shadow.vert";
-        hairShadowShaderDesc.mStages[1].pFileName = "hair_shadow.frag";
+        hairShadowShaderDesc.mVert.pFileName = "hair_shadow.vert";
+        hairShadowShaderDesc.mFrag.pFileName = "hair_shadow.frag";
         addShader(pRenderer, &hairShadowShaderDesc, &pShaderHairShadow);
 
         ShaderLoadDesc hairIntegrateShaderDesc = {};
-        hairIntegrateShaderDesc.mStages[0].pFileName = "hair_integrate.comp";
+        hairIntegrateShaderDesc.mComp.pFileName = "hair_integrate.comp";
         addShader(pRenderer, &hairIntegrateShaderDesc, &pShaderHairIntegrate);
 
         ShaderLoadDesc hairShockPropagationShaderDesc = {};
-        hairShockPropagationShaderDesc.mStages[0].pFileName = "hair_shock_propagation.comp";
+        hairShockPropagationShaderDesc.mComp.pFileName = "hair_shock_propagation.comp";
         addShader(pRenderer, &hairShockPropagationShaderDesc, &pShaderHairShockPropagation);
 
         ShaderLoadDesc hairLocalConstraintsShaderDesc = {};
-        hairLocalConstraintsShaderDesc.mStages[0].pFileName = "hair_local_constraints.comp";
+        hairLocalConstraintsShaderDesc.mComp.pFileName = "hair_local_constraints.comp";
         addShader(pRenderer, &hairLocalConstraintsShaderDesc, &pShaderHairLocalConstraints);
 
         ShaderLoadDesc hairLengthConstraintsShaderDesc = {};
-        hairLengthConstraintsShaderDesc.mStages[0].pFileName = "hair_length_constraints.comp";
+        hairLengthConstraintsShaderDesc.mComp.pFileName = "hair_length_constraints.comp";
         addShader(pRenderer, &hairLengthConstraintsShaderDesc, &pShaderHairLengthConstraints);
 
         ShaderLoadDesc hairUpdateFollowHairsShaderDesc = {};
-        hairUpdateFollowHairsShaderDesc.mStages[0].pFileName = "hair_update_follow_hairs.comp";
+        hairUpdateFollowHairsShaderDesc.mComp.pFileName = "hair_update_follow_hairs.comp";
         addShader(pRenderer, &hairUpdateFollowHairsShaderDesc, &pShaderHairUpdateFollowHairs);
 
         ShaderLoadDesc hairPreWarmShaderDesc = {};
-        hairPreWarmShaderDesc.mStages[0].pFileName = "hair_pre_warm.comp";
+        hairPreWarmShaderDesc.mComp.pFileName = "hair_pre_warm.comp";
         addShader(pRenderer, &hairPreWarmShaderDesc, &pShaderHairPreWarm);
 
         ShaderLoadDesc showCapsulesShaderDesc = {};
-        showCapsulesShaderDesc.mStages[0].pFileName = "showCapsules.vert";
-        showCapsulesShaderDesc.mStages[1].pFileName = "showCapsules.frag";
+        showCapsulesShaderDesc.mVert.pFileName = "showCapsules.vert";
+        showCapsulesShaderDesc.mFrag.pFileName = "showCapsules.frag";
         addShader(pRenderer, &showCapsulesShaderDesc, &pShaderShowCapsules);
     }
 
@@ -3188,7 +3128,7 @@ public:
                                     return 0; // return amount of arguments that we want to send back to script
                                 });
 
-        gLuaManager.AddAsyncScript("loadModels.lua",
+        gLuaManager.AddAsyncScript("06_MaterialPlayground/loadModels.lua",
                                    [&modelsAreLoaded](ScriptState state)
                                    {
                                        UNREF_PARAM(state);
@@ -3356,13 +3296,13 @@ public:
         };
 
         ShaderLoadDesc brdfIntegrationShaderDesc = {};
-        brdfIntegrationShaderDesc.mStages[0].pFileName = brdfIntegrationShaders[presetLevel];
+        brdfIntegrationShaderDesc.mComp.pFileName = brdfIntegrationShaders[presetLevel];
 
         ShaderLoadDesc irradianceShaderDesc = {};
-        irradianceShaderDesc.mStages[0].pFileName = irradianceShaders[presetLevel];
+        irradianceShaderDesc.mComp.pFileName = irradianceShaders[presetLevel];
 
         ShaderLoadDesc specularShaderDesc = {};
-        specularShaderDesc.mStages[0].pFileName = specularShaders[presetLevel];
+        specularShaderDesc.mComp.pFileName = specularShaders[presetLevel];
 
         addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
         addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
@@ -4771,18 +4711,18 @@ void GuiController::AddGui()
     ddMatType.pData = &gMaterialType;
     ddMatType.pNames = materialTypeNames;
     ddMatType.mCount = sizeof(materialTypeNames) / sizeof(materialTypeNames[0]);
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Material Type", &ddMatType, WIDGET_TYPE_DROPDOWN));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMain, "Material Type", &ddMatType, WIDGET_TYPE_DROPDOWN));
 
     checkbox.pData = &gbAnimateCamera;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Animate Camera", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMain, "Animate Camera", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     ButtonWidget ReloadScriptButton;
-    UIWidget*    pReloadScript = uiCreateComponentWidget(pGuiWindowMain, "Reload script", &ReloadScriptButton, WIDGET_TYPE_BUTTON);
+    UIWidget*    pReloadScript = uiAddComponentWidget(pGuiWindowMain, "Reload script", &ReloadScriptButton, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnDeactivatedAfterEditCallback(pReloadScript, nullptr, ReloadScriptButtonCallback);
     luaRegisterWidget(pReloadScript);
 
     checkbox.pData = &gDrawSkybox;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Skybox", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMain, "Skybox", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     enum
     {
@@ -4865,7 +4805,7 @@ void GuiController::AddGui()
     sunLightHeader.pGroupedWidgets = sunLightWidgets;
     sunLightHeader.mWidgetsCount = SUN_LIGHT_MAX;
 
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Lighting Options", &sunLightHeader, WIDGET_TYPE_COLLAPSING_HEADER));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMain, "Lighting Options", &sunLightHeader, WIDGET_TYPE_COLLAPSING_HEADER));
 
     // MATERIAL PROPERTIES GUI
     DropdownWidget ddReflModel = { NULL, NULL, 0 };
@@ -4873,44 +4813,44 @@ void GuiController::AddGui()
     ddReflModel.pNames = diffuseReflectionNames;
     ddReflModel.mCount = sizeof(diffuseReflectionNames) / sizeof(diffuseReflectionNames[0]);
 
-    uiCreateDynamicWidgets(&GuiController::materialDynamicWidgets, "Diffuse Reflection Model", &ddReflModel, WIDGET_TYPE_DROPDOWN);
+    uiAddDynamicWidgets(&GuiController::materialDynamicWidgets, "Diffuse Reflection Model", &ddReflModel, WIDGET_TYPE_DROPDOWN);
 
     DropdownWidget ddRenderMode = { NULL, NULL, 0 };
     ddRenderMode.pData = &gRenderMode;
     ddRenderMode.pNames = renderModeNames;
     ddRenderMode.mCount = sizeof(renderModeNames) / sizeof(renderModeNames[0]);
 
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
 
     checkbox.pData = &gOverrideRoughnessTextures;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Override Roughness", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Override Roughness", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     sliderFloat.pData = &gRoughnessOverride;
     sliderFloat.mMin = 0.04f;
     sliderFloat.mMax = 1.0f;
     sliderFloat.mStep = 0.01f;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Roughness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Roughness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
     checkbox.pData = &gDisableNormalMaps;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Disable Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Disable Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     checkbox.pData = &gEnableVMFMaps;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Enable vMF filtered Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Enable vMF filtered Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     sliderFloat.pData = &gNormalMapIntensity;
     sliderFloat.mMin = 0.0f;
     sliderFloat.mMax = 1.0f;
     sliderFloat.mStep = 0.01f;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Normal Map Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Normal Map Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
     checkbox.pData = &gDisableAOMaps;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Disable AO Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "Disable AO Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     sliderFloat.pData = &gAOIntensity;
     sliderFloat.mMin = 0.0f;
     sliderFloat.mMax = 1.0f;
     sliderFloat.mStep = 0.001f;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "AO Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMaterial, "AO Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
     // HAIR GUI
     {
@@ -4920,13 +4860,13 @@ void GuiController::AddGui()
 
         // Hair shading widgets
         LabelWidget hairLabel;
-        uiCreateDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Shading", &hairLabel, WIDGET_TYPE_LABEL);
+        uiAddDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Shading", &hairLabel, WIDGET_TYPE_LABEL);
 
         DropdownWidget ddHairColor;
         ddHairColor.pData = &gHairColor;
         ddHairColor.pNames = hairColorNames;
         ddHairColor.mCount = HAIR_COLOR_COUNT;
-        uiCreateDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Color", &ddHairColor, WIDGET_TYPE_DROPDOWN);
+        uiAddDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Color", &ddHairColor, WIDGET_TYPE_DROPDOWN);
 
 #if HAIR_DEV_UI
         static const char* hairNames[HAIR_TYPE_COUNT] = { "Ponytail", "Female hair 1", "Female hair 2", "Female hair 3", "Female hair 6" };
@@ -4935,7 +4875,7 @@ void GuiController::AddGui()
         ddHairType.pData = &GuiController::currentHairType;
         ddHairType.pNames = hairNames;
         ddHairType.mCount = HAIR_TYPE_COUNT;
-        uiCreateDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair type", &ddHairType, WIDGET_TYPE_DROPDOWN);
+        uiAddDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair type", &ddHairType, WIDGET_TYPE_DROPDOWN);
 
         for (uint i = 0; i < HAIR_TYPE_COUNT; ++i)
         {
@@ -5063,28 +5003,28 @@ void GuiController::AddGui()
                 char name[32];
                 snprintf(name, 32, "Head %zu color", j);
 
-                uiCreateDynamicWidgets(&GuiController::hairDynamicWidgets[i].hairShading, name, &header, WIDGET_TYPE_COLLAPSING_HEADER);
+                uiAddDynamicWidgets(&GuiController::hairDynamicWidgets[i].hairShading, name, &header, WIDGET_TYPE_COLLAPSING_HEADER);
             }
         }
 #endif
 
         // Hair simulation widgets
         LabelWidget hairSim;
-        uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Hair Simulation", &hairSim, WIDGET_TYPE_LABEL);
+        uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Hair Simulation", &hairSim, WIDGET_TYPE_LABEL);
 
         sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mGravity; //-V641 //-V1027
         sliderFloat3.mMin = float3(-10.0f);
         sliderFloat3.mMax = float3(10.0f);
-        uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Gravity", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+        uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Gravity", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
         sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mWind; //-V641 //-V1027
         sliderFloat3.mMin = float3(-1024.0f);
         sliderFloat3.mMax = float3(1024.0f);
-        uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Wind", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+        uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Wind", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
         checkbox.pData = &gShowCapsules;
-        uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Show Collision Capsules", &checkbox, WIDGET_TYPE_CHECKBOX);
+        uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Show Collision Capsules", &checkbox, WIDGET_TYPE_CHECKBOX);
 #endif
 
 #if HAIR_DEV_UI
@@ -5196,8 +5136,8 @@ void GuiController::AddGui()
             transformHeader.pGroupedWidgets = headerWidgets;
             transformHeader.mWidgetsCount = gTransformCount;
 
-            uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Transforms", &transformHeader,
-                                   WIDGET_TYPE_COLLAPSING_HEADER);
+            uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Transforms", &transformHeader,
+                                WIDGET_TYPE_COLLAPSING_HEADER);
         }
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
@@ -5300,7 +5240,7 @@ void GuiController::AddGui()
             capsuleHeader.pGroupedWidgets = capsuleWidgets;
             capsuleHeader.mWidgetsCount = gCapsulegCapsuleCount;
 
-            uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Capsules", &capsuleHeader, WIDGET_TYPE_COLLAPSING_HEADER);
+            uiAddDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Capsules", &capsuleHeader, WIDGET_TYPE_COLLAPSING_HEADER);
         }
 #endif
 
@@ -5416,8 +5356,8 @@ void GuiController::AddGui()
                 char headerLabel[32];
                 snprintf(headerLabel, sizeof(headerLabel), "Hair %u", k);
 
-                uiCreateDynamicWidgets(&GuiController::hairDynamicWidgets[i].hairSimulation, headerLabel /*gHair[k].mName*/, &header,
-                                       WIDGET_TYPE_COLLAPSING_HEADER);
+                uiAddDynamicWidgets(&GuiController::hairDynamicWidgets[i].hairSimulation, headerLabel /*gHair[k].mName*/, &header,
+                                    WIDGET_TYPE_COLLAPSING_HEADER);
             }
         }
 #endif
@@ -5428,10 +5368,10 @@ void GuiController::AddGui()
     ddTestScripts.pNames = gTestScripts;
     ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
 
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindowMain, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
     ButtonWidget bRunScript;
-    UIWidget*    pRunScript = uiCreateComponentWidget(pGuiWindowMain, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+    UIWidget*    pRunScript = uiAddComponentWidget(pGuiWindowMain, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
     luaRegisterWidget(pRunScript);
 
@@ -5447,13 +5387,13 @@ void GuiController::AddGui()
 
 void GuiController::Exit()
 {
-    uiDestroyDynamicWidgets(&hairShadingDynamicWidgets);
-    uiDestroyDynamicWidgets(&hairSimulationDynamicWidgets);
-    uiDestroyDynamicWidgets(&materialDynamicWidgets);
+    uiRemoveDynamicWidgets(&hairShadingDynamicWidgets);
+    uiRemoveDynamicWidgets(&hairSimulationDynamicWidgets);
+    uiRemoveDynamicWidgets(&materialDynamicWidgets);
     for (HairDynamicWidgets& w : hairDynamicWidgets)
     {
-        uiDestroyDynamicWidgets(&w.hairShading);
-        uiDestroyDynamicWidgets(&w.hairSimulation);
+        uiRemoveDynamicWidgets(&w.hairShading);
+        uiRemoveDynamicWidgets(&w.hairSimulation);
     }
 }
 

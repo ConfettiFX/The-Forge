@@ -22,11 +22,9 @@
  * under the License.
 */
 
-#include "shading.h.fsl"
+#include "shader_defs.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "light_cull_resources.h.fsl"
-
-// This compute shader determines if a light of index groupId overlaps
-// the cluster (thread.x,thread.y). Then the light is added to the cluster.
 
 NUM_THREADS(DEPTH_BOUNDS_GROUP_AMOUNT_X, DEPTH_BOUNDS_GROUP_AMOUNT_Y, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
@@ -35,7 +33,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 
 	float minDepth = 1;
 	float maxDepth = 0;
-	float2 windowSize = Get(cullingViewports)[VIEW_CAMERA].windowSize;
+	float2 windowSize = PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
 	float2 subclusterSize = windowSize / float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
 	    
 	uint2 coords = threadInDispatch.xy * 2;
@@ -48,7 +46,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 
 	uint2 subclusterCoords = uint2(float2(coords) / subclusterSize);
 
-	float2 depth = LoadTex2D(Get(DownsampledDepthBuffer), NO_SAMPLER, threadInDispatch.xy, 0).xy;
+	float2 depth = LoadTex2D(DownsampledDepthBuffer, NO_SAMPLER, threadInDispatch.xy, 0).xy;
 	depth.x = (linearizeDepthReverseZ(depth.x, CAMERA_NEAR, CAMERA_FAR) - CAMERA_NEAR)/(CAMERA_FAR-CAMERA_NEAR);
 	depth.y = (linearizeDepthReverseZ(depth.y, CAMERA_NEAR, CAMERA_FAR) - CAMERA_NEAR)/(CAMERA_FAR-CAMERA_NEAR);
 	
@@ -66,8 +64,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 	uint minDepthInt = uint(floor(minDepth * float(INT_MAX)));
 	uint maxDepthInt = uint(ceil(maxDepth * float(INT_MAX)));
 
-	AtomicMin(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE], minDepthInt);
-	AtomicMax(Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1], maxDepthInt);
+	AtomicMin(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE], minDepthInt);
+	AtomicMax(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1], maxDepthInt);
 	
 	RETURN();
 }

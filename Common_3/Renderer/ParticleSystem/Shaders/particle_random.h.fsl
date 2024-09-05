@@ -22,6 +22,9 @@
  * under the License.
 */
 
+#ifndef PARTICLE_RANDOM_H
+#define PARTICLE_RANDOM_H
+
 uint rand(uint seed)
 {
 	// Xorshift algorithm from George Marsaglia's paper
@@ -33,17 +36,36 @@ uint rand(uint seed)
 	return seed;
 }
 
+// Generate a random float in the [0, 1) range; the seed that is passed is randomized to decrease
+// correlation for subsequent calls
 float randFloat_zeroToPlusOne(inout(uint) seed)
 {
 	seed = rand(seed);
 	return float(seed) * (1.0f / 4294967296.0f);
 }
 
+// Generate a random float in the [0, 1) range without modifying the seed
+float randFloat_zeroToPlusOneFixedSeed(float seed)
+{
+	seed = rand(asuint(seed));
+	return float(seed) * (1.0f / 4294967296.0f);
+}
+
+// Generate a random float in the [-1, 1) range; the seed that is passed is randomized to decrease
+// correlation for subsequent calls
 float randFloat_negOneToPlusOne(inout(uint) seed)
 {
 	return 2.0f * randFloat_zeroToPlusOne(seed) - 1.0f;
 }
 
+// Generate a random float in the [-1, 1) range without modifying the seed
+float randFloat_negOneToPlusOneFixedSeed(float seed)
+{
+	return 2.0f * randFloat_zeroToPlusOneFixedSeed(seed) - 1.0f;
+}
+
+// Generate a random float3 with all components in the [0, 1) range; the seed that is passed is randomized to decrease
+// correlation for subsequent calls
 float3 randFloat3_zeroToPlusOne(inout(uint) seed)
 {
 	float3 value;
@@ -53,7 +75,11 @@ float3 randFloat3_zeroToPlusOne(inout(uint) seed)
 	return value;
 }
 
+// Generate a random float3 with all components in the [-1, 1) range; the seed that is passed is randomized to decrease
+// correlation for subsequent calls
 float3 randFloat3_negOneToPlusOne(inout(uint) seed)
 {
 	return 2.0f * randFloat3_zeroToPlusOne(seed) - float3(1.0f, 1.0f, 1.0f);
 }
+
+#endif //#ifndef PARTICLE_PACKING_H

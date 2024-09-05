@@ -22,7 +22,7 @@
  * under the License.
 */
 
-CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(cbExtendCameraData)
 {
 	DATA(float4x4, viewMat, None);
 	DATA(float4x4, invViewMat, None);
@@ -35,12 +35,13 @@ CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float,  mNear, None);
 	DATA(float,  mFar, None);
 };
+RES(CBUFFER(cbExtendCameraData), cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+
 
 RES(Tex2D(float4), SceneTexture, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(Tex2D(float4), SSRTexture, UPDATE_FREQ_NONE, t2, binding = 2);
 
-
-CBUFFER(cbProperties, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
+STRUCT(cbPropertiesData)
 {
 	DATA(uint, renderMode, None);
 	DATA(float, useHolePatching, None);
@@ -52,6 +53,7 @@ CBUFFER(cbProperties, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
 	DATA(float, debugNonProjected, None);
 	DATA(float, padding01, None);
 };
+RES(CBUFFER(cbPropertiesData), cbProperties, UPDATE_FREQ_PER_FRAME, b3, binding = 3);
 
 RES(SamplerState, nearestSampler, UPDATE_FREQ_NONE, s4, binding = 4);
 RES(SamplerState, bilinearSampler, UPDATE_FREQ_NONE, s5, binding = 5);
@@ -68,22 +70,22 @@ float4 PS_MAIN( VSOutput In )
 	INIT_MAIN;
 	float4 outColor;
 	outColor = float4(0.0, 0.0, 0.0, 0.0);
-	float4 ssrColor = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv);	
+	float4 ssrColor = SampleTex2D(SSRTexture, nearestSampler, In.uv);	
 	
-	if(Get(renderMode) == 0)
+	if(cbProperties.renderMode == 0)
 	{
-		outColor = SampleTex2D(Get(SceneTexture), Get(bilinearSampler), In.uv);
+		outColor = SampleTex2D(SceneTexture, bilinearSampler, In.uv);
 		outColor = outColor / (outColor + f4(1));
 
 		outColor.w = 1.0f;
 		RETURN(outColor);
 	}		
-	else if(Get(renderMode) == 1)
+	else if(cbProperties.renderMode == 1)
 	{
 		outColor = float4(0.0, 0.0, 0.0, 0.0);
 	}
 	
-	if(Get(useHolePatching) < 0.5)
+	if(cbProperties.useHolePatching < 0.5)
 	{
 		outColor.w = 1.0;
 
@@ -98,51 +100,51 @@ float4 PS_MAIN( VSOutput In )
 		float minOffset = threshold;
 		
 
-		float4 neighborColor00 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv + float2(1.0/Get(viewPortSize).x, 0.0));
-		float4 neighborColorB00 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv + float2(1.0/Get(viewPortSize).x, 0.0));
+		float4 neighborColor00 = SampleTex2D(SSRTexture, nearestSampler, In.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 0.0));
+		float4 neighborColorB00 = SampleTex2D(SSRTexture, bilinearSampler, In.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 0.0));
 		if(neighborColor00.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor00.w);			
 		}
 
-		float4 neighborColor01 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv - float2(1.0/Get(viewPortSize).x, 0.0));
-		float4 neighborColorB01 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv - float2(1.0/Get(viewPortSize).x, 0.0));
+		float4 neighborColor01 = SampleTex2D(SSRTexture, nearestSampler, In.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 0.0));
+		float4 neighborColorB01 = SampleTex2D(SSRTexture, bilinearSampler, In.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 0.0));
 		if(neighborColor01.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor01.w);			
 		}
 
-		float4 neighborColor02 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv + float2(0.0, 1.0/Get(viewPortSize).y));
-		float4 neighborColorB02 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv + float2(0.0, 1.0/Get(viewPortSize).y));
+		float4 neighborColor02 = SampleTex2D(SSRTexture, nearestSampler, In.uv + float2(0.0, 1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB02 = SampleTex2D(SSRTexture, bilinearSampler, In.uv + float2(0.0, 1.0/cbExtendCamera.viewPortSize.y));
 		if(neighborColor02.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor02.w);			
 		}
 
-		float4 neighborColor03 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv - float2(0.0, 1.0/Get(viewPortSize).y));
-		float4 neighborColorB03 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv - float2(0.0, 1.0/Get(viewPortSize).y));
+		float4 neighborColor03 = SampleTex2D(SSRTexture, nearestSampler, In.uv - float2(0.0, 1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB03 = SampleTex2D(SSRTexture, bilinearSampler, In.uv - float2(0.0, 1.0/cbExtendCamera.viewPortSize.y));
 		if(neighborColor03.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor03.w);			
 		}
 
-		float4 neighborColor04 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv + float2(1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
-		float4 neighborColorB04 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv + float2(1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
+		float4 neighborColor04 = SampleTex2D(SSRTexture, nearestSampler, In.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB04 = SampleTex2D(SSRTexture, bilinearSampler, In.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
 
 
-		float4 neighborColor05 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv + float2(1.0/Get(viewPortSize).x, -1.0/Get(viewPortSize).y));
-		float4 neighborColorB05 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv +float2(1.0/Get(viewPortSize).x, -1.0/Get(viewPortSize).y));
+		float4 neighborColor05 = SampleTex2D(SSRTexture, nearestSampler, In.uv + float2(1.0/cbExtendCamera.viewPortSize.x, -1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB05 = SampleTex2D(SSRTexture, bilinearSampler, In.uv +float2(1.0/cbExtendCamera.viewPortSize.x, -1.0/cbExtendCamera.viewPortSize.y));
 
 
-		float4 neighborColor06 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv + float2(-1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
-		float4 neighborColorB06 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv + float2(-1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
+		float4 neighborColor06 = SampleTex2D(SSRTexture, nearestSampler, In.uv + float2(-1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB06 = SampleTex2D(SSRTexture, bilinearSampler, In.uv + float2(-1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
 
 
-		float4 neighborColor07 = SampleTex2D(Get(SSRTexture), Get(nearestSampler), In.uv - float2(1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
-		float4 neighborColorB07 = SampleTex2D(Get(SSRTexture), Get(bilinearSampler), In.uv - float2(1.0/Get(viewPortSize).x, 1.0/Get(viewPortSize).y));
+		float4 neighborColor07 = SampleTex2D(SSRTexture, nearestSampler, In.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
+		float4 neighborColorB07 = SampleTex2D(SSRTexture, bilinearSampler, In.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y));
 
 
-		bool bUseExpensiveHolePatching = Get(useExpensiveHolePatching) > 0.5;
+		bool bUseExpensiveHolePatching = cbProperties.useExpensiveHolePatching > 0.5;
 
 		if(bUseExpensiveHolePatching)
 		{
@@ -239,15 +241,15 @@ float4 PS_MAIN( VSOutput In )
 
 	}
 	
-	if(Get(renderMode) == 3)
+	if(cbProperties.renderMode == 3)
 	{
 		if(ssrColor.w <= 0.0)
-			outColor = SampleTex2D(Get(SceneTexture), Get(bilinearSampler), In.uv);
+			outColor = SampleTex2D(SceneTexture, bilinearSampler, In.uv);
 	}
 
-	if(Get(renderMode) == 2)
+	if(cbProperties.renderMode == 2)
 	{
-		outColor = outColor * Get(intensity) + SampleTex2D(Get(SceneTexture), Get(bilinearSampler), In.uv);	
+		outColor = outColor * cbProperties.intensity + SampleTex2D(SceneTexture, bilinearSampler, In.uv);	
 	}
 
 	outColor = outColor / (outColor + float4(1.0f, 1.0f, 1.0f, 1.0f));

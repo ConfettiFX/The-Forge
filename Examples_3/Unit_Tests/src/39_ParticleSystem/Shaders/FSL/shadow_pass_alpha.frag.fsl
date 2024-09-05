@@ -22,16 +22,21 @@
  * under the License.
 */
 
-PUSH_CONSTANT(ShadowRootConstants, b0)
+STRUCT(ShadowRootConstantsData)
 {
-	DATA(uint, CubeIndex, None);
-	DATA(uint, ParticleIndex, None);
+    DATA(uint, CubeIndex, None);
+    DATA(uint, ParticleIndex, None);
 };
+RES(ROOT_CONSTANT(ShadowRootConstantsData), ShadowRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
+
+RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, t0, binding = 11);
+RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, t1, binding = 10);
+
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
@@ -42,26 +47,15 @@ PsOutShadowAlphaTested PS_MAIN( PsInShadowAlphaTested In )
     PsOutShadowAlphaTested Out;
 	Out.depth = 0.0;
 
-	uint view = Get(CubeIndex) == 0 ? VIEW_SHADOW : VIEW_POINT_SHADOW;
 	uint materialID = In.materialID;
 
     float alpha = 0.0f;
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+		alpha = SampleTex2D(diffuseMaps[materialID], textureFilter, In.texCoord).a;
     EndNonUniformResourceIndex();
 	clip(alpha - 0.9);
 
-    if (Get(CubeIndex) > 0)
-    {
-		uint Bitfield = Get(BitfieldBuffer)[Get(ParticleIndex)];
-		ParticleData particle = Get(ParticlesDataBuffer)[Get(ParticleIndex)];
-		
-		float3 pos = GetParticlePosition(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particle);
-		Out.depth = 1.0 - (length(In.wsPosition.xyz - pos.xyz) - CAMERA_NEAR) / (CAMERA_FAR - CAMERA_NEAR);
-	}
-	else
-		Out.depth = In.position.z;
+	Out.depth = In.position.z;
 
-    
     RETURN(Out);
 }

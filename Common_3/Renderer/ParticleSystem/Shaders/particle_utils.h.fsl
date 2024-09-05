@@ -31,13 +31,16 @@
 
 void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, float fragDepth)
 {
+	if (fragColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
+		return;
+
 	uint listIndex, bufferIndex;
 	bufferIndex = coords.y * screenSize.x + coords.x;
 
-	if (Get(TransparencyListHeads)[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
+	if (TransparencyListHeads[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
 		return;
-	
-	AtomicAdd(Get(TransparencyListHeads)[bufferIndex], 1, listIndex);
+
+	AtomicAdd(TransparencyListHeads[bufferIndex], 1, listIndex);
 
 	if (listIndex >= MAX_TRANSPARENCY_LAYERS)
 		return;
@@ -47,7 +50,7 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 	node.Depth = fragDepth;
 	node.Color = packUnorm4x8(fragColor);
 
-	Get(TransparencyList)[bufferIndex*MAX_TRANSPARENCY_LAYERS + listIndex] = node;
+	TransparencyList[bufferIndex*MAX_TRANSPARENCY_LAYERS + listIndex] = node;
 }
 
 /* 
@@ -56,12 +59,12 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 uint GetCurrentBufferSection(uint particleIdx)
 {
 	uint currBufferSection = 0;
-	uint currBufferOffset = Get(ParticleCountsBuffer)[0].x;
+	uint currBufferOffset = ParticleCountsBuffer[0].x;
 
 	while (currBufferOffset <= particleIdx && currBufferSection < 2)
 	{
 		currBufferSection++;
-		currBufferOffset += Get(ParticleCountsBuffer)[0][currBufferSection];
+		currBufferOffset += ParticleCountsBuffer[0][currBufferSection];
 	}
 
 	return currBufferSection;
@@ -74,15 +77,15 @@ uint GetCurrentBufferSection(uint particleIdx)
 uint SwapParticles(uint currBitfield, uint currIdx, uint swapIdx, inout(ParticleData) outParticle)
 {
 	// Swap particles
-	uint bitfieldB = Get(BitfieldBuffer)[swapIdx];
-	ParticleData particleA = Get(ParticlesDataBuffer)[currIdx];
-	ParticleData particleB = Get(ParticlesDataBuffer)[swapIdx];
+	uint bitfieldB = BitfieldBuffer[swapIdx];
+	ParticleData particleA = ParticlesDataBuffer[currIdx];
+	ParticleData particleB = ParticlesDataBuffer[swapIdx];
 
-	Get(ParticlesDataBuffer)[currIdx] = particleB;
-	Get(ParticlesDataBuffer)[swapIdx] = particleA;
+	ParticlesDataBuffer[currIdx] = particleB;
+	ParticlesDataBuffer[swapIdx] = particleA;
 
-	Get(BitfieldBuffer)[swapIdx] = currBitfield;
-	Get(BitfieldBuffer)[currIdx] = bitfieldB;
+	BitfieldBuffer[swapIdx] = currBitfield;
+	BitfieldBuffer[currIdx] = bitfieldB;
 
 	outParticle = particleB;
 	return bitfieldB;
@@ -108,30 +111,30 @@ bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, 
 	uint toSwapBitfield = currBitfield;
 	uint setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
 
-	uint offset = Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE] - (isActive ? particleCount : 0);
+	uint offset = ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE] - (isActive ? particleCount : 0);
 
 	do
 	{
 		// Get index to swap particle to
-		AtomicAdd(Get(ParticleSectionsIndices)[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
-		if (sign*int(currIdx) < sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]))
+		AtomicAdd(ParticleSectionsIndices[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
+		if (sign*int(currIdx) < sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]))
 		{
-			toSwapBitfield = Get(BitfieldBuffer)[currIdx];
+			toSwapBitfield = BitfieldBuffer[currIdx];
 			setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
 			attemptCount++;
 		}
 	}
-	while (isActive == bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]) &&							// Make sure the received particle has the right state
-		sign*int(currIdx) < sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]) &&	// Don't read from the wrong section
+	while (isActive == bool(ParticleSetVisibility[setIndex*2+CURR_VALUE]) &&							// Make sure the received particle has the right state
+		sign*int(currIdx) < sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]) &&	// Don't read from the wrong section
 		attemptCount < nAttempts);																			// Only try a certain amount of times
 
-	if (bool(Get(ParticleSetVisibility)[setIndex*2+CURR_VALUE]) != isActive)
+	if (bool(ParticleSetVisibility[setIndex*2+CURR_VALUE]) != isActive)
 	{
 		currBitfield = SwapParticles(currBitfield, particleIdx, currIdx, particleData);
 		return true;
 	}
 	
-	if (sign*int(currIdx) >= sign*int(Get(ParticleSectionsIndices)[currBufferSection * 2 + CURR_VALUE]))
+	if (sign*int(currIdx) >= sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]))
 		return true;
 
 	return false;
@@ -145,8 +148,8 @@ void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, floa
 {
 	ParticleData particleData = PackParticle(particleSet, position, float4(velocity, age));
 	
-	Get(ParticlesDataBuffer)[particleIdx] = particleData;
-	Get(BitfieldBuffer)[particleIdx] = bitfield;
+	ParticlesDataBuffer[particleIdx] = particleData;
+	BitfieldBuffer[particleIdx] = bitfield;
 }
 
 

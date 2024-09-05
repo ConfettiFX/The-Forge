@@ -62,8 +62,8 @@ GroupShared(uint, g_shared_1[12][12]);
 void LoadFromGroupSharedMemory(int2 idx, out(min16float3) radiance, out(min16float) roughness)
 {
     uint2 tmp;
-    tmp.x = Get(g_shared_0)[idx.x][idx.y];
-    tmp.y = Get(g_shared_1)[idx.x][idx.y];
+    tmp.x = g_shared_0[idx.x][idx.y];
+    tmp.y = g_shared_1[idx.x][idx.y];
 
     min16float4 min16tmp = min16float4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
     radiance = min16tmp.xyz;
@@ -73,18 +73,18 @@ void LoadFromGroupSharedMemory(int2 idx, out(min16float3) radiance, out(min16flo
 void StoreInGroupSharedMemory(int2 idx, min16float3 radiance, min16float roughness)
 {
     min16float4 tmp = min16float4(radiance, roughness);
-    Get(g_shared_0)[idx.x][idx.y] = PackFloat16(min16float2(tmp.xy));
-    Get(g_shared_1)[idx.x][idx.y] = PackFloat16(min16float2(tmp.zw));
+    g_shared_0[idx.x][idx.y] = PackFloat16(min16float2(tmp.xy));
+    g_shared_1[idx.x][idx.y] = PackFloat16(min16float2(tmp.zw));
 }
 
 min16float3 LoadRadiance(int2 idx)
 {
-    return min16float3(LoadRWTex2D(Get(g_temporally_denoised_reflections), idx).xyz);
+    return min16float3(LoadRWTex2D(g_temporally_denoised_reflections, idx).xyz);
 }
 
 min16float LoadRoughnessValue(int2 idx)
 {
-    return min16float(FfxSssrUnpackRoughness(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, idx, 0)));
+    return min16float(FfxSssrUnpackRoughness(LoadTex2D(g_normal_roughness, NO_SAMPLER, idx, 0)));
 }
 
 min16float4 ResolveScreenspaceReflections(int2 gtid, min16float center_roughness)
@@ -200,14 +200,14 @@ void Resolve(int2 did, int2 gtid)
         return;
     }
 
-    Write2D(Get(g_denoised_reflections), did.xy, float4(ResolveScreenspaceReflections(gtid, center_roughness)));
+    Write2D(g_denoised_reflections, did.xy, float4(ResolveScreenspaceReflections(gtid, center_roughness)));
 }
 
 NUM_THREADS(8,  8,  1)
 void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id, SV_GroupID(uint3) group_id )
 {
 	INIT_MAIN;
-    uint packed_base_coords = Get(g_tile_list)[group_id.x];
+    uint packed_base_coords = g_tile_list[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
     uint2 coords = base_coords + group_thread_id.xy;
     Resolve(int2(coords.xy), int2(group_thread_id.xy));

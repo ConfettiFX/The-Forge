@@ -1,44 +1,64 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{e107baa7-ef35-4b09-8580-9f11f705ba31}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\03_MultiThread">
+      <UniqueIdentifier>{c8b2eded-75db-4194-b4e6-ed49a55ceb70}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{995c00ae-609c-4eec-9b58-af4f945c5d78}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{c37d6c9f-159d-43bc-895b-ecb329b3c683}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scripts">
-      <UniqueIdentifier>{236a5097-3d1e-4c65-9f5f-b4f6b4094695}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{89e77d79-ba16-4d36-8ed6-3d02b045bd2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{0293a758-b945-4306-855f-be9454641ae8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL">
+      <UniqueIdentifier>{169a6b8f-1d2b-4e9e-867d-6d35d137e35a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\03_MultiThread\Shaders">
+      <UniqueIdentifier>{61f376ff-924a-41fa-9ffa-6ff47d3eb154}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts\03_MultiThread">
+      <UniqueIdentifier>{be92cbef-d8cc-45b9-8928-59547b04eefe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{9743d175-cd42-4f43-a6a5-6179c74999eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{43bbbea2-d22c-4461-ae34-0c8bc787602c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\03_MultiThread\03_MultiThread.cpp" />
+    <ClCompile Include="..\..\src\03_MultiThread\03_MultiThread.cpp">
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread</Filter>
+    </ClCompile>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Graph.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Graph.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Particle.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\resources.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\03_MultiThread\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\src\03_MultiThread\Scripts\Test_TurnOffPlots.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\03_MultiThread\Test_TurnOffPlots.lua">
+      <Filter>Art\Scripts\03_MultiThread</Filter>
     </None>
   </ItemGroup>
 </Project>

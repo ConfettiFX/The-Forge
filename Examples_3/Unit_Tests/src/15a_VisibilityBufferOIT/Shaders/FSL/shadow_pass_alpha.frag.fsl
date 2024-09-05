@@ -35,7 +35,7 @@ void PS_MAIN( PsInAlphaTested In )
 
     float alpha = 0.0f;
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-        alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+        alpha = SampleTex2D(diffuseMaps[materialID], textureFilter, In.texCoord).a;
     EndNonUniformResourceIndex();
 
     clip(alpha - 0.5f);

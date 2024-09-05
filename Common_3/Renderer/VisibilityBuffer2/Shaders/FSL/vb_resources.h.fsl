@@ -30,17 +30,19 @@ RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_PER_FRAME, u1, binding = 8);
 
 RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 3);
 
-CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 2)
+STRUCT(batchData)
 {
     DATA(FilterBatchData, filterBatchDataBuffer[FILTER_BATCH_COUNT], None);
 };
+RES(CBUFFER(batchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 2);
 #endif
 
 #ifdef _VB_PRE_SKIN_VERTEXES_H
-CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0)
+STRUCT(batchData)
 {
     DATA(PreSkinBatchData, skinBatchDataBuffer[SKIN_BATCH_COUNT], None);
 };
+RES(CBUFFER(batchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0);
 #endif
 
 #endif

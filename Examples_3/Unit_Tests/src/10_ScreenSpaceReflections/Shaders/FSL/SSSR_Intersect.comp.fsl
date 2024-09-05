@@ -74,13 +74,13 @@ float SampleRandomNumber(in(uint) pixel_i, in(uint) pixel_j, in(uint) sample_ind
     sample_dimension = sample_dimension & 255u;
 
     // xor index based on optimized ranking
-    const uint ranked_sample_index = sample_index ^ Get(g_ranking_tile_buffer)[sample_dimension + (pixel_i + pixel_j * 128u) * 8u];
+    const uint ranked_sample_index = sample_index ^ g_ranking_tile_buffer[sample_dimension + (pixel_i + pixel_j * 128u) * 8u];
 
     // Fetch value in sequence
-    uint value = Get(g_sobol_buffer)[sample_dimension + ranked_sample_index * 256u];
+    uint value = g_sobol_buffer[sample_dimension + ranked_sample_index * 256u];
 
     // If the dimension is optimized, xor sequence value based on optimized scrambling
-    value = value ^ Get(g_scrambling_tile_buffer)[(sample_dimension % 8u) + (pixel_i + pixel_j * 128u) * 8u];
+    value = value ^ g_scrambling_tile_buffer[(sample_dimension % 8u) + (pixel_i + pixel_j * 128u) * 8u];
 
     // Convert to float and return
     return (value + 0.5f) / 256.0f;
@@ -90,8 +90,8 @@ float2 SampleRandomVector2(uint2 pixel)
 {
     const uint sample_index = 0;
     float2 u = float2(
-        fmod(SampleRandomNumber(pixel.x, pixel.y, sample_index, 0u) + (Get(g_frame_index) & 0xFFu) * FFX_SSSR_GOLDEN_RATIO, 1.0f),
-        fmod(SampleRandomNumber(pixel.x, pixel.y, sample_index, 1u) + (Get(g_frame_index) & 0xFFu) * FFX_SSSR_GOLDEN_RATIO, 1.0f));
+        fmod(SampleRandomNumber(pixel.x, pixel.y, sample_index, 0u) + (Constants.g_frame_index & 0xFFu) * FFX_SSSR_GOLDEN_RATIO, 1.0f),
+        fmod(SampleRandomNumber(pixel.x, pixel.y, sample_index, 1u) + (Constants.g_frame_index & 0xFFu) * FFX_SSSR_GOLDEN_RATIO, 1.0f));
     return u;
 }
 
@@ -175,7 +175,7 @@ float2 GetMipResolution(float2 screen_dimensions, int mip_level)
 
 float LoadDepth(float2 idx, int mip)
 {
-    return FfxSssrUnpackDepth(LoadTex2D(Get(g_depth_buffer_hierarchy), NO_SAMPLER, int2(idx), mip).x);
+    return FfxSssrUnpackDepth(LoadTex2D(g_depth_buffer_hierarchy, NO_SAMPLER, int2(idx), mip).x);
 }
 
 void InitialAdvanceRay(float3 origin, float3 direction, float3 inv_direction, float2 current_mip_resolution, float2 current_mip_resolution_inv, float2 floor_offset, float2 uv_offset, out(float3) position, out(float) current_t)
@@ -228,7 +228,7 @@ bool AdvanceRay(float3 origin, float3 direction, float3 inv_direction, float2 cu
 // Requires origin and direction of the ray to be in screen space [0, 1] x [0, 1]
 float3 HierarchicalRaymarch(float3 origin, float3 direction, bool is_mirror, float2 screen_size, out(bool) valid_hit)
 {
-    int most_detailed_mip = is_mirror ? 0 : int(Get(g_most_detailed_mip));
+    int most_detailed_mip = is_mirror ? 0 : int(Constants.g_most_detailed_mip);
 
     // const float3 inv_direction = lerp(1.0 / direction, f3(FFX_SSSR_FLOAT_MAX), Equal(direction, 0));
     const float3 inv_direction = select(1.0 / direction, f3(FFX_SSSR_FLOAT_MAX), Equal(direction, 0));
@@ -253,8 +253,8 @@ float3 HierarchicalRaymarch(float3 origin, float3 direction, bool is_mirror, flo
     float3 position;
     InitialAdvanceRay(origin, direction, inv_direction, current_mip_resolution, current_mip_resolution_inv, floor_offset, uv_offset, position, current_t);
 
-    const uint min_traversal_occupancy = Get(g_min_traversal_occupancy);
-    const uint max_traversal_intersections = Get(g_max_traversal_intersections);
+    const uint min_traversal_occupancy = Constants.g_min_traversal_occupancy;
+    const uint max_traversal_intersections = Constants.g_max_traversal_intersections;
 
     bool exit_due_to_low_occupancy = false;
     uint i = 0;
@@ -293,7 +293,7 @@ float ValidateHit(float3 hit, Ray reflected_ray, float3 world_space_ray_directio
     }
 
     // We check if we hit the surface from the back, these should be rejected.
-    float3 hit_normal = LoadNormal(texel_coords, Get(g_normal_roughness));
+    float3 hit_normal = LoadNormal(texel_coords, g_normal_roughness);
     if (dot(hit_normal, world_space_ray_direction) > 0)
     {
         return 0;
@@ -310,7 +310,7 @@ float ValidateHit(float3 hit, Ray reflected_ray, float3 world_space_ray_directio
 
     // We accept all hits that are within a reasonable minimum distance below the surface.
     // Add constant in linear space to avoid growing of the reflections toward the reflected objects.
-    float confidence = 1 - smoothstep(0, Get(g_depth_buffer_thickness), distance);
+    float confidence = 1 - smoothstep(0, Constants.g_depth_buffer_thickness, distance);
     confidence *= confidence;
 
     return vignette * confidence;
@@ -318,16 +318,16 @@ float ValidateHit(float3 hit, Ray reflected_ray, float3 world_space_ray_directio
 
 void Intersect(int2 did)
 {
-    float2 screen_size = float2(GetDimensions(Get(g_intersection_result), NO_SAMPLER));
+    float2 screen_size = float2(GetDimensions(g_intersection_result, NO_SAMPLER));
 
-    const uint skip_denoiser = Get(g_skip_denoiser);
+    const uint skip_denoiser = Constants.g_skip_denoiser;
 
     float2 uv = (float2(did) + 0.5) / screen_size;
-    float3 world_space_normal = LoadNormal(did, Get(g_normal_roughness));
-    float roughness = LoadRoughness(did, Get(g_normal_roughness));
+    float3 world_space_normal = LoadNormal(did, g_normal_roughness);
+    float roughness = LoadRoughness(did, g_normal_roughness);
     bool is_mirror = IsMirrorReflection(roughness);
 
-    int most_detailed_mip = is_mirror ? 0 : int(Get(g_most_detailed_mip));
+    int most_detailed_mip = is_mirror ? 0 : int(Constants.g_most_detailed_mip);
     float2 mip_resolution = GetMipResolution(screen_size, most_detailed_mip);
     float z = LoadDepth(uv * mip_resolution, most_detailed_mip);
 
@@ -335,23 +335,23 @@ void Intersect(int2 did)
     screen_space_ray.origin = float3(uv, z);
 
     Ray view_space_ray = CreateViewSpaceRay(screen_space_ray.origin);
-    float3 view_space_surface_normal = mul(float4(normalize(world_space_normal), 0), Get(g_view)).xyz;
+    float3 view_space_surface_normal = mul(float4(normalize(world_space_normal), 0), Constants.g_view).xyz;
     float3 view_space_reflected_direction = SampleReflectionVector(view_space_ray.direction, view_space_surface_normal, roughness, did);
-    screen_space_ray.direction = ProjectDirection(view_space_ray.origin, view_space_reflected_direction, screen_space_ray.origin, Get(g_proj));
+    screen_space_ray.direction = ProjectDirection(view_space_ray.origin, view_space_reflected_direction, screen_space_ray.origin, Constants.g_proj);
 
     bool valid_hit;
     float3 hit = HierarchicalRaymarch(screen_space_ray.origin, screen_space_ray.direction, is_mirror, screen_size, valid_hit);
-    float3 world_space_reflected_direction = mul(float4(view_space_reflected_direction, 0), Get(g_inv_view)).xyz;
+    float3 world_space_reflected_direction = mul(float4(view_space_reflected_direction, 0), Constants.g_inv_view).xyz;
     float confidence = valid_hit ? ValidateHit(hit, screen_space_ray, world_space_reflected_direction, screen_size) : 0;
-    float3 world_space_origin = InvProjectPosition(screen_space_ray.origin, Get(g_inv_view_proj));
-    float3 world_space_hit = InvProjectPosition(hit, Get(g_inv_view_proj));
+    float3 world_space_origin = InvProjectPosition(screen_space_ray.origin, Constants.g_inv_view_proj);
+    float3 world_space_hit = InvProjectPosition(hit, Constants.g_inv_view_proj);
     float3 world_space_ray = world_space_hit - world_space_origin.xyz;
 
     float3 reflection_radiance = f3(0);
     if (confidence > 0)
     {
         // Found an intersection with the depth buffer -> We can lookup the color from lit scene.
-        float4 packed_radiance = LoadTex2D(Get(g_lit_scene), NO_SAMPLER, int2(screen_size * hit.xy), 0);
+        float4 packed_radiance = LoadTex2D(g_lit_scene, NO_SAMPLER, int2(screen_size * hit.xy), 0);
         reflection_radiance = FfxSssrUnpackSceneRadiance(packed_radiance);
     }
 
@@ -359,12 +359,12 @@ void Intersect(int2 did)
     // float3 environment_lookup = SampleLvlTexCube(g_environment_map, g_environment_map_sampler, world_space_reflected_direction, 0).xyz;
     reflection_radiance = confidence * reflection_radiance/* + (1 - confidence) * environment_lookup*/;
 
-    Write2D(Get(g_intersection_result), did, float4(reflection_radiance, 1));
-    Write2D(Get(g_ray_lengths), did, length(world_space_ray));
+    Write2D(g_intersection_result, did, float4(reflection_radiance, 1));
+    Write2D(g_ray_lengths, did, length(world_space_ray));
 
     // The denoisers won't copy the value of a mirror reflection, so we write it out to the final target
     int2 idx = (is_mirror || skip_denoiser != 0u) ? did : i2(-1);
-    Write2D(Get(g_denoised_reflections), idx, float4(reflection_radiance.xyz, 1));
+    Write2D(g_denoised_reflections, idx, float4(reflection_radiance.xyz, 1));
 }
 
 NUM_THREADS(8, 8, 1)
@@ -374,7 +374,7 @@ void CS_MAIN( SV_GroupIndex(uint) group_index, SV_GroupID(uint3) group_id )
     // We can encounter some remainders here. 
     // Worst case is that they are tracing a few more rays than necessary but they can't produce artifacts.
     uint ray_index = group_id.x * 64 + group_index;
-    uint packed_coords = Get(g_ray_list)[ray_index];
+    uint packed_coords = g_ray_list[ray_index];
     uint2 coords = Unpack(packed_coords);
     Intersect(int2(coords));
 

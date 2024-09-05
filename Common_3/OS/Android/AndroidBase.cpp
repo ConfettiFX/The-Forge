@@ -26,17 +26,11 @@
 #include <android/log.h>
 #include <android/looper.h>
 #include <android/native_activity.h>
+#include <android/native_window_jni.h>
 #include <ctime>
 #include <memory_advice/memory_advice.h>
 #include <sys/system_properties.h>
 #include <unistd.h>
-
-#include "../../Graphics/GraphicsConfig.h"
-
-#if defined(GLES)
-#include <EGL/egl.h>
-#include <GLES2/gl2.h>
-#endif
 
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Application/Interfaces/IFont.h"
@@ -50,9 +44,6 @@
 #include "../../Utilities/Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-#include "../../Tools/Network/Network.h"
-#endif
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
 #endif
@@ -82,25 +73,31 @@ static CpuInfo gCpu;
 static OSInfo  gOsInfo = {};
 
 /// UI
-static UIComponent* pAPISwitchingWindow = NULL;
 static UIComponent* pToggleVSyncWindow = NULL;
+UIWidget*           pSwitchWindowLabel = NULL;
+UIWidget*           pSelectGraphicCardWidget = NULL;
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
 #endif
-UIWidget* pSwitchWindowLabel = NULL;
-UIWidget* pSelectApUIWidget = NULL;
 
-static uint32_t gSelectedApiIndex = 0;
+RendererApi gRendererApis[RENDERER_API_COUNT] = {};
 
-// PickRenderingAPI.cpp
-extern PlatformParameters gPlatformParameters;
-extern bool               gGLESUnsupported;
+static const uint32_t MAX_REFRESH_RATE_COUNT = 32;
+bool                  gRefreshRateChanged = false;
+uint32_t              gSelectedRefreshRateIndex = 0;
+uint32_t              gSupportedRefreshRatesCount;
+float                 gSupportedRefreshRates[MAX_REFRESH_RATE_COUNT] = {};
 
 // AndroidWindow.cpp
 extern IApp* pWindowAppRef;
 extern bool  windowReady;
 extern bool  isActive;
 extern bool  isLoaded;
+
+JNIEnv* pMainJavaEnv = {};
+
+static jobject gActivity = {};
+static bool    gBackKeyPressed = false;
 
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
@@ -113,6 +110,7 @@ extern "C"
 {
     JNIEXPORT void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeThermalEvent)(JNIEnv* env, jobject obj, jint status);
     JNIEXPORT void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeOnAlertClosed)(JNIEnv* env, jobject obj);
+    JNIEXPORT void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, initializeJni)(JNIEnv* env, jobject obj);
 }
 
 void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeThermalEvent)(JNIEnv* env, jobject obj, jint status)
@@ -131,6 +129,18 @@ void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeOnAlertClosed
         gErrorMessagePopupCallback();
     }
 }
+
+void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, initializeJni)(JNIEnv* env, jobject obj)
+{
+    JavaVM* vm = nullptr;
+    if (env->GetJavaVM(&vm) == 0)
+    {
+        // Cache the MainActivity
+        gActivity = obj;
+    }
+}
+
+jobject AndroidGetActivity() { return gActivity; }
 
 // this callback is called only for states other then MEMORYADVICE_STATE_OK.
 void memoryStateWatcherCallback(MemoryAdvice_MemoryState state, void* userData)
@@ -290,9 +300,12 @@ bool initBaseSubsystems(IApp* app)
     extern bool platformInitUserInterface();
     extern void platformInitLuaScriptingSystem();
     extern void platformInitWindowSystem(WindowDesc*);
+    extern void platformInitInput(JNIEnv*, jobject);
 
     platformInitWindowSystem(gWindowDesc);
     pApp->pWindow = gWindowDesc;
+
+    platformInitInput(pMainJavaEnv, gWindowDesc->handle.activity->clazz);
 
 #ifdef ENABLE_FORGE_FONTS
     if (!platformInitFontSystem())
@@ -320,19 +333,18 @@ bool initBaseSubsystems(IApp* app)
 #endif
 #endif
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    initNetwork();
-#endif
-
     return true;
 }
 
-void updateBaseSubsystems(float deltaTime, bool appDrawn)
+static void updateBaseSubsystems(android_app* app, float deltaTime, bool appDrawn)
 {
     // Not exposed in the interface files / app layer
     extern void platformUpdateLuaScriptingSystem(bool appDrawn);
     extern void platformUpdateUserInterface(float deltaTime);
     extern void platformUpdateWindowSystem();
+    extern void platformUpdateInput(struct android_app*, JNIEnv*, uint32_t width, uint32_t height, float dt);
+
+    platformUpdateInput(app, pMainJavaEnv, pApp->mSettings.mWidth, pApp->mSettings.mHeight, deltaTime);
 
     platformUpdateWindowSystem();
 
@@ -352,6 +364,9 @@ void exitBaseSubsystems()
     extern void platformExitUserInterface();
     extern void platformExitLuaScriptingSystem();
     extern void platformExitWindowSystem();
+    extern void platformExitInput(JNIEnv*);
+
+    platformExitInput(pMainJavaEnv);
 
     platformExitWindowSystem();
 
@@ -366,15 +381,30 @@ void exitBaseSubsystems()
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
 #endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    exitNetwork();
-#endif
 }
 
 //------------------------------------------------------------------------
 // PLATFORM LAYER USER INTERFACE
 //------------------------------------------------------------------------
+static void togglePlatformUI()
+{
+    gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
+
+#ifdef ENABLE_FORGE_UI
+    extern void platformToggleWindowSystemUI(bool);
+    platformToggleWindowSystemUI(gShowPlatformUI);
+
+    uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
+#if defined(ENABLE_FORGE_RELOAD_SHADER)
+    uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
+#endif
+
+    // toggleProfilerMenuUI(gShowPlatformUI);
+
+    // if (pAPISwitchingWindow)
+    //    uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
+#endif
+}
 
 void setupPlatformUI(int32_t width, int32_t height)
 {
@@ -386,55 +416,51 @@ void setupPlatformUI(int32_t width, int32_t height)
     // VSYNC CONTROL
     UIComponentDesc UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
-    uiCreateComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
+    uiAddComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
 
     CheckboxWidget checkbox;
     checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+    UIWidget* pCheckbox = uiAddComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
+
+    static const char* refreshRatesNamesPtr[MAX_REFRESH_RATE_COUNT] = {};
+    static char        refreshRatesNames[MAX_REFRESH_RATE_COUNT][10] = {};
+    for (uint32_t i = 0; i < gSupportedRefreshRatesCount; ++i)
+    {
+        snprintf(refreshRatesNames[i], TF_ARRAY_COUNT(refreshRatesNames[0]), "%f", gSupportedRefreshRates[i]);
+        refreshRatesNamesPtr[i] = refreshRatesNames[i];
+    }
+
+    DropdownWidget selectRefreshRateWidget;
+    selectRefreshRateWidget.pData = &gSelectedRefreshRateIndex;
+    selectRefreshRateWidget.pNames = refreshRatesNamesPtr;
+    selectRefreshRateWidget.mCount = gSupportedRefreshRatesCount;
+    UIWidget* pRefreshRateSwitchingWidget =
+        uiAddComponentWidget(pToggleVSyncWindow, "Refresh Rate", &selectRefreshRateWidget, WIDGET_TYPE_DROPDOWN);
+    pRefreshRateSwitchingWidget->pOnEdited = [](void* pUserData) { gRefreshRateChanged = true; };
+    REGISTER_LUA_WIDGET(pRefreshRateSwitchingWidget);
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
-    uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+    uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
     toggleProfilerMenuUI(true);
 
-    gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
+    static const char* apiNames[RENDERER_API_COUNT] = {};
+    uint32_t           apiIndex[RENDERER_API_COUNT] = {};
+    uint32_t           apiNameCount = 0;
 
-    static const char* pApiNames[] = {
-#if defined(GLES)
-        "GLES",
-#endif
 #if defined(VULKAN)
-        "Vulkan",
+    apiNames[apiNameCount] = "Vulkan";
+    gRendererApis[apiNameCount] = RENDERER_API_VULKAN;
+    apiIndex[RENDERER_API_VULKAN] = apiNameCount;
+    ++apiNameCount;
 #endif
-    };
-    uint32_t apiNameCount = sizeof(pApiNames) / sizeof(*pApiNames);
-
-    if (apiNameCount > 1 && !gGLESUnsupported)
-    {
-        UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
-        uiCreateComponent("API Switching", &UIComponentDesc, &pAPISwitchingWindow);
-
-        // Select Api
-        DropdownWidget selectApUIWidget;
-        selectApUIWidget.pData = &gSelectedApiIndex;
-        selectApUIWidget.pNames = pApiNames;
-        selectApUIWidget.mCount = RENDERER_API_COUNT;
-
-        pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-        pSelectApUIWidget->pOnEdited = [](void* pUserData)
-        {
-            ResetDesc resetDesc;
-            resetDesc.mType = RESET_TYPE_API_SWITCH;
-            requestReset(&resetDesc);
-        };
-    }
 
 #if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
     // Tests below are executed last, after tests registered in IApp::Init have executed
@@ -447,23 +473,6 @@ void setupPlatformUI(int32_t width, int32_t height)
     }
     luaDefineScripts(scriptDescs, numScripts);
 #endif
-#endif
-}
-
-void togglePlatformUI()
-{
-    gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
-
-#ifdef ENABLE_FORGE_UI
-    extern void platformToggleWindowSystemUI(bool);
-    platformToggleWindowSystemUI(gShowPlatformUI);
-
-    uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
-#if defined(ENABLE_FORGE_RELOAD_SHADER)
-    uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
-#endif
-    if (pAPISwitchingWindow)
-        uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
 #endif
 }
 
@@ -486,15 +495,101 @@ void processAllEvents(android_app* app, bool* windowReady, int* cancelationToken
     }
 }
 
+void queryAndSetRefreshRates(JNIEnv* pJNI, android_app* android_app)
+{
+    ASSERT(pJNI != NULL);
+
+    ANativeActivity* activity = android_app->activity;
+
+    jclass      cls = pJNI->GetObjectClass(activity->clazz);
+    jmethodID   methodID = pJNI->GetMethodID(cls, "getSupportedRefreshRates", "()[F");
+    jfloatArray refreshRates = (jfloatArray)pJNI->CallObjectMethod(activity->clazz, methodID);
+
+    if (refreshRates != NULL)
+    {
+        int32_t rrLength = (int32_t)pJNI->GetArrayLength(refreshRates);
+        jfloat* pRefreshRates = pJNI->GetFloatArrayElements(refreshRates, NULL);
+        rrLength = min((int32_t)MAX_REFRESH_RATE_COUNT, rrLength);
+
+        for (int32_t i = 0; i < rrLength; ++i)
+        {
+            gSupportedRefreshRates[gSupportedRefreshRatesCount++] = (float)pRefreshRates[i];
+        }
+        pJNI->ReleaseFloatArrayElements(refreshRates, pRefreshRates, 0);
+    }
+
+    pJNI->DeleteLocalRef(refreshRates);
+}
+
+void getSupportedRefreshRates(float** pOutRefreshRates, int32_t* outCount)
+{
+    *pOutRefreshRates = gSupportedRefreshRates;
+    *outCount = gSupportedRefreshRatesCount;
+}
+
+void setRefreshRate(JNIEnv* pJNI, android_app* android_app, float refreshRateInMs)
+{
+    ASSERT(pJNI != NULL);
+
+    ANativeActivity* activity = android_app->activity;
+    jobject          surfaceHandle = ANativeWindow_toSurface(pJNI, android_app->window);
+
+    jclass    cls = pJNI->GetObjectClass(activity->clazz);
+    jmethodID methodID = pJNI->GetMethodID(cls, "setRefreshRate", "(Landroid/view/Surface;F)V");
+    pJNI->CallVoidMethod(activity->clazz, methodID, surfaceHandle, refreshRateInMs);
+
+    pJNI->DeleteLocalRef(surfaceHandle);
+}
+
 //------------------------------------------------------------------------
 // APP ENTRY POINT
 //------------------------------------------------------------------------
 
 // AndroidWindow.cpp
-extern void    handleMessages(WindowDesc*);
-extern void    getDisplayMetrics(android_app*, JNIEnv*);
-extern void    handle_cmd(android_app*, int32_t);
-extern int32_t handle_input(struct android_app*, AInputEvent*);
+extern void handleMessages(WindowDesc*);
+extern void getDisplayMetrics(android_app*, JNIEnv*);
+extern void handle_cmd(android_app*, int32_t);
+
+static void OnBackKeyPressed(android_app* app)
+{
+    JNIEnv* jni = 0;
+    app->activity->vm->AttachCurrentThread(&jni, NULL);
+    if (!jni)
+    {
+        app->activity->vm->DetachCurrentThread();
+        return;
+    }
+
+    jclass    clazz = jni->GetObjectClass(app->activity->clazz);
+    jmethodID methodID = jni->GetMethodID(clazz, "onBackKeyPressed", "()V");
+    if (!methodID)
+    {
+        LOGF(LogLevel::eERROR, "Could not find method \'onBackKeyPressed\' in activity class");
+        return;
+    }
+    jni->CallVoidMethod(app->activity->clazz, methodID);
+    app->activity->vm->DetachCurrentThread();
+}
+
+static int32_t HandleInputEvent(struct android_app* app, AInputEvent* event)
+{
+    const int32_t keyCode = AKeyEvent_getKeyCode(event);
+    const int32_t action = AKeyEvent_getAction(event);
+
+    extern int32_t platformInputEvent(struct android_app*, AInputEvent*);
+    if (platformInputEvent(app, event))
+    {
+        return 1;
+    }
+
+    if (AKEYCODE_BACK == keyCode && AKEY_EVENT_ACTION_UP == action)
+    {
+        gBackKeyPressed = true;
+        return 0;
+    }
+
+    return 0;
+}
 
 int          IApp::argc;
 const char** IApp::argv;
@@ -531,8 +626,7 @@ int AndroidMain(void* param, IApp* app)
     LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName,
          knownVersion ? gOsInfo.osVersion : "Unknown Version", knownModel ? gOsInfo.osDeviceName : "Unknown Model");
 
-    JNIEnv* pJavaEnv;
-    android_app->activity->vm->AttachCurrentThread(&pJavaEnv, NULL);
+    android_app->activity->vm->AttachCurrentThread(&pMainJavaEnv, NULL);
 
     // Set the callback to process system events
     gWindow.handle.type = WINDOW_HANDLE_TYPE_ANDROID;
@@ -545,7 +639,7 @@ int AndroidMain(void* param, IApp* app)
     pApp = app;
     pWindowAppRef = app;
 
-    MemoryAdvice_ErrorCode code = MemoryAdvice_init(pJavaEnv, gWindow.handle.activity->clazz);
+    MemoryAdvice_ErrorCode code = MemoryAdvice_init(pMainJavaEnv, gWindow.handle.activity->clazz);
     if (code == MEMORYADVICE_ERROR_OK)
     {
         code = MemoryAdvice_registerWatcher(1000.0f, memoryStateWatcherCallback, NULL);
@@ -562,16 +656,16 @@ int AndroidMain(void* param, IApp* app)
     uint32_t targetFrameCount = DEFAULT_AUTOMATION_FRAME_COUNT;
 #endif
 
-    initCpuInfo(&gCpu, pJavaEnv);
+    initCpuInfo(&gCpu, pMainJavaEnv);
 
     IApp::Settings* pSettings = &pApp->mSettings;
     HiresTimer      deltaTimer;
     initHiresTimer(&deltaTimer);
 
-    getDisplayMetrics(android_app, pJavaEnv);
+    getDisplayMetrics(android_app, pMainJavaEnv);
 
 #if defined(QUEST_VR)
-    initVrApi(android_app, pJavaEnv);
+    initVrApi(android_app, pMainJavaEnv);
     ASSERT(pQuest);
     pSettings->mWidth = pQuest->mEyeTextureWidth;
     pSettings->mHeight = pQuest->mEyeTextureHeight;
@@ -587,7 +681,7 @@ int AndroidMain(void* param, IApp* app)
     extern uint32_t gReloadServerRequestRecompileAfter;
     char            benchmarkOutput[1024] = { "\0" };
     bool            benchmarkArgs =
-        getBenchmarkArguments(android_app, pJavaEnv, frameCountArgs, gReloadServerRequestRecompileAfter, &benchmarkOutput[0]);
+        getBenchmarkArguments(android_app, pMainJavaEnv, frameCountArgs, gReloadServerRequestRecompileAfter, &benchmarkOutput[0]);
     if (benchmarkArgs)
     {
         pSettings->mBenchmarking = true;
@@ -596,7 +690,7 @@ int AndroidMain(void* param, IApp* app)
 #endif
 
     // Set the callback to process input events
-    android_app->onInputEvent = handle_input;
+    android_app->onInputEvent = HandleInputEvent;
 
     if (!initBaseSubsystems(pApp))
     {
@@ -605,12 +699,6 @@ int AndroidMain(void* param, IApp* app)
 
     if (!pApp->Init())
     {
-        const char* pRendererReason;
-        if (hasRendererInitializationError(&pRendererReason))
-        {
-            pApp->ShowUnsupportedMessage(pRendererReason);
-        }
-
         if (pApp->mUnsupported)
         {
             android_app->onAppCmd = NULL;
@@ -637,6 +725,9 @@ int AndroidMain(void* param, IApp* app)
         abort();
     }
 
+    // Query supported refresh rates
+    queryAndSetRefreshRates(pMainJavaEnv, android_app);
+
     setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
     pSettings->mInitialized = true;
 
@@ -652,6 +743,9 @@ int AndroidMain(void* param, IApp* app)
 
     while (!quit)
     {
+        extern void platformUpdateLastInputState(struct android_app*);
+        platformUpdateLastInputState(android_app);
+
         // Used to poll the events in the main loop
         int                  events;
         android_poll_source* source;
@@ -686,6 +780,12 @@ int AndroidMain(void* param, IApp* app)
 
         handleMessages(&gWindow);
 
+        if (gBackKeyPressed)
+        {
+            OnBackKeyPressed(android_app);
+            gBackKeyPressed = false;
+        }
+
         if (gShutdownRequested && !android_app->destroyRequested)
         {
             ANativeActivity_finish(android_app->activity);
@@ -694,7 +794,7 @@ int AndroidMain(void* param, IApp* app)
         }
 
         // UPDATE BASE INTERFACES
-        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        updateBaseSubsystems(android_app, deltaTime, baseSubsystemAppDrawn);
         baseSubsystemAppDrawn = false;
 
         if (isActive && isLoaded && gResetDescriptor.mType != RESET_TYPE_NONE)
@@ -705,8 +805,6 @@ int AndroidMain(void* param, IApp* app)
             pApp->Exit();
 
             exitBaseSubsystems();
-
-            gPlatformParameters.mSelectedRendererApi = (RendererApi)gSelectedApiIndex;
             pSettings->mInitialized = false;
 
             {
@@ -805,8 +903,12 @@ int AndroidMain(void* param, IApp* app)
 
         // UPDATE APP
         pApp->Update(deltaTime);
-        pApp->Draw();
-        baseSubsystemAppDrawn = true;
+        // Skip the fram we are changing refresh rate...
+        if (!gRefreshRateChanged)
+        {
+            pApp->Draw();
+            baseSubsystemAppDrawn = true;
+        }
 
         if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
         {
@@ -831,6 +933,14 @@ int AndroidMain(void* param, IApp* app)
         }
         testingFrameCount++;
 #endif
+
+        if (gRefreshRateChanged)
+        {
+            gRefreshRateChanged = false;
+
+            // Set fixed refresh rate..
+            setRefreshRate(pMainJavaEnv, android_app, gSupportedRefreshRates[gSelectedRefreshRateIndex]);
+        }
     }
 
 #ifdef AUTOMATED_TESTING
@@ -847,9 +957,9 @@ int AndroidMain(void* param, IApp* app)
 
     pApp->Exit();
 
-    exitLog();
-
     exitBaseSubsystems();
+
+    exitLog();
 
 #if defined(QUEST_VR)
     exitVrApi();

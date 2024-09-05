@@ -36,7 +36,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -238,6 +238,7 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         /************************************************************************/
         // SETUP ANIMATION STRUCTURES
@@ -288,26 +289,31 @@ public:
         //
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
-        settings.mD3D11Supported = true;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
-        if (!pRenderer) // check for init success
+        // check for init success
+        if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
         // CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
         //
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pGraphicsQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         // INITIALIZE RESOURCE/DEBUG SYSTEMS
         //
@@ -331,11 +337,9 @@ public:
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+        gGpuProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
         // INITIALIZE SAMPLERS
         //
@@ -476,163 +480,11 @@ public:
         // Add the rig to the list of skeletons to render
         gSkeletonBatcher.AddAnimatedObject(&gStickFigureAnimObject);
 
-        // Add the GUI Panels/Windows
-
-        vec2            UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
-        vec2            UIPanelSize = { 650, 1000 };
-        UIComponentDesc guiDesc;
-        guiDesc.mStartPosition = UIPosition;
-        guiDesc.mStartSize = UIPanelSize;
-        guiDesc.mFontID = 0;
-        guiDesc.mFontSize = 16.0f;
-        uiCreateComponent("Animation", &guiDesc, &pStandaloneControlsGUIWindow);
-
         // SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
-        //
-
         // Clip
         gUIData.mClip.mPlay = &gClipController.mPlay;
         gUIData.mClip.mLoop = &gClipController.mLoop;
         gUIData.mClip.mPlaybackSpeed = &gClipController.mPlaybackSpeed;
-
-        // SET UP GUI BASED ON gUIData STRUCT
-        //
-        {
-            enum
-            {
-                CLIP_PARAM_SEPARATOR_0,
-                CLIP_PARAM_PLAY,
-                CLIP_PARAM_SEPARATOR_1,
-                CLIP_PARAM_LOOP,
-                CLIP_PARAM_SEPARATOR_2,
-                CLIP_PARAM_ANIMATION_TIME,
-                CLIP_PARAM_SEPARATOR_3,
-                CLIP_PARAM_PLAYBACK_SPEED,
-                CLIP_PARAM_SEPARATOR_4,
-
-                CLIP_PARAM_COUNT
-            };
-
-            enum
-            {
-                GENERAL_PARAM_SEPARATOR_0,
-                GENERAL_PARAM_SHOW_BIND_POS,
-                GENERAL_PARAM_SEPARATOR_1,
-                GENERAL_PARAM_DRAW_BONES,
-                GENERAL_PARAM_SEPARATOR_2,
-                GENERAL_PARAM_DRAW_PLANE,
-                GENERAL_PARAM_SEPARATOR_3,
-                GENERAL_PARAM_DRAW_SHADOWS,
-
-                GENERAL_PARAM_COUNT
-            };
-
-            static const uint32_t maxWidgetCount = max((uint32_t)CLIP_PARAM_COUNT, (uint32_t)GENERAL_PARAM_COUNT);
-
-            UIWidget  widgetBases[maxWidgetCount] = {};
-            UIWidget* widgets[maxWidgetCount];
-            for (uint32_t i = 0; i < maxWidgetCount; ++i)
-                widgets[i] = &widgetBases[i];
-
-            // Set all separators
-            SeparatorWidget separator;
-            for (uint32_t i = 0; i < maxWidgetCount; i += 2)
-            {
-                widgets[i]->mType = WIDGET_TYPE_SEPARATOR;
-                widgets[i]->mLabel[0] = '\0';
-                widgets[i]->pWidget = &separator;
-            }
-
-            // STAND CLIP
-            //
-            CollapsingHeaderWidget collapsingClipWidgets;
-            collapsingClipWidgets.pGroupedWidgets = widgets;
-            collapsingClipWidgets.mWidgetsCount = CLIP_PARAM_COUNT;
-
-            // Play/Pause - Checkbox
-            CheckboxWidget playCheckbox = {};
-            playCheckbox.pData = gUIData.mClip.mPlay;
-            widgets[CLIP_PARAM_PLAY]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[CLIP_PARAM_PLAY]->mLabel, "Play");
-            widgets[CLIP_PARAM_PLAY]->pWidget = &playCheckbox;
-
-            // Loop - Checkbox
-            CheckboxWidget loopCheckbox = {};
-            loopCheckbox.pData = gUIData.mClip.mLoop;
-            widgets[CLIP_PARAM_LOOP]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[CLIP_PARAM_LOOP]->mLabel, "Loop");
-            widgets[CLIP_PARAM_LOOP]->pWidget = &loopCheckbox;
-
-            // Animation Time - Slider
-            float fValMin = 0.0f;
-            float fValMax = gClipController.mDuration;
-            float sliderStepSize = 0.01f;
-
-            SliderFloatWidget animationTime;
-            animationTime.pData = &gUIData.mClip.mAnimationTime;
-            animationTime.mMin = fValMin;
-            animationTime.mMax = fValMax;
-            animationTime.mStep = sliderStepSize;
-            widgets[CLIP_PARAM_ANIMATION_TIME]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-            strcpy(widgets[CLIP_PARAM_ANIMATION_TIME]->mLabel, "Animation Time");
-            widgets[CLIP_PARAM_ANIMATION_TIME]->pWidget = &animationTime;
-            uiSetWidgetOnActiveCallback(widgets[CLIP_PARAM_ANIMATION_TIME], nullptr, ClipTimeChangeCallback);
-
-            // Playback Speed - Slider
-            fValMin = -5.0f;
-            fValMax = 5.0f;
-            sliderStepSize = 0.1f;
-
-            SliderFloatWidget playbackSpeed;
-            playbackSpeed.pData = gUIData.mClip.mPlaybackSpeed;
-            playbackSpeed.mMin = fValMin;
-            playbackSpeed.mMax = fValMax;
-            playbackSpeed.mStep = sliderStepSize;
-            widgets[CLIP_PARAM_PLAYBACK_SPEED]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-            strcpy(widgets[CLIP_PARAM_PLAYBACK_SPEED]->mLabel, "Playback Speed");
-            widgets[CLIP_PARAM_PLAYBACK_SPEED]->pWidget = &playbackSpeed;
-
-            luaRegisterWidget(
-                uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Clip", &collapsingClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-
-            // GENERAL SETTINGS
-            //
-            CollapsingHeaderWidget collapsingGeneralSettingsWidgets;
-            collapsingGeneralSettingsWidgets.pGroupedWidgets = widgets;
-            collapsingGeneralSettingsWidgets.mWidgetsCount = GENERAL_PARAM_COUNT;
-
-            // ShowBindPose - Checkbox
-            CheckboxWidget showBindPose;
-            showBindPose.pData = &gUIData.mGeneralSettings.mShowBindPose;
-            widgets[GENERAL_PARAM_SHOW_BIND_POS]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[GENERAL_PARAM_SHOW_BIND_POS]->mLabel, "Show Bind Pose");
-            widgets[GENERAL_PARAM_SHOW_BIND_POS]->pWidget = &showBindPose;
-
-            // DrawBones - Checkbox
-            CheckboxWidget drawBones;
-            drawBones.pData = &gUIData.mGeneralSettings.mDrawBones;
-            widgets[GENERAL_PARAM_DRAW_BONES]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[GENERAL_PARAM_DRAW_BONES]->mLabel, "DrawBones");
-            widgets[GENERAL_PARAM_DRAW_BONES]->pWidget = &drawBones;
-
-            // DrawPlane - Checkbox
-            CheckboxWidget drawPlane;
-            drawPlane.pData = &gUIData.mGeneralSettings.mDrawPlane;
-            widgets[GENERAL_PARAM_DRAW_PLANE]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[GENERAL_PARAM_DRAW_PLANE]->mLabel, "Draw Plane");
-            widgets[GENERAL_PARAM_DRAW_PLANE]->pWidget = &drawPlane;
-            widgets[GENERAL_PARAM_DRAW_PLANE]->pOnActive = NULL; // Clear pointer to &ClipTimeChangeCallback
-
-            // DrawShadows - Checkbox
-            CheckboxWidget drawShadows;
-            drawShadows.pData = &gUIData.mGeneralSettings.mDrawShadows;
-            widgets[GENERAL_PARAM_DRAW_SHADOWS]->mType = WIDGET_TYPE_CHECKBOX;
-            strcpy(widgets[GENERAL_PARAM_DRAW_SHADOWS]->mLabel, "Draw Shadows");
-            widgets[GENERAL_PARAM_DRAW_SHADOWS]->pWidget = &drawShadows;
-
-            luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "General Settings", &collapsingGeneralSettingsWidgets,
-                                                      WIDGET_TYPE_COLLAPSING_HEADER));
-        }
 
         // SETUP THE MAIN CAMERA
         //
@@ -643,103 +495,9 @@ public:
         pCameraController = initFpsCameraController(camPos, lookAt);
         pCameraController->setMotionParameters(cmp);
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
         // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pGraphicsQueue);
         gFrameIndex = 0;
         waitForAllResourceLoads();
 
@@ -752,13 +510,11 @@ public:
 
     void Exit()
     {
-        exitInputSystem();
-
         gStickFigureRig.Exit();
         gClip.Exit();
         gAnimation.Exit();
         gStickFigureAnimObject.Exit();
-
+        exitScreenshotInterface();
         exitCameraController(pCameraController);
 
         exitProfiler();
@@ -787,15 +543,16 @@ public:
 
         removeSampler(pRenderer, pDefaultSampler);
 
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
         // Animation data
         gSkeletonBatcher.Exit();
 
         exitResourceLoaderInterface(pRenderer);
-        removeQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
     }
 
@@ -810,6 +567,155 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            // Add the GUI Panels/Windows
+            UIComponentDesc guiDesc;
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            guiDesc.mStartSize = vec2(650.0f, 1000.0f);
+            guiDesc.mFontID = 0;
+            guiDesc.mFontSize = 16.0f;
+            uiAddComponent("Animation", &guiDesc, &pStandaloneControlsGUIWindow);
+
+            // SET UP GUI BASED ON gUIData STRUCT
+            //
+            {
+                enum
+                {
+                    CLIP_PARAM_SEPARATOR_0,
+                    CLIP_PARAM_PLAY,
+                    CLIP_PARAM_SEPARATOR_1,
+                    CLIP_PARAM_LOOP,
+                    CLIP_PARAM_SEPARATOR_2,
+                    CLIP_PARAM_ANIMATION_TIME,
+                    CLIP_PARAM_SEPARATOR_3,
+                    CLIP_PARAM_PLAYBACK_SPEED,
+                    CLIP_PARAM_SEPARATOR_4,
+
+                    CLIP_PARAM_COUNT
+                };
+
+                enum
+                {
+                    GENERAL_PARAM_SEPARATOR_0,
+                    GENERAL_PARAM_SHOW_BIND_POS,
+                    GENERAL_PARAM_SEPARATOR_1,
+                    GENERAL_PARAM_DRAW_BONES,
+                    GENERAL_PARAM_SEPARATOR_2,
+                    GENERAL_PARAM_DRAW_PLANE,
+                    GENERAL_PARAM_SEPARATOR_3,
+                    GENERAL_PARAM_DRAW_SHADOWS,
+
+                    GENERAL_PARAM_COUNT
+                };
+
+                static const uint32_t maxWidgetCount = max((uint32_t)CLIP_PARAM_COUNT, (uint32_t)GENERAL_PARAM_COUNT);
+
+                UIWidget  widgetBases[maxWidgetCount] = {};
+                UIWidget* widgets[maxWidgetCount];
+                for (uint32_t i = 0; i < maxWidgetCount; ++i)
+                    widgets[i] = &widgetBases[i];
+
+                // Set all separators
+                SeparatorWidget separator;
+                for (uint32_t i = 0; i < maxWidgetCount; i += 2)
+                {
+                    widgets[i]->mType = WIDGET_TYPE_SEPARATOR;
+                    widgets[i]->mLabel[0] = '\0';
+                    widgets[i]->pWidget = &separator;
+                }
+
+                // STAND CLIP
+                //
+                CollapsingHeaderWidget collapsingClipWidgets;
+                collapsingClipWidgets.pGroupedWidgets = widgets;
+                collapsingClipWidgets.mWidgetsCount = CLIP_PARAM_COUNT;
+
+                // Play/Pause - Checkbox
+                CheckboxWidget playCheckbox = {};
+                playCheckbox.pData = gUIData.mClip.mPlay;
+                widgets[CLIP_PARAM_PLAY]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[CLIP_PARAM_PLAY]->mLabel, "Play");
+                widgets[CLIP_PARAM_PLAY]->pWidget = &playCheckbox;
+
+                // Loop - Checkbox
+                CheckboxWidget loopCheckbox = {};
+                loopCheckbox.pData = gUIData.mClip.mLoop;
+                widgets[CLIP_PARAM_LOOP]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[CLIP_PARAM_LOOP]->mLabel, "Loop");
+                widgets[CLIP_PARAM_LOOP]->pWidget = &loopCheckbox;
+
+                // Animation Time - Slider
+                float fValMin = 0.0f;
+                float fValMax = gClipController.mDuration;
+                float sliderStepSize = 0.01f;
+
+                SliderFloatWidget animationTime;
+                animationTime.pData = &gUIData.mClip.mAnimationTime;
+                animationTime.mMin = fValMin;
+                animationTime.mMax = fValMax;
+                animationTime.mStep = sliderStepSize;
+                widgets[CLIP_PARAM_ANIMATION_TIME]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+                strcpy(widgets[CLIP_PARAM_ANIMATION_TIME]->mLabel, "Animation Time");
+                widgets[CLIP_PARAM_ANIMATION_TIME]->pWidget = &animationTime;
+                uiSetWidgetOnActiveCallback(widgets[CLIP_PARAM_ANIMATION_TIME], nullptr, ClipTimeChangeCallback);
+
+                // Playback Speed - Slider
+                fValMin = -5.0f;
+                fValMax = 5.0f;
+                sliderStepSize = 0.1f;
+
+                SliderFloatWidget playbackSpeed;
+                playbackSpeed.pData = gUIData.mClip.mPlaybackSpeed;
+                playbackSpeed.mMin = fValMin;
+                playbackSpeed.mMax = fValMax;
+                playbackSpeed.mStep = sliderStepSize;
+                widgets[CLIP_PARAM_PLAYBACK_SPEED]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+                strcpy(widgets[CLIP_PARAM_PLAYBACK_SPEED]->mLabel, "Playback Speed");
+                widgets[CLIP_PARAM_PLAYBACK_SPEED]->pWidget = &playbackSpeed;
+
+                luaRegisterWidget(
+                    uiAddComponentWidget(pStandaloneControlsGUIWindow, "Clip", &collapsingClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+
+                // GENERAL SETTINGS
+                //
+                CollapsingHeaderWidget collapsingGeneralSettingsWidgets;
+                collapsingGeneralSettingsWidgets.pGroupedWidgets = widgets;
+                collapsingGeneralSettingsWidgets.mWidgetsCount = GENERAL_PARAM_COUNT;
+
+                // ShowBindPose - Checkbox
+                CheckboxWidget showBindPose;
+                showBindPose.pData = &gUIData.mGeneralSettings.mShowBindPose;
+                widgets[GENERAL_PARAM_SHOW_BIND_POS]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[GENERAL_PARAM_SHOW_BIND_POS]->mLabel, "Show Bind Pose");
+                widgets[GENERAL_PARAM_SHOW_BIND_POS]->pWidget = &showBindPose;
+
+                // DrawBones - Checkbox
+                CheckboxWidget drawBones;
+                drawBones.pData = &gUIData.mGeneralSettings.mDrawBones;
+                widgets[GENERAL_PARAM_DRAW_BONES]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[GENERAL_PARAM_DRAW_BONES]->mLabel, "DrawBones");
+                widgets[GENERAL_PARAM_DRAW_BONES]->pWidget = &drawBones;
+
+                // DrawPlane - Checkbox
+                CheckboxWidget drawPlane;
+                drawPlane.pData = &gUIData.mGeneralSettings.mDrawPlane;
+                widgets[GENERAL_PARAM_DRAW_PLANE]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[GENERAL_PARAM_DRAW_PLANE]->mLabel, "Draw Plane");
+                widgets[GENERAL_PARAM_DRAW_PLANE]->pWidget = &drawPlane;
+                widgets[GENERAL_PARAM_DRAW_PLANE]->pOnActive = NULL; // Clear pointer to &ClipTimeChangeCallback
+
+                // DrawShadows - Checkbox
+                CheckboxWidget drawShadows;
+                drawShadows.pData = &gUIData.mGeneralSettings.mDrawShadows;
+                widgets[GENERAL_PARAM_DRAW_SHADOWS]->mType = WIDGET_TYPE_CHECKBOX;
+                strcpy(widgets[GENERAL_PARAM_DRAW_SHADOWS]->mLabel, "Draw Shadows");
+                widgets[GENERAL_PARAM_DRAW_SHADOWS]->pWidget = &drawShadows;
+
+                luaRegisterWidget(uiAddComponentWidget(pStandaloneControlsGUIWindow, "General Settings", &collapsingGeneralSettingsWidgets,
+                                                       WIDGET_TYPE_COLLAPSING_HEADER));
+            }
+
             if (!addSwapChain())
                 return false;
 
@@ -847,8 +753,6 @@ public:
 
         gSkeletonBatcher.Load(&skeletonLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
-
         return true;
     }
 
@@ -869,6 +773,9 @@ public:
         {
             removeSwapChain(pRenderer, pSwapChain);
             removeRenderTarget(pRenderer, pDepthBuffer);
+
+            unloadProfilerUI();
+            uiRemoveComponent(pStandaloneControlsGUIWindow);
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -877,13 +784,36 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
 
         pCameraController->update(deltaTime);
 
@@ -1220,11 +1150,11 @@ public:
     void addShaders()
     {
         ShaderLoadDesc planeShader = {};
-        planeShader.mStages[0].pFileName = "plane.vert";
-        planeShader.mStages[1].pFileName = "plane.frag";
+        planeShader.mVert.pFileName = "plane.vert";
+        planeShader.mFrag.pFileName = "plane.frag";
         ShaderLoadDesc skinningShader = {};
-        skinningShader.mStages[0].pFileName = "skinning.vert";
-        skinningShader.mStages[1].pFileName = "skinning.frag";
+        skinningShader.mVert.pFileName = "skinning.vert";
+        skinningShader.mFrag.pFileName = "skinning.frag";
 
         addShader(pRenderer, &planeShader, &pPlaneDrawShader);
         addShader(pRenderer, &skinningShader, &pShaderSkinning);

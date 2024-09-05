@@ -28,7 +28,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
 #include "../../../../Common_3/Game/Interfaces/IScripting.h"
@@ -90,8 +90,7 @@ Buffer* pVertexBufferQuad = NULL;
 uint32_t gFrameIndex = 0;
 
 SceneConstantBuffer gSceneData;
-float2*             pMovePosition = NULL;
-float2              gMoveDelta = {};
+float2              gMovePosition = {};
 
 ProfileToken gGpuProfileToken;
 
@@ -114,17 +113,20 @@ enum RenderMode
 int32_t gRenderModeToggles = 0;
 
 const char* gTestScripts[] = {
-    "Test_WaveGetLaneIndex.lua",
-    "Test_WaveIsFirstLane.lua",
-    "Test_WaveGetMaxActiveIndex.lua",
-    "Test_WaveActiveBallot.lua",
-    "Test_WaveReadLaneFirst.lua",
-    "Test_WaveActiveSum.lua",
+    "14_WaveIntrinsics/Test_WaveGetLaneIndex.lua",
+    "14_WaveIntrinsics/Test_WaveIsFirstLane.lua",
+    "14_WaveIntrinsics/Test_WaveGetMaxActiveIndex.lua",
+    "14_WaveIntrinsics/Test_WaveActiveBallot.lua",
+    "14_WaveIntrinsics/Test_WaveReadLaneFirst.lua",
+    "14_WaveIntrinsics/Test_WaveActiveSum.lua",
+    "14_WaveIntrinsics/Test_WavePrefixSum.lua",
+    "14_WaveIntrinsics/Test_QuadReadAcross.lua",
     // Test_Normal.lua is in the end so that Test_Default outputs identical screenshots for all APIs.
-    "Test_WavePrefixSum.lua",
-    "Test_QuadReadAcross.lua",
-    "Test_Normal.lua",
+    "14_WaveIntrinsics/Test_Normal.lua",
 };
+
+const char*         gLabels[RenderModeCount] = {};
+WaveOpsSupportFlags gRequiredWaveFlags[RenderModeCount] = {};
 
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
@@ -148,19 +150,26 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         settings.mShaderTarget = SHADER_TARGET_6_0;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
         const bool waveOpsSupported = (pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT);
         if (!waveOpsSupported)
@@ -179,16 +188,16 @@ public:
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pGraphicsQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         initResourceLoaderInterface(pRenderer);
 
@@ -260,58 +269,40 @@ public:
         profiler.ppProfilerNames = ppGpuProfilerName;
         profiler.pProfileTokens = &gGpuProfileToken;
         profiler.mGpuProfilerCount = 1;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f);
-        uiCreateComponent("Render Modes", &guiDesc, &pGui);
-
-        const char*         labels[RenderModeCount] = {};
-        WaveOpsSupportFlags requiredWaveFlags[RenderModeCount] = {};
-        labels[RenderMode1] = "1. Normal render.\n";
-        requiredWaveFlags[RenderMode1] = WAVE_OPS_SUPPORT_FLAG_NONE;
-        labels[RenderMode2] = "2. Color pixels by lane indices.\n";
-        requiredWaveFlags[RenderMode2] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
-        labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
-        requiredWaveFlags[RenderMode3] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
-        labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
-        requiredWaveFlags[RenderMode4] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT;
-        labels[RenderMode5] = "5. Color pixels by active lane ratio (white = 100%; black = 0%).\n";
-        requiredWaveFlags[RenderMode5] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
-        labels[RenderMode6] = "6. Broadcast the color of the first active lane to the wave.\n";
-        requiredWaveFlags[RenderMode6] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
-        labels[RenderMode7] = "7. Average the color in a wave.\n";
-        requiredWaveFlags[RenderMode7] =
+        gLabels[RenderMode1] = "1. Normal render.\n";
+        gRequiredWaveFlags[RenderMode1] = WAVE_OPS_SUPPORT_FLAG_NONE;
+        gLabels[RenderMode2] = "2. Color pixels by lane indices.\n";
+        gRequiredWaveFlags[RenderMode2] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
+        gLabels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
+        gRequiredWaveFlags[RenderMode3] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
+        gLabels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
+        gRequiredWaveFlags[RenderMode4] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT;
+        gLabels[RenderMode5] = "5. Color pixels by active lane ratio (white = 100%; black = 0%).\n";
+        gRequiredWaveFlags[RenderMode5] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
+        gLabels[RenderMode6] = "6. Broadcast the color of the first active lane to the wave.\n";
+        gRequiredWaveFlags[RenderMode6] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
+        gLabels[RenderMode7] = "7. Average the color in a wave.\n";
+        gRequiredWaveFlags[RenderMode7] =
             WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
-        labels[RenderMode8] = "8. Color pixels by prefix sum of distance between current and first lane.\n";
-        requiredWaveFlags[RenderMode8] =
+        gLabels[RenderMode8] = "8. Color pixels by prefix sum of distance between current and first lane.\n";
+        gRequiredWaveFlags[RenderMode8] =
             WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT | WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
-        labels[RenderMode9] = "9. Color pixels by their quad id.\n";
-        requiredWaveFlags[RenderMode9] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_QUAD_BIT;
+        gLabels[RenderMode9] = "9. Color pixels by their quad id.\n";
+        gRequiredWaveFlags[RenderMode9] = WAVE_OPS_SUPPORT_FLAG_BASIC_BIT | WAVE_OPS_SUPPORT_FLAG_QUAD_BIT;
 
-        // Radio Buttons and script
         const uint32_t numMaxScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
         const char*    testScripts[numMaxScripts] = {};
         uint32_t       numScripts = 0;
 
-        for (uint32_t i = 0; i < RenderModeCount; ++i)
+        // skip normal .. will be added last
+        for (uint32_t i = 1; i < numMaxScripts; ++i)
         {
-            if ((pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & requiredWaveFlags[i]) != requiredWaveFlags[i])
-            {
-                continue;
-            }
-
-            if (i != 0)
+            if ((pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & gRequiredWaveFlags[i]) == gRequiredWaveFlags[i])
             {
                 testScripts[numScripts++] = gTestScripts[i - 1];
             }
-
-            RadioButtonWidget modeToggle;
-            modeToggle.pData = &gRenderModeToggles;
-            modeToggle.mRadioId = i;
-            luaRegisterWidget(uiCreateComponentWidget(pGui, labels[i], &modeToggle, WIDGET_TYPE_RADIO_BUTTON));
         }
 
         testScripts[numScripts++] = gTestScripts[numMaxScripts - 1];
@@ -320,76 +311,8 @@ public:
             scriptDescs[i].pScriptFileName = testScripts[i];
         luaDefineScripts(scriptDescs, numScripts);
 
-        // Radio button doesn't register any function to set it.
-        // Also radio buttons label is unusable in Lua script.
-#ifdef AUTOMATED_TESTING
-        DropdownWidget     ddRenderMode;
-        static const char* shorterLabels[RenderModeCount] = {
-            "Normal",        "WaveGetLaneIndex", "WaveIsFirstLane", "WaveGetMaxActiveIndex", "WaveActiveBallot", "WaveReadLaneFirst",
-            "WaveActiveSum", "WavePrefixSum",    "QuadReadAcross",
-        };
-        ddRenderMode.pData = (uint32_t*)&gRenderModeToggles;
-        ddRenderMode.pNames = shorterLabels;
-        ddRenderMode.mCount = sizeof(shorterLabels) / sizeof(shorterLabels[0]);
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
-#endif
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           WindowDesc*winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                                           if (winDesc->fullScreen)
-                                               winDesc->borderlessWindow ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect),
-                                                                                         getRectHeight(&winDesc->clientRect))
-                                                                         : setWindowed(winDesc, getRectWidth(&winDesc->clientRect),
-                                                                                       getRectHeight(&winDesc->clientRect));
-                                           else
-                                               setFullscreen(winDesc);
-                                           return true;
-                                       },
-                                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx)
-                       {
-                           pMovePosition = NULL;
-                           gMoveDelta = ctx->mFloat2;
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx)
-                       {
-                           if (ctx->mBool && !uiIsFocused())
-                               pMovePosition = ctx->pPosition;
-                           else
-                               pMovePosition = NULL;
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pGraphicsQueue);
         gFrameIndex = 0;
         waitForAllResourceLoads();
 
@@ -398,8 +321,7 @@ public:
 
     void Exit()
     {
-        exitInputSystem();
-
+        exitScreenshotInterface();
         exitProfiler();
 
         exitUserInterface();
@@ -415,12 +337,13 @@ public:
 
         removeSampler(pRenderer, pSamplerPointWrap);
 
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
         exitResourceLoaderInterface(pRenderer);
-        removeQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
     }
 
@@ -441,6 +364,39 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent("Render Modes", &guiDesc, &pGui);
+
+            for (uint32_t i = 0; i < RenderModeCount; ++i)
+            {
+                if ((pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & gRequiredWaveFlags[i]) != gRequiredWaveFlags[i])
+                {
+                    continue;
+                }
+
+                RadioButtonWidget modeToggle;
+                modeToggle.pData = &gRenderModeToggles;
+                modeToggle.mRadioId = i;
+                luaRegisterWidget(uiAddComponentWidget(pGui, gLabels[i], &modeToggle, WIDGET_TYPE_RADIO_BUTTON));
+            }
+
+            // Radio button doesn't register any function to set it.
+            // Also radio buttons label is unusable in Lua script.
+#ifdef AUTOMATED_TESTING
+            DropdownWidget     ddRenderMode;
+            static const char* shorterLabels[RenderModeCount] = {
+                "Normal",        "WaveGetLaneIndex", "WaveIsFirstLane", "WaveGetMaxActiveIndex", "WaveActiveBallot", "WaveReadLaneFirst",
+                "WaveActiveSum", "WavePrefixSum",    "QuadReadAcross",
+            };
+            ddRenderMode.pData = (uint32_t*)&gRenderModeToggles;
+            ddRenderMode.pNames = shorterLabels;
+            ddRenderMode.mCount = sizeof(shorterLabels) / sizeof(shorterLabels[0]);
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
+#endif
+
             if (!addSwapChain())
                 return false;
 
@@ -469,7 +425,7 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        gMovePosition = float2(mSettings.mWidth * 0.5f, mSettings.mHeight * 0.5f);
 
         return true;
     }
@@ -490,6 +446,8 @@ public:
         {
             removeSwapChain(pRenderer, pSwapChain);
             removeRenderTarget(pRenderer, pRenderTargetIntermediate);
+            uiRemoveComponent(pGui);
+            unloadProfilerUI();
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -498,14 +456,34 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
-
+        if (!uiIsFocused())
+        {
+            if (inputGetValue(0, CUSTOM_PT_DOWN))
+            {
+                gMovePosition = { inputGetValue(0, CUSTOM_PT_X), inputGetValue(0, CUSTOM_PT_Y) };
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+            gMovePosition += float2{ inputGetValue(0, CUSTOM_MOVE_X), -inputGetValue(0, CUSTOM_MOVE_Y) } * 0.25f;
+        }
         /************************************************************************/
         // Uniforms
         /************************************************************************/
@@ -519,12 +497,7 @@ public:
         gSceneData.resolution.x = (float)(mSettings.mWidth);
         gSceneData.resolution.y = (float)(mSettings.mHeight);
         gSceneData.renderMode = (gRenderModeToggles + 1);
-
-        if (pMovePosition)
-            gSceneData.mousePosition = *pMovePosition;
-
-        if (!uiIsFocused())
-            gSceneData.mousePosition += float2(gMoveDelta.x, -gMoveDelta.y);
+        gSceneData.mousePosition = gMovePosition;
     }
 
     void Draw()
@@ -712,36 +685,36 @@ public:
     void addShaders()
     {
         ShaderLoadDesc waveShader = {};
-        waveShader.mStages[0].pFileName = "wave.vert";
+        waveShader.mVert.pFileName = "wave.vert";
         auto waveFlags = pRenderer->pGpu->mSettings.mWaveOpsSupportFlags;
 
         if ((waveFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT) &&
             (waveFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_QUAD_BIT))
         {
-            waveShader.mStages[1].pFileName = "wave_all.frag";
+            waveShader.mFrag.pFileName = "wave_all.frag";
         }
         else if ((waveFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT) &&
                  (waveFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT))
         {
-            waveShader.mStages[1].pFileName = "wave_basic_ballot_arithmetic.frag";
+            waveShader.mFrag.pFileName = "wave_basic_ballot_arithmetic.frag";
         }
         else if ((waveFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT))
         {
-            waveShader.mStages[1].pFileName = "wave_basic_ballot.frag";
+            waveShader.mFrag.pFileName = "wave_basic_ballot.frag";
         }
         else if ((waveFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT))
         {
-            waveShader.mStages[1].pFileName = "wave_basic_arithmetic.frag";
+            waveShader.mFrag.pFileName = "wave_basic_arithmetic.frag";
         }
         else
         {
-            waveShader.mStages[1].pFileName = "wave_basic.frag";
+            waveShader.mFrag.pFileName = "wave_basic.frag";
         }
         addShader(pRenderer, &waveShader, &pShaderWave);
 
         ShaderLoadDesc magnifyShader = {};
-        magnifyShader.mStages[0].pFileName = "magnify.vert";
-        magnifyShader.mStages[1].pFileName = "magnify.frag";
+        magnifyShader.mVert.pFileName = "magnify.vert";
+        magnifyShader.mFrag.pFileName = "magnify.frag";
         addShader(pRenderer, &magnifyShader, &pShaderMagnify);
     }
 

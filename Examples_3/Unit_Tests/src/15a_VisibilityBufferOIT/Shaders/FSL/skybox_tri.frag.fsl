@@ -22,10 +22,11 @@
  * under the License.
 */
 
-CBUFFER(SkyboxUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0)
+STRUCT(SkyboxUniformBufferData)
 {
     DATA(float4x4, InverseViewProjection, None);
 };
+RES(CBUFFER(SkyboxUniformBufferData), SkyboxUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0);
 
 RES(TexCube(float4), skyboxTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 RES(SamplerState, skyboxTextureSampler, UPDATE_FREQ_NONE, s0, binding = 2);
@@ -41,7 +42,7 @@ float4 PS_MAIN( VSOutput In )
     INIT_MAIN;
     float4 Out;
 
-    float3 skyboxSample = SampleTexCube(Get(skyboxTexture), Get(skyboxTextureSampler), In.TexCoord).rgb;
+    float3 skyboxSample = SampleTexCube(skyboxTexture, skyboxTextureSampler, In.TexCoord).rgb;
 
     Out = float4(skyboxSample, 1.0);
     RETURN(Out);

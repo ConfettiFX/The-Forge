@@ -73,6 +73,7 @@ enum AssetPipelineProcess
     PROCESS_TEXTURES,
     PROCESS_WRITE_ZIP,
     PROCESS_WRITE_ZIP_ALL,
+    PROCESS_COUNT
 };
 
 struct AssetPipelineProcessCommand
@@ -146,9 +147,19 @@ typedef enum ASTC
 {
     ASTC_NONE,
     ASTC_4x4,
-    ASTC_4x4_SLOW,
+    ASTC_4x4_SLOW, // 8.00 Bits/Pixel
+    ASTC_5x4,
+    ASTC_5x4_SLOW, // 6.40 Bits/Pixel
+    ASTC_5x5,
+    ASTC_5x5_SLOW, // 5.12 Bits/Pixel
+    ASTC_6x6,
+    ASTC_6x6_SLOW, // 3.56 Bits/Pixel
+    ASTC_8x5,
+    ASTC_8x5_SLOW, // 3.20 Bits/Pixel
+    ASTC_8x6,
+    ASTC_8x6_SLOW, // 2.67 Bits/Pixel
     ASTC_8x8,
-    ASTC_8x8_SLOW,
+    ASTC_8x8_SLOW, // 2.00 Bits/Pixel
 } ASTC;
 
 typedef enum TextureContainer
@@ -184,6 +195,20 @@ typedef struct ProcessedTextureData
     uint32_t mFormat;
 } ProcessedTextureData;
 
+typedef union TextureSwizzle
+{
+    // Shader style swizzling language
+    // Source channel indices are stored as characters 'r'/'x', 'g'/'y', 'b'/'z', 'a'/'w', '0', '1'
+    struct
+    {
+        uint8_t mR;
+        uint8_t mG;
+        uint8_t mB;
+        uint8_t mA;
+    };
+    uint8_t mIndices[4];
+} TextureSwizzle;
+
 void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextDesc);
 
 typedef void (*GenerateMipmapsCallback)(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextureDesc,
@@ -192,14 +217,17 @@ typedef void (*GenerateMipmapsCallback)(uint8_t* ppData[MAX_MIPLEVELS], uint32_t
 typedef struct ProcessTexturesParams
 {
     const char*             mInExt;
+    GenerateMipmapsCallback pGenerateMipmapsCallback;
+    void*                   pCallbackUserData;
     TextureContainer        mContainer;
     TextureCompression      mCompression;
     ASTC                    mOverrideASTC;
     DXT                     mOverrideBC;
-    bool                    mInputLinearColorSpace;
     TextureMipmap           mGenerateMipmaps;
-    GenerateMipmapsCallback pGenerateMipmapsCallback;
-    void*                   pCallbackUserData;
+    TextureSwizzle          mSwizzle;
+    int32_t                 mSwizzleChannelCount;
+    bool                    mProcessAsNormalMap;
+    bool                    mInputLinearColorSpace;
 
     // Used for vMF with a normal texture (only single file mode for now)
     const char* pRoughnessFilePath;

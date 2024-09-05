@@ -1,7 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include "../../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
 
 // This work is based on:
 // Fabian Giesen. Decoding Morton codes. 2009

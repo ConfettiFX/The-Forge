@@ -153,13 +153,13 @@
 		7F6E00EE2A93FEB900981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		7F6E012D2A9409A000981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
 		7F6E01302A9409A600981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
-		7F6EFFF02A93D95A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF12A93D95A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF32A93D95A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFF62A93D95A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF02A93D95A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF12A93D95A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF32A93D95A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF62A93D95A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
 		97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shock_propagation.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shock_propagation.comp.fsl; sourceTree = "<group>"; };
 		97C9091B25BF40B4003C978D /* hair.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.vert.fsl; sourceTree = "<group>"; };
 		97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_fill_color.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_fill_color.frag.fsl; sourceTree = "<group>"; };
@@ -198,12 +198,6 @@
 		B21F76D421420EB300DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76D521420EB300DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 06_MaterialPlayground.cpp; path = ../../../src/06_MaterialPlayground/06_MaterialPlayground.cpp; sourceTree = "<group>"; };
-		D0D223BD20CB877C00910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
-		D0D223BE20CB877C00910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		D0D223BF20CB877C00910DF0 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
-		D0D223C320CB87A600910DF0 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
-		D0D223C420CB87A600910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
-		D0D223C520CB87A600910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E970F78A233C5DB6009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
@@ -323,12 +317,6 @@
 				B2087DE521421A4A006F372D /* MetalKit.framework */,
 				B21F76D321420EB300DF2297 /* UIKit.framework */,
 				5CABF3752141543F00EFD76A /* GameController.framework */,
-				D0D223C420CB87A600910DF0 /* assimp.a */,
-				D0D223C520CB87A600910DF0 /* IrrXML.a */,
-				D0D223BD20CB877C00910DF0 /* assimp.a */,
-				D0D223BE20CB877C00910DF0 /* IrrXML.a */,
-				D0D223BF20CB877C00910DF0 /* zlibstatic.a */,
-				D0D223C320CB87A600910DF0 /* zlibstatic.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -462,7 +450,6 @@
 				TargetAttributes = {
 					28A5AD42201F7276000E571F = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = BT67ZY58A8;
 						ProvisioningStyle = Automatic;
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
@@ -628,7 +615,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/PBR/dds/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/dds/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Particles/Textures/dds/\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ASSETS/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/dds/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/dds/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/dds/Particles/\" \"$DST/Textures/Particles/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ASSETS/Meshes/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
 		};
 		5CC501C624D219F8003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -645,7 +632,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/PBR/ktx/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/ktx/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Particles/Textures/ktx/\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/ktx/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/Particles/\" \"$DST/Textures/Particles/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -730,12 +717,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -754,12 +736,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -789,12 +766,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -809,12 +781,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

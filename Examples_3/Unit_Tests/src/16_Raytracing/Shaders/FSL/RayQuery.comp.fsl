@@ -51,10 +51,7 @@ RES(ByteBuffer, uvs, UPDATE_FREQ_NONE, t4, binding = 4);
 RES(ByteBuffer, indexOffsets, UPDATE_FREQ_NONE, t5, binding = 5);
 RES(SamplerState, linearSampler, UPDATE_FREQ_NONE, s0, binding = 6);
 RES(Tex2D(float4), materialTextures[TOTAL_IMGS], UPDATE_FREQ_NONE, t7, binding = 7);
-CBUFFER(gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-	DATA(ShadersConfigBlock, gSettingsData, None);
-};
+RES(CBUFFER(ShadersConfigBlock), gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 #if UAV_RW_FALLBACK
 RES(WTex2D(float4), gOutput, UPDATE_FREQ_NONE, u0, binding = 8);
 RES(RTex2D(float4), gInput, UPDATE_FREQ_NONE, u1, binding = 9);
@@ -160,27 +157,27 @@ NUM_THREADS(8, 8, 1)
 void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 {
 	INIT_MAIN;
-	if (tid.x >= Get(gSettingsData).mWidth || tid.y >= Get(gSettingsData).mHeight)
+	if (tid.x >= gSettings.mWidth || tid.y >= gSettings.mHeight)
 	{
 		RETURN();
 	}
 
-	uint2 launchDim = uint2(Get(gSettingsData).mWidth, Get(gSettingsData).mHeight);
+	uint2 launchDim = uint2(gSettings.mWidth, gSettings.mHeight);
 
-	float2 crd = float2(tid) + Get(gSettingsData).mSubpixelJitter;
+	float2 crd = float2(tid) + gSettings.mSubpixelJitter;
 	float2 dims = float2(launchDim);
 
 	float2 d = ((crd / dims) * 2.f - 1.f);
 	d.y *= -1;
 
-	float3 direction = normalize(float3(d * Get(gSettingsData).mZ1PlaneSize, 1.0));
-	float3 directionWS = mul(float3x3(Get(gSettingsData).mCameraToWorld[0].xyz, Get(gSettingsData).mCameraToWorld[1].xyz, Get(gSettingsData).mCameraToWorld[2].xyz), direction);
+	float3 direction = normalize(float3(d * gSettings.mZ1PlaneSize, 1.0));
+	float3 directionWS = mul(float3x3(gSettings.mCameraToWorld[0].xyz, gSettings.mCameraToWorld[1].xyz, gSettings.mCameraToWorld[2].xyz), direction);
 
 	RayDesc ray;
 	ray.TMin = 0.001;
 	ray.TMax = 10000;
 	ray.Direction = directionWS;
-	ray.Origin = getCol(Get(gSettingsData).mCameraToWorld, 3).xyz + directionWS * Get(gSettingsData).mProjNear;
+	ray.Origin = getCol(gSettings.mCameraToWorld, 3).xyz + directionWS * gSettings.mProjNear;
 
 	const uint maxBounce = 2;
 	float3 surfaceAlbedo[maxBounce];
@@ -195,7 +192,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 
 	const RayTraversalFlags traversalFlags = RAY_TRAVERSAL_FLAG_USE_SHARED_STACK | RAY_TRAVERSAL_FLAG_NO_AABB_GEOMETRY | RAY_TRAVERSAL_FLAG_NO_AABB_INSTANCE;
 
-	float4x4 worldMatrix = Get(gSettingsData).mWorldMatrix;
+	float4x4 worldMatrix = gSettings.mWorldMatrix;
 
 	UNROLL
 	for (uint bounce = 0; bounce < maxBounce; ++bounce)
@@ -219,7 +216,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 
 		float4 matColor;
 
-        RayQueryClosestHit(Get(gRtScene),
+        RayQueryClosestHit(gRtScene,
 				traversalFlags,
 				RAY_FLAG_SKIP_AABB,
 				ray, 0xFF, hit);
@@ -232,27 +229,27 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 				geometryIndex = RayQueryCandidateGeometryIndex(hit);
                 triangleIndex = RayQueryCandidatePrimitiveIndex(hit);
                 barycentricCoords = RayQueryCandidateBarycentrics(hit);
-				indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+				indexOffset = LoadByte(indexOffsets, geometryIndex << 2);
 
                 // Barycentric coordinates sum to one
                 uvw.yz = barycentricCoords;
                 uvw.x = 1.0f - uvw.y - uvw.z;
 
-                uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+                uint4 i012 = LoadByte4(indices, ((3 * triangleIndex + indexOffset) << 2));
                 i0 = i012[0];
                 i1 = i012[1];
                 i2 = i012[2];
 
                 float2 uv012[3] = {
-					unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
-					unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
-					unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+					unpack2Floats(LoadByte(uvs, i0 << 2)),
+					unpack2Floats(LoadByte(uvs, i1 << 2)),
+					unpack2Floats(LoadByte(uvs, i2 << 2))
 				};
 
                 uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
 
                 BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
-                matColor = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).rgba;
+                matColor = SampleLvlTex2D(materialTextures[geometryIndex], linearSampler, uv, 0).rgba;
                 EndNonUniformResourceIndex();
 
                 if (matColor.a > 0.5)
@@ -281,39 +278,39 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 			triangleIndex = hitTriangleIndex;
 			barycentricCoords = hitBarycentricCoords;
 			geometryIndex = hitGeometryIndex;
-			indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+			indexOffset = LoadByte(indexOffsets, geometryIndex << 2);
 
 		    uvw.yz = barycentricCoords;
             uvw.x = 1.0f - uvw.y - uvw.z;
             
-            uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+            uint4 i012 = LoadByte4(indices, ((3 * triangleIndex + indexOffset) << 2));
             i0 = i012[0];
             i1 = i012[1];
             i2 = i012[2];
 
             float2 uv012[3] = {
-				unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
-				unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
-				unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+				unpack2Floats(LoadByte(uvs, i0 << 2)),
+				unpack2Floats(LoadByte(uvs, i1 << 2)),
+				unpack2Floats(LoadByte(uvs, i2 << 2))
 			};
 
             uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
                 
             BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
-            matColor = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).rgba;
+            matColor = SampleLvlTex2D(materialTextures[geometryIndex], linearSampler, uv, 0).rgba;
             EndNonUniformResourceIndex();
 		}
 
         float4 position012[3] =
 		{
-			asfloat(LoadByte4(Get(positions), ((i0 * 3) << 2))),
-			asfloat(LoadByte4(Get(positions), ((i1 * 3) << 2))),
-			asfloat(LoadByte4(Get(positions), ((i2 * 3) << 2)))
+			asfloat(LoadByte4(positions, ((i0 * 3) << 2))),
+			asfloat(LoadByte4(positions, ((i1 * 3) << 2))),
+			asfloat(LoadByte4(positions, ((i2 * 3) << 2)))
 		};
 		float3 normal012[3] = {
-			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i0 << 2))),
-			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i1 << 2))),
-			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i2 << 2)))
+			decodeDir(unpackUnorm2x16(LoadByte(normals, i0 << 2))),
+			decodeDir(unpackUnorm2x16(LoadByte(normals, i1 << 2))),
+			decodeDir(unpackUnorm2x16(LoadByte(normals, i2 << 2)))
 		};
 
         position = uvw.x * position012[0].xyz + uvw.y * position012[1].xyz + uvw.z * position012[2].xyz;
@@ -325,7 +322,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 
 		// Shadow ray
 		{
-			float3 lightDir = Get(gSettingsData).mLightDirection;
+			float3 lightDir = gSettings.mLightDirection;
 
 			RayDesc shadowRay;
 			shadowRay.Origin = rayOrigin;
@@ -333,7 +330,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 			shadowRay.TMin = 0.001;
 			shadowRay.TMax = 10000;
 
-			RayQueryAnyHit(Get(gRtScene),
+			RayQueryAnyHit(gRtScene,
 				traversalFlags,
 				RAY_FLAG_SKIP_AABB | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
 				shadowRay, 0xFF, shadowHit);
@@ -346,29 +343,29 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 					uint triangleIndex = RayQueryCandidatePrimitiveIndex(shadowHit);
 					float2 barycentricCoords = RayQueryCandidateBarycentrics(shadowHit);
 					uint geometryIndex = RayQueryCandidateGeometryIndex(shadowHit);
-					uint indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+					uint indexOffset = LoadByte(indexOffsets, geometryIndex << 2);
 
 					// Barycentric coordinates sum to one
 					float3 uvw;
 					uvw.yz = barycentricCoords;
 					uvw.x = 1.0f - uvw.y - uvw.z;
 
-					uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+					uint4 i012 = LoadByte4(indices, ((3 * triangleIndex + indexOffset) << 2));
 					uint i0 = i012[0];
 					uint i1 = i012[1];
 					uint i2 = i012[2];
 
 					float2 uv012[3] = {
-						unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
-						unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
-						unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+						unpack2Floats(LoadByte(uvs, i0 << 2)),
+						unpack2Floats(LoadByte(uvs, i1 << 2)),
+						unpack2Floats(LoadByte(uvs, i2 << 2))
 					};
 
 					float2 uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
 
 					float alpha;
 					BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
-					alpha = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).a;
+					alpha = SampleLvlTex2D(materialTextures[geometryIndex], linearSampler, uv, 0).a;
 					EndNonUniformResourceIndex();
 
 					if (alpha > 0.5)
@@ -389,7 +386,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 		}
 
 		float2 pixelUV = (float2(tid) + f2(0.5)) / float2(launchDim.xy);
-		float2 sampleVal = uniformNoiseToTriangular(PDnrand2(pixelUV.xy + Get(gSettingsData).mRandomSeed + bounce)) * 0.5 + 0.5;
+		float2 sampleVal = uniformNoiseToTriangular(PDnrand2(pixelUV.xy + gSettings.mRandomSeed + bounce)) * 0.5 + 0.5;
 		float3 sampleDirLocal = sampleCosineWeightedHemisphere(sampleVal);
 		float3 sampleDir = alignHemisphereWithNormal(sampleDirLocal, normal);
 
@@ -406,41 +403,41 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 	float3 payloadRadiance = bounceRadiance[0];
 
 	float4 accumulatedRadiance = f4(0.0f);
-	if (Get(gSettingsData).mFrameIndex == 0)
+	if (gSettings.mFrameIndex == 0)
 	{
 		accumulatedRadiance = float4(payloadRadiance, 1.0);
 	}
 	else
 	{
 #if UAV_RW_FALLBACK
-		accumulatedRadiance = Load2D(Get(gInput), tid);
+		accumulatedRadiance = Load2D(gInput, tid);
 #else
-		accumulatedRadiance = LoadRWTex2D(Get(gOutput), tid);
+		accumulatedRadiance = LoadRWTex2D(gOutput, tid);
 #endif
 		accumulatedRadiance.w += 1.0;
 		accumulatedRadiance.rgb += (payloadRadiance - accumulatedRadiance.rgb) / accumulatedRadiance.w;
 	}
 
-	Write2D(Get(gOutput), tid, accumulatedRadiance);
+	Write2D(gOutput, tid, accumulatedRadiance);
 
 #if DENOISER_ENABLED
 	float3 accumulatedAlbedo = f3(0.0f);
-	if (Get(gSettingsData).mFramesSinceCameraMove == 0)
+	if (gSettings.mFramesSinceCameraMove == 0)
 	{
 		accumulatedAlbedo = surfaceAlbedo[0];
 	}
 	else
 	{
-		float invWeight = float(Get(gSettingsData).mFramesSinceCameraMove + 1);
+		float invWeight = float(gSettings.mFramesSinceCameraMove + 1);
 #if UAV_RW_FALLBACK
-		accumulatedAlbedo = Load2D(Get(gAlbedoInput), tid).rgb;
+		accumulatedAlbedo = Load2D(gAlbedoInput, tid).rgb;
 #else
-		accumulatedAlbedo = LoadRWTex2D(Get(gAlbedoOutput), tid).rgb;
+		accumulatedAlbedo = LoadRWTex2D(gAlbedoOutput, tid).rgb;
 #endif
 		accumulatedAlbedo += (surfaceAlbedo[0] - accumulatedAlbedo) / invWeight;
 	}
 
-	Write2D(Get(gAlbedoOutput), tid, float4(accumulatedAlbedo, 1.0));
+	Write2D(gAlbedoOutput, tid, float4(accumulatedAlbedo, 1.0));
 #endif
 
 	RETURN();

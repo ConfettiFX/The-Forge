@@ -2,34 +2,31 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground">
-      <UniqueIdentifier>{c0d16de0-7fa2-4b9b-b037-a26f7e57a3ed}</UniqueIdentifier>
+      <UniqueIdentifier>{88726baa-8a8f-45cc-a838-fc78c4c644c0}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{98380df5-7133-40f9-9ef5-5eacaf3921c0}</UniqueIdentifier>
+      <UniqueIdentifier>{e5433f9a-0bdb-4524-918f-91c616d19fb1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{bc8e1112-3173-4a45-a19f-483f6236dcca}</UniqueIdentifier>
+      <UniqueIdentifier>{81afb45e-1f72-4f81-90e4-865e25d82f88}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3">
-      <UniqueIdentifier>{b18b65d5-e4f1-4b97-afc5-c2a67d7e79c5}</UniqueIdentifier>
+      <UniqueIdentifier>{55f2da7c-f06d-481a-bc0f-7f91c08de3dc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Visibility_Buffer\src">
-      <UniqueIdentifier>{32aa8db5-c091-47f9-b43e-c000452e2541}</UniqueIdentifier>
+      <UniqueIdentifier>{32265ef0-d557-45a1-89dd-f7d5de294c88}</UniqueIdentifier>
     </Filter>
     <Filter Include="Examples_3\Visibility_Buffer">
-      <UniqueIdentifier>{e3b92a1f-71e5-459b-b226-405afb10ad89}</UniqueIdentifier>
+      <UniqueIdentifier>{80bc9e09-db30-4788-89b2-8a6ad5cb022e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts">
-      <UniqueIdentifier>{abb8ccea-8814-46c1-adcb-8b833d107c7a}</UniqueIdentifier>
+    <Filter Include="Art\Scripts\09_LightShadowPlayground">
+      <UniqueIdentifier>{64367656-5929-4698-b04f-e58aeed7377a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Art\UnitTestResources\Scripts">
-      <UniqueIdentifier>{933ec796-386f-43f8-86a7-1f278e91da79}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\UnitTestResources">
-      <UniqueIdentifier>{94300ee2-955f-4a64-a387-2c4036f0759b}</UniqueIdentifier>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{1736f9e6-62ff-444e-9df1-cc8fe3ac28b1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Art">
-      <UniqueIdentifier>{a51f4acc-5c39-41c8-ba58-72277620e22f}</UniqueIdentifier>
+      <UniqueIdentifier>{de3f5685-49df-4994-9040-0e46b59b8c86}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -48,29 +45,29 @@
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguelSDF.h">
       <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClInclude>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ASM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ESM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_MSM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_SDF.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_VSM.lua">
+      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_0.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_0.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_2.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_2.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_4.lua">
-      <Filter>Art\UnitTestResources\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_4.lua">
+      <Filter>Art\Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

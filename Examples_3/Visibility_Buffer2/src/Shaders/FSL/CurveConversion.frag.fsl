@@ -42,8 +42,8 @@ FSOutput PS_MAIN( PsIn In )
     INIT_MAIN;
     FSOutput Out;
 
-	float4 sceneColor = SampleTex2D(Get(SceneTex), Get(uSampler0), In.texCoord);
-	sceneColor.rgb += SampleTex2D(Get(GodRayTex), Get(uSampler0), In.texCoord).rgb;
+	float4 sceneColor = SampleTex2D(SceneTex, uSampler0, In.texCoord);
+	sceneColor.rgb += SampleTex2D(GodRayTex, uSampler0, In.texCoord).rgb;
     Out.FragmentOutput = float4(sceneColor.rgb, 1.0);
 
     RETURN(Out);

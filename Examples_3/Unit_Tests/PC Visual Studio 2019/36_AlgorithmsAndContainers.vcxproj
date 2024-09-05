@@ -42,7 +42,7 @@
   </ImportGroup>
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -63,26 +63,33 @@
       </PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;OS.lib;Renderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        OS.lib;
+        Renderer.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command)
-xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -96,7 +103,7 @@ xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scr
     <FSLShader>
       <Language>VULKAN DIRECT3D11 DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
@@ -109,8 +116,6 @@ xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scr
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
@@ -119,18 +124,27 @@ xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scr
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;OS.lib;Renderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        OS.lib;
+        Renderer.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command)
-xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scripts\" /s /y</Command>
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -144,7 +158,7 @@ xcopy "$(ProjectDir)..\..\..\Art\UnitTestResources\Scripts\*.*" "$(TargetDir)Scr
     <FSLShader>
       <Language>VULKAN DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
     </FSLShader>
   </ItemDefinitionGroup>

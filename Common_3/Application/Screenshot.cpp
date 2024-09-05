@@ -46,27 +46,20 @@
 #define STBIW_REALLOC tf_realloc
 #define STBIW_FREE    tf_free
 #define STBIW_ASSERT  ASSERT
+#define STBI_WRITE_NO_STDIO
 #include "../Utilities/ThirdParty/OpenSource/Nothings/stb_image_write.h"
 
-static Cmd*               gCmd = 0;
-static CmdPool*           pCmdPool = 0;
-static Renderer*          pRendererRef = 0;
-extern PlatformParameters gPlatformParameters;
+static Cmd*      gCmd = 0;
+static CmdPool*  pCmdPool = 0;
+static Renderer* pRendererRef = 0;
 
 bool gCaptureFlag = false;
 char gScreenshotName[FS_MAX_PATH] = "";
-
-#ifdef ENABLE_FORGE_REMOTE_UI
-extern bool remoteAppIsConnected();
-#endif // DEBUG
 
 // Hide or show the UI depending on the current state of gCaptureFlag
 void updateUIVisibility()
 {
     bool shouldShowUI = !gCaptureFlag;
-#ifdef ENABLE_FORGE_REMOTE_UI
-    if (!remoteAppIsConnected())
-#endif // ENABLE_FORGE_REMOTE_UI
     {
         uiToggleRendering(shouldShowUI);
     }
@@ -85,14 +78,14 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
     CmdPoolDesc cmdPoolDesc = {};
     cmdPoolDesc.pQueue = pGraphicsQueue;
     cmdPoolDesc.mTransient = true;
-    addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+    initCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
 
     CmdDesc cmdDesc = {};
     cmdDesc.pPool = pCmdPool;
 #ifdef ENABLE_GRAPHICS_DEBUG
     cmdDesc.pName = "Screenshot Cmd";
 #endif // ENABLE_GRAPHICS_DEBUG
-    addCmd(pRenderer, &cmdDesc, &gCmd);
+    initCmd(pRenderer, &cmdDesc, &gCmd);
 
     updateUIVisibility();
 }
@@ -106,199 +99,190 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     ASSERT(pRenderer);
 
 #if defined(VULKAN)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_VULKAN)
-    {
-        DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-        DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+    void addBuffer(Renderer * pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+    void removeBuffer(Renderer * pRenderer, Buffer * pBuffer);
 
-        // Add a staging buffer.
-        uint16_t   formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-        Buffer*    buffer = 0;
-        BufferDesc bufferDesc = {};
-        bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-        bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-        bufferDesc.mSize = pRenderTarget->mWidth * pRenderTarget->mHeight * formatByteWidth;
-        bufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
-        bufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-        addBuffer(pRenderer, &bufferDesc, &buffer);
+    // Add a staging buffer.
+    uint16_t   formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+    Buffer*    buffer = 0;
+    BufferDesc bufferDesc = {};
+    bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+    bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    bufferDesc.mSize = pRenderTarget->mWidth * pRenderTarget->mHeight * formatByteWidth;
+    bufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+    bufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+    addBuffer(pRenderer, &bufferDesc, &buffer);
 
-        beginCmd(pCmd);
+    beginCmd(pCmd);
 
-        RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
-        cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
+    RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
+    cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
 
-        uint32_t              rowPitch = pRenderTarget->mWidth * formatByteWidth;
-        const uint32_t        width = pRenderTarget->pTexture->mWidth;
-        const uint32_t        height = pRenderTarget->pTexture->mHeight;
-        const uint32_t        depth = max<uint32_t>(1, pRenderTarget->pTexture->mDepth);
-        const TinyImageFormat fmt = (TinyImageFormat)pRenderTarget->pTexture->mFormat;
-        const uint32_t        numBlocksWide = rowPitch / (TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
+    uint32_t              rowPitch = pRenderTarget->mWidth * formatByteWidth;
+    const uint32_t        width = pRenderTarget->pTexture->mWidth;
+    const uint32_t        height = pRenderTarget->pTexture->mHeight;
+    const uint32_t        depth = max<uint32_t>(1, pRenderTarget->pTexture->mDepth);
+    const TinyImageFormat fmt = (TinyImageFormat)pRenderTarget->pTexture->mFormat;
+    const uint32_t        numBlocksWide = rowPitch / (TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
 
-        VkBufferImageCopy copy = {};
-        copy.bufferOffset = 0;
-        copy.bufferRowLength = numBlocksWide * TinyImageFormat_WidthOfBlock(fmt);
-        copy.bufferImageHeight = 0;
-        copy.imageSubresource.aspectMask = (VkImageAspectFlags)pRenderTarget->pTexture->mAspectMask;
-        copy.imageSubresource.mipLevel = 0;
-        copy.imageSubresource.baseArrayLayer = 0;
-        copy.imageSubresource.layerCount = 1;
-        copy.imageOffset.x = 0;
-        copy.imageOffset.y = 0;
-        copy.imageOffset.z = 0;
-        copy.imageExtent.width = width;
-        copy.imageExtent.height = height;
-        copy.imageExtent.depth = depth;
-        vkCmdCopyImageToBuffer(pCmd->mVk.pCmdBuf, pRenderTarget->pTexture->mVk.pImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               buffer->mVk.pBuffer, 1, &copy);
+    VkBufferImageCopy copy = {};
+    copy.bufferOffset = 0;
+    copy.bufferRowLength = numBlocksWide * TinyImageFormat_WidthOfBlock(fmt);
+    copy.bufferImageHeight = 0;
+    copy.imageSubresource.aspectMask = (VkImageAspectFlags)pRenderTarget->pTexture->mAspectMask;
+    copy.imageSubresource.mipLevel = 0;
+    copy.imageSubresource.baseArrayLayer = 0;
+    copy.imageSubresource.layerCount = 1;
+    copy.imageOffset.x = 0;
+    copy.imageOffset.y = 0;
+    copy.imageOffset.z = 0;
+    copy.imageExtent.width = width;
+    copy.imageExtent.height = height;
+    copy.imageExtent.depth = depth;
+    vkCmdCopyImageToBuffer(pCmd->mVk.pCmdBuf, pRenderTarget->pTexture->mVk.pImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           buffer->mVk.pBuffer, 1, &copy);
 
-        srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
-        cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
+    srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
+    cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
 
-        endCmd(pCmd);
+    endCmd(pCmd);
 
-        // Submit the gpu work.
-        QueueSubmitDesc submitDesc = {};
-        submitDesc.mCmdCount = 1;
-        submitDesc.ppCmds = &pCmd;
+    // Submit the gpu work.
+    QueueSubmitDesc submitDesc = {};
+    submitDesc.mCmdCount = 1;
+    submitDesc.ppCmds = &pCmd;
 
-        queueSubmit(pQueue, &submitDesc);
+    queueSubmit(pQueue, &submitDesc);
 
-        // Wait for work to finish on the GPU.
-        waitQueueIdle(pQueue);
+    // Wait for work to finish on the GPU.
+    waitQueueIdle(pQueue);
 
-        // Copy to CPU memory.
-        memcpy(pImageData, buffer->pCpuMappedAddress, pRenderTarget->mWidth * pRenderTarget->mHeight * formatByteWidth);
-        removeBuffer(pRenderer, buffer);
-    }
+    // Copy to CPU memory.
+    memcpy(pImageData, buffer->pCpuMappedAddress, pRenderTarget->mWidth * pRenderTarget->mHeight * formatByteWidth);
+    removeBuffer(pRenderer, buffer);
 #endif
 #if defined(DIRECT3D11)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_D3D11)
+    // Add a staging texture.
+    ID3D11Texture2D* pNewTexture = NULL;
+
+    D3D11_TEXTURE2D_DESC description = {};
+    ((ID3D11Texture2D*)pRenderTarget->pTexture->mDx11.pResource)->GetDesc(&description);
+    description.BindFlags = 0;
+    description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    description.Usage = D3D11_USAGE_STAGING;
+
+    pRenderer->mDx11.pDevice->CreateTexture2D(&description, NULL, &pNewTexture);
+
+    beginCmd(pCmd);
+
+    pRenderer->mDx11.pContext->CopyResource(pNewTexture, pRenderTarget->pTexture->mDx11.pResource);
+
+    endCmd(pCmd);
+
+    // Submit the gpu work.
+    QueueSubmitDesc submitDesc = {};
+    submitDesc.mCmdCount = 1;
+    submitDesc.ppCmds = &pCmd;
+
+    queueSubmit(pQueue, &submitDesc);
+
+    // Wait for work to finish on the GPU.
+    waitQueueIdle(pQueue);
+
+    // Map texture for copy.
+    D3D11_MAPPED_SUBRESOURCE resource = {};
+    unsigned int             subresource = D3D11CalcSubresource(0, 0, 0);
+    pRenderer->mDx11.pContext->Map(pNewTexture, subresource, D3D11_MAP_READ, 0, &resource);
+
+    // Copy to CPU memory.
+    uint16_t formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+    for (uint32_t i = 0; i < pRenderTarget->mHeight; ++i)
     {
-        // Add a staging texture.
-        ID3D11Texture2D* pNewTexture = NULL;
-
-        D3D11_TEXTURE2D_DESC description = {};
-        ((ID3D11Texture2D*)pRenderTarget->pTexture->mDx11.pResource)->GetDesc(&description);
-        description.BindFlags = 0;
-        description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        description.Usage = D3D11_USAGE_STAGING;
-
-        pRenderer->mDx11.pDevice->CreateTexture2D(&description, NULL, &pNewTexture);
-
-        beginCmd(pCmd);
-
-        pRenderer->mDx11.pContext->CopyResource(pNewTexture, pRenderTarget->pTexture->mDx11.pResource);
-
-        endCmd(pCmd);
-
-        // Submit the gpu work.
-        QueueSubmitDesc submitDesc = {};
-        submitDesc.mCmdCount = 1;
-        submitDesc.ppCmds = &pCmd;
-
-        queueSubmit(pQueue, &submitDesc);
-
-        // Wait for work to finish on the GPU.
-        waitQueueIdle(pQueue);
-
-        // Map texture for copy.
-        D3D11_MAPPED_SUBRESOURCE resource = {};
-        unsigned int             subresource = D3D11CalcSubresource(0, 0, 0);
-        pRenderer->mDx11.pContext->Map(pNewTexture, subresource, D3D11_MAP_READ, 0, &resource);
-
-        // Copy to CPU memory.
-        uint16_t formatByteWidth = (uint16_t)TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-        for (uint32_t i = 0; i < pRenderTarget->mHeight; ++i)
-        {
-            memcpy((uint8_t*)pImageData + i * pRenderTarget->mWidth * formatByteWidth, (uint8_t*)resource.pData + i * resource.RowPitch,
-                   pRenderTarget->mWidth * formatByteWidth);
-        }
-
-        pNewTexture->Release();
+        memcpy((uint8_t*)pImageData + i * pRenderTarget->mWidth * formatByteWidth, (uint8_t*)resource.pData + i * resource.RowPitch,
+               pRenderTarget->mWidth * formatByteWidth);
     }
+
+    pNewTexture->Release();
 #endif
 #if defined(DIRECT3D12)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_D3D12)
+    void addBuffer(Renderer * pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+    void removeBuffer(Renderer * pRenderer, Buffer * pBuffer);
+
+    // Calculate the size of buffer required for copying the src texture.
+    D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->mDx.pResource->GetDesc();
+    uint64_t                           padded_size = 0;
+    uint64_t                           row_size = 0;
+    uint32_t                           num_rows = 0;
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT imageLayout = {};
+    pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
+
+    // Add a staging buffer.
+    Buffer*    buffer = 0;
+    BufferDesc bufferDesc = {};
+    bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+    bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    bufferDesc.mSize = padded_size;
+    bufferDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    bufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+    bufferDesc.mFormat = pRenderTarget->mFormat;
+    addBuffer(pRenderer, &bufferDesc, &buffer);
+
+    beginCmd(pCmd);
+
+    // Transition layout to copy data out.
+    RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
+    cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
+
+    uint32_t subresource = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION src = {};
+    D3D12_TEXTURE_COPY_LOCATION dst = {};
+
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    src.pResource = pRenderTarget->pTexture->mDx.pResource;
+    src.SubresourceIndex = subresource;
+
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    dst.pResource = buffer->mDx.pResource;
+    pCmd->pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &dst.PlacedFootprint, NULL, NULL, NULL);
+
+    pCmd->mDx.pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+    // Transition layout to original state.
+    srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
+    cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
+
+    endCmd(pCmd);
+
+    // Submit the GPU work.
+    QueueSubmitDesc submitDesc = {};
+    submitDesc.mCmdCount = 1;
+    submitDesc.ppCmds = &pCmd;
+
+    queueSubmit(pQueue, &submitDesc);
+
+    // Wait for work to finish on the GPU.
+    waitQueueIdle(pQueue);
+
+    uint8_t* mappedData = (uint8_t*)pImageData;
+    uint8_t* srcData = (uint8_t*)buffer->pCpuMappedAddress;
+    uint64_t src_row_size = imageLayout.Footprint.RowPitch;
+
+    // Copy row-wise to CPU memory.
+    for (uint32_t i = 0; i < num_rows; ++i)
     {
-        DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-        DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
-
-        // Calculate the size of buffer required for copying the src texture.
-        D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->mDx.pResource->GetDesc();
-        uint64_t                           padded_size = 0;
-        uint64_t                           row_size = 0;
-        uint32_t                           num_rows = 0;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT imageLayout = {};
-        pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
-
-        // Add a staging buffer.
-        Buffer*    buffer = 0;
-        BufferDesc bufferDesc = {};
-        bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-        bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-        bufferDesc.mSize = padded_size;
-        bufferDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        bufferDesc.mStartState = RESOURCE_STATE_COPY_DEST;
-        bufferDesc.mFormat = pRenderTarget->mFormat;
-        addBuffer(pRenderer, &bufferDesc, &buffer);
-
-        beginCmd(pCmd);
-
-        // Transition layout to copy data out.
-        RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
-        cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
-
-        uint32_t subresource = 0;
-
-        D3D12_TEXTURE_COPY_LOCATION src = {};
-        D3D12_TEXTURE_COPY_LOCATION dst = {};
-
-        src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        src.pResource = pRenderTarget->pTexture->mDx.pResource;
-        src.SubresourceIndex = subresource;
-
-        dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        dst.pResource = buffer->mDx.pResource;
-        pCmd->pRenderer->mDx.pDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &dst.PlacedFootprint, NULL, NULL, NULL);
-
-        pCmd->mDx.pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-        // Transition layout to original state.
-        srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
-        cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
-
-        endCmd(pCmd);
-
-        // Submit the GPU work.
-        QueueSubmitDesc submitDesc = {};
-        submitDesc.mCmdCount = 1;
-        submitDesc.ppCmds = &pCmd;
-
-        queueSubmit(pQueue, &submitDesc);
-
-        // Wait for work to finish on the GPU.
-        waitQueueIdle(pQueue);
-
-        uint8_t* mappedData = (uint8_t*)pImageData;
-        uint8_t* srcData = (uint8_t*)buffer->pCpuMappedAddress;
-        uint64_t src_row_size = imageLayout.Footprint.RowPitch;
-
-        // Copy row-wise to CPU memory.
-        for (uint32_t i = 0; i < num_rows; ++i)
-        {
-            memcpy(mappedData, srcData, row_size);
-            mappedData += row_size;
-            srcData += src_row_size;
-        }
-
-        removeBuffer(pRenderer, buffer);
+        memcpy(mappedData, srcData, row_size);
+        mappedData += row_size;
+        srcData += src_row_size;
     }
+
+    removeBuffer(pRenderer, buffer);
 #endif
 #if defined(METAL)
-    DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-    DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
-    DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-    DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
+    void addBuffer(Renderer * pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+    void removeBuffer(Renderer * pRenderer, Buffer * pBuffer);
+    void mapBuffer(Renderer * pRenderer, Buffer * pBuffer, ReadRange * pRange);
+    void unmapBuffer(Renderer * pRenderer, Buffer * pBuffer);
 
     // Add a staging buffer.
     uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
@@ -523,12 +507,12 @@ void exitScreenshotInterface()
 {
     if (gCmd != NULL)
     {
-        removeCmd(pRendererRef, gCmd);
+        exitCmd(pRendererRef, gCmd);
         gCmd = NULL;
     }
     if (pRendererRef != NULL)
     {
-        removeCmdPool(pRendererRef, pCmdPool);
+        exitCmdPool(pRendererRef, pCmdPool);
         pCmdPool = NULL;
     }
     pRendererRef = NULL;

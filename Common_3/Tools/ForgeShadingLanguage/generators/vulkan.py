@@ -118,6 +118,8 @@ def insert_buffer_array_indirections( line, buffer_name ):
 
 def is_buffer(fsl_declaration):
     # TODO: endswith better here?
+    if 'CBUFFER' in fsl_declaration[0] or 'ROOT_CONSTANT' in fsl_declaration[0]:
+        return True
     return 'Buffer' in fsl_declaration[0]
 
 def declare_buffer(fsl_declaration):
@@ -130,6 +132,7 @@ def declare_buffer(fsl_declaration):
     access = 'readonly'
     if buffer_type[:2] == 'W': access = 'writeonly'
     if buffer_type[:2] == 'RW': access = ''
+    if 'CBUFFER' in buffer_type: access = 'uniform'
 
     if 'Coherent' in buffer_type:
         access += ' coherent'
@@ -139,6 +142,14 @@ def declare_buffer(fsl_declaration):
         array_name = getArrayBaseName(name)
         return ['layout (std430, {}, {}) {} buffer {}Block\n'.format(freq, binding, access, array_name),
                 '{{\n\t{} _data[];\n}} {};\n'.format(data_type, name)]
+    elif 'CBUFFER' in buffer_type:
+        return ['layout (std140, {}, {}) uniform {}\n'.format(freq, binding, name),
+                '{{\n\t{} {}_data;\n}};\n'.format(data_type, name),
+                '#define {0} {0}_data\n'.format(name)]
+    elif 'ROOT_CONSTANT' in buffer_type:
+        return ['layout (push_constant) uniform {}Block '.format(name),
+                '{{ {} data;}} {}; \n'.format(data_type, name, name),
+                ]
     else:
         # for regular buffers, we redefine the access
         return ['layout (std430, {}, {}) {} buffer {}\n'.format(freq, binding, access, name),
@@ -292,8 +303,6 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
     skip_line = False
     parsing_struct = None
     
-    parsing_cbuffer = None
-    parsing_pushconstant = None
 
     nonuniformresourceindex = None
     parsed_entry = False
@@ -315,6 +324,8 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
     struct_declarations = []
     input_assignments = []
     return_assignments = []
+
+    subs = []
 
     for fi, line_index, line in iter_lines(shader.lines):
 
@@ -450,26 +461,6 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                     struct_declarations += [reference]
                 input_assignments += [assignment]
 
-        if (parsing_cbuffer or parsing_pushconstant) and line.strip().startswith('DATA('):
-            dt, name, sem = getMacro(line)
-            element_basename = getArrayBaseName(name)
-            element_path = None
-            if parsing_cbuffer:
-                element_path = element_basename
-            if parsing_pushconstant:
-                element_path = parsing_pushconstant[0] + '.' + element_basename
-            shader_src += ['#define _Get', element_basename, ' ', element_path, '\n']
-
-        if 'CBUFFER' in line:
-            fsl_assert(parsing_cbuffer == None, fi, line_index, message='Inconsistent cbuffer declaration: \"' + line + '\"')
-            parsing_cbuffer = tuple(getMacro(line))
-        if '};' in line and parsing_cbuffer:
-            parsing_cbuffer = None
-
-        if 'PUSH_CONSTANT' in line:
-            parsing_pushconstant = tuple(getMacro(line))
-        if '};' in line and parsing_pushconstant:
-            parsing_pushconstant = None
 
         if is_groupshared_decl(line):
             dtype, dname = getMacro(line)
@@ -486,7 +477,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                 '#endif\n'
 
         # handle push constants
-        if line.strip().startswith('PUSH_CONSTANT'):
+        if line.strip().startswith('ROOT_CONSTANT'):
             # push_constant = getMacro(line)[0]
             push_constant = tuple(getMacro(line))
         if push_constant and '};' in line:
@@ -501,11 +492,12 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             resource_decl = getMacro(line)
             fsl_assert(len(resource_decl) == 5, fi, line_index, message='invalid Res declaration: \''+line+'\'')
             basename = getArrayBaseName(resource_decl[1])
-            shader_src += ['#define _Get' + basename + ' ' + basename + '\n']
         
         # handle buffer resource declarations
         if resource_decl and is_buffer(resource_decl):
             shader_src += declare_buffer(resource_decl)
+            if 'ROOT_CONSTANT' in resource_decl[0]:
+                subs += [ (rf'[^}} ]\s*\b{resource_decl[1]}\b', '\g<0>.data') ]
             continue
 
         # handle references to arrays of structured buffers
@@ -604,6 +596,10 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['#line {}\n'.format(line_index)]
 
         shader_src += [line]
+
+    shader_src = ''.join(shader_src)
+    for pattern, repl in subs:
+        shader_src = re.sub(pattern, repl, shader_src)
 
     open(dst, 'w').writelines(shader_src)
     return 0, dependencies

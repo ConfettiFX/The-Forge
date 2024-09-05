@@ -40,7 +40,7 @@
 #include "../../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyktx/tinyktx.h"
 
 // ISPC texcomp
-#include "../../ThirdParty/OpenSource/ISPCTextureCompressor/ispc_texcomp/ispc_texcomp.h"
+#include "../../../../Data/Tools/ISPCTextureCompressor/ispc_texcomp/ispc_texcomp.h"
 
 // Nothings
 #define STBI_NO_STDIO
@@ -51,6 +51,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../Utilities/ThirdParty/OpenSource/Nothings/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STBIR_ASSERT(x)     ASSERT(x)
+// Note: We don't use custom allocation contexts for stbi
+#define STBIR_MALLOC(sz, c) ((c) == NULL) ? tf_malloc(sz) : NULL
+#define STBIR_FREE(p, c)    ((c) == NULL) ? tf_free(p) : ((void)0)
 #include "../../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 #include "../../../Utilities/ThirdParty/OpenSource/Nothings/stb_image_resize.h"
 
@@ -183,6 +187,26 @@ TinyImageFormat GetASTCFormat(ASTC astc, bool isSrgb)
     case ASTC_4x4_SLOW:
         outFormat = isSrgb ? TinyImageFormat_ASTC_4x4_SRGB : TinyImageFormat_ASTC_4x4_UNORM;
         break;
+    case ASTC_5x4:
+    case ASTC_5x4_SLOW:
+        outFormat = isSrgb ? TinyImageFormat_ASTC_5x4_SRGB : TinyImageFormat_ASTC_5x4_UNORM;
+        break;
+    case ASTC_5x5:
+    case ASTC_5x5_SLOW:
+        outFormat = isSrgb ? TinyImageFormat_ASTC_5x5_SRGB : TinyImageFormat_ASTC_5x5_UNORM;
+        break;
+    case ASTC_6x6:
+    case ASTC_6x6_SLOW:
+        outFormat = isSrgb ? TinyImageFormat_ASTC_6x6_SRGB : TinyImageFormat_ASTC_6x6_UNORM;
+        break;
+    case ASTC_8x5:
+    case ASTC_8x5_SLOW:
+        outFormat = isSrgb ? TinyImageFormat_ASTC_8x5_SRGB : TinyImageFormat_ASTC_8x5_UNORM;
+        break;
+    case ASTC_8x6:
+    case ASTC_8x6_SLOW:
+        outFormat = isSrgb ? TinyImageFormat_ASTC_8x6_SRGB : TinyImageFormat_ASTC_8x6_UNORM;
+        break;
     case ASTC_8x8:
     case ASTC_8x8_SLOW:
         outFormat = isSrgb ? TinyImageFormat_ASTC_8x8_SRGB : TinyImageFormat_ASTC_8x8_UNORM;
@@ -277,6 +301,22 @@ TinyImageFormat GetOutputTextureFormat(ProcessTexturesParams* pTexturesParams, T
     }
 
     return outFormat;
+}
+
+TinyImageFormat TextureFormatFromComponentCount(uint32_t componentCount, bool srgb)
+{
+    switch (componentCount)
+    {
+    case 1:
+        return srgb ? TinyImageFormat_R8_SRGB : TinyImageFormat_R8_UNORM;
+    case 2:
+        return srgb ? TinyImageFormat_R8G8_SRGB : TinyImageFormat_R8G8_UNORM;
+    case 3:
+        return srgb ? TinyImageFormat_R8G8B8_SRGB : TinyImageFormat_R8G8B8_UNORM;
+    case 4:
+        return srgb ? TinyImageFormat_R8G8B8A8_SRGB : TinyImageFormat_R8G8B8A8_UNORM;
+    }
+    return TinyImageFormat_UNDEFINED;
 }
 
 bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const char* pExtension, ProcessTexturesParams* pTextureParams,
@@ -410,7 +450,8 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         int32_t imageDepth = 1; // TODO: support loading 3D images stbi_image seems not to support this?
         stbi_info_from_memory(pFileData, (int32_t)fileSize, &imageWidth, &imageHeight, &componentCount);
 
-        TinyImageFormat textureFormat = TinyImageFormat_UNDEFINED;
+        forceComponents = componentCount;
+
         if (pTextureParams->mInputLinearColorSpace)
         {
             // Linear Color Space
@@ -418,37 +459,26 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
             {
                 // ISPC Texture Compressor expects 32bit/pixel for ASTC compression
                 forceComponents = 4;
-                textureFormat = TinyImageFormat_R8G8B8A8_UNORM;
             }
             else
             {
                 // BC compression (or uncompressed) doesn't need to have forced channels.
-                switch (componentCount)
-                {
-                case 1:
-                    textureFormat = TinyImageFormat_R8_UNORM;
-                    break;
-                case 2:
-                    textureFormat = TinyImageFormat_R8G8_UNORM;
-                    break;
-                case 3:
-                    textureFormat = TinyImageFormat_R8G8B8_UNORM;
-                    break;
-                case 4:
-                    textureFormat = TinyImageFormat_R8G8B8A8_UNORM;
-                    break;
-                default:
-                    textureFormat = TinyImageFormat_UNDEFINED;
-                    break;
-                }
-
                 // Unless we need to do BC1 compression; ISPC Texture Compressor expects 32bit/pixel for BC1
-                if (pTextureParams->mOverrideBC == DXT_BC1 ||
-                    (pTextureParams->mCompression == TextureCompression::COMPRESSION_BC && componentCount == 3))
+                if (pTextureParams->mOverrideBC == DXT_BC1)
                 {
                     forceComponents = 4;
-                    textureFormat = TinyImageFormat_R8G8B8A8_UNORM;
-                    pTextureParams->mOverrideBC = DXT_BC1;
+                }
+
+                if (forceComponents < pTextureParams->mSwizzleChannelCount)
+                {
+                    // If input swizzling channels is more than what the image has, also extend the channels needed to be loaded
+                    forceComponents = pTextureParams->mSwizzleChannelCount;
+                }
+
+                if (pTextureParams->mProcessAsNormalMap)
+                {
+                    // Normal maps need 4 channels since one of the components will be compressed to alpha
+                    forceComponents = 4;
                 }
             }
         }
@@ -458,8 +488,8 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
             // DDS container srgb only supports 4 components
             // KTX container with srgb doesn't support 3 components (at least gives some issues on Android)
             forceComponents = 4;
-            textureFormat = TinyImageFormat_R8G8B8A8_SRGB;
         }
+        TinyImageFormat textureFormat = TextureFormatFromComponentCount(forceComponents, !pTextureParams->mInputLinearColorSpace);
 
         if (textureFormat == TinyImageFormat_UNDEFINED)
         {
@@ -512,8 +542,52 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
     ASSERT(pDesc);
     ASSERT(pTexDesc->mWidth && pTexDesc->mHeight); // widht/height cannot be 0
 
-    const uint32_t blockSizeX = pDesc->mASTCCompression == ASTC_4x4 || pDesc->mASTCCompression == ASTC_4x4_SLOW ? 4 : 8;
-    const uint32_t blockSizeY = pDesc->mASTCCompression == ASTC_4x4 || pDesc->mASTCCompression == ASTC_4x4_SLOW ? 4 : 8;
+    uint32_t blockSizeX = 0;
+    uint32_t blockSizeY = 0;
+
+    switch (pDesc->mASTCCompression)
+    {
+    case ASTC_4x4:
+    case ASTC_4x4_SLOW:
+        blockSizeX = 4;
+        blockSizeY = 4;
+        break;
+    case ASTC_5x4:
+    case ASTC_5x4_SLOW:
+        blockSizeX = 5;
+        blockSizeY = 4;
+        break;
+    case ASTC_5x5:
+    case ASTC_5x5_SLOW:
+        blockSizeX = 5;
+        blockSizeY = 5;
+        break;
+    case ASTC_6x6:
+    case ASTC_6x6_SLOW:
+        blockSizeX = 6;
+        blockSizeY = 6;
+        break;
+    case ASTC_8x5:
+    case ASTC_8x5_SLOW:
+        blockSizeX = 8;
+        blockSizeY = 5;
+        break;
+    case ASTC_8x6:
+    case ASTC_8x6_SLOW:
+        blockSizeX = 8;
+        blockSizeY = 6;
+        break;
+    case ASTC_8x8:
+    case ASTC_8x8_SLOW:
+        blockSizeX = 8;
+        blockSizeY = 8;
+        break;
+    case ASTC_NONE:
+    default:
+        blockSizeX = 4;
+        blockSizeY = 4;
+    }
+
     const uint32_t channels = TinyImageFormat_ChannelCount(pTexDesc->mFormat);
     ASSERT(channels >= 3); // ISPC astc compression requires atleast 3 channels
 
@@ -527,7 +601,10 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
     astc_enc_settings astcEncSettings = {};
     if (channels > 3)
     {
-        if (pDesc->mASTCCompression == ASTC_4x4_SLOW || pDesc->mASTCCompression == ASTC_8x8_SLOW)
+        if (pDesc->mASTCCompression == ASTC_4x4_SLOW || pDesc->mASTCCompression == ASTC_5x4_SLOW ||
+            pDesc->mASTCCompression == ASTC_5x5_SLOW || pDesc->mASTCCompression == ASTC_6x6_SLOW ||
+            pDesc->mASTCCompression == ASTC_8x5_SLOW || pDesc->mASTCCompression == ASTC_8x6_SLOW ||
+            pDesc->mASTCCompression == ASTC_8x8_SLOW)
         {
             GetProfile_astc_alpha_slow(&astcEncSettings, blockSizeX, blockSizeY);
         }
@@ -935,7 +1012,13 @@ void GenerateVMFFilteredMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImage
                 const uint32_t mipChannelIndex = mipPixelIndex * channelCount;
                 ppData[mipMap][mipChannelIndex + 0] = (uint8_t)(fmaxf(fminf(1.0f, rFiltered[0]), 0.0f) * (float)UINT8_MAX + 0.5f);
                 ppData[mipMap][mipChannelIndex + 1] = (uint8_t)(fmaxf(fminf(1.0f, rFiltered[1]), 0.0f) * (float)UINT8_MAX + 0.5f);
-                ppData[mipMap][mipChannelIndex + 3] = (uint8_t)(fmaxf(fminf(1.0f, rFiltered[2]), 0.0f) * (float)UINT8_MAX + 0.5f);
+                ppData[mipMap][mipChannelIndex + 2] = (uint8_t)(fmaxf(fminf(1.0f, rFiltered[2]), 0.0f) * (float)UINT8_MAX + 0.5f);
+
+                if (channelCount == 4)
+                {
+                    // Fill alpha if possible
+                    ppData[mipMap][mipChannelIndex + 3] = UINT8_MAX;
+                }
             }
         }
     }
@@ -1015,6 +1098,80 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
     }
 
     return success;
+}
+
+void SwizzleUncompressedData(uint8_t* ppData[MAX_MIPLEVELS], const TextureDesc* pTexDesc, TextureSwizzle swizzle)
+{
+    const uint32_t channelCount = TinyImageFormat_ChannelCount(pTexDesc->mFormat);
+
+    for (uint32_t mip = 0; mip < pTexDesc->mMipLevels; ++mip)
+    {
+        uint32_t mipWidth = max(pTexDesc->mWidth >> mip, 1u);
+        uint32_t mipHeight = max(pTexDesc->mHeight >> mip, 1u);
+
+        for (uint32_t y = 0; y < mipHeight; ++y)
+        {
+            for (uint32_t x = 0; x < mipWidth; ++x)
+            {
+                const uint32_t pixelIndex = (x + y * mipWidth) * channelCount;
+                uint8_t*       pPixelData = ppData[mip] + pixelIndex;
+
+                uint8_t inputPixel[4] = { 0, 0, 0, 0 };
+                uint8_t outputPixel[4];
+
+                for (uint32_t i = 0; i < channelCount; ++i)
+                {
+                    inputPixel[i] = pPixelData[i];
+                }
+
+                for (uint32_t i = 0; i < channelCount; ++i)
+                {
+                    switch (swizzle.mIndices[i])
+                    {
+                    case 'r':
+                    case 'x':
+                        outputPixel[i] = inputPixel[0];
+                        break;
+                    case 'g':
+                    case 'y':
+                        outputPixel[i] = inputPixel[1];
+                        break;
+                    case 'b':
+                    case 'z':
+                        outputPixel[i] = inputPixel[2];
+                        break;
+                    case 'a':
+                    case 'w':
+                        outputPixel[i] = inputPixel[3];
+                        break;
+                    case 'i':
+                        outputPixel[i] = 255u - inputPixel[0];
+                        break;
+                    case 'j':
+                        outputPixel[i] = 255u - inputPixel[1];
+                        break;
+                    case 'k':
+                        outputPixel[i] = 255u - inputPixel[2];
+                        break;
+                    case 'l':
+                        outputPixel[i] = 255u - inputPixel[3];
+                        break;
+                    case '1':
+                        outputPixel[i] = UINT8_MAX;
+                        break;
+                    case '0':
+                    default:
+                        outputPixel[i] = 0;
+                    }
+                }
+
+                for (uint32_t i = 0; i < channelCount; ++i)
+                {
+                    pPixelData[i] = outputPixel[i];
+                }
+            }
+        }
+    }
 }
 
 void onTextureFound(ResourceDirectory resourceDir, const char* filename, void* pUserData)
@@ -1170,6 +1327,20 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         if (useVMF)
         {
             tf_free(rData);
+        }
+
+        /////////////////////////////////
+        // Swizzle uncompressed data
+        ////////////////////////////////
+        if (texturesParams->mSwizzleChannelCount > 0)
+        {
+            if (inputTextureData.isCompressed)
+            {
+                LOGF(eWARNING, "Input texture is compressed, cannot be swizzled");
+                error = true;
+                continue;
+            }
+            SwizzleUncompressedData(inputTextureData.pData, &inputTextureData.mDesc, texturesParams->mSwizzle);
         }
 
         /////////////////////////////////

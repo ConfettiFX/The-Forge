@@ -172,13 +172,13 @@ STBIWDEF int stbi_write_png_compression_level;
 STBIWDEF int stbi_write_force_png_filter;
 #endif
 
-#ifndef STBI_WRITE_NO_STDIO
 STBIWDEF int stbi_write_png(char const *filename, int w, int h, int comp, const void  *data, int stride_in_bytes);
 STBIWDEF int stbi_write_bmp(char const *filename, int w, int h, int comp, const void  *data);
 STBIWDEF int stbi_write_tga(char const *filename, int w, int h, int comp, const void  *data);
 STBIWDEF int stbi_write_hdr(char const *filename, int w, int h, int comp, const float *data);
 STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const void  *data, int quality);
 
+#ifndef STBI_WRITE_NO_STDIO
 #ifdef STBIW_WINDOWS_UTF8
 STBIWDEF int stbiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const wchar_t* input);
 #endif
@@ -339,6 +339,29 @@ static int stbi__start_write_file(stbi__write_context *s, const char *filename)
 static void stbi__end_write_file(stbi__write_context *s)
 {
    fclose((FILE *)s->context);
+}
+#else
+
+static void stbi__fs_write(void* context, void* data, int size)
+{
+    VERIFY(fsWriteToStream((FileStream*)context, data, (size_t)size));
+}
+
+static int stbi__start_write_file(stbi__write_context* s, const char* filename)
+{
+    FileStream* fs = (FileStream*)tf_malloc(sizeof(FileStream));
+    if (!fsOpenStreamFromPath(RD_OTHER_FILES, filename, FM_WRITE, fs))
+    {
+        LOGF(LogLevel::eERROR, "Failed to open file stream for stbi output.");
+    }
+    stbi__start_write_callbacks(s, stbi__fs_write, (void*)fs);
+    return fs != NULL;
+}
+
+static void stbi__end_write_file(stbi__write_context* s)
+{
+    VERIFY(fsCloseStream((FileStream*)s->context));
+    tf_free(s->context);
 }
 
 #endif // !STBI_WRITE_NO_STDIO
@@ -516,7 +539,6 @@ STBIWDEF int stbi_write_bmp_to_func(stbi_write_func *func, void *context, int x,
    return stbi_write_bmp_core(&s, x, y, comp, data);
 }
 
-#ifndef STBI_WRITE_NO_STDIO
 STBIWDEF int stbi_write_bmp(char const *filename, int x, int y, int comp, const void *data)
 {
    stbi__write_context s = { 0 };
@@ -527,7 +549,6 @@ STBIWDEF int stbi_write_bmp(char const *filename, int x, int y, int comp, const 
    } else
       return 0;
 }
-#endif //!STBI_WRITE_NO_STDIO
 
 static int stbi_write_tga_core(stbi__write_context *s, int x, int y, int comp, void *data)
 {
@@ -615,7 +636,6 @@ STBIWDEF int stbi_write_tga_to_func(stbi_write_func *func, void *context, int x,
    return stbi_write_tga_core(&s, x, y, comp, (void *) data);
 }
 
-#ifndef STBI_WRITE_NO_STDIO
 STBIWDEF int stbi_write_tga(char const *filename, int x, int y, int comp, const void *data)
 {
    stbi__write_context s = { 0 };
@@ -626,15 +646,12 @@ STBIWDEF int stbi_write_tga(char const *filename, int x, int y, int comp, const 
    } else
       return 0;
 }
-#endif
 
 // *************************************************************************************************
 // Radiance RGBE HDR writer
 // by Baldur Karlsson
 
 #define stbiw__max(a, b)  ((a) > (b) ? (a) : (b))
-
-#ifndef STBI_WRITE_NO_STDIO
 
 static void stbiw__linear_to_rgbe(unsigned char *rgbe, float *linear)
 {
@@ -801,7 +818,6 @@ STBIWDEF int stbi_write_hdr(char const *filename, int x, int y, int comp, const 
    } else
       return 0;
 }
-#endif // STBI_WRITE_NO_STDIO
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1211,9 +1227,10 @@ STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int s
    return out;
 }
 
-#ifndef STBI_WRITE_NO_STDIO
 STBIWDEF int stbi_write_png(char const *filename, int x, int y, int comp, const void *data, int stride_bytes)
 {
+#ifndef STBI_WRITE_NO_STDIO
+
    FILE *f;
    int len;
    unsigned char *png = stbi_write_png_to_mem((const unsigned char *) data, stride_bytes, x, y, comp, &len);
@@ -1225,8 +1242,20 @@ STBIWDEF int stbi_write_png(char const *filename, int x, int y, int comp, const 
    fclose(f);
    STBIW_FREE(png);
    return 1;
-}
+
+#else
+
+   stbi__write_context s = { 0 };
+   if (stbi__start_write_file(&s, filename)) {
+       int r = stbi_write_png_to_func(s.func, s.context, x, y, comp, (void*)data, stride_bytes);
+       stbi__end_write_file(&s);
+       return r;
+   }
+   else
+       return 0;
+
 #endif
+}
 
 STBIWDEF int stbi_write_png_to_func(stbi_write_func *func, void *context, int x, int y, int comp, const void *data, int stride_bytes)
 {
@@ -1611,8 +1640,6 @@ STBIWDEF int stbi_write_jpg_to_func(stbi_write_func *func, void *context, int x,
    return stbi_write_jpg_core(&s, x, y, comp, (void *) data, quality);
 }
 
-
-#ifndef STBI_WRITE_NO_STDIO
 STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const void *data, int quality)
 {
    stbi__write_context s = { 0 };
@@ -1623,7 +1650,6 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
    } else
       return 0;
 }
-#endif
 
 #endif // STB_IMAGE_WRITE_IMPLEMENTATION
 

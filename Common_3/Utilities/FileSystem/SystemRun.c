@@ -32,6 +32,33 @@
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_MAC
+#define USE_UNIX
+#endif
+#endif
+
+#ifdef __linux__
+#define USE_UNIX
+#endif
+
+#if defined(USE_UNIX)
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
+#if defined(_WINDOWS)
+static const char* GetErrorMessage(DWORD err)
+{
+    static __declspec(thread) char errorBuf[1024];
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, NULL, err,
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorBuf, sizeof(errorBuf), NULL);
+    return errorBuf;
+}
+#endif
+
 int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {
     UNREF_PARAM(command);
@@ -81,6 +108,14 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
                         &processInfo))
     {
         bdestroy(&commandLine);
+        DWORD err = GetLastError();
+        LOGF(eERROR, "Error when creating process: (%d) %s", (int)err, GetErrorMessage(err));
+        LOGF(eERROR, "COMMAND:");
+        LOGF(eERROR, "    %s", command);
+        for (size_t i = 0; i < argumentCount; ++i)
+        {
+            LOGF(eERROR, "    %s", arguments[i]);
+        }
         return -1;
     }
 
@@ -98,25 +133,7 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 
     bdestroy(&commandLine);
     return exitCode;
-#elif defined(__linux__)
-
-    unsigned char buf[256];
-    bstring       cmd = bemptyfromarr(buf);
-
-    bformat(&cmd, "%s", command);
-
-    for (size_t i = 0; i < argumentCount; ++i)
-    {
-        bformata(&cmd, " %s", arguments[i]);
-    }
-    ASSERT(biscstr(&cmd));
-
-    int res = system((const char*)&cmd.data[0]);
-    bdestroy(&cmd);
-
-    return res;
 #elif TARGET_OS_IPHONE
-
     ASSERT(false && "processRun is unsupported on iOS");
     return -1;
 #elif NX64
@@ -128,8 +145,8 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 #elif defined(PROSPERO)
     ASSERT(false && "processRun is unsupported on Prospero");
     return -1;
-#else
-
+#elif defined(USE_UNIX)
+    // NOTE: make sure this is the last case since other platforms may define __unix__
     // NOTE:  do not use eastl in the forked process!  It will use unsafe functions (such as malloc) which will hang the whole thing
     const char** argPtrs = NULL;
     arrsetcap(argPtrs, argumentCount + 2);
@@ -140,17 +157,39 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
     arrpush(argPtrs, NULL);
 
     pid_t pid = fork();
-    if (!pid)
+    if (pid < 0)
     {
-        execvp(argPtrs[0], (char**)&argPtrs[0]);
-        exit(1); // Return 1 if we could not spawn the process (man page says values need to be in the range 0-255
-                 // Don't return here, we want to terminate the child process, that was done by exit().
+        LOGF(eWARNING, "Can't fork another process");
+        return -1;
     }
-    else if (pid > 0)
+
+    if (pid == 0)
     {
+        // child
+        int fd = open(stdOutFile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        if (fd < 0)
+        {
+            LOGF(eWARNING, "Can't open stdout file: %s", stdOutFile);
+            exit(1);
+        }
+
+        if (dup2(fd, STDOUT_FILENO) < 0)
+        {
+            LOGF(eWARNING, "Can't redirect stdout to the file: %s", stdOutFile);
+            exit(1);
+        }
+
+        close(fd);
+        execvp(argPtrs[0], (char**)&argPtrs[0]);
+        exit(1);
+    }
+    else
+    {
+        // parent
         int waitStatus = 0;
-        waitpid(pid, &waitStatus,
-                0); // Use waitpid to make sure we wait for our forked process, not some other process created in another thread.
+
+        // Use waitpid to make sure we wait for our forked process, not some other process created in another thread.
+        waitpid(pid, &waitStatus, 0);
         arrfree(argPtrs);
 
         if (WIFEXITED(waitStatus))
@@ -169,9 +208,10 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
             LOGF(eWARNING, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
         }
 
-        return -1; // Failed to execute
-    }
-    else
         return -1;
+    }
+#else
+    ASSERT(false && "Unkown platform");
+    return -1;
 #endif
 }

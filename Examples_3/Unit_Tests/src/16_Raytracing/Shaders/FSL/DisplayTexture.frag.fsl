@@ -45,10 +45,10 @@ FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
     FSOutput Out;
-	Out.FragmentOutput = SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord);
+	Out.FragmentOutput = SampleTex2D(uTex0, uSampler0, In.texCoord);
 	//Out.FragmentOutput.a = 1.f;
 #if DENOISER_ENABLED
-	Out.FragmentOutput.rgb *= SampleTex2D(Get(albedoTex), Get(uSampler0), In.texCoord).rgb;
+	Out.FragmentOutput.rgb *= SampleTex2D(albedoTex, uSampler0, In.texCoord).rgb;
 #endif
     RETURN(Out);
 }

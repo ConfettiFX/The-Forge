@@ -32,8 +32,6 @@ android {
         noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip'
     }
 
-
- 
     signingConfigs {
         internal_build {
         	initWith(signingConfigs.debug)
@@ -54,6 +52,7 @@ android {
             minifyEnabled false
             shrinkResources false
             signingConfig signingConfigs.internal_build
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         profile {
             initWith(buildTypes.release)
@@ -62,6 +61,11 @@ android {
             minifyEnabled true
             shrinkResources true
             signingConfig signingConfigs.internal_build
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk {
+                debugSymbolLevel 'FULL'
+                abiFilters 'arm64-v8a'
+            }
         }
         release {
             initWith(buildTypes.release)
@@ -69,7 +73,12 @@ android {
             debuggable true
             minifyEnabled true
             shrinkResources true
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.shipping_build
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk {
+                debugSymbolLevel 'FULL'
+                abiFilters 'arm64-v8a'
+            }
         }
     }
 }

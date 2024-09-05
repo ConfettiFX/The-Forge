@@ -26,8 +26,7 @@
 // for planets in Unit Test 12 - Transformations
 
 #define MAX_PLANETS 20
-
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(uniformBlockData)
 {
 	DATA(float4x4, mvp, None);
     DATA(float4x4, toWorld[MAX_PLANETS], None);
@@ -37,6 +36,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float3, lightPosition, None);
     DATA(float3, lightColor, None);
 };
+RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSInput)
 {
@@ -54,11 +54,11 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 {
 	INIT_MAIN;
 	VSOutput Out;
-    float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
+    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld[InstanceID]);
     Out.Position = mul(tempMat, In.Position);
 
-    float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(In.Position.xyz, 1.0f));
+    float4 normal = normalize(mul(uniformBlock.toWorld[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
+    float4 pos = mul(uniformBlock.toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
 
     float lightIntensity = 1.0f;
     float quadraticCoeff = 1.2;
@@ -66,17 +66,17 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 
     float3 lightDir;
 
-    if (Get(color)[InstanceID].w == 0) // Special case for Sun, so that it is lit from its top
+    if (uniformBlock.color[InstanceID].w == 0) // Special case for Sun, so that it is lit from its top
         lightDir = float3(0.0f, 1.0f, 0.0f);
     else
-        lightDir = normalize(Get(lightPosition) - pos.xyz);
+        lightDir = normalize(uniformBlock.lightPosition - pos.xyz);
 
     //float distance = length(lightDir);
     //float attenuation = 1.0 / (quadraticCoeff * distance * distance);
     //float intensity = lightIntensity * attenuation;
 
-    float3 baseColor = Get(color)[InstanceID].xyz;
-    float3 blendedColor = mul(Get(lightColor) * baseColor, lightIntensity);
+    float3 baseColor = uniformBlock.color[InstanceID].xyz;
+    float3 blendedColor = mul(uniformBlock.lightColor * baseColor, lightIntensity);
     float3 diffuse = mul(blendedColor, max(dot(normal.xyz, lightDir), 0.0));
     float3 ambient = mul(baseColor, ambientCoeff);
     Out.Color = float4(diffuse + ambient, 1.0);

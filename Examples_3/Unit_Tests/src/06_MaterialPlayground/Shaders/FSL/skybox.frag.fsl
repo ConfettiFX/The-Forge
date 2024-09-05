@@ -34,7 +34,7 @@ STRUCT(VSOutput)
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
-	float3 texColor = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), In.pos).rgb;
+	float3 texColor = SampleTexCube(skyboxTex, skyboxSampler, In.pos).rgb;
 	// Tone mapping
 	texColor = texColor / (texColor + float3(1.0f, 1.0f, 1.0f));
 	RETURN(float4(texColor.r, texColor.g, texColor.b, 1.0f));

@@ -3,16 +3,59 @@
 #end
 
 #frag particle.frag
+
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle.frag.fsl"
 #end
+
+
+#frag particle_hq.frag
+
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#elif defined(PROSPERO) || defined(WINDOWS)
+#define MAX_TRANSPARENCY_LAYERS 64
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle.frag.fsl"
+#end
+
 
 #comp particle_clear_sorting_structs.comp
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_clear_sorting_structs.comp.fsl"
 #end
 
+
 #comp particle_simulate.comp
+
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl"
 #end
+
+
+#comp particle_simulate_hq.comp
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#elif defined(PROSPERO) || defined(WINDOWS)
+#define MAX_TRANSPARENCY_LAYERS 64
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl"
+#end
+
 
 #vert shadow_pass.vert
 #include "shadow_pass.vert.fsl"
@@ -93,8 +136,30 @@
 #end
 
 #frag fsq.frag
+
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+
 #include "fsq.frag.fsl"
 #end
+
+
+#frag fsq_hq.frag
+
+#if defined(ORBIS)
+#define MAX_TRANSPARENCY_LAYERS	16
+#elif defined(PROSPERO) || defined(WINDOWS)
+#define MAX_TRANSPARENCY_LAYERS 64
+#else
+#define MAX_TRANSPARENCY_LAYERS	24
+#endif
+
+#include "fsq.frag.fsl"
+#end
+
 
 #frag downsample_depth.frag
 #include "downsample_depth.frag.fsl"

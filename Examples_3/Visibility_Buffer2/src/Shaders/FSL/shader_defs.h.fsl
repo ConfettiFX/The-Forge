@@ -29,7 +29,8 @@
     #define STATIC static
     #define STRUCT(NAME) struct NAME
     #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME, REG, FREQ, BINDING) struct NAME
+    #define CBUFFER(NAME) struct NAME
+	#define RES(RESOURCE, NANE, FREQ, REGISTER, BINDING) 
 	#define float4x4 mat4
 #endif
 
@@ -57,7 +58,7 @@ STRUCT(MeshConstants)
 	DATA(uint, twoSided, None); //0 or 1
 };
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(PerFrameConstantsData)
 {
 	DATA(float4, camPos, None);
 	//========================================
@@ -66,8 +67,8 @@ CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float4, lightColor, None);
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
-	DATA(uint, lightingMode, None);
 	DATA(uint, outputMode, None);
+	DATA(uint, _pad0, None);
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
@@ -81,6 +82,7 @@ CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(uint, smallScaleRaster, None);
 	DATA(uint, visualizeBinOccupancy, None);
 };
+RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(LightData)
 {

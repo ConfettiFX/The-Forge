@@ -25,7 +25,7 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-CBUFFER(uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
@@ -33,14 +33,16 @@ CBUFFER(uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1)
 	DATA(float4x4, mvp, None);
 #endif
 };
+RES(CBUFFER(UniformBlock), uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1);
 
 RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t2, binding = 2);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s3, binding = 3);
 
-PUSH_CONSTANT(uRootConstants, b0)
+STRUCT(RootConstants)
 {
 	DATA(float4, color, None);
 	DATA(float2, scaleBias, None);
 };
+RES(ROOT_CONSTANT(RootConstants), uRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #endif

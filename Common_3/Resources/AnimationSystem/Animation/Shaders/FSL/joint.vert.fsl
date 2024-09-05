@@ -27,7 +27,7 @@
 
 #define MAX_INSTANCES 804
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
     DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
@@ -43,6 +43,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
     DATA(uint4, skeletonInfo, None);
     DATA(float4x4, toWorld[MAX_INSTANCES], None);
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 
 STRUCT(VSInput)
 {
@@ -61,20 +62,20 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
-    float4x4 matWorld = Get(toWorld)[InstanceID];
+    float4x4 matWorld = uniformBlock.toWorld[InstanceID];
 
     // extract joint scale and world position
     float   jointScale = length(getRow(matWorld,0).xyz);
     float4  jointPosition = getCol(matWorld,3);
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = Get(mvp)[VR_VIEW_ID];
+    float4x4 tempMat = uniformBlock.mvp[VR_VIEW_ID];
 #else
-    float4x4 tempMat = Get(mvp);
+    float4x4 tempMat = uniformBlock.mvp;
 #endif
 
     // extract side and up vectors to calculate billboard
-    float4x4 tempViewMatrix = Get(viewMatrix);
+    float4x4 tempViewMatrix = uniformBlock.viewMatrix;
     float3 vSide = getRow(tempViewMatrix,0).xyz;
     float3 vUp   = getRow(tempViewMatrix,1).xyz;
     
@@ -86,8 +87,8 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 
     // make sure we get quad coords from -1.0 to 1.0 for ps to cutout the circle
     Out.QuadCoord = float4(normalize(In.Position.xy) * 1.414f, 0.0f, 0.0f );
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(In.Position.xyz, 1.0f));
-    float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
+    float4 pos = mul(uniformBlock.toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
+    float3 lightDir = normalize(uniformBlock.lightPosition.xyz - pos.xyz);
     Out.LightDirection = float4(lightDir,0.0f);
 
     RETURN(Out);

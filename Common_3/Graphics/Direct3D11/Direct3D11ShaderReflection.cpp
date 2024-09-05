@@ -77,7 +77,7 @@ char* util_extract_update_freq(char* resourceName, uint32_t* pSet)
     return resourceName;
 }
 
-void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void d3d11_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
     // Check to see if parameters are valid
     if (shaderCode == NULL)

@@ -122,7 +122,7 @@ float3 EstimateStdDeviation(int2 did)
 
     int radius = 1;
     float weight = (radius * 2.0 + 1.0) * (radius * 2.0 + 1.0);
-    int2 image_size = int2(GetDimensions(Get(g_spatially_denoised_reflections), NO_SAMPLER));
+    int2 image_size = int2(GetDimensions(g_spatially_denoised_reflections, NO_SAMPLER));
 
     for (int dx = -radius; dx <= radius; dx++)
     {
@@ -131,7 +131,7 @@ float3 EstimateStdDeviation(int2 did)
             int2 texel_coords = did + int2(dx, dy);
             if(texel_coords.x >= 0 && texel_coords.x < image_size.x && texel_coords.y >= 0 && texel_coords.y < image_size.y)
             {
-                float3 value = LoadRWTex2D(Get(g_spatially_denoised_reflections), texel_coords).xyz;
+                float3 value = LoadRWTex2D(g_spatially_denoised_reflections, texel_coords).xyz;
                 color_sum += value;
                 color_sum_squared += value * value;
             }
@@ -151,7 +151,7 @@ float2 GetSurfaceReprojection(int2 did, float2 uv, float2 motion_vector)
 
 float2 GetHitPositionReprojection(int2 did, float2 uv, float reflected_ray_length)
 {
-    float z = FfxSssrUnpackDepth(LoadTex2D(Get(g_depth_buffer), NO_SAMPLER, did, 0).x);
+    float z = FfxSssrUnpackDepth(LoadTex2D(g_depth_buffer, NO_SAMPLER, did, 0).x);
     float3 view_space_ray = CreateViewSpaceRay(float3(uv, z)).direction;
 
     // We start out with reconstructing the ray length in view space. 
@@ -165,8 +165,8 @@ float2 GetHitPositionReprojection(int2 did, float2 uv, float reflected_ray_lengt
     view_space_ray /= surface_depth; // == normalize(view_space_ray)
     view_space_ray *= ray_length;
     // This is the "fake" hit position if we would follow the ray straight through the surface.
-    float3 world_hit_position = mul(float4(view_space_ray, 1), Get(g_inv_view)).xyz;
-    float3 prev_hit_position = ProjectPosition(world_hit_position, Get(g_prev_view_proj));
+    float3 world_hit_position = mul(float4(view_space_ray, 1), Constants.g_inv_view).xyz;
+    float3 prev_hit_position = ProjectPosition(world_hit_position, Constants.g_prev_view_proj);
     float2 history_uv = prev_hit_position.xy;
     return history_uv;
 }
@@ -179,16 +179,16 @@ float SampleHistory(float2 uv, int2 image_size, float3 normal, float roughness, 
         return 0.0;
     }
 
-    radiance = LoadRWTex2D(Get(g_temporally_denoised_reflections_history), texel_coords).xyz;
+    radiance = LoadRWTex2D(g_temporally_denoised_reflections_history, texel_coords).xyz;
     radiance = ClipAABB(radiance_min, radiance_max, radiance);
 
-    float3 history_normal = LoadNormal(texel_coords, Get(g_normal_roughness_history));
-    float history_roughness = LoadRoughness(texel_coords, Get(g_normal_roughness_history));
+    float3 history_normal = LoadNormal(texel_coords, g_normal_roughness_history);
+    float history_roughness = LoadRoughness(texel_coords, g_normal_roughness_history);
 
     const float normal_sigma = 8.0;
     const float roughness_sigma_min = 0.01;
     const float roughness_sigma_max = 0.1;
-    const float main_accumulation_factor = 0.90 + 0.1 * Get(g_temporal_stability_factor);
+    const float main_accumulation_factor = 0.90 + 0.1 * Constants.g_temporal_stability_factor;
 
     float accumulation_speed = main_accumulation_factor
         * GetEdgeStoppingNormalWeight(normal, history_normal, normal_sigma)
@@ -209,13 +209,13 @@ float ComputeTemporalVariance(float3 history_radiance, float3 radiance)
 
 float4 ResolveScreenspaceReflections(int2 did, float2 uv, int2 image_size, float roughness)
 {
-    float3 normal = LoadNormal(did, Get(g_normal_roughness));
-    float3 radiance = LoadRWTex2D(Get(g_spatially_denoised_reflections), did).xyz;
-    float3 radiance_history = LoadRWTex2D(Get(g_temporally_denoised_reflections_history), did).xyz;
-    float ray_length = LoadRWTex2D(Get(g_ray_lengths), did).x;
+    float3 normal = LoadNormal(did, g_normal_roughness);
+    float3 radiance = LoadRWTex2D(g_spatially_denoised_reflections, did).xyz;
+    float3 radiance_history = LoadRWTex2D(g_temporally_denoised_reflections_history, did).xyz;
+    float ray_length = LoadRWTex2D(g_ray_lengths, did).x;
 
     // And clip it to the local neighborhood
-    float2 motion_vector = FfxSssrUnpackMotionVectors(LoadTex2D(Get(g_motion_vectors), NO_SAMPLER, did, 0).xy);
+    float2 motion_vector = FfxSssrUnpackMotionVectors(LoadTex2D(g_motion_vectors, NO_SAMPLER, did, 0).xy);
     float3 color_std = EstimateStdDeviation(did);
     color_std *= (dot(motion_vector, motion_vector) == 0) ? 8 : 2.2; // Allow more accumulation if the surface did not move.
 
@@ -245,13 +245,13 @@ float4 ResolveScreenspaceReflections(int2 did, float2 uv, int2 image_size, float
 
 void Resolve(int2 did)
 {
-    float roughness = LoadRoughness(did, Get(g_normal_roughness));
+    float roughness = LoadRoughness(did, g_normal_roughness);
     if (!IsGlossy(roughness) || IsMirrorReflection(roughness))
     {
         return;
     }
 
-    int2 image_size = int2(GetDimensions(Get(g_temporally_denoised_reflections), NO_SAMPLER));
+    int2 image_size = int2(GetDimensions(g_temporally_denoised_reflections, NO_SAMPLER));
     if(did.x < 0 || did.x >= image_size.x || did.y < 0 || did.y >= image_size.y)
     {
         return;
@@ -260,15 +260,15 @@ void Resolve(int2 did)
     float2 uv = float2(did.x + 0.5, did.y + 0.5) / float2(image_size);
 
     float4 resolve = ResolveScreenspaceReflections(did.xy, uv, image_size, roughness);
-    Write2D(Get(g_temporally_denoised_reflections), did, float4(resolve.xyz, 1));
-    Write2D(Get(g_temporal_variance), did, resolve.w);
+    Write2D(g_temporally_denoised_reflections, did, float4(resolve.xyz, 1));
+    Write2D(g_temporal_variance, did, resolve.w);
 }
 
 NUM_THREADS(8,  8,  1)
 void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id, SV_GroupID(uint3) group_id )
 {
 	INIT_MAIN;
-    uint packed_base_coords = Get(g_tile_list)[group_id.x];
+    uint packed_base_coords = g_tile_list[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
     uint2 coords = base_coords + group_thread_id.xy;
     Resolve(int2(coords));

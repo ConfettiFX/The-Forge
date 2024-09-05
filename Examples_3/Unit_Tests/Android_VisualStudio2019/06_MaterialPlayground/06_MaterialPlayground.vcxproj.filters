@@ -1,119 +1,139 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{6bc98d4c-1ddb-4111-bf27-fbcc9f59e68c}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\06_MaterialPlayground">
+      <UniqueIdentifier>{3d065072-364e-49a3-b7ad-ada4226898e4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{b0d14062-c02b-4eef-9553-c13945d38a4e}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{6608673e-c5f4-4b5d-bff6-5205bf524de3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scripts">
-      <UniqueIdentifier>{ef636611-0190-4634-83a0-057479b7e54d}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{710e0c6e-e5a2-4fe3-bc82-2580e836e699}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{7dc3fde1-5f26-4aad-9fa9-5cbb0340a292}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL">
+      <UniqueIdentifier>{26d1197b-8b4e-45d1-828b-204e3c3fd074}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders">
+      <UniqueIdentifier>{03087c16-04e5-44d4-8f2a-2cd881f2597e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts\06_MaterialPlayground">
+      <UniqueIdentifier>{39e1cd65-c95c-4066-961d-cc0fbfe4b281}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{447602ba-98cb-4af8-9169-c4bb4a2831ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{bd1282aa-6a86-4364-bf6d-f7718c946fa2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
+    <ClCompile Include="..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground</Filter>
+    </ClCompile>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_length_constraints.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_local_constraints.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_shock_propagation.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_update_follow_hairs.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_integrate.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_pre_warm.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_shadow.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_shadow.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_short_cut_clear.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_short_cut_depth_peeling.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_short_cut_fill_color.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_short_cut_resolve_color.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_short_cut_resolve_depth.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\BRDFIntegration.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\computeIrradianceMap.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\computeSpecularMap.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\fullscreen.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\06_MaterialPlayground\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadGroundTextures.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadGroundTextures.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadModels.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadModels.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadTextures.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadTextures.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Hair.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Hair.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Metal.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Metal.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Wood.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Wood.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
-    <None Include="..\..\src\06_MaterialPlayground\Scripts\updateCamera.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\updateCamera.lua">
+      <Filter>Art\Scripts\06_MaterialPlayground</Filter>
     </None>
   </ItemGroup>
 </Project>

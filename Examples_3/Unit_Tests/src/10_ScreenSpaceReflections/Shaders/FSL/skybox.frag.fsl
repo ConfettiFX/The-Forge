@@ -39,6 +39,6 @@ STRUCT(VSOutput)
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
-	float4 outColor = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), In.pos);
+	float4 outColor = SampleTexCube(skyboxTex, skyboxSampler, In.pos);
 	RETURN(outColor);
 }

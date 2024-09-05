@@ -55,8 +55,8 @@
 // check if WindowsSDK is used which supports raytracing
 #ifdef D3D12_RAYTRACING_AVAILABLE
 
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 // Enable experimental features and return if they are supported.
 // To test them being supported we need to check both their enablement as well as device creation afterwards.
@@ -129,7 +129,7 @@ struct RaytracingShaderTable
     uint64_t                    mHitGroupRecordSize;
 };
 
-bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
     ASSERT(pRenderer);
     ASSERT(ppRaytracing);
@@ -154,7 +154,7 @@ bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
     return true;
 }
 
-void d3d12_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
     ASSERT(pRenderer);
     ASSERT(pRaytracing);
@@ -171,8 +171,8 @@ static inline FORGE_CONSTEXPR D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE ToDXR
                                                       : D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 }
 
-void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
-                                    AccelerationStructure** ppAccelerationStructure)
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                              AccelerationStructure** ppAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pDesc);
@@ -366,7 +366,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
     *ppAccelerationStructure = pAS;
 }
 
-void d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     ASSERT(pRaytracing);
     ASSERT(pAccelerationStructure);
@@ -385,7 +385,7 @@ void d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStru
     tf_free(pAccelerationStructure);
 }
 
-void d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
     if (!pAccelerationStructure->pScratchBuffer)
     {
@@ -398,7 +398,7 @@ void d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, Accelerat
 /************************************************************************/
 // Raytracing Command Buffer Functions Implementation
 /************************************************************************/
-void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
     UNREF_PARAM(pRaytracing);
     ASSERT(pDesc);
@@ -490,19 +490,48 @@ void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructur
 {
     *pOutId = pAccelerationStructure->pASBuffer->mDx.mDescriptors + pAccelerationStructure->pASBuffer->mDx.mSrvDescriptorOffset;
 }
+#else
 
-#endif
-
-void initD3D12RaytracingFunctions()
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
-#ifdef D3D12_RAYTRACING_AVAILABLE
-    initRaytracing = d3d12_initRaytracing;
-    removeRaytracing = d3d12_removeRaytracing;
-    addAccelerationStructure = d3d12_addAccelerationStructure;
-    removeAccelerationStructure = d3d12_removeAccelerationStructure;
-    removeAccelerationStructureScratch = d3d12_removeAccelerationStructureScratch;
-    cmdBuildAccelerationStructure = d3d12_cmdBuildAccelerationStructure;
-#endif
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(ppRaytracing);
+    return false;
 }
+
+void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+{
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pRaytracing);
+}
+
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                              AccelerationStructure** ppAccelerationStructure)
+{
+    UNREF_PARAM(pRaytracing);
+    UNREF_PARAM(pDesc);
+    UNREF_PARAM(ppAccelerationStructure);
+}
+
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+    UNREF_PARAM(pRaytracing);
+    UNREF_PARAM(pAccelerationStructure);
+}
+
+void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+    UNREF_PARAM(pRaytracing);
+    UNREF_PARAM(pAccelerationStructure);
+}
+
+void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+{
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pRaytracing);
+    UNREF_PARAM(pDesc);
+}
+
+#endif
 
 #endif

@@ -38,11 +38,11 @@ PsOut PS_MAIN( PsInAlphaTested In )
 	uint materialID = In.materialID;
 	float4 texColor = f4(0);
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.texCoord, 0);
+    	texColor = SampleLvlTex2D(diffuseMaps[materialID], nearClampSampler, In.texCoord, 0);
 	EndNonUniformResourceIndex();
 
 	clip(texColor.a < 0.5f ? -1 : 1);
-	float d = In.position.z;
+	float d = 1.0 - In.position.z;
 	PsOut Out = {f4(0)};
 	Out.moments = PackMoments(float4(d, d*d, d*d*d, d*d*d*d));
 	RETURN(Out);

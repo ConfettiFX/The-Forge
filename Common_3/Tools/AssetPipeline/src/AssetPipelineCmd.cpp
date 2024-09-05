@@ -32,6 +32,7 @@ const AssetPipelineProcessCommand gAssetPipelineCommands[] = {
     { "-pa", PROCESS_ANIMATIONS }, { "-ptfx", PROCESS_TFX },      { "-pgltf", PROCESS_GLTF },
     { "-pt", PROCESS_TEXTURES },   { "-pwz", PROCESS_WRITE_ZIP }, { "-pwza", PROCESS_WRITE_ZIP_ALL },
 };
+COMPILE_ASSERT(TF_ARRAY_COUNT(gAssetPipelineCommands) == PROCESS_COUNT);
 
 void PrintHelp()
 {
@@ -59,6 +60,10 @@ void PrintHelp()
     printf("\n\t\t--genmips\t Generate mip maps if not existing \n");
     printf("\n\t\t--in-linear\t\t Specify input Color space as Linear \n");
     printf("\n\t\t--vmf [RoughnessFileName]\t\t Create vMF filtered normal mipmaps using given roughness texture \n");
+    printf("\n\t\t--normal\t\t Process texture as normal map\n");
+    printf("\n\t\t--swizzle [Channels]\t\t Swizzle channels before compression. Requires input texture to be uncompressed. [Channels] is "
+           "an arbitrary combination of up to 4 characters from {r,g,b,a,x,y,z,w,i,j,k,l,0,1} \n\t\t\trgba/xyzw preserve original "
+           "channels, ijkl flip channels, 0 and 1 set channels to 0 or 1\n");
     printf("\n\t%s\t(filtered zip)\tProcessWriteZip\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP].mCommandString);
     printf("\n\t\t--filter [extension filters]\t: Only zip files with the chosen extensions\n");
     printf("\n\t%s\t(folder to zip)\tProcessWriteZipAll\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP_ALL].mCommandString);

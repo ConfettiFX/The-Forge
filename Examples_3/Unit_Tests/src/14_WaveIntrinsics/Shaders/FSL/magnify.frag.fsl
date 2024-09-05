@@ -34,17 +34,17 @@ float4 PS_MAIN( PSInput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	float aspectRatio = Get(resolution).x / Get(resolution).y;
+	float aspectRatio = SceneConstantBuffer.resolution.x / SceneConstantBuffer.resolution.y;
 	float magnifiedFactor = 6.0f;
 	float magnifiedAreaSize = 0.05f;
 	float magnifiedAreaBorder = 0.005f;
 
 	// check the distance between this pixel and mouse location in UV space. 
 	float2 normalizedPixelPos = In.uv;
-	float2 normalizedMousePos = Get(mousePosition) / Get(resolution);         // convert mouse position to uv space.
+	float2 normalizedMousePos = SceneConstantBuffer.mousePosition / SceneConstantBuffer.resolution;         // convert mouse position to uv space.
 	float2 diff = abs(normalizedPixelPos - normalizedMousePos);     // distance from this pixel to mouse.
 
-	float4 color = SampleTex2D(Get(g_texture), Get(g_sampler), normalizedPixelPos);
+	float4 color = SampleTex2D(g_texture, g_sampler, normalizedPixelPos);
 
 	// if the distance from this pixel to mouse is touching the border of the magnified area, color it as cyan.
 	if (diff.x < (magnifiedAreaSize + magnifiedAreaBorder) && diff.y < (magnifiedAreaSize + magnifiedAreaBorder)*aspectRatio)
@@ -55,7 +55,7 @@ float4 PS_MAIN( PSInput In )
 	// if the distance from this pixel to mouse is inside the magnified area, enable the magnify effect.
 	if (diff.x < magnifiedAreaSize && diff.y < magnifiedAreaSize *aspectRatio)
 	{
-		color = SampleTex2D(Get(g_texture), Get(g_sampler), normalizedMousePos + (normalizedPixelPos - normalizedMousePos) / magnifiedFactor);
+		color = SampleTex2D(g_texture, g_sampler, normalizedMousePos + (normalizedPixelPos - normalizedMousePos) / magnifiedFactor);
 	}
 
 	Out = color;

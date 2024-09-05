@@ -90,7 +90,7 @@ bool initMutex(Mutex* mutex)
     return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->mHandle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
 }
 
-void destroyMutex(Mutex* mutex)
+void exitMutex(Mutex* mutex)
 {
     CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->mHandle;
     DeleteCriticalSection(cs);
@@ -110,7 +110,7 @@ bool initConditionVariable(ConditionVariable* cv)
     return true;
 }
 
-void destroyConditionVariable(ConditionVariable* cv) { tf_free(cv->pHandle); }
+void exitConditionVariable(ConditionVariable* cv) { tf_free(cv->pHandle); }
 
 void waitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {

@@ -59,22 +59,22 @@ VSShadowOutput VS_MAIN( SV_VertexID(uint) vertexID )
 	VSShadowOutput Out;
 	uint index = vertexID / 2;
 
-	float3 v = Get(GuideHairVertexPositions)[index].xyz;
-	float3 t = Get(GuideHairVertexTangents)[index].xyz;
+	float3 v = GuideHairVertexPositions[index].xyz;
+	float3 t = GuideHairVertexTangents[index].xyz;
 
-	v = mul(Get(Transform), float4(v, 1.0f)).xyz;
-	t = normalize(mul(Get(Transform), float4(t, 0.0f)).xyz);
+	v = mul(cbHair.Transform, float4(v, 1.0f)).xyz;
+	t = normalize(mul(cbHair.Transform, float4(t, 0.0f)).xyz);
 
-	float3 right = normalize(cross(t, normalize(v - Get(Cam).Pos)));
-	// float2 projRight = normalize(mul(Get(Cam).VPMatrix, float4(right, 0)).xy);
+	float3 right = normalize(cross(t, normalize(v - cbCamera.Pos)));
+	// float2 projRight = normalize(mul(Cam.VPMatrix, float4(right, 0)).xy);
 
-	float thickness = Get(HairThicknessCoefficients)[index];
+	float thickness = HairThicknessCoefficients[index];
 
 	float4 hairEdgePositions[2];
-	hairEdgePositions[0] = float4(v + -right * thickness * Get(FiberRadius), 1.0f);
-	hairEdgePositions[1] = float4(v + right * thickness * Get(FiberRadius), 1.0f);
-	hairEdgePositions[0] = mul(Get(Cam).VPMatrix, hairEdgePositions[0]);
-	hairEdgePositions[1] = mul(Get(Cam).VPMatrix, hairEdgePositions[1]);
+	hairEdgePositions[0] = float4(v + -right * thickness * cbHair.FiberRadius, 1.0f);
+	hairEdgePositions[1] = float4(v + right * thickness * cbHair.FiberRadius, 1.0f);
+	hairEdgePositions[0] = mul(cbCamera.VPMatrix, hairEdgePositions[0]);
+	hairEdgePositions[1] = mul(cbCamera.VPMatrix, hairEdgePositions[1]);
 
 	Out.Position = hairEdgePositions[vertexID & 1];
 	RETURN(Out);

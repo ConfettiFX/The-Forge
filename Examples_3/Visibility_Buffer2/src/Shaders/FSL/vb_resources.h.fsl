@@ -37,19 +37,21 @@ RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 12);
 RES(Buffer(uint), indirectFilteredBatches, UPDATE_FREQ_PER_FRAME, t2, binding = 13);
 RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
 
-PUSH_CONSTANT(RootConstantViewInfo, b0)
+STRUCT(RootConstantViewData)
 {
 	DATA(uint, view, None);
     DATA(int, targetWidth, None);
     DATA(int, targetHeight, None);
 };
+RES(ROOT_CONSTANT(RootConstantViewData), RootConstantViewInfo, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #if defined(INDIRECT_ROOT_CONSTANT)
-	PUSH_CONSTANT(indirectRootConstant, b1)
+	STRUCT(indirectRootConstantData)
 	{
 		DATA(uint, indirectDrawId, None);
 	};
-	#define getDrawID() indirectDrawId
+	RES(ROOT_CONSTANT(indirectRootConstantData), indirectRootConstant, UPDATE_FREQ_NONE, b1, binding = 0);
+	#define getDrawID() indirectRootConstant.indirectDrawId
 #else
     #define getDrawID() In.drawId
 #endif

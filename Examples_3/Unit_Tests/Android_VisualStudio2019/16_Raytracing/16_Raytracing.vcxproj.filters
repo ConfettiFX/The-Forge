@@ -1,64 +1,73 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Unit_Tests\src\16_Raytracing">
-      <UniqueIdentifier>{794348a4-29cd-442b-a925-c939e3ba814b}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\16_Raytracing">
+      <UniqueIdentifier>{04d92fcc-7c56-408e-b722-37a9f9afc84d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src">
-      <UniqueIdentifier>{ead76836-64f2-4472-acbb-a6dbd3a65a7f}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{93be7171-0131-4912-be73-51fe3beaa41a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests">
-      <UniqueIdentifier>{46db94df-e8bb-41da-ad7f-fefc7a0853c0}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{0c9ba5c2-3e80-4f66-b56e-31818358e0a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Visibility_Buffer\src">
-      <UniqueIdentifier>{5b55d3dc-af9a-42dc-8c6f-20d6ccfde6d4}</UniqueIdentifier>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{1aee8770-1796-4172-9fe4-7b1dab9b3630}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Visibility_Buffer">
-      <UniqueIdentifier>{48b76450-2bed-4d91-aefa-f36382221c98}</UniqueIdentifier>
+    <Filter Include="Examples_3\Visibility_Buffer\src">
+      <UniqueIdentifier>{5c60c011-0540-4ef4-98ee-742cdf9b1f34}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src\16_Raytracing\Shaders\FSL">
-      <UniqueIdentifier>{98139591-f7a7-4ae9-975a-d432e6be8c81}</UniqueIdentifier>
+    <Filter Include="Examples_3\Visibility_Buffer">
+      <UniqueIdentifier>{96ce9938-0ce0-4b12-a75c-c4afcefa7d85}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src\16_Raytracing\Shaders">
-      <UniqueIdentifier>{61a54d62-8ade-46fc-a948-2249183f91d5}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL">
+      <UniqueIdentifier>{eeed9df1-df1a-4fc0-ab76-b4a81437a116}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Unit_Tests\src\16_Raytracing\Scripts">
-      <UniqueIdentifier>{b35a64fa-360e-4147-b4a8-77aa2de2b537}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\16_Raytracing\Shaders">
+      <UniqueIdentifier>{cf4ae46d-d2b8-48fa-ae2e-01fa790942cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts\16_Raytracing">
+      <UniqueIdentifier>{24d772d1-7114-4d8b-9b08-0548ae98dca0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{8e18c09c-6a6e-4d9d-acf6-9d21d797e42e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{47aca8b4-08fd-43d1-91a4-3ed53dbcc272}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\16_Raytracing\16_Raytracing.cpp">
-      <Filter>Unit_Tests\src\16_Raytracing</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClCompile>
     <ClInclude Include="..\..\src\16_Raytracing\Shaders\FSL\Shared.fsl.h">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h">
-      <Filter>Visibility_Buffer\src</Filter>
+      <Filter>Examples_3\Visibility_Buffer\src</Filter>
     </ClInclude>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\DenoiserInputsPass.frag.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\DenoiserInputsPass.vert.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\DisplayTexture.frag.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\DisplayTexture.vert.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\RayQuery.comp.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\16_Raytracing\Shaders\FSL\ShaderList.fsl">
-      <Filter>Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\16_Raytracing\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\src\16_Raytracing\Scripts\Test_RaytracingTechnique_RayQuery.lua">
-      <Filter>Unit_Tests\src\16_Raytracing\Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\16_Raytracing\Test_RaytracingTechnique_RayQuery.lua">
+      <Filter>Art\Scripts\16_Raytracing</Filter>
     </None>
   </ItemGroup>
 </Project>

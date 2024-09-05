@@ -139,7 +139,7 @@ ReflowComments:  true
 #RequiresExpressionIndentation: OuterScope
 #SeparateDefinitionBlocks: Always
 #ShortNamespaceLines: 1
-SortIncludes: true
+SortIncludes: false
 SortJavaStaticImport: Before
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false

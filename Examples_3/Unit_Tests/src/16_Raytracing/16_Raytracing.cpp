@@ -28,7 +28,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -57,6 +57,8 @@
 
 #define USE_DENOISER  0
 #define USE_RAY_QUERY 1
+
+#define SCENE_SCALE   10.0f
 
 bool gUseUavRwFallback = false;
 
@@ -149,12 +151,14 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         /************************************************************************/
         // 01 Init Raytracing
@@ -164,8 +168,20 @@ public:
 #if defined(SHADER_STATS_AVAILABLE)
         settings.mEnableShaderStats = true;
 #endif
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
+        // check for init success
+        if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
+        /************************************************************************/
+        // Raytracing setup
+        /************************************************************************/
+        initRaytracing(pRenderer, &pRaytracing);
         gRaytracingTechniqueSupported[RAY_QUERY] = pRenderer->pGpu->mSettings.mRayQuerySupported;
 
         if (!gRaytracingTechniqueSupported[RAY_QUERY])
@@ -181,16 +197,16 @@ public:
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pQueue);
+        initQueue(pRenderer, &queueDesc, &pQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
         cmdRingDesc.pQueue = pQueue;
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &mCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &mCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         // Load fonts
         FontDesc font = {};
@@ -216,62 +232,10 @@ public:
         profiler.ppProfilerNames = ppGpuProfilerName;
         profiler.pProfileTokens = &gGpuProfileToken;
         profiler.mGpuProfilerCount = 1;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
-
-        /************************************************************************/
-        // GUI
-        /************************************************************************/
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
-        uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
-
-        static const char* raytracingOptions[] = { "Ray Query" };
-        COMPILE_ASSERT(TF_ARRAY_COUNT(raytracingOptions) == RAYTRACING_TECHNIQUE_COUNT);
-        if (RAYTRACING_TECHNIQUE_COUNT > 1)
-        {
-            DropdownWidget raytracingDropdown;
-            raytracingDropdown.mCount = TF_ARRAY_COUNT(raytracingOptions);
-            raytracingDropdown.pNames = raytracingOptions;
-            raytracingDropdown.pData = &gRaytracingTechnique;
-            UIWidget* widget = uiCreateComponentWidget(pGuiWindow, "Raytracing Technique", &raytracingDropdown, WIDGET_TYPE_DROPDOWN);
-            luaRegisterWidget(widget);
-        }
-        else
-        {
-            LabelWidget raytracingLabel;
-            uiCreateComponentWidget(pGuiWindow, raytracingOptions[0], &raytracingLabel, WIDGET_TYPE_LABEL);
-        }
-
-        LabelWidget notSupportedLabel;
-        uiCreateDynamicWidgets(&mDynamicWidgets[0], "Raytracing technique is not supported on this GPU", &notSupportedLabel,
-                               WIDGET_TYPE_LABEL);
 
         if (gRaytracingTechniqueSupported[RAY_QUERY])
         {
-            SliderFloatWidget lightDirXSlider;
-            lightDirXSlider.pData = &mLightDirection.x;
-            lightDirXSlider.mMin = -2.0f;
-            lightDirXSlider.mMax = 2.0f;
-            lightDirXSlider.mStep = 0.001f;
-            luaRegisterWidget(uiCreateDynamicWidgets(&mDynamicWidgets[1], "Light Direction X", &lightDirXSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-            SliderFloatWidget lightDirYSlider;
-            lightDirYSlider.pData = &mLightDirection.y;
-            lightDirYSlider.mMin = -2.0f;
-            lightDirYSlider.mMax = 2.0f;
-            lightDirYSlider.mStep = 0.001f;
-            luaRegisterWidget(uiCreateDynamicWidgets(&mDynamicWidgets[1], "Light Direction Y", &lightDirYSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-            SliderFloatWidget lightDirZSlider;
-            lightDirZSlider.pData = &mLightDirection.z;
-            lightDirZSlider.mMin = -2.0f;
-            lightDirZSlider.mMax = 2.0f;
-            lightDirZSlider.mStep = 0.001f;
-            luaRegisterWidget(uiCreateDynamicWidgets(&mDynamicWidgets[1], "Light Direction Z", &lightDirZSlider, WIDGET_TYPE_SLIDER_FLOAT));
-            /************************************************************************/
-            /************************************************************************/
             SamplerDesc samplerDesc = { FILTER_NEAREST,
                                         FILTER_NEAREST,
                                         MIPMAP_MODE_NEAREST,
@@ -347,11 +311,6 @@ public:
             waitForAllResourceLoads();
 
             /************************************************************************/
-            // Raytracing setup
-            /************************************************************************/
-            initRaytracing(pRenderer, &pRaytracing);
-
-            /************************************************************************/
             // 02 Creation Acceleration Structure
             /************************************************************************/
             AccelerationStructureDesc         asDesc = {};
@@ -382,7 +341,7 @@ public:
             addAccelerationStructure(pRaytracing, &asDesc, &pSanMiguelBottomAS);
 
             // The transformation matrices for the instances
-            SanMiguelProp.mWorldMatrix = mat4::scale({ 10, 10, 10 }) * mat4::identity();
+            SanMiguelProp.mWorldMatrix = mat4::scale(vec3(SCENE_SCALE));
 
             // Construct descriptions for Acceleration Structures Instances
             AccelerationStructureInstanceDesc instanceDesc = {};
@@ -450,111 +409,16 @@ public:
 #endif
         }
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
         CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
         vec3                   camPos{ 80.0f, 60.0f, 50.0f };
         vec3                   lookAt{ 1.0f, 0.5f, 0.0f };
 
         pCameraController = initFpsCameraController(camPos, lookAt);
-
         pCameraController->setMotionParameters(cmp);
 
         // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pQueue);
         mFrameIdx = 0;
 
         waitForAllResourceLoads();
@@ -564,10 +428,7 @@ public:
 
     void Exit()
     {
-        uiDestroyDynamicWidgets(&mDynamicWidgets[0]);
-        uiDestroyDynamicWidgets(&mDynamicWidgets[1]);
-
-        exitInputSystem();
+        exitScreenshotInterface();
 
         exitCameraController(pCameraController);
 
@@ -605,18 +466,19 @@ public:
 
             removeAccelerationStructure(pRaytracing, pSanMiguelAS);
             removeAccelerationStructure(pRaytracing, pSanMiguelBottomAS);
-            removeRaytracing(pRenderer, pRaytracing);
             removeResource(SanMiguelProp.pGeom);
             removeResource(SanMiguelProp.pIndexBufferOffsetStream);
 
             removeSampler(pRenderer, pSampler);
         }
 
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeGpuCmdRing(pRenderer, &mCmdRing);
-        removeQueue(pRenderer, pQueue);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &mCmdRing);
+        exitQueue(pRenderer, pQueue);
         exitResourceLoaderInterface(pRenderer);
+        exitRaytracing(pRenderer, pRaytracing);
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
     }
 
@@ -627,6 +489,60 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGuiWindow);
+
+            static const char* raytracingOptions[] = { "Ray Query" };
+            COMPILE_ASSERT(TF_ARRAY_COUNT(raytracingOptions) == RAYTRACING_TECHNIQUE_COUNT);
+            if (RAYTRACING_TECHNIQUE_COUNT > 1)
+            {
+                DropdownWidget raytracingDropdown;
+                raytracingDropdown.mCount = TF_ARRAY_COUNT(raytracingOptions);
+                raytracingDropdown.pNames = raytracingOptions;
+                raytracingDropdown.pData = &gRaytracingTechnique;
+                UIWidget* widget = uiAddComponentWidget(pGuiWindow, "Raytracing Technique", &raytracingDropdown, WIDGET_TYPE_DROPDOWN);
+                luaRegisterWidget(widget);
+            }
+            else
+            {
+                LabelWidget raytracingLabel;
+                uiAddComponentWidget(pGuiWindow, raytracingOptions[0], &raytracingLabel, WIDGET_TYPE_LABEL);
+            }
+
+            LabelWidget notSupportedLabel;
+            uiAddDynamicWidgets(&mDynamicWidgets[0], "Raytracing technique is not supported on this GPU", &notSupportedLabel,
+                                WIDGET_TYPE_LABEL);
+
+            if (gRaytracingTechniqueSupported[RAY_QUERY])
+            {
+                SliderFloatWidget lightDirXSlider;
+                lightDirXSlider.pData = &mLightDirection.x;
+                lightDirXSlider.mMin = -2.0f;
+                lightDirXSlider.mMax = 2.0f;
+                lightDirXSlider.mStep = 0.001f;
+                luaRegisterWidget(
+                    uiAddDynamicWidgets(&mDynamicWidgets[1], "Light Direction X", &lightDirXSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+                SliderFloatWidget lightDirYSlider;
+                lightDirYSlider.pData = &mLightDirection.y;
+                lightDirYSlider.mMin = -2.0f;
+                lightDirYSlider.mMax = 2.0f;
+                lightDirYSlider.mStep = 0.001f;
+                luaRegisterWidget(
+                    uiAddDynamicWidgets(&mDynamicWidgets[1], "Light Direction Y", &lightDirYSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+                SliderFloatWidget lightDirZSlider;
+                lightDirZSlider.pData = &mLightDirection.z;
+                lightDirZSlider.mMin = -2.0f;
+                lightDirZSlider.mMax = 2.0f;
+                lightDirZSlider.mStep = 0.001f;
+                luaRegisterWidget(
+                    uiAddDynamicWidgets(&mDynamicWidgets[1], "Light Direction Z", &lightDirZSlider, WIDGET_TYPE_SLIDER_FLOAT));
+            }
+
             if (!addSwapChain())
                 return false;
         }
@@ -715,8 +631,6 @@ public:
 
         updateUIVisibility();
 
-        initScreenshotInterface(pRenderer, pQueue);
-
         return true;
     }
 
@@ -730,6 +644,11 @@ public:
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
             removeSwapChain(pRenderer, pSwapChain);
+
+            uiRemoveDynamicWidgets(&mDynamicWidgets[0]);
+            uiRemoveDynamicWidgets(&mDynamicWidgets[1]);
+            uiRemoveComponent(pGuiWindow);
+            unloadProfilerUI();
         }
 
         if (gRaytracingTechniqueSupported[RAY_QUERY])
@@ -764,15 +683,38 @@ public:
                 removeShaders();
             }
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
         PROFILER_SET_CPU_SCOPE("Cpu Profile", "update", 0x222222);
 
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
 
         pCameraController->update(deltaTime);
 
@@ -790,7 +732,7 @@ public:
         const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float horizontalFOV = PI / 2.0f;
         const float nearPlane = 0.1f;
-        const float farPlane = 6000.f;
+        const float farPlane = 1000.f;
         mat4        projMat = mat4::perspectiveLH_ReverseZ(horizontalFOV, aspectInverse, nearPlane, farPlane);
         mat4        projectView = projMat * viewMat;
 
@@ -1187,15 +1129,15 @@ public:
         if (gRaytracingTechniqueSupported[RAY_QUERY])
         {
             ShaderLoadDesc desc = {};
-            desc.mStages[0].pFileName = USE_DENOISER ? (gUseUavRwFallback ? "RayQuery_denoise_rw_fallback.comp" : "RayQuery_denoise.comp")
-                                                     : (gUseUavRwFallback ? "RayQuery_rw_fallback.comp" : "RayQuery.comp");
+            desc.mComp.pFileName = USE_DENOISER ? (gUseUavRwFallback ? "RayQuery_denoise_rw_fallback.comp" : "RayQuery_denoise.comp")
+                                                : (gUseUavRwFallback ? "RayQuery_rw_fallback.comp" : "RayQuery.comp");
             addShader(pRenderer, &desc, &pShaderRayQuery);
         }
 
 #if USE_DENOISER
         ShaderLoadDesc denoiserShader = {};
-        denoiserShader.mStages[0].pFileName = "DenoiserInputsPass.vert";
-        denoiserShader.mStages[1].pFileName = "DenoiserInputsPass.frag";
+        denoiserShader.mVert.pFileName = "DenoiserInputsPass.vert";
+        denoiserShader.mFrag.pFileName = "DenoiserInputsPass.frag";
         addShader(pRenderer, &denoiserShader, &pDenoiserInputsShader);
 #endif
 
@@ -1207,8 +1149,8 @@ public:
         const char* displayTextureFragShader[2] = { "DisplayTexture.frag", "DisplayTexture_USE_DENOISER.frag" };
 
         ShaderLoadDesc displayShader = {};
-        displayShader.mStages[0].pFileName = displayTextureVertShader[USE_DENOISER];
-        displayShader.mStages[1].pFileName = displayTextureFragShader[USE_DENOISER];
+        displayShader.mVert.pFileName = displayTextureVertShader[USE_DENOISER];
+        displayShader.mFrag.pFileName = displayTextureFragShader[USE_DENOISER];
         addShader(pRenderer, &displayShader, &pDisplayTextureShader);
     }
 
@@ -1240,11 +1182,10 @@ public:
             addPipeline(pRenderer, &rtPipelineDesc, &pPipeline[RAY_QUERY]);
 
 #if defined(SHADER_STATS_AVAILABLE)
-            if (addPipelineStats)
             {
                 PipelineStats pipelineStats = {};
                 addPipelineStats(pRenderer, pPipeline[RAY_QUERY], false, &pipelineStats);
-                ShaderStats& stats = pipelineStats.mStats[SHADER_STAGE_INDEX_COMP];
+                ShaderStats& stats = pipelineStats.mComp;
                 if (stats.mValid)
                 {
                     LOGF(eINFO,

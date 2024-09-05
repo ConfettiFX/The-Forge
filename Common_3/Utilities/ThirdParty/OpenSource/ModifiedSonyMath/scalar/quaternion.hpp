@@ -103,10 +103,10 @@ inline const Quat slerp(float t, const Quat & unitQuat0, const Quat & unitQuat1)
     }
     if (cosAngle < VECTORMATH_SLERP_TOL)
     {
-        angle = std::acosf(cosAngle);
-        recipSinAngle = (1.0f / std::sinf(angle));
-        scale0 = (std::sinf(((1.0f - t) * angle)) * recipSinAngle);
-        scale1 = (std::sinf((t * angle)) * recipSinAngle);
+        angle = acosf(cosAngle);
+        recipSinAngle = (1.0f / sinf(angle));
+        scale0 = (sinf(((1.0f - t) * angle)) * recipSinAngle);
+        scale1 = (sinf((t * angle)) * recipSinAngle);
     }
     else
     {
@@ -299,14 +299,14 @@ inline float norm(const Quat & quat)
 
 inline float length(const Quat & quat)
 {
-    return std::sqrtf(norm(quat));
+    return sqrtf(norm(quat));
 }
 
 inline const Quat normalize(const Quat & quat)
 {
     float lenSqr, lenInv;
     lenSqr = norm(quat);
-    lenInv = (1.0f / std::sqrtf(lenSqr));
+    lenInv = (1.0f / sqrtf(lenSqr));
     return Quat((quat.getX() * lenInv),
                 (quat.getY() * lenInv),
                 (quat.getZ() * lenInv),
@@ -316,7 +316,7 @@ inline const Quat normalize(const Quat & quat)
 inline const Quat Quat::rotation(const Vector3 & unitVec0, const Vector3 & unitVec1)
 {
     float cosHalfAngleX2, recipCosHalfAngleX2;
-    cosHalfAngleX2 = std::sqrtf((2.0f * (1.0f + dot(unitVec0, unitVec1))));
+    cosHalfAngleX2 = sqrtf((2.0f * (1.0f + dot(unitVec0, unitVec1))));
     recipCosHalfAngleX2 = (1.0f / cosHalfAngleX2);
     return Quat((cross(unitVec0, unitVec1) * recipCosHalfAngleX2), (cosHalfAngleX2 * 0.5f));
 }
@@ -325,8 +325,8 @@ inline const Quat Quat::rotation(float radians, const Vector3 & unitVec)
 {
     float s, c, angle;
     angle = (radians * 0.5f);
-    s = std::sinf(angle);
-    c = std::cosf(angle);
+    s = sinf(angle);
+    c = cosf(angle);
     return Quat((unitVec * s), c);
 }
 
@@ -334,8 +334,8 @@ inline const Quat Quat::rotationX(float radians)
 {
     float s, c, angle;
     angle = (radians * 0.5f);
-    s = std::sinf(angle);
-    c = std::cosf(angle);
+    s = sinf(angle);
+    c = cosf(angle);
     return Quat(s, 0.0f, 0.0f, c);
 }
 
@@ -343,8 +343,8 @@ inline const Quat Quat::rotationY(float radians)
 {
     float s, c, angle;
     angle = (radians * 0.5f);
-    s = std::sinf(angle);
-    c = std::cosf(angle);
+    s = sinf(angle);
+    c = cosf(angle);
     return Quat(0.0f, s, 0.0f, c);
 }
 
@@ -352,8 +352,8 @@ inline const Quat Quat::rotationZ(float radians)
 {
     float s, c, angle;
     angle = (radians * 0.5f);
-    s = std::sinf(angle);
-    c = std::cosf(angle);
+    s = sinf(angle);
+    c = cosf(angle);
     return Quat(0.0f, 0.0f, s, c);
 }
 
@@ -370,7 +370,7 @@ inline const Quat Quat::fromVectors(const Vector3& from, const Vector3& to)
 	float real = x + imaginary;
 	if (real < x * tolorance)
 	{
-		quat = std::abs(from[0]) > std::abs(from[2])
+		quat = abs(from[0]) > std::abs(from[2])
 			? Vector4(-from[1], from[0], 0.0f, 0.0f)
 			: Vector4(0.0f, -from[2], from[1], 0.0f);
 	}
@@ -443,12 +443,12 @@ inline const Quat select(const Quat & quat0, const Quat & quat1, bool select1)
 
 inline void print(const Quat & quat)
 {
-    std::printf("( %f %f %f %f )\n", quat.getX(), quat.getY(), quat.getZ(), quat.getW());
+    printf("( %f %f %f %f )\n", quat.getX(), quat.getY(), quat.getZ(), quat.getW());
 }
 
 inline void print(const Quat & quat, const char * name)
 {
-    std::printf("%s: ( %f %f %f %f )\n", name, quat.getX(), quat.getY(), quat.getZ(), quat.getW());
+    printf("%s: ( %f %f %f %f )\n", name, quat.getX(), quat.getY(), quat.getZ(), quat.getW());
 }
 
 #endif // VECTORMATH_DEBUG

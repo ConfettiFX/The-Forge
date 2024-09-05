@@ -22,32 +22,18 @@
  * under the License.
 */
 
-// cbuffer cbCamera : register(b0, UPDATE_FREQ_PER_FRAME) 
-// {
-// 	float4x4 projView;
-// }
-CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(Camera)
 {
 	DATA(float4x4, projView, None);
 };
-// cbuffer cbObject : register(b1, UPDATE_FREQ_PER_DRAW)
-// {
-// 	float4x4 worldMat;
-// }
-CBUFFER(cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1)
+RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+
+STRUCT(Object)
 {
 	DATA(float4x4, worldMat, None);
 };
+RES(CBUFFER(Object), cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1);
 
-// struct VSInput
-// {
-// 	float3 Position : POSITION;
-// };
-
-// struct VSOutput 
-// {
-// 	float4 Position	: SV_POSITION;
-// };
 STRUCT(VSInput)
 {
 	DATA(float4, Position, POSITION);
@@ -58,12 +44,11 @@ STRUCT(VSOutput)
 	DATA(float4, Position, SV_Position);
 };
 
-// VSOutput main(VSInput input)
 VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
-	float4x4 mvp = mul(Get(projView), Get(worldMat));
+	float4x4 mvp = mul(cbCamera.projView, cbObject.worldMat);
 	Out.Position = mul(mvp, float4(In.Position.xyz, 1.0f));
     RETURN(Out);
 }

@@ -46,9 +46,6 @@
 #include "../Interfaces/IOperatingSystem.h"
 
 #include "../../OS/CPUConfig.h"
-#if defined(ENABLE_FORGE_REMOTE_UI)
-#include "../../Tools/Network/Network.h"
-#endif
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
 #endif
@@ -211,9 +208,12 @@ bool initBaseSubsystems()
     extern bool platformInitUserInterface();
     extern void platformInitLuaScriptingSystem();
     extern void platformInitWindowSystem(WindowDesc*);
+    extern void platformInitInput(WindowDesc*);
 
     platformInitWindowSystem(&gCurrentWindow);
     pApp->pWindow = &gCurrentWindow;
+
+    platformInitInput(&gCurrentWindow);
 
 #ifdef ENABLE_FORGE_FONTS
     if (!platformInitFontSystem())
@@ -241,10 +241,6 @@ bool initBaseSubsystems()
 #endif
 #endif
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    initNetwork();
-#endif
-
     return true;
 }
 
@@ -254,8 +250,11 @@ void updateBaseSubsystems(float deltaTime, bool appDrawn)
     extern void platformUpdateLuaScriptingSystem(bool appDrawn);
     extern void platformUpdateUserInterface(float deltaTime);
     extern void platformUpdateWindowSystem();
+    extern void platformUpdateInput(uint32_t width, uint32_t height, float dt);
 
     platformUpdateWindowSystem();
+
+    platformUpdateInput(pApp->mSettings.mWidth, pApp->mSettings.mHeight, deltaTime);
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformUpdateLuaScriptingSystem(appDrawn);
@@ -273,6 +272,9 @@ void exitBaseSubsystems()
     extern void platformExitUserInterface();
     extern void platformExitLuaScriptingSystem();
     extern void platformExitWindowSystem();
+    extern void platformExitInput();
+
+    platformExitInput();
 
     platformExitWindowSystem();
 
@@ -286,10 +288,6 @@ void exitBaseSubsystems()
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
-#endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    exitNetwork();
 #endif
 }
 
@@ -309,7 +307,7 @@ void setupPlatformUI()
     // RELOAD CONTROL
     UIComponentDesc desc = {};
     desc.mStartPosition = vec2(pApp->mSettings.mWidth * 0.6f, pApp->mSettings.mHeight * 0.90f);
-    uiCreateComponent("Reload Control", &desc, &pReloadShaderComponent);
+    uiAddComponent("Reload Control", &desc, &pReloadShaderComponent);
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
@@ -458,10 +456,6 @@ char     benchmarkOutput[1024] = { "\0" };
         initCpuInfo(&gCpu);
         initHiresTimer(&deltaTimer);
 
-        // #if TF_USE_MTUNER
-        //	rmemInit(0);
-        // #endif
-
         FileSystemInitDesc fsDesc = {};
         fsDesc.pAppName = pApp->GetName();
         if (!initFileSystem(&fsDesc))
@@ -555,12 +549,6 @@ char     benchmarkOutput[1024] = { "\0" };
 
             if (!pApp->Init())
             {
-                const char* pRendererReason;
-                if (hasRendererInitializationError(&pRendererReason))
-                {
-                    pApp->ShowUnsupportedMessage(pRendererReason);
-                }
-
                 if (pApp->mUnsupported)
                 {
                     errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
@@ -731,11 +719,6 @@ char     benchmarkOutput[1024] = { "\0" };
 
     exitLog();
     exitFileSystem();
-
-    // #if TF_USE_MTUNER
-    //	rmemUnload();
-    //	rmemShutDown();
-    // #endif
 
     exitMemAlloc();
 }

@@ -41,13 +41,13 @@ PsIn VS_MAIN( VsIn In )
 	INIT_MAIN;
 
 #if FT_MULTIVIEW
-	float4x4 modelViewProj = Get(mvp)[VR_VIEW_ID];
+	float4x4 modelViewProj = uniformBlock_rootcbv.mvp[VR_VIEW_ID];
 #else
-	float4x4 modelViewProj = Get(mvp);
+	float4x4 modelViewProj = uniformBlock_rootcbv.mvp;
 #endif
 
 	PsIn Out;
-	Out.position = mul(modelViewProj, float4(In.position * Get(scaleBias).xy, 1.0f, 1.0f));
+	Out.position = mul(modelViewProj, float4(In.position * uRootConstants.scaleBias.xy, 1.0f, 1.0f));
 	Out.texCoord = In.texCoord;
 	RETURN(Out);
 }

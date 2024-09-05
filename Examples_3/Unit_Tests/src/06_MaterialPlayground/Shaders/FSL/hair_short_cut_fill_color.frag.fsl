@@ -78,13 +78,13 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	float secundarySpecular = max(0.0f, secundaryCosTRL * cosTE + secundarySinTRL * sinTE);
 
 
-	float3 diffuseSpecular = float3(Get(Kd) * diffuse, Get(Ks1) * pow(primarySpecular, Get(Ex1)), Get(Ks2) * pow(secundarySpecular, Get(Ex2)));
+	float3 diffuseSpecular = float3(cbHair.Kd * diffuse, cbHair.Ks1 * pow(primarySpecular, cbHair.Ex1), cbHair.Ks2 * pow(secundarySpecular, cbHair.Ex2));
 	return diffuseSpecular;
 }
 
 float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor VR_VIEWID_PARAM(uint viewID))
 {
-	const DirectionalLight light = Get(DirectionalLights)[lightIndex];
+	const DirectionalLight light = cbDirectionalLights.DirectionalLights[lightIndex];
 	const float3 color = light.colorAndIntensity.rgb;
 	const float intensity = light.colorAndIntensity.a;
 	const float3 direction = light.directionAndShadowMap.xyz;
@@ -98,9 +98,9 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 	if (shadowMap >= 0 && shadowMap < MAX_NUM_DIRECTIONAL_LIGHTS)
 	{
 #if FT_MULTIVIEW
-		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix[VR_VIEW_ID(viewID)], float4(worldPosition, 1.0f));
+		float4 shadowPos = mul(cbDirectionalLightShadowCameras.ShadowCameras[lightIndex].VPMatrix[VR_VIEW_ID(viewID)], float4(worldPosition, 1.0f));
 #else
-		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix, float4(worldPosition, 1.0f));
+		float4 shadowPos = mul(cbDirectionalLightShadowCameras.ShadowCameras[lightIndex].VPMatrix, float4(worldPosition, 1.0f));
 #endif
 		shadowPos.y = -shadowPos.y;
 		shadowPos.xy = (shadowPos.xy + 1.0f) * 0.5f;
@@ -119,9 +119,9 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 		{																							\
 			float exp = 1.0f - (x * x + y * y) / (2.0f * sigma * sigma);							\
 			float weight = 1.0f / (2.0f * PI * sigma * sigma) * pow(e, exp);						\
-			float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(pointSampler), shadowPos.xy, 0, int2(x, y)).r;	\
+			float shadowMapDepth = SampleLvlOffsetTex2D(DirectionalLightShadowMaps[shadowMap], pointSampler, shadowPos.xy, 0, int2(x, y)).r;	\
 			float shadowRange = shadowMapDepth > shadowPos.z? 1 : 0;								\
-			float numFibers = shadowRange / (Get(FiberSpacing) * Get(FiberRadius));							\
+			float numFibers = shadowRange / (cbHair.FiberSpacing * cbHair.FiberRadius);							\
 			if (shadowRange > EPSILON) numFibers += 1;												\
 			shadowFactor += pow(hairAlpha, numFibers) * weight;										\
 			totalWeight += weight;																	\
@@ -164,9 +164,9 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 				float exp = 1.0f - (x * x + y * y) / (2.0f * sigma * sigma);
 				float weight = 1.0f / (2.0f * PI * sigma * sigma) * pow(e, exp);
 
-				float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(pointSampler), shadowPos.xy, 0, int2(x, y)).r;
+				float shadowMapDepth = SampleLvlOffsetTex2D(DirectionalLightShadowMaps[shadowMap], pointSampler, shadowPos.xy, 0, int2(x, y)).r;
 				float shadowRange = shadowMapDepth > shadowPos.z? 1 : 0;
-				float numFibers = shadowRange / (Get(FiberSpacing) * Get(FiberRadius));
+				float numFibers = shadowRange / (cbHair.FiberSpacing * cbHair.FiberRadius);
 
 				FLATTEN if (shadowRange > EPSILON)
 					numFibers += 1;
@@ -187,7 +187,7 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 
 float3 CalculatePointLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor)
 {
-	const PointLight light = Get(PointLights)[lightIndex];
+	const PointLight light = cbPointLights.PointLights[lightIndex];
 	const float3 color = light.colorAndIntensity.rgb;
 	const float intensity = light.colorAndIntensity.w;
 	const float3 pos = light.positionAndRadius.xyz;
@@ -212,10 +212,10 @@ float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseCo
 	float3 color = f3(0.0f);
 
 	uint i;
-	for (i = 0; i < Get(NumPointLights); ++i)
+	for (i = 0; i < cbPointLights.NumPointLights; ++i)
 		color += CalculatePointLightContribution(i, worldPos, tangent, eyeDir, baseColor);
 
-	for (i = 0; i < Get(NumDirectionalLights); ++i)
+	for (i = 0; i < cbDirectionalLights.NumDirectionalLights; ++i)
 		color += CalculateDirectionalLightContribution(i, worldPos, tangent, eyeDir, baseColor VR_VIEWID_PARAM(viewID));
 		
 	return color;
@@ -227,10 +227,10 @@ float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	float3 NDC = ScreenPosToNDC(In.Position.xyz, Get(Viewport));
+	float3 NDC = ScreenPosToNDC(In.Position.xyz, cbHairGlobal.Viewport);
 	float2 p0 = In.P0P1.xy / In.W0W1.x;
 	float2 p1 = In.P0P1.zw / In.W0W1.y;
-	float coverage = ComputeCoverage(p0, p1, NDC.xy, Get(Viewport).zw);
+	float coverage = ComputeCoverage(p0, p1, NDC.xy, cbHairGlobal.Viewport.zw);
 	clip(coverage);
 	float alpha = coverage * In.Color.a;
 	clip(alpha - (1.0f / 255.0f));
@@ -242,13 +242,13 @@ float4 PS_MAIN( VSOutput In )
 	}
 
 #if FT_MULTIVIEW
-	float4 worldPos = mul(Get(Cam).InvVPMatrix[VR_VIEW_ID(In.ViewID)], float4(NDC, 1.0f));
+	float4 worldPos = mul(cbCamera.InvVPMatrix[VR_VIEW_ID(In.ViewID)], float4(NDC, 1.0f));
 #else
-	float4 worldPos = mul(Get(Cam).InvVPMatrix, float4(NDC, 1.0f));
+	float4 worldPos = mul(cbCamera.InvVPMatrix, float4(NDC, 1.0f));
 #endif
 
 	worldPos.xyz /= worldPos.w;
-	float3 eyeDir = normalize(worldPos.xyz - Get(Cam).Pos);
+	float3 eyeDir = normalize(worldPos.xyz - cbCamera.Pos);
 
 	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(In.Tangent.xyz), In.Color.rgb VR_VIEWID_PARAM(In.ViewID));
 

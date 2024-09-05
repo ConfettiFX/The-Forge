@@ -50,8 +50,8 @@ If an error occurs on the host:
 
 #include <string.h>
 
-#include "../../Application/Interfaces/IInput.h"
 #include "../../Application/Interfaces/IUI.h"
+#include "../../OS/Interfaces/IInput.h"
 #include "../../Game/Interfaces/IScripting.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
@@ -151,6 +151,8 @@ typedef struct ReloadClient
 } ReloadClient;
 
 static ReloadClient gClient{};
+
+static InputEnum gReloadKey;
 
 #if defined(AUTOMATED_TESTING)
 uint32_t gReloadServerRequestRecompileAfter = 0;
@@ -529,7 +531,7 @@ static void requestRecompileThreadFunc(void* userdata)
 // If ReloadClient.cpp is ever moved, this needs to be updated.
 #define THE_FORGE_ROOT_DIR        __FILE__ "/../../../.."
 
-#define THE_FORGE_PYTHON_PATH     "Tools/python-3.6.0-embed-amd64/python.exe"
+#define THE_FORGE_PYTHON_PATH     "Data/Tools/python-3.6.0-embed-amd64/python.exe"
 #define RELOAD_SERVER_SCRIPT_PATH "Common_3/Tools/ReloadServer/ReloadServer.py"
 
 typedef enum ReloadServerAction
@@ -586,6 +588,11 @@ void platformStartStopReloadServerOnHost(ReloadServerAction action)
             LOGF(eERROR, "Error %s the ReloadServer process:\n%s\n", actionStr, output);
             tf_free(output);
         }
+        else
+        {
+            LOGF(eERROR, "Failed to auto-start ReloadServer process and the output of `systemRun` was never written to file - this is "
+                         "likely an internal error.");
+        }
     }
     else if (!kill)
     {
@@ -634,6 +641,8 @@ bool platformInitReloadClient(void)
     platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_START);
 #endif
 
+    gReloadKey = inputGetCustomBindingEnum("reload_shaders");
+
     return true;
 }
 
@@ -651,7 +660,7 @@ void platformExitReloadClient()
     platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_KILL);
 #endif
 
-    destroyMutex(&gClient.mLock);
+    exitMutex(&gClient.mLock);
 
     for (UpdatedShader* cur = gClient.pUpdatedShaders; cur != nullptr;)
     {
@@ -740,6 +749,12 @@ bool platformReloadClientShouldQuit(void)
         requestReload(&desc);
 #endif
     }
+
+    if (inputGetValue(0, gReloadKey))
+    {
+        platformReloadClientRequestShaderRecompile();
+    }
+
     return false;
 }
 
@@ -751,7 +766,7 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
     }
 
     ButtonWidget shaderReload;
-    UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
+    UIWidget*    pShaderReload = uiAddComponentWidget(pReloadShaderComponent, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pShaderReload, nullptr,
                                 [](void* pUserData)
                                 {
@@ -761,12 +776,4 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
     REGISTER_LUA_WIDGET(pShaderReload);
 
     gClient.pReloadShaderComponent = pReloadShaderComponent;
-
-    InputActionDesc actionDesc = { DefaultInputActions::RELOAD_SHADERS, [](InputActionContext* ctx)
-                                   {
-                                       UNREF_PARAM(ctx);
-                                       platformReloadClientRequestShaderRecompile();
-                                       return true;
-                                   } };
-    addInputAction(&actionDesc);
 }

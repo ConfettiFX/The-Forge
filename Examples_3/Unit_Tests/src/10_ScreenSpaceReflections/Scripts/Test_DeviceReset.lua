@@ -1,2 +1,0 @@
-loader.ResetGraphicsDeviceOnEdited()
-

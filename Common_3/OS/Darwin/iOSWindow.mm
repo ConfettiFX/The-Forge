@@ -36,6 +36,7 @@
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../Interfaces/IInput.h"
 
 #include "../../Utilities/Math/MathTypes.h"
 
@@ -161,6 +162,55 @@ MonitorDesc* gMonitors = NULL;
     // might trigger notification / background manager.
     return pWindowAppRef->mSettings.mShowStatusBar ? UIRectEdgeNone : UIRectEdgeBottom | UIRectEdgeTop;
 }
+
+static void ProcessTouches(UIView* view, NSSet<UITouch*>* touches, uint8_t phase)
+{
+    extern void platformTouchBeganEvent(const int32_t id, const int32_t pos[2]);
+    extern void platformTouchEndedEvent(const int32_t id, const int32_t pos[2]);
+    extern void platformTouchMovedEvent(const int32_t id, const int32_t pos[2]);
+
+    for (UITouch* touch in touches)
+    {
+        CGPoint viewPos = [touch locationInView:view];
+        int32_t id = (int32_t)((intptr_t)touch);
+        int32_t pos[2] = {};
+        pos[0] = viewPos.x * gRetinaScale.x;
+        pos[1] = viewPos.y * gRetinaScale.y;
+        if (phase & 0x1)
+        {
+            platformTouchBeganEvent(id, pos);
+        }
+        else if (phase & 0x2)
+        {
+            platformTouchEndedEvent(id, pos);
+        }
+        else
+        {
+            platformTouchMovedEvent(id, pos);
+        }
+    }
+}
+
+- (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    ProcessTouches(self.view, touches, 0x1);
+}
+
+- (void)touchesEnded:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    ProcessTouches(self.view, touches, 0x2);
+}
+
+- (void)touchesCancelled:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    ProcessTouches(self.view, touches, 0x2);
+}
+
+- (void)touchesMoved:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    ProcessTouches(self.view, touches, 0x4);
+}
+
 @end
 
 //------------------------------------------------------------------------
@@ -220,6 +270,11 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
 }
 
 void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+{
+    // No-op
+}
+
+void toggleFullscreen(WindowDesc* winDesc)
 {
     // No-op
 }

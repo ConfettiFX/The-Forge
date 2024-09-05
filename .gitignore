@@ -53,6 +53,7 @@
 
 # Pycharm IDE files
 **.idea
+**.bak
 
 # Android build artifacts
 Examples_3/Unit_Tests/Android_VisualStudio2017/Android-*
@@ -98,7 +99,7 @@ xcuserdata/
 # Art/
 Art.zip
 PBR.zip
-# Examples_3/Unit_Tests/UnitTestResources/Textures/PBR/
+# Examples_3/Unit_Tests/Textures/PBR/
 
 # Binary Shaders
 **/D3D12/Binary/
@@ -129,21 +130,22 @@ Examples_3/Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/
 /**/bin/
 /**/macOS\ Xcode/**/Bin/
 /**/macOS\ Xcode/**/build/
+**/Xcode_Cache/
 
 # Nuget packages
 Tools/ShaderBuildCommand/packages/
 **/ThirdParty/OpenSource/hlslparser/Ext/ShaderTranslator/packages/
 
-# Linux / UbuntuCodeLite files
-/**/UbuntuCodelite/.codelite/
-/**/UbuntuCodelite/.cache/
-/**/UbuntuCodelite/.build-debug/
-/**/UbuntuCodelite/.build-release/
-/**/UbuntuCodelite/*/*.mk
-/**/UbuntuCodelite/*/*.txt
-/**/UbuntuCodelite/Makefile
-/**/UbuntuCodelite/*/Debug
-/**/UbuntuCodelite/*/Release
+# Linux / SteamOS_CodeLite files
+/**/SteamOS_CodeLite/.codelite/
+/**/SteamOS_CodeLite/.cache/
+/**/SteamOS_CodeLite/.build-debug/
+/**/SteamOS_CodeLite/.build-release/
+/**/SteamOS_CodeLite/*/*.mk
+/**/SteamOS_CodeLite/*/*.txt
+/**/SteamOS_CodeLite/Makefile
+/**/SteamOS_CodeLite/*/Debug
+/**/SteamOS_CodeLite/*/Release
 /**/Linux/*/*.mk
 /**/Linux/*/*.txt
 /**/Linux/*.mk
@@ -156,9 +158,8 @@ Tools/ShaderBuildCommand/packages/
 /**/Linux/.build-debug/
 /**/Linux/.build-release/
 /**/Linux/Makefile
-Examples_3/Visibility_Buffer/UbuntuCodeLite/SpirVTools/*/*.txt
+Examples_3/Visibility_Buffer/SteamOS_CodeLite/SpirVTools/*/*.txt
 Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/*/*.txt
-Common_3/Application/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.txt
 Common_3/Tools/BunyArchive/codelite/*.mk
 Common_3/Tools/BunyArchive/codelite/.*
 Common_3/Tools/BunyArchive/codelite/Debug/*
@@ -195,13 +196,13 @@ Common_3/Tools/BunyArchive/Xcode/Debug/*
 *.MTuner
 
 #SDF files
-/**/Unit_Tests/UnitTestResources/SDF/
+/**/Unit_Tests/SDF/
 
 # Build artifacts
-/Examples_3/Visibility_Buffer/UbuntuCodelite/**/*.mk
-/Examples_3/Visibility_Buffer/UbuntuCodelite/**/*.mk
-/Examples_3/Unit_Tests/UbuntuCodelite/**/*.mk
-/Examples_3/Unit_Tests/UbuntuCodelite/**/*.mk
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/**/*.mk
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/**/*.mk
+/Examples_3/Unit_Tests/SteamOS_CodeLite/**/*.mk
+/Examples_3/Unit_Tests/SteamOS_CodeLite/**/*.mk
 /**/Ubuntu/**/*.txt
 
 /**/linux/**/*.txt
@@ -213,16 +214,17 @@ Common_3/Tools/AssetPipeline/Linux/.build-
 Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.mk
 Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.txt
 Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/compile_flags.txt
-/Examples_3/Unit_Tests/UbuntuCodelite/compile_commands.json
-/Examples_3/Unit_Tests/UbuntuCodeLite/.codelite
-/Examples_3/Visibility_Buffer/UbuntuCodelite/compile_commands.json
+/Examples_3/Unit_Tests/SteamOS_CodeLite/compile_commands.json
+/Examples_3/Unit_Tests/SteamOS_CodeLite/.codelite
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/compile_commands.json
+/Examples_3/Visibility_Buffer2/SteamOS_CodeLite/compile_commands.json
 
-/Examples_3/Visibility_Buffer/UbuntuCodeLite/.build
-/Examples_3/Visibility_Buffer/UbuntuCodeLite/.build-release
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/.build
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/.build-release
 
-/Examples_3/Visibility_Buffer/UbuntuCodeLite/.codelite
-/Examples_3/Visibility_Buffer/UbuntuCodelite/*/Debug
-/Examples_3/Visibility_Buffer/UbuntuCodelite/*/Release
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/.codelite
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/*/Debug
+/Examples_3/Visibility_Buffer/SteamOS_CodeLite/*/Release
 **.results
 **.BenchmarkCompare
 
@@ -246,5 +248,5 @@ Common_3/Application/ThirdParty/noesisgui/SDK/_build/**/build
 /**/**Benchmarks/**
 
 #clang-format
-Tools/clang-tools/clang-format-files.txt
-Tools/clang-tools/out-files.txt
+**/clang-tools/clang-format-files.txt
+**/clang-tools/out-files.txt

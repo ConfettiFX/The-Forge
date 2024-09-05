@@ -1619,16 +1619,16 @@ static void destroyThreadSharedMemory(struct ThreadsSharedMemory* tsm)
     tf_free(tsm->globalAllocation);
     tf_free(tsm->unusedBlockIds);
 
-    destroyMutex(&tsm->mutexBlocks);
-    destroyConditionVariable(&tsm->conditionBlocks);
+    exitMutex(&tsm->mutexBlocks);
+    exitConditionVariable(&tsm->conditionBlocks);
 
     arrfree(tsm->packetIo.packetsQueue);
     arrfree(tsm->packetIo.packets);
-    destroyMutex(&tsm->packetIo.mutex);
-    destroyConditionVariable(&tsm->packetIo.condition);
+    exitMutex(&tsm->packetIo.mutex);
+    exitConditionVariable(&tsm->packetIo.condition);
 
-    destroyMutex(&tsm->managerMutex);
-    destroyConditionVariable(&tsm->managerCondition);
+    exitMutex(&tsm->managerMutex);
+    exitConditionVariable(&tsm->managerCondition);
 
     memset(tsm, 0, sizeof(*tsm));
 }

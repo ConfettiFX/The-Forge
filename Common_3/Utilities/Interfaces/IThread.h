@@ -98,7 +98,7 @@ extern "C"
 #define MUTEX_DEFAULT_SPIN_COUNT 1500
 
     FORGE_API bool initMutex(Mutex* pMutex);
-    FORGE_API void destroyMutex(Mutex* pMutex);
+    FORGE_API void exitMutex(Mutex* pMutex);
 
     FORGE_API void acquireMutex(Mutex* pMutex);
     FORGE_API bool tryAcquireMutex(Mutex* pMutex);
@@ -116,7 +116,7 @@ extern "C"
     } ConditionVariable;
 
     FORGE_API bool initConditionVariable(ConditionVariable* cv);
-    FORGE_API void destroyConditionVariable(ConditionVariable* cv);
+    FORGE_API void exitConditionVariable(ConditionVariable* cv);
 
     FORGE_API void waitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t msTimeout);
     FORGE_API void wakeOneConditionVariable(ConditionVariable* cv);
