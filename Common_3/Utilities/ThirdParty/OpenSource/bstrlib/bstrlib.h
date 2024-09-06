@@ -29,6 +29,7 @@ extern "C" {
 #include <limits.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #if !defined (BSTRLIB_VSNP_OK) && !defined (BSTRLIB_NOVSNP)
 # if defined (__TURBOC__) && !defined (__BORLANDC__)
@@ -305,6 +306,137 @@ FORGE_API extern BSTR_DECLARE_FN(int, bvformata, bstring* b, const char* fmt, va
 #define bconstfromcstr(str) bconstfromblk( (str) , (int)strlen(str) )
 /* Initializes string that references the same buffer as input string */
 #define bconstfromstr(str) bconstfromblk(str->data, str->slen)
+
+static inline uint32_t tokenizeLine(const char* pLine, const char* pLineEnd, const char* token, uint32_t maxTokenLength, uint32_t numTokens, char** pTokens)
+{
+    uint32_t tokenCount = 0;
+    //  initialize all tokens to empty string
+    for (uint32_t i = 0; i < numTokens; ++i)
+        pTokens[i][0] = '\0';
+
+    for (uint32_t i = 0; pLine < pLineEnd && i < numTokens; ++i)
+    {
+        const char* begin = pLine;
+        const char* end = pLine + strcspn(pLine, token);
+
+        if (end > pLineEnd)
+            end = pLineEnd;
+
+        pLine = end + 1;
+
+        //  Remove whitespace from the front and end
+        while (begin != end && isspace(*begin))
+            ++begin;
+        while (begin != end && isspace(end[-1]))
+            --end;
+
+        ptrdiff_t length = end - begin;
+        //  NOTE: the last character must be NULL, this assert makes sure the string isnt a
+        //  full 256 characters, as that would leave no room for a null-terminator
+        if (length >= maxTokenLength - 1)
+        {
+            return tokenCount;
+        }
+
+        memcpy(pTokens[i], begin, TF_MIN(length, maxTokenLength));
+        //  set token to be NUL-terminated
+        pTokens[i][length] = '\0';
+        ++tokenCount;
+    }
+
+    return tokenCount;
+}
+
+static inline bool bufferedGetLine(char* lineStrOut, char** bufferCursorInOut, const char* bufferEnd)
+{
+    if (*bufferCursorInOut < bufferEnd)
+    {
+        size_t lineIndex = 0;
+        // copy current line, memcpy seems to make it slower
+        while (*(*bufferCursorInOut) != '\n' && *(*bufferCursorInOut) != '\r' && *bufferCursorInOut != bufferEnd)
+        {
+            lineStrOut[lineIndex] = *(*bufferCursorInOut);
+            lineIndex++;
+            (*bufferCursorInOut)++;
+        }
+        lineStrOut[lineIndex] = '\0';
+        // skip /r/n
+        if (*(*bufferCursorInOut) == '\r' && *bufferCursorInOut != bufferEnd && *((*bufferCursorInOut) + 1) == '\n')
+        {
+            (*bufferCursorInOut)++;
+        }
+        (*bufferCursorInOut)++;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+static inline bool stringToInteger(char* str, uint32_t* pOutResult, uint32_t base)
+{
+    char* endConversionPtr = NULL;
+    // return end of string or index of the first space encountered
+    char* endStr = str + strcspn(str, " ");
+    *pOutResult = (uint32_t)strtoll(str, &endConversionPtr, base);
+    // check emptiness
+    bool validConversion = str != endStr;
+    // check if successfully parsed the full string
+    validConversion &= endStr == endConversionPtr;
+    return validConversion;
+}
+
+static inline bool stringToLargeInteger(char* str, uint64_t* pOutResult, uint32_t base)
+{
+    char* endConversionPtr = NULL;
+    // return end of string or index of the first space encountered
+    char* endStr = str + strcspn(str, " ");
+    *pOutResult = strtoll(str, &endConversionPtr, base);
+    // check emptiness
+    bool validConversion = str != endStr;
+    // check if successfully parsed the full string
+    validConversion &= endStr == endConversionPtr;
+    return validConversion;
+}
+
+static inline bool tokenCompare(const char* cmp, uint64_t a, uint64_t b)
+{
+    if (strcmp(cmp, "<=") == 0)
+    {
+        return a <= b;
+    }
+    if (strcmp(cmp, "<") == 0)
+    {
+        return a < b;
+    }
+    if (strcmp(cmp, ">=") == 0)
+    {
+        return a >= b;
+    }
+    if (strcmp(cmp, ">") == 0)
+    {
+        return a > b;
+    }
+    if (strcmp(cmp, "==") == 0)
+    {
+        return a == b;
+    }
+    if (strcmp(cmp, "!=") == 0)
+    {
+        return a != b;
+    }
+
+    return false;
+}
+
+static inline char* stringToLower(char* str)
+{
+    for (char* p = str; *p != '\0'; ++p)
+        *p = (char)tolower(*p);
+    return str;
+}
+
 
 
 #ifdef __cplusplus

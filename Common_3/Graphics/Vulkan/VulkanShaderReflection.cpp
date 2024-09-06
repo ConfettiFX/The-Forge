@@ -71,7 +71,7 @@ bool filterResource(SPIRV_Resource* resource, ShaderStage currentStage)
     return filter;
 }
 
-void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void vk_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
     if (pOutReflection == NULL)
     {

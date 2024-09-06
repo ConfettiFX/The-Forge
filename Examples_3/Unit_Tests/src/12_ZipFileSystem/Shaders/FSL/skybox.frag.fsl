@@ -49,37 +49,37 @@ float4 PS_MAIN( VSOutput In )
     {
         newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
         newtextcoord = float2(1.0 - newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(Get(RightText), Get(uSampler0), newtextcoord);
+        Out = SampleTex2D(RightText, uSampler0, newtextcoord);
     }
     else if (side == 2)
     {
         newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(Get(LeftText), Get(uSampler0), newtextcoord);
+        Out = SampleTex2D(LeftText, uSampler0, newtextcoord);
     }
     else if (side == 4)
     {
         newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(Get(BotText), Get(uSampler0), newtextcoord);
+        Out = SampleTex2D(BotText, uSampler0, newtextcoord);
     }
     else if (side == 5)
     {
         newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(Get(FrontText), Get(uSampler0), newtextcoord);  
+        Out = SampleTex2D(FrontText, uSampler0, newtextcoord);  
     }
     else if (side == 6)
     {
         newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
         newtextcoord = float2(1.0 -newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(Get(BackText), Get(uSampler0), newtextcoord);  
+        Out = SampleTex2D(BackText, uSampler0, newtextcoord);  
     }
 	else
     {
         newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        Out = SampleTex2D(Get(TopText), Get(uSampler0), newtextcoord);
+        Out = SampleTex2D(TopText, uSampler0, newtextcoord);
     }
 	RETURN(Out);
 }

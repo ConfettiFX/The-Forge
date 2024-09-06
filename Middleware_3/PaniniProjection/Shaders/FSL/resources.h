@@ -28,7 +28,7 @@
 RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t0, binding = 1);
 RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s1, binding = 2);
 
-PUSH_CONSTANT(PaniniRootConstants, b0)
+STRUCT(PaniniRootConstantsData)
 {
 	// horizontal field of view in degrees
 	DATA(float, FoVH, None);
@@ -51,5 +51,6 @@ PUSH_CONSTANT(PaniniRootConstants, b0)
 	// After Panini projection, we'll need to upscale to fit to screen
 	DATA(float, Scale, None);
 };
+RES(ROOT_CONSTANT(PaniniRootConstantsData), PaniniRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #endif

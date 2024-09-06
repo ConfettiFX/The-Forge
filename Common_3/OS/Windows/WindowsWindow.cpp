@@ -705,7 +705,7 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
     setWindowRect(winDesc, &newWindowRect);
 }
 
-void toggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned clientHeight)
+static void ToggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned clientHeight)
 {
     if (!winDesc->fullScreen)
     {
@@ -736,7 +736,7 @@ void toggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned client
     }
 }
 
-void toggleFullscreen(WindowDesc* winDesc)
+void ToggleFullscreen(WindowDesc* winDesc)
 {
     winDesc->fullScreen = !winDesc->fullScreen;
     adjustWindow(winDesc);
@@ -766,11 +766,11 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
 
     if (winDesc->fullScreen)
     {
-        toggleFullscreen(winDesc);
+        ToggleFullscreen(winDesc);
     }
     if (winDesc->borderlessWindow)
     {
-        toggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
+        ToggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
     }
     winDesc->mWindowMode = WindowMode::WM_WINDOWED;
 }
@@ -779,17 +779,30 @@ void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
 {
     if (winDesc->fullScreen)
     {
-        toggleFullscreen(winDesc);
+        ToggleFullscreen(winDesc);
         if (!winDesc->borderlessWindow)
-            toggleBorderless(winDesc, width, height);
+            ToggleBorderless(winDesc, width, height);
         winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
     }
     else if (!winDesc->borderlessWindow)
     {
         winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
-        toggleBorderless(winDesc, width, height);
+        ToggleBorderless(winDesc, width, height);
         if (!winDesc->borderlessWindow)
             winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+    }
+}
+
+void toggleFullscreen(WindowDesc* pWindow)
+{
+    if (pWindow->fullScreen)
+    {
+        pWindow->borderlessWindow ? setBorderless(pWindow, getRectWidth(&pWindow->clientRect), getRectHeight(&pWindow->clientRect))
+                                  : setWindowed(pWindow, getRectWidth(&pWindow->clientRect), getRectHeight(&pWindow->clientRect));
+    }
+    else
+    {
+        setFullscreen(pWindow);
     }
 }
 
@@ -797,7 +810,7 @@ void setFullscreen(WindowDesc* winDesc)
 {
     if (!winDesc->fullScreen)
     {
-        toggleFullscreen(winDesc);
+        ToggleFullscreen(winDesc);
         winDesc->mWindowMode = WindowMode::WM_FULLSCREEN;
     }
 }
@@ -1274,16 +1287,13 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     default:
     {
-        if (sCustomProc != nullptr)
-        {
-            MSG msg = {};
-            msg.hwnd = hwnd;
-            msg.lParam = lParam;
-            msg.message = message;
-            msg.wParam = wParam;
-
-            sCustomProc(gWindow, &msg);
-        }
+        MSG msg = {};
+        msg.hwnd = hwnd;
+        msg.lParam = lParam;
+        msg.message = message;
+        msg.wParam = wParam;
+        extern void platformInputEvent(const MSG* msg);
+        platformInputEvent(&msg);
 
         return DefWindowProcW(hwnd, message, wParam, lParam);
     }

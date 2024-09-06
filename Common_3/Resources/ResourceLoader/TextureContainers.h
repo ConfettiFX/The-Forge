@@ -174,7 +174,7 @@ static inline uint32_t util_get_surface_size(TinyImageFormat format, uint32_t wi
 /************************************************************************/
 // DDS Loading
 /************************************************************************/
-inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
+static inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
 
@@ -239,7 +239,7 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 /************************************************************************/
 // KTX Loading
 /************************************************************************/
-inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
+static inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
 

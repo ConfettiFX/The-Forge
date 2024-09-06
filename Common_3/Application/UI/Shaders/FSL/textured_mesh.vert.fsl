@@ -24,11 +24,12 @@
 
 RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
-PUSH_CONSTANT(uRootConstants, b1)
+STRUCT(RootConstants)
 {
 	DATA(float4, color, None);
 	DATA(float2, scaleBias, None);
 };
+RES(ROOT_CONSTANT(RootConstants), uRootConstants, UPDATE_FREQ_NONE, b1, binding = 1);
 
 STRUCT(VsIn)
 {
@@ -46,7 +47,7 @@ VsOut VS_MAIN( VsIn In )
 {
 	INIT_MAIN;
 	VsOut Out;
-	Out.position = float4(In.position.xy * Get(scaleBias).xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+	Out.position = float4(In.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 	Out.texcoord = In.texcoord;
 	RETURN(Out);
 }

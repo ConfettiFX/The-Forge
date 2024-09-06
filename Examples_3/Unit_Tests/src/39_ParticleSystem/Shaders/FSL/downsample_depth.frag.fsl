@@ -33,10 +33,11 @@ STRUCT(PsIn)
 	DATA(float2, screenPos, TEXCOORD0);
 };
 
-PUSH_CONSTANT(downsampleRootConstants, b0)
+STRUCT(downsampleRootConstantsData)
 {
 	DATA(uint2, size, None);
 };
+RES(ROOT_CONSTANT(downsampleRootConstantsData), downsampleRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 
 float2 PS_MAIN( PsIn In )
@@ -49,14 +50,14 @@ float2 PS_MAIN( PsIn In )
 	float minDepth = 1.0;
 	float maxDepth = 0.0;
 
-	float2 uv = float2(otherCoords) / float2(Get(size) * 2);
-	float2 texelSize = 1.0 / float2(Get(size) * 2);
+	float2 uv = float2(otherCoords) / float2(downsampleRootConstants.size * 2);
+	float2 texelSize = 1.0 / float2(downsampleRootConstants.size * 2);
 
 	for (uint y=0; y<2; y++) 
 	{
 		for (uint x=0; x<2; x++)
 		{
-			float depth = SampleTex2D(Get(depthBuffer), Get(pointClampSampler), uv + float2(x, y) * texelSize).x;
+			float depth = SampleTex2D(depthBuffer, pointClampSampler, uv + float2(x, y) * texelSize).x;
 			minDepth = min(minDepth, depth);
 			maxDepth = max(maxDepth, depth);
 		}

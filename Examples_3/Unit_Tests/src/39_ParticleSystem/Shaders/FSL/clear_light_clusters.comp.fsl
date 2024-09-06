@@ -39,10 +39,10 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 		for (uint j=0; j<VERTICAL_SUBCLUSTER_COUNT; j++)
 		{
 			uint clusterId = threadID.x*VERTICAL_SUBCLUSTER_COUNT + j + (threadID.y*HORIZONTAL_SUBCLUSTER_COUNT+i)*VERTICAL_SUBCLUSTER_COUNT*LIGHT_CLUSTER_WIDTH;
-			Get(lightClustersCount)[clusterId] = 0;
-			Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE] = UINT_MAX;
-			Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+1] = 0;
-			Get(DepthBoundsBuffer)[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2] = 0;
+			lightClustersCount[clusterId] = 0;
+			DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE] = UINT_MAX;
+			DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+1] = 0;
+			DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2] = 0;
 		}
 	}	
 

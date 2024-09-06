@@ -24,7 +24,7 @@
 
 #define MAX_PLANES 4
 
-CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(cbExtendCameraData)
 {
 	DATA(float4x4, viewMat, None);
 	DATA(float4x4, invViewMat, None);
@@ -37,6 +37,7 @@ CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float,  mNear, None);
 	DATA(float,  mFar, None);
 };
+RES(CBUFFER(cbExtendCameraData), cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 RES(RWBuffer(uint), IntermediateBuffer, UPDATE_FREQ_NONE, u1, binding = 1);
 RES(Tex2D(float), DepthTexture, UPDATE_FREQ_NONE, t2, binding = 2);
@@ -48,7 +49,7 @@ STRUCT(PlaneInfo)
 	DATA(float4, size, None);
 };
 
-CBUFFER(planeInfoBuffer, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
+STRUCT(planeInfoBufferData)
 {
 	DATA(PlaneInfo, planeInfo[MAX_PLANES], None);
 	DATA(uint, numPlanes, None);
@@ -56,6 +57,7 @@ CBUFFER(planeInfoBuffer, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
 	DATA(uint, pad01, None);
 	DATA(uint, pad02, None);
 };
+RES(CBUFFER(planeInfoBufferData), planeInfoBuffer, UPDATE_FREQ_PER_FRAME, b3, binding = 3);
 
 RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s4, binding = 4);
 RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s5, binding = 5);
@@ -70,7 +72,7 @@ float getDistance(float3 planeNormal, float3 planeCenter, float3 worldPos)
 
 bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) reflectedPos)
 { 
-	PlaneInfo thisPlane = Get(planeInfo)[index];
+	PlaneInfo thisPlane = planeInfoBuffer.planeInfo[index];
 
 	// assuming vectors are all normalized
 	float3 normalVec = getCol2(thisPlane.rotMat).xyz;
@@ -88,9 +90,9 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 		return false;	
 	}
 
-	float3 rO = Get(cameraWorldPos).xyz;
+	float3 rO = cbExtendCamera.cameraWorldPos.xyz;
 	float3 rD = normalize(target - rO);
-	float3 rD_VS = mul( to_f3x3(Get(viewMat)), rD);
+	float3 rD_VS = mul( to_f3x3(cbExtendCamera.viewMat), rD);
 		
 	if(rD_VS.z < 0.0)
 	{
@@ -121,12 +123,12 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 
 		if( (abs(xGap) <= width) && (abs(yGap) <= height))
 		{
-			reflectedPos = mul( Get(viewProjMat) , float4(hitPoint, 1.0) );
+			reflectedPos = mul( cbExtendCamera.viewProjMat , float4(hitPoint, 1.0) );
 			reflectedPos /= reflectedPos.w;
 
 			reflectedPos.xy = float2( (reflectedPos.x + 1.0) * 0.5, (1.0 - reflectedPos.y) * 0.5);
 
-			float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler),reflectedPos.xy, 0).r;
+			float depth = SampleLvlTex2D(DepthTexture, depthSampler,reflectedPos.xy, 0).r;
 
 			if(depth >= reflectedPos.z)
 			{
@@ -140,11 +142,11 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 			else
 			{
 				//check if it is also hit from other planes
-				for(uint i=0; i <Get(numPlanes); i++ )
+				for(uint i=0; i < planeInfoBuffer.numPlanes; i++ )
 				{
 					if(i != index)
 					{						
-						PlaneInfo otherPlane = Get(planeInfo)[i];
+						PlaneInfo otherPlane = planeInfoBuffer.planeInfo[i];
 						// assuming vectors are all normalized
 						
 						float3 otherNormalVec = getCol2(otherPlane.rotMat).xyz;
@@ -193,7 +195,7 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 
 float4 getWorldPosition(float2 UV, float depth)
 {
-	float4 worldPos = mul(Get(InvViewProjMat) ,float4(UV.x * 2.0 - 1.0, (1.0 - UV.y) * 2.0 - 1.0, depth, 1.0));
+	float4 worldPos = mul(cbExtendCamera.InvViewProjMat ,float4(UV.x * 2.0 - 1.0, (1.0 - UV.y) * 2.0 - 1.0, depth, 1.0));
 	worldPos /= worldPos.w;
 	return worldPos;
 }
@@ -262,8 +264,8 @@ NUM_THREADS(128,1,1)
 void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupThreadID(uint3) GTid, SV_GroupIndex(uint) GI )
 {	
 	INIT_MAIN;
-	uint screenWidth = uint( Get(viewPortSize).x );
-	uint screenHeight = uint( Get(viewPortSize).y );
+	uint screenWidth = uint( cbExtendCamera.viewPortSize.x );
+	uint screenHeight = uint( cbExtendCamera.viewPortSize.y );
 	
 	uint indexDX = DTid.x;	
 
@@ -273,9 +275,9 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 	uint indexY = indexDX / screenWidth;
 	uint indexX = indexDX - screenWidth * indexY;
 
-	float2 fragUV = float2( float(indexX) / Get(viewPortSize).x, float(indexY) / Get(viewPortSize).y );
+	float2 fragUV = float2( float(indexX) / cbExtendCamera.viewPortSize.x, float(indexY) / cbExtendCamera.viewPortSize.y );
 		
-	float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler), fragUV, 0).r;
+	float depth = SampleLvlTex2D(DepthTexture, depthSampler, fragUV, 0).r;
 
 	// if there is no obj
 	if(depth <= 0.0) // prespective projection matrix has a reverse Z, meaning camera depth is now 0 --> 1 (Far away from camera).. 
@@ -291,18 +293,18 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 	// float minDist = 1000000.0;
 	
 
-	for(uint i = 0; i < Get(numPlanes); i++)
+	for(uint i = 0; i < planeInfoBuffer.numPlanes; i++)
 	{	
 		if(intersectPlane( i, worldPos.xyz, fragUV, reflectedPos ))
 		{			
-			reflectedUV =  float2( reflectedPos.x * Get(viewPortSize).x, reflectedPos.y * Get(viewPortSize).y);
-			offset = float2( (fragUV.x - reflectedPos.x) * Get(viewPortSize).x, ( fragUV.y - reflectedPos.y) * Get(viewPortSize).y);
+			reflectedUV =  float2( reflectedPos.x * cbExtendCamera.viewPortSize.x, reflectedPos.y * cbExtendCamera.viewPortSize.y);
+			offset = float2( (fragUV.x - reflectedPos.x) * cbExtendCamera.viewPortSize.x, ( fragUV.y - reflectedPos.y) * cbExtendCamera.viewPortSize.y);
 			
 			uint newIndex =  uint(reflectedUV.x) + uint(reflectedUV.y) * screenWidth;
 
 			//pack info
 			uint intermediateBufferValue = packInfo(offset);
-			AtomicMin(Get(IntermediateBuffer)[newIndex], intermediateBufferValue);
+			AtomicMin(IntermediateBuffer[newIndex], intermediateBufferValue);
 		}	
 	}
 	RETURN();

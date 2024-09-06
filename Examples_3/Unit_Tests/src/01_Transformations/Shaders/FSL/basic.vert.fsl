@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,74 +11,69 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "resources.h.fsl"
 
 STRUCT(VSInput)
 {
-	DATA(float3, Position1, POSITION);
-	DATA(float3, Normal1,   NORMAL);
-	DATA(float3, Position2, TEXCOORD1);
-	DATA(float3, Normal2,   TEXCOORD3);
-	DATA(float4, Color1,   TEXCOORD0);
-	DATA(float4, Color2,   TEXCOORD2);
+    DATA(float3, Position1, POSITION);
+    DATA(float3, Normal1, NORMAL);
+    DATA(float3, Position2, TEXCOORD1);
+    DATA(float3, Normal2, TEXCOORD3);
+    DATA(float4, Color1, TEXCOORD0);
+    DATA(float4, Color2, TEXCOORD2);
 };
 
 STRUCT(VSOutput)
 {
-	DATA(float4, Position, SV_Position);
-	DATA(float4, Color,    COLOR);
+    DATA(float4, Position, SV_Position);
+    DATA(float4, Color, COLOR);
 };
 
-VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
+VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld)[InstanceID]);
+    float4x4 tempMat = mul(uniformBlock.mvp[VR_VIEW_ID], uniformBlock.toWorld[InstanceID]);
 #else
-    float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
+    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld[InstanceID]);
 #endif
 
     // interpolate between two mesh key frames
-    float InWeight    = Get(geometry_weight)[InstanceID].x;
+    float  InWeight = uniformBlock.geometry_weight[InstanceID].x;
     float3 InPosition = lerp(In.Position1, In.Position2, InWeight);
-    float3 InNormal   = lerp(In.Normal1, In.Normal2, InWeight);
-    float3 InColor    = lerp(In.Color1.xyz, In.Color2.xyz, InWeight);
+    float3 InNormal = lerp(In.Normal1, In.Normal2, InWeight);
+    float3 InColor = lerp(In.Color1.xyz, In.Color2.xyz, InWeight);
 
     Out.Position = mul(tempMat, float4(InPosition, 1.0f));
 
-    float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(InNormal, 0.0f))); // Assume uniform scaling
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(InPosition, 1.0f));
+    float4 normal = normalize(mul(uniformBlock.toWorld[InstanceID], float4(InNormal, 0.0f))); // Assume uniform scaling
+    float4 pos = mul(uniformBlock.toWorld[InstanceID], float4(InPosition, 1.0f));
 
     float lightIntensity = 1.0f;
-    // float quadraticCoeff = 1.2;
     float ambientCoeff = 0.1;
 
     float3 lightDir;
 
-    if (Get(color)[InstanceID].w < 0.01) // Special case for Sun, so that it is lit from its top
+    if (uniformBlock.color[InstanceID].w < 0.01) // Special case for Sun, so that it is lit from its top
         lightDir = float3(0.0f, 1.0f, 0.0f);
     else
-        lightDir = normalize(Get(lightPosition) - pos.xyz);
+        lightDir = normalize(uniformBlock.lightPosition.xyz - pos.xyz);
 
-    // float distance = length(lightDir);
-    // float attenuation = 1.0 / (quadraticCoeff * distance * distance);
-    // float intensity = lightIntensity * attenuation;
-
-    float3 baseColor = (Get(color)[InstanceID].xyz + InColor) / 2.0;
-    float3 blendedColor = (Get(lightColor) * baseColor) * lightIntensity;
+    float3 baseColor = (uniformBlock.color[InstanceID].rgb + InColor) / 2.0f;
+    float3 blendedColor = (uniformBlock.lightColor.rgb * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out.Color = float4(diffuse + ambient, 1.0);

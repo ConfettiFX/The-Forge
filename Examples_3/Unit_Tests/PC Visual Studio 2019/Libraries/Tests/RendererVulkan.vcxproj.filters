@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{a1d4b3f2-b893-4008-a74f-fc459b0bb5bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{e9017e44-218a-498a-8e8b-7b948497494b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\OpenSource\VulkanMemoryAllocator">
+      <UniqueIdentifier>{32fc0ceb-4d6c-4060-9cea-bffcb48bb614}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\OpenSource">
+      <UniqueIdentifier>{6d7f45f2-4cb9-48a4-9beb-d75aea6dcc04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{70fedeec-0e04-4659-af11-d69d2ee8398e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
+      <Filter>ThirdParty\OpenSource\VulkanMemoryAllocator</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

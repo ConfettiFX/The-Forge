@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,16 +11,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 // Shader for ground plane in Unit Tests Animation
 
@@ -44,13 +44,13 @@ VSOutput VS_MAIN(VSInput In)
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld));
+    float4x4 tempMat = mul(uniformBlock.mvp[VR_VIEW_ID], uniformBlock.toWorld);
 #else
-    float4x4 tempMat = mul(Get(mvp), Get(toWorld));
+    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld);
 #endif
     Out.Position = mul(tempMat, In.Position);
 
-    Out.worldPos = mul(In.Position, Get(toWorld)).xyz;
+    Out.worldPos = mul(In.Position, uniformBlock.toWorld).xyz;
 
     Out.TexCoord = In.TexCoord;
     RETURN(Out);

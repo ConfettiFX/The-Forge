@@ -60,6 +60,9 @@ DOCUMENTATION
       arrlenu:
         size_t arrlenu(T*);
           Returns the number of elements in the array as an unsigned type.
+      arrempty:
+        bool arrempty(T*);
+          Returns whether the number of elements in the array is 0.
       arrpop:
         T arrpop(T* a)
           Removes the final element of the array and returns it.
@@ -74,6 +77,18 @@ DOCUMENTATION
         void arrinsn(T* a, int p, int n);
           Inserts n uninitialized items into array a starting at a[p],
           moving the rest of the array over.
+      arrfirst:
+        T arrfirst(T* a);
+          Returns the first element of the array.
+      arrlast:
+        T arrlast(T* a);
+          Returns the last element of the array.
+      arrbegin:
+        T* arrbegin(T* a);
+          Returns a pointer to the first element of the array.
+      arrend:
+        T* arrend(T* a);
+          Returns a pointer to the next element past the end of the array.
       arraddnptr:
         T* arraddnptr(T* a, int n)
           Appends n uninitialized items onto array at the end.
@@ -104,6 +119,10 @@ DOCUMENTATION
         size_t arrcap(T* a);
           Returns the number of total elements the array can contain without
           needing to be reallocated.
+      arrshrinktofit:
+        void arrshrinktofit(T* a);
+          Shrinks the capacity of the array to match with the current
+          number of elements.
   Hash maps & String hash maps
     Given T is a structure type: struct { TK key; TV value; }. Note that some
     functions do not require TV value and can have other fields. For string
@@ -356,6 +375,9 @@ struct bstring;
 #define arraddnindex stbds_arraddnindex
 #define arrsetlen   stbds_arrsetlen
 #define arrlast     stbds_arrlast
+#define arrfirst    stbds_arrfirst
+#define arrend      stbds_arrend
+#define arrbegin    stbds_arrbegin
 #define arrins      stbds_arrins
 #define arrinsn     stbds_arrinsn
 #define arrdel      stbds_arrdel
@@ -364,6 +386,8 @@ struct bstring;
 #define arrcap      stbds_arrcap
 #define arrsetcap   stbds_arrsetcap
 #define arrcopy     stbds_arrcopy
+#define arrempty    stbds_arrempty
+#define arrshrinktofit stbds_arrshrinktofit
 
 #define hmput       stbds_hmput
 #define hmputs      stbds_hmputs
@@ -509,6 +533,7 @@ STB_DS_API extern void stbds_unit_tests(void);
 //
 
 STB_DS_API extern void * stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, size_t min_cap STBDS_FN_ALLOC_ARGS);
+STB_DS_API extern void * stbds_arrshrinkf(void* a, size_t elemsize, size_t elemalign, size_t min_cap STBDS_FN_ALLOC_ARGS);
 STB_DS_API extern void   stbds_arrfree_func(const void* a STBDS_FN_ALLOC_ARGS);
 STB_DS_API extern void   stbds_hmfree_func(const void *p, size_t elemsize STBDS_FN_ALLOC_ARGS);
 STB_DS_API extern void * stbds_hmget_key(void *a, size_t elemsize, size_t elemalign, const void *key, size_t keysize, int mode STBDS_FN_ALLOC_ARGS);
@@ -571,6 +596,7 @@ void stbds_same_type(const T*, const T*) {}
 #define stbds_arrcap(a)							((a) ? stbds_header(a)->capacity : 0)
 #define stbds_arrlen(a)							((a) ? (ptrdiff_t) stbds_header(a)->length : 0)
 #define stbds_arrlenu(a)						((a) ?             stbds_header(a)->length : 0)
+#define stbds_arrempty(a)						(!stbds_arrlenu(a))
 #define stbds_arrback(a)						((a) && stbds_arrlen(a) > 0 ? &((a)[stbds_arrlen(a) - 1]) : NULL )
 #define stbds_arrput_impl(a,v,f,l,fn,p)			(stbds_arrmaybegrow_impl(a, 1, f, l, fn, p), (a)[stbds_header(a)->length++] = (v))
 #define stbds_arrput(a,v)						stbds_arrput_impl(a, v, __FILE__, __LINE__, __FUNCTION__, "arrput")
@@ -583,6 +609,9 @@ void stbds_same_type(const T*, const T*) {}
 #define stbds_arraddnindex(a,n)					(stbds_arrmaybegrow_impl(a,n, __FILE__, __LINE__, __FUNCTION__, "arraddnindex"), (n) ? (stbds_header(a)->length += (n), stbds_header(a)->length-(n)) : stbds_arrlen(a))
 #define stbds_arraddnoff						stbds_arraddnindex
 #define stbds_arrlast(a)						((a)[stbds_header(a)->length-1])
+#define stbds_arrfirst(a)						(*(a))
+#define stbds_arrend(a)							((a) + stbds_arrlenu(a))
+#define stbds_arrbegin(a)						((a))
 #define stbds_arrdel(a,i)						stbds_arrdeln(a,i,1)
 #define stbds_arrdeln(a,i,n)					(memmove(&(a)[i], &(a)[(i)+(n)], sizeof *(a) * (stbds_header(a)->length-(n)-(i))), stbds_header(a)->length -= (n))
 #define stbds_arrdelswap(a,i)					((a)[i] = stbds_arrlast(a), stbds_header(a)->length -= 1)
@@ -595,6 +624,10 @@ void stbds_same_type(const T*, const T*) {}
 
 #define stbds_arrgrow_impl(a,b,c,f,l,fn,p)		((a) = stbds_arrgrowf_wrapper((a), sizeof *(a), STBDS_ALIGNOF_PTR((a)), (b), (c) STBDS_IF_MEM_TRACKING(,f,l,fn,p) ))
 #define stbds_arrgrow(a,b,c)					stbds_arrgrow_impl((a),(b),(c), __FILE__, __LINE__, __FUNCTION__, "arrgrow")
+
+#define stbds_arrshrink_impl(a,n,f,l,fn,p)		((a) = stbds_arrshrinkf_wrapper((a), sizeof *(a), STBDS_ALIGNOF_PTR((a)), (n) STBDS_IF_MEM_TRACKING(,f,l,fn,p) ))
+#define stbds_arrshrink(a,n)					stbds_arrshrink_impl((a),(n), __FILE__, __LINE__, __FUNCTION__, "arrshrink")
+#define stbds_arrshrinktofit(a)					(((a) != NULL) ? (stbds_arrshrink_impl((a), stbds_header(a)->length, __FILE__, __LINE__, __FUNCTION__, "arrshrinktofit")) : (a))
 
 #define stbds_hmput_impl(t, k, v, f, l, fn, p) \
     (STBDS_ASSERT_KEY_SIZE((t)->key, k ), \
@@ -807,6 +840,10 @@ template<class T> static T * stbds_arrgrowf_wrapper(T *a, size_t elemsize, size_
 {
   return (T*)stbds_arrgrowf((void *)a, elemsize, elemalign, addlen, min_cap STBDS_FN_ALLOC_PARAMS);
 }
+template<class T> static T* stbds_arrshrinkf_wrapper(T* a, size_t elemsize, size_t elemalign, size_t min_cap STBDS_FN_ALLOC_ARGS)
+{
+  return (T*)stbds_arrshrinkf((void*)a, elemsize, elemalign, min_cap STBDS_FN_ALLOC_PARAMS);
+}
 template<class T> static T * stbds_hmget_key_wrapper(T *a, size_t elemsize, size_t elemalign, void *key, size_t keysize, int mode STBDS_FN_ALLOC_ARGS) {
   return (T*)stbds_hmget_key((void*)a, elemsize, elemalign, key, keysize, mode STBDS_FN_ALLOC_PARAMS);
 }
@@ -827,6 +864,7 @@ template<class T> static T * stbds_shmode_func_wrapper(T *, size_t elemsize, siz
 }
 #else
 #define stbds_arrgrowf_wrapper            stbds_arrgrowf
+#define stbds_arrshrinkf_wrapper          stbds_arrshrinkf
 #define stbds_hmget_key_wrapper           stbds_hmget_key
 #define stbds_hmget_key_ts_wrapper        stbds_hmget_key_ts
 #define stbds_hmput_default_wrapper       stbds_hmput_default
@@ -942,6 +980,26 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, 
   stbds_header(b1)->offset = new_offset;
 
   return b1;
+}
+
+void* stbds_arrshrinkf(void* a, size_t elemsize, size_t elemalign, size_t min_cap STBDS_FN_ALLOC_ARGS)
+{
+  if (min_cap >= stbds_arrcap(a))
+    return a;
+
+  const size_t current_length = stbds_arrlenu(a);
+  ASSERT(current_length <= min_cap && "New capacity is less than current length");
+
+  void* tmp = NULL;
+  if (current_length > 0 || min_cap > 0)
+  {
+      tmp = stbds_arrgrowf(NULL, elemsize, elemalign, 0, min_cap STBDS_FN_ALLOC_PARAMS);
+      memmove(tmp, a, elemsize * current_length);
+      stbds_header(tmp)->length = current_length;
+  }
+  stbds_arrfree_func(a STBDS_FN_ALLOC_PARAMS); 
+
+  return tmp;
 }
 
 void  stbds_arrfree_func(const void* a STBDS_FN_ALLOC_ARGS)
@@ -2279,6 +2337,14 @@ void stbds_unit_tests(void)
   ASSERT(ptrVal % ALIGNOF(alignedStruct) == 0);
   hmfree(aligned);
 
+  {
+    arraddnindex(arr, 128);
+    arrpush(arr, 0);
+    ASSERTMSG(arrcap(arr) == 256, "Array growing is not O(1) amortized, allocated capacity: %d", arrcap(arr));
+    arrshrinktofit(arr);
+    ASSERTMSG(arrcap(arr) == 129 && arrlenu(arr) == arrcap(arr), "arrshrinktofit did not shrink storage to the length of the array. Capacity: %d Length: %d", arrcap(arr), arrlenu(arr));
+    arrfree(arr);
+  }
 #endif
 }
 #endif

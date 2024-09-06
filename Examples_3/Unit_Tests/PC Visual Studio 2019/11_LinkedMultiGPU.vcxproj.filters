@@ -25,8 +25,14 @@
     <Filter Include="Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders">
       <UniqueIdentifier>{7bc9d08c-00a7-4187-a878-75b583a21f8a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Scripts">
-      <UniqueIdentifier>{423f31b1-871b-4a46-be71-56c31e89d92a}</UniqueIdentifier>
+    <Filter Include="Art\Scripts\11_LinkedMultiGPU">
+      <UniqueIdentifier>{e5350dfb-0aa3-4daa-bbb0-1f4ae2273788}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{a4bd9b75-7921-4ad4-84dc-97d2b7eee0ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{ec5de140-f8e6-43dc-8422-ca5a8dcc9b69}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -54,8 +60,8 @@
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.vert.fsl">
       <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\src\11_LinkedMultiGPU\Scripts\Test0.lua">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Scripts</Filter>
+    <None Include="..\..\..\Art\Scripts\11_LinkedMultiGPU\Test0.lua">
+      <Filter>Art\Scripts\11_LinkedMultiGPU</Filter>
     </None>
   </ItemGroup>
 </Project>

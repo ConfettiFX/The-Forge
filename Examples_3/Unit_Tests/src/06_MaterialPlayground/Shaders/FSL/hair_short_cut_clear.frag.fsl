@@ -51,15 +51,15 @@ void PS_MAIN( VSOutputFullscreen In )
 {
 	INIT_MAIN;
 #if TEXTURE_ATOMIC_SUPPORTED
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 0 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 1 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 2 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
+	Write3D(DepthsTexture, int3(In.Position.xy, 0 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
+	Write3D(DepthsTexture, int3(In.Position.xy, 1 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
+	Write3D(DepthsTexture, int3(In.Position.xy, 2 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
 #else
 	uint2 p = uint2(In.Position.xy);
-    uint2 viewport = uint2(Get(Viewport).zw);
-    Get(DepthsTexture)[p.x + p.y * viewport.x] = as_type<uint>(0.0f);
-    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(0.0f);
-    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(0.0f);
+    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
+    DepthsTexture[p.x + p.y * viewport.x] = as_type<uint>(0.0f);
+    DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(0.0f);
+    DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(0.0f);
 #endif
 	RETURN();
 }

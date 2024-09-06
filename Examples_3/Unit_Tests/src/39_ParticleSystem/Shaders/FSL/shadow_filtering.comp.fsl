@@ -22,36 +22,39 @@
  * under the License.
 */
 
-RES(RWTex2D(float), Textures[2], UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+#include "shader_defs.h.fsl"
 
-PUSH_CONSTANT(RootConstant, b5)
+RES(RWTex2D(float), Textures[2], UPDATE_FREQ_NONE, u0, binding = 0);
+
+STRUCT(RootConstantData)
 {
-	DATA(uint2, ScreenSize, None);
+	DATA(uint2, ShadowmapSize, None);
 	DATA(uint, Horizontal, None);
 	DATA(uint, Pad, None);
 };
+RES(ROOT_CONSTANT(RootConstantData), RootConstant, UPDATE_FREQ_NONE, b5, binding = 0);
 
-NUM_THREADS(16, 16, 1)
+NUM_THREADS(SHADOWMAP_BLUR_THREAD_COUNT, SHADOWMAP_BLUR_THREAD_COUNT, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint3) threadInGroup, SV_GroupID(uint3) groupID )
 {
 	INIT_MAIN;
 
-	if (threadInDispatch.x >= Get(ScreenSize).x || threadInDispatch.y >= Get(ScreenSize).y)
+	if (threadInDispatch.x >= RootConstant.ShadowmapSize.x || threadInDispatch.y >= RootConstant.ShadowmapSize.y)
 	{
 		RETURN();
 	}
 
-	int stepCount = 3;
+	int stepCount = 2;
 	float sigma = float(stepCount * 2 + 1) / 2.0;
 	
-	uint horizontal = Get(Horizontal);
+	uint horizontal = RootConstant.Horizontal;
 	uint readIdx = horizontal == 1 ? 0 : 1;
 	uint writeIdx = 1 - readIdx;
 
 	float currSample;
 
 	BeginNonUniformResourceIndex(readIdx, 2);
-	currSample = LoadRWTex2D(Get(Textures)[readIdx], threadInDispatch.xy).x;
+	currSample = LoadRWTex2D(Textures[readIdx], threadInDispatch.xy).x;
 	EndNonUniformResourceIndex();
 
 	float anisoSize = currSample * 5;
@@ -69,11 +72,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 	for (int i=-stepCount; i<=stepCount; i++)
 	{
 		int intOffset = int(round(currOffset));
-		int2 offset = int2(intOffset * uint(horizontal == 1), intOffset * uint(horizontal == 0));
+		int2 coords = int2(threadInDispatch.xy) + int2(intOffset * uint(horizontal == 1), intOffset * uint(horizontal == 0));
+		coords = clamp(coords, int2(0,0), int2(RootConstant.ShadowmapSize - 1));
 
 		float shadow;
 		BeginNonUniformResourceIndex(readIdx, 2);
-		shadow = LoadRWTex2D(Get(Textures)[readIdx], int2(threadInDispatch.xy) + offset).x;
+		shadow = LoadRWTex2D(Textures[readIdx], coords).x;
 		EndNonUniformResourceIndex();
 
 		float a = float(abs(i)) / sigma;
@@ -88,7 +92,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 
 	val /= totWeight;
 
-	Write2D(Get(Textures)[writeIdx], threadInDispatch.xy, val);
+	Write2D(Textures[writeIdx], threadInDispatch.xy, val);
 	
 	RETURN();
 }

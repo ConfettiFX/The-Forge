@@ -47,7 +47,7 @@
 #define TEXTURE_ATOMIC_SUPPORTED 1
 #endif
 
-CBUFFER(SSSUniformData, UPDATE_FREQ_NONE, b1, binding = 1)
+STRUCT(SSSUniformData)
 {
 	DATA(float4, mLightCoordinate, None);
 	DATA(float4, mScreenSize, None);
@@ -57,14 +57,14 @@ CBUFFER(SSSUniformData, UPDATE_FREQ_NONE, b1, binding = 1)
 	DATA(uint, mIgnoreEdgePixels, None);
 	DATA(uint, mBilinearSamplingOffsetMode, None);
 	DATA(uint, mDebugOutput, None);
-	DATA(uint, mWaveLaneCount, None);
 };
+RES(CBUFFER(SSSUniformData), SSSUniform, UPDATE_FREQ_NONE, b1, binding = 1);
 
-// UPDATE_FREQ_FRAME
-PUSH_CONSTANT(DispatchRootConstants, b0)
+STRUCT(DispatchRootConstantsData)
 {
 	DATA(int2, WaveOffset, None);
 };
+RES(ROOT_CONSTANT(DispatchRootConstantsData), DispatchRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #if SAMPLE_COUNT > 1
 RES(Depth2DMS(float, SAMPLE_COUNT), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 2);

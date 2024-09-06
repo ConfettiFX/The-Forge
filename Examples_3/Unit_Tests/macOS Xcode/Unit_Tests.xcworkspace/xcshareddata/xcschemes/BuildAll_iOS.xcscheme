@@ -56,6 +56,20 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
+               BuildableName = "09a_HybridRaytracing_iOS.app"
+               BlueprintName = "09a_HybridRaytracing_iOS"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
                BuildableName = "10_ScreenSpaceReflections_iOS.app"
                BlueprintName = "10_ScreenSpaceReflections_iOS"
@@ -98,20 +112,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5CB55CA0246C128800BAE550"
-               BuildableName = "15_Transparency_iOS.app"
-               BlueprintName = "15_Transparency_iOS"
-               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "64E7CB552BA315F7001228C4"
                BuildableName = "15a_VisibilityBufferOIT_iOS.app"
                BlueprintName = "15a_VisibilityBufferOIT_iOS"
@@ -130,20 +130,6 @@
                BuildableName = "16_Raytracing_iOS.app"
                BlueprintName = "16_Raytracing_iOS"
                ReferencedContainer = "container:16_Raytracing/16_Raytracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "17_EntityComponentSystem_iOS.app"
-               BlueprintName = "17_EntityComponentSystem_iOS"
-               ReferencedContainer = "container:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry

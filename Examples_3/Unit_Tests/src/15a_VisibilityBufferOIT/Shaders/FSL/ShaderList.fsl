@@ -23,10 +23,6 @@
 #include "cluster_lights.comp.fsl"
 #end
 
-#frag CurveConversion.frag
-#include "CurveConversion.frag.fsl"
-#end
-
 #frag display.frag
 #include "display.frag.fsl"
 #end
@@ -136,42 +132,99 @@
 #include "visibilityBuffer_shade.vert.fsl"
 #end
 
+//--------------------------------------------
+//-- Visibility Buffer Shading
+//--------------------------------------------
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_1.frag
 #define SAMPLE_COUNT 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_1_GRAY.frag
+#define SAMPLE_COUNT 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_2.frag
 #define SAMPLE_COUNT 2
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_2_GRAY.frag
+#define SAMPLE_COUNT 2
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_4.frag
 #define SAMPLE_COUNT 4
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_4_GRAY.frag
+#define SAMPLE_COUNT 4
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_1_AO.frag
 #define SAMPLE_COUNT 1
 #define USE_AMBIENT_OCCLUSION 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_1_AO_GRAY.frag
+#define SAMPLE_COUNT 1
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_2_AO.frag
 #define SAMPLE_COUNT 2
 #define USE_AMBIENT_OCCLUSION 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_2_AO_GRAY.frag
+#define SAMPLE_COUNT 2
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_SAMPLE_COUNT_4_AO.frag
 #define SAMPLE_COUNT 4
 #define USE_AMBIENT_OCCLUSION 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_4_AO_GRAY.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_VRS.frag
 #define SAMPLE_COUNT 4
 #define USE_VRS 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag visibilityBuffer_shade_VRS_GRAY.frag
+#define SAMPLE_COUNT 4
+#define USE_VRS 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
 #frag visibilityBuffer_shade_VRS_AO.frag
 #define SAMPLE_COUNT 4
 #define USE_AMBIENT_OCCLUSION 1
 #define USE_VRS 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_VRS_AO_GRAY.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#define USE_VRS 1
+#define ENABLED_GODRAY
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 

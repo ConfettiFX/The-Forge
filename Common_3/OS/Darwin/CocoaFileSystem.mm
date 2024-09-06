@@ -93,7 +93,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     // Get debug directory
 #ifdef TARGET_IOS
     // Place log files in the application support directory on iOS.
-    NSURL* pDebugUrl = [fileManager URLForDirectory:NSApplicationSupportDirectory
+    NSURL* pDebugUrl = [fileManager URLForDirectory:NSDocumentDirectory
                                            inDomain:NSUserDomainMask
                                   appropriateForURL:nil
                                              create:true

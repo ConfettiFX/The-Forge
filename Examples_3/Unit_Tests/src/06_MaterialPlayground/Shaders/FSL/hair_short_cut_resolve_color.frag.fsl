@@ -54,9 +54,9 @@ float4 PS_MAIN( VSOutputFullscreen In )
 	float4 Out;
 
 #if FT_MULTIVIEW
-	float invAlpha = LoadTex3D(Get(InvAlphaTexture), Get(pointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
+	float invAlpha = LoadTex3D(InvAlphaTexture, pointSampler, uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
 #else
-	float invAlpha = LoadTex2D(Get(InvAlphaTexture), Get(pointSampler), uint2(In.Position.xy), 0).r;
+	float invAlpha = LoadTex2D(InvAlphaTexture, pointSampler, uint2(In.Position.xy), 0).r;
 #endif
 
 	float alpha = 1.0f - invAlpha;
@@ -68,9 +68,9 @@ float4 PS_MAIN( VSOutputFullscreen In )
 	}
 
 #if FT_MULTIVIEW
-	float4 color = LoadTex3D(Get(ColorsTexture), Get(pointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0);
+	float4 color = LoadTex3D(ColorsTexture, pointSampler, uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0);
 #else
-	float4 color = LoadTex2D(Get(ColorsTexture), Get(pointSampler), uint2(In.Position.xy), 0);
+	float4 color = LoadTex2D(ColorsTexture, pointSampler, uint2(In.Position.xy), 0);
 #endif
 	color.xyz /= color.w;
 	color.xyz *= alpha;

@@ -36,9 +36,6 @@
     <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>

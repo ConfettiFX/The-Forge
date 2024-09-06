@@ -41,7 +41,7 @@ PSInput VS_MAIN( VSInput In )
 	INIT_MAIN;
 	PSInput Out;
 
-	Out.position = mul(Get(orthProjMatrix), float4(In.position, 1.0f));
+	Out.position = mul(SceneConstantBuffer.orthProjMatrix, float4(In.position, 1.0f));
 	Out.color = In.color;
 	
 	RETURN(Out);

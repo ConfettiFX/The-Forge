@@ -30,7 +30,7 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -58,12 +58,19 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        ozz_base.lib;
+        ozz_animation.lib;
+        Renderer.lib;
+        OS.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
@@ -75,25 +82,22 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
-xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.bin" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
+        if not exist "$(OutDir)Animation\" mklink /j "$(OutDir)Animation\" "$(TheForgeArtDir)Animation\"
+        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
+        if not exist "$(OutDir)Meshes\" mklink /j "$(OutDir)Meshes\" "$(TheForgeArtDir)Meshes\"
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
 
-xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
-xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
-
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
-xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
-</Command>
+        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
+        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+      </Command>
     </PostBuildEvent>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
     </FSLShader>
@@ -108,12 +112,19 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;Renderer.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>
+        Xinput9_1_0.lib;
+        ws2_32.lib;
+        ozz_base.lib;
+        ozz_animation.lib;
+        Renderer.lib;
+        OS.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
@@ -122,25 +133,22 @@ xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\
-xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Animation\*.bin" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Textures\dds\Stormtrooper_D.tex" "$(OutDir)Textures\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+      <Command>
+        %(Command)
+        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
+        if not exist "$(OutDir)Animation\" mklink /j "$(OutDir)Animation\" "$(TheForgeArtDir)Animation\"
+        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
+        if not exist "$(OutDir)Meshes\" mklink /j "$(OutDir)Meshes\" "$(TheForgeArtDir)Meshes\"
+        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
+        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
 
-xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
-xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
-
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)GPUCfg\gpu.data*" /Y /D
-xcopy "$(TheForgeRoot)Examples_3\Unit_Tests\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)GPUCfg\gpu.cfg*" /Y /D
-</Command>
+        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
+        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+      </Command>
     </PostBuildEvent>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
     </FSLShader>

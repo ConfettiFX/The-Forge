@@ -79,13 +79,13 @@
 		5CABF37D2141545A00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC682223CC61003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC6A2223CC6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		7F6E002C2A93DA2F00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6E002D2A93DA2F00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E002E2A93DA2F00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E002F2A93DA2F00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00302A93DA2F00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00312A93DA2F00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6E00322A93DA2F00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6E002C2A93DA2F00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E002D2A93DA2F00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E002E2A93DA2F00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E002F2A93DA2F00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E00302A93DA2F00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E00312A93DA2F00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E00322A93DA2F00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
 		7F6E00BC2A93F7C800981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		7F6E00BE2A93F7CD00981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		7F6E00E62A93FEA700981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -119,9 +119,6 @@
 		AC29F9CD2A617EB100868119 /* SanMiguel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SanMiguel.h; path = ../../../../Visibility_Buffer/src/SanMiguel.h; sourceTree = "<group>"; };
 		B2087DF921421A76006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DFA21421A76006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		B212C48220DD6CCA00211A33 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
-		B212C48320DD6CCA00211A33 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		B212C48420DD6CCA00211A33 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		B21F76F121420EF500DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76F221420EF500DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76F321420EF500DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
@@ -132,12 +129,8 @@
 		D00A0D6B20DB69F400895D71 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D00A0D6C20DB69F400895D71 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D00A0D8120DB6B6A00895D71 /* 10_ScreenSpaceReflections.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; indentWidth = 2; name = 10_ScreenSpaceReflections.cpp; path = ../../../src/10_ScreenSpaceReflections/10_ScreenSpaceReflections.cpp; sourceTree = "<group>"; tabWidth = 2; usesTabs = 1; };
-		D00A0D9320DB6FDA00895D71 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
-		D00A0D9420DB6FDA00895D71 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		D00A0D9520DB6FDA00895D71 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E6390D6F2AF0460200482DC0 /* visibilityBufferShade.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBufferShade.frag.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/visibilityBufferShade.frag.fsl; sourceTree = "<group>"; };
-		E6390D702AF0460200482DC0 /* shading.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shading.h.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/shading.h.fsl; sourceTree = "<group>"; };
 		E6390D712AF0460200482DC0 /* visibilityBufferPass.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBufferPass.vert.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/visibilityBufferPass.vert.fsl; sourceTree = "<group>"; };
 		E6390D722AF0460200482DC0 /* batchCompaction.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = batchCompaction.comp.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/batchCompaction.comp.fsl; sourceTree = "<group>"; };
 		E6390D732AF0460200482DC0 /* visibilityBufferPass.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBufferPass.frag.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/visibilityBufferPass.frag.fsl; sourceTree = "<group>"; };
@@ -195,7 +188,6 @@
 				E6390D722AF0460200482DC0 /* batchCompaction.comp.fsl */,
 				E6390D742AF0460200482DC0 /* clearVisibilityBuffers.comp.fsl */,
 				E6390D792AF0460200482DC0 /* Shader_Defs.h.fsl */,
-				E6390D702AF0460200482DC0 /* shading.h.fsl */,
 				E6390D772AF0460200482DC0 /* triangleFiltering.comp.fsl */,
 				E6390D752AF0460200482DC0 /* vb_resources.h.fsl */,
 				E6390D732AF0460200482DC0 /* visibilityBufferPass.frag.fsl */,
@@ -252,12 +244,6 @@
 				B2087DF921421A76006F372D /* MetalKit.framework */,
 				B21F76F121420EF500DF2297 /* UIKit.framework */,
 				5CABF37D2141545A00EFD76A /* GameController.framework */,
-				B212C48220DD6CCA00211A33 /* assimp.a */,
-				B212C48320DD6CCA00211A33 /* IrrXML.a */,
-				B212C48420DD6CCA00211A33 /* zlibstatic.a */,
-				D00A0D9320DB6FDA00895D71 /* assimp.a */,
-				D00A0D9420DB6FDA00895D71 /* IrrXML.a */,
-				D00A0D9520DB6FDA00895D71 /* zlibstatic.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -388,7 +374,6 @@
 				TargetAttributes = {
 					C95132EC2010E68A002E584B = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = BT67ZY58A8;
 						ProvisioningStyle = Automatic;
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
@@ -515,7 +500,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/SanMiguel_3\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/dds/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/dds/LA_Helipad3D.tex\" \"$DST/Textures\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/dds/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/dds/LA_Helipad3D.tex\" \"$DST/Textures\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
 		};
 		5C61B59D24D2E2E500EF5D20 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -532,7 +517,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/SanMiguel_3\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/ktx/LA_Helipad3D.tex\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/ktx/LA_Helipad3D.tex\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -599,12 +584,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -623,12 +603,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -664,12 +639,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -686,12 +656,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					"$(PROJECT_DIR)/../../../../",
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

@@ -163,11 +163,11 @@ static bool socketError(const char* msg, const SocketAddr* addr)
         char     host[SOCKET_HOST_MAX_SIZE];
         uint16_t port = 0;
         socketAddrToHostPort(addr, host, sizeof(host), &port);
-        LOGF(eERROR, "%s `%s:%u`: %s", msg, host, (uint32_t)port, socketLastErrorMessage());
+        LOGF(eERROR, "%s `%s:%u`: (%d) %s", msg, host, (uint32_t)port, (int)socketLastError(), socketLastErrorMessage());
     }
     else
     {
-        LOGF(eERROR, "%s: %s", msg, socketLastErrorMessage());
+        LOGF(eERROR, "%s: (%d) %s", msg, (int)socketLastError(), socketLastErrorMessage());
     }
     return false;
 }
@@ -196,14 +196,15 @@ bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port)
         const char* realHost = (strncmp(host, "localhost", 9) == 0) ? "127.0.0.1" : host;
         if (!inet_pton(family, realHost, addrPSinAddr(addr)))
         {
-            LOGF(eERROR, "Failed to create socket address from `%s:%u`: %s", host, (uint32_t)port, socketLastErrorMessage());
+            LOGF(eERROR, "Failed to create socket address from `%s:%u`: (%d) %s", host, (uint32_t)port, (int)socketLastError(),
+                 socketLastErrorMessage());
             return false;
         }
     }
     return true;
 }
 
-#ifdef FORGE_TOOLS // Name resolution is only supported when running the UIRemoteControl tool
+#ifdef FORGE_TOOLS
 bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port)
 {
     ASSERT(addr);
@@ -234,7 +235,8 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
 
     if (!success)
     {
-        LOGF(eERROR, "Failed to create socket address from `%s:%s`: %s", hostname, portStr, socketLastErrorMessage());
+        LOGF(eERROR, "Failed to create socket address from `%s:%s`: (%d) %s", hostname, portStr, (int)socketLastError(),
+             socketLastErrorMessage());
     }
     else
     {
@@ -271,6 +273,13 @@ bool socketCreateServer(Socket* sock, const SocketAddr* addr, int backlog)
 {
     ASSERT(sock);
     *sock = SOCKET_INVALID;
+
+    // NOTE: While behaviour when passing `backlog=0` is usually implementation defined,
+    // it usually works fine since the fallback behaviour is usually to just use a default value.
+    // However, on certain versions of Android this prevents the server from receiving connections,
+    // so it is disabled for all platforms to prevent anyone depending on this behavior.
+    ASSERT(backlog != 0 && "socketCreateServer(backlog=0) is implementation defined and therefore not allowed."
+                           "You can use `-1` if you do not need a specific value for `backlog`");
 
     int    family = *addrPSaFamily(addr);
     Socket s = socket(family, SOCK_STREAM, 0);
@@ -360,7 +369,7 @@ bool socketAccept(Socket* sock, Socket* conn, SocketAddr* connAddr)
         int inter = EINTR;
 #endif
         if (socketLastError() != inter)
-            LOGF(eERROR, "Failed to accept new connection: %s", socketLastErrorMessage());
+            LOGF(eERROR, "Failed to accept new connection: (%d) %s", (int)socketLastError(), socketLastErrorMessage());
         return false;
     }
 

@@ -1,6 +1,3 @@
-
-#if !defined(GLES)
-
 #frag joint.frag
 #include "joint.frag.fsl"
 #end
@@ -16,5 +13,3 @@
 #vert FT_MULTIVIEW bone.vert
 #include "bone.vert.fsl"
 #end
-
-#endif

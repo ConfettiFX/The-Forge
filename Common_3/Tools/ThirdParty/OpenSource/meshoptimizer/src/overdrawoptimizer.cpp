@@ -2,7 +2,7 @@
 #include "meshoptimizer.h"
 #include <math.h>
 
-#include "../../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
 
 // This work is based on:
 // Pedro Sander, Diego Nehab and Joshua Barczak. Fast Triangle Reordering for Vertex Locality and Reduced Overdraw. 2007

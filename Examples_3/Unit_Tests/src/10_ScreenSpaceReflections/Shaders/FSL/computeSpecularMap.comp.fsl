@@ -30,11 +30,13 @@
 STATIC float Pi = 3.14159265359;
 STATIC int SampleCount = IMPORTANCE_SAMPLE_COUNT;
 
-PUSH_CONSTANT(RootConstant, b0)
+STRUCT(RootConstantData)
 {
 	DATA(uint, mipSize, None);
 	DATA(float, roughness, None);
 };
+RES(ROOT_CONSTANT(RootConstantData), RootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
+
 RES(TexCube(float4), srcTexture, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(WTex2DArray(float4), dstTexture, UPDATE_FREQ_PER_DRAW, u2, binding = 2);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s3, binding = 3);
@@ -97,12 +99,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	INIT_MAIN;
 	uint3 threadPos = DTid;
 
-	float mipRoughness = Get(roughness);
+	float mipRoughness = RootConstant.roughness;
 
-	if (threadPos.x >= Get(mipSize) || threadPos.y >= Get(mipSize))
+	if (threadPos.x >= RootConstant.mipSize || threadPos.y >= RootConstant.mipSize)
 		RETURN();
 
-	float2 texcoords = float2(float(threadPos.x + 0.5) / Get(mipSize), float(threadPos.y + 0.5) / Get(mipSize));
+	float2 texcoords = float2(float(threadPos.x + 0.5) / RootConstant.mipSize, float(threadPos.y + 0.5) / RootConstant.mipSize);
 
 	float3 sphereDir = f3(1);
 	if (threadPos.z <= 0)
@@ -140,18 +142,18 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 			float HdotV = max(dot(H, V), 0.0);
 			float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
 
-			float saTexel = 4.0 * Pi / (6.0 * Get(mipSize) * Get(mipSize));
+			float saTexel = 4.0 * Pi / (6.0 * RootConstant.mipSize * RootConstant.mipSize);
 			float saSample = 1.0 / (float(SampleCount) * pdf + 0.0001);
 
 			float mipLevel = mipRoughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
-			prefilteredColor += SampleLvlTexCube(Get(srcTexture), Get(skyboxSampler), L, mipLevel) * NdotL;
+			prefilteredColor += SampleLvlTexCube(srcTexture, skyboxSampler, L, mipLevel) * NdotL;
 
 			totalWeight += NdotL;
 		}
 	}
 
 	prefilteredColor = prefilteredColor / totalWeight;
-	Write3D(Get(dstTexture), int3(threadPos), prefilteredColor);
+	Write3D(dstTexture, int3(threadPos), prefilteredColor);
 	RETURN();
 }

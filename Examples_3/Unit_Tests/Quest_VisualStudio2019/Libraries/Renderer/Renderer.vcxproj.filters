@@ -42,9 +42,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Quest\VrApiHooks.cpp">
       <Filter>Graphics\Quest</Filter>
     </ClCompile>

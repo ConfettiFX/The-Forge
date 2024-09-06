@@ -33,7 +33,7 @@ float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveID )
 	uint materialID = In.materialID;
 	float4 texColor = f4(0);
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-    	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.texCoord, 0);
+    	texColor = SampleLvlTex2D(diffuseMaps[materialID], nearClampSampler, In.texCoord, 0);
 	EndNonUniformResourceIndex();
 
 	clip(texColor.a < 0.5f ? -1 : 1);

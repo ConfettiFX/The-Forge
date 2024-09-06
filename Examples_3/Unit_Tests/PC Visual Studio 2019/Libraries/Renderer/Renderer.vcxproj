@@ -12,17 +12,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11ShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\ParticleSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
@@ -30,8 +24,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11CapBuilder.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h" />
@@ -39,11 +31,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Data\Libraries\ags\AgsHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Data\Libraries\nvapi\NvApiHelper.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IParticleSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h" />
@@ -100,7 +90,7 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -121,25 +111,42 @@
       </PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+        $(GLFW_DIR)\lib;
+        $(VULKAN_SDK)\Lib;
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+        vulkan-1.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;amd_ags_x64.lib;nvapi64.lib;</AdditionalDependencies>
+      <AdditionalDependencies>
+        dxcompiler.lib;
+        WinPixEventRuntime.lib;
+        SpirvTools.lib;
+        amd_ags_x64.lib;
+        nvapi64.lib;
+      </AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(ProjectDir)..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+        $(TheForgeRoot)Data\Libraries\ags\ags_lib\lib;
+        $(TheForgeRoot)Data\Libraries\nvapi\amd64;
+        $(TheForgeRoot)Data\Libraries\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Data\Libraries\winpixeventruntime\bin\;
+        %(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+        %(Command) 
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -151,8 +158,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -161,17 +166,33 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        vulkan-1.lib;
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib;dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;</AdditionalDependencies>
+      <AdditionalDependencies>
+        amd_ags_x64.lib;
+        nvapi64.lib;
+        dxcompiler.lib;
+        WinPixEventRuntime.lib;
+        SpirvTools.lib;
+      </AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(ProjectDir)..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(ProjectDir)..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+        $(TheForgeRoot)Data\Libraries\ags\ags_lib\lib;
+        $(TheForgeRoot)Data\Libraries\nvapi\amd64;
+        $(TheForgeRoot)Data\Libraries\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Data\Libraries\winpixeventruntime\bin\;
+        %(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+         %(Command) 
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

@@ -32,7 +32,7 @@ PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 	PsInOpaque Out;
 
 	float4 vertexPos = LoadVertex(vertexID);
-	Out.position = mul(Get(worldViewProjMat), vertexPos);
+	Out.position = mul(objectUniformBlock.worldViewProjMat, vertexPos);
 
 	RETURN(Out);
 }

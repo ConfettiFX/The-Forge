@@ -22,11 +22,12 @@
  * under the License.
 */
 
-CBUFFER(UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(UniformCameraSkyData)
 {
 	DATA(float4x4, projView, None);
 	DATA(float3, camPos, None);
 };
+RES(CBUFFER(UniformCameraSkyData), UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSInput) {
 	DATA(float4, Position, POSITION);
@@ -41,7 +42,7 @@ VSOutput VS_MAIN( VSInput Input )
 {
     INIT_MAIN;
     VSOutput result;
-    result.Position = mul(Get(projView), Input.Position);
+    result.Position = mul(UniformCameraSky.projView, Input.Position);
 	result.Position = result.Position.xyww; //this makes depth buffer 1.0
 
 	result.pos = Input.Position.xyz;

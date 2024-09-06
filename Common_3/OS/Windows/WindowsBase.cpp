@@ -37,7 +37,6 @@
 
 #include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 #include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
-#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Application/Interfaces/IFont.h"
@@ -46,14 +45,12 @@
 #include "../../Game/Interfaces/IScripting.h"
 #include "../../Graphics/Interfaces/IGraphics.h"
 #include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../OS/Interfaces/IInput.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
 #include "../../Utilities/Interfaces/IThread.h"
 #include "../../Utilities/Interfaces/ITime.h"
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-#include "../../Tools/Network/Network.h"
-#endif
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
 #endif
@@ -78,20 +75,17 @@ static CpuInfo     gCpu;
 static OSInfo      gOsInfo = {};
 
 // UI
-static UIComponent* pAPISwitchingComponent = NULL;
+static UIComponent* pGPUSwitchingComponent = NULL;
 static UIComponent* pToggleVSyncComponent = NULL;
+
+static UIWidget* pSwitchComponentLabelWidget = NULL;
+static UIWidget* pSelectGraphicCardWidget = NULL;
+
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
 #endif
-static UIWidget* pSwitchComponentLabelWidget = NULL;
-static UIWidget* pSelectApUIWidget = NULL;
-static UIWidget* pSelectGraphicCardWidget = NULL;
-static uint32_t  gSelectedApiIndex = 0;
 
-// PickRenderingAPI.cpp
-extern PlatformParameters gPlatformParameters;
-extern bool               gD3D11Unsupported;
-
+extern GPUSelection gGpuSelection;
 // WindowsWindow.cpp
 extern IApp*        pWindowAppRef;
 extern WindowDesc*  gWindow;
@@ -102,6 +96,8 @@ extern uint32_t     gMonitorCount;
 
 // WindowsLog.c
 extern "C" HWND* gLogWindowHandle;
+
+bool gCaptureCursorOnMouseDown = true;
 
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
@@ -148,7 +144,7 @@ void getOsVersion(ULONG& majorVersion, ULONG& minorVersion, ULONG& buildNumber)
     void(WINAPI * pfnRtlGetNtVersionNumbers)(__out_opt ULONG * pNtMajorVersion, __out_opt ULONG * pNtMinorVersion,
                                              __out_opt ULONG * pNtBuildNumber);
 
-    (FARPROC&)pfnRtlGetNtVersionNumbers = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlGetNtVersionNumbers");
+    (FARPROC&)pfnRtlGetNtVersionNumbers = GetProcAddress(GetModuleHandle(TEXT("ntdll.dll")), "RtlGetNtVersionNumbers");
 
     if (pfnRtlGetNtVersionNumbers)
     {
@@ -167,9 +163,12 @@ bool initBaseSubsystems()
     extern bool platformInitUserInterface();
     extern void platformInitLuaScriptingSystem();
     extern void platformInitWindowSystem(WindowDesc*);
+    extern void platformInitInput(WindowDesc*);
 
     platformInitWindowSystem(gWindowDesc);
     pApp->pWindow = gWindowDesc;
+
+    platformInitInput(gWindowDesc);
 
 #ifdef ENABLE_FORGE_FONTS
     if (!platformInitFontSystem())
@@ -197,10 +196,6 @@ bool initBaseSubsystems()
 #endif
 #endif
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    initNetwork();
-#endif
-
     return true;
 }
 
@@ -210,6 +205,9 @@ void updateBaseSubsystems(float deltaTime, bool appDrawn)
     extern void platformUpdateLuaScriptingSystem(bool appDrawn);
     extern void platformUpdateUserInterface(float deltaTime);
     extern void platformUpdateWindowSystem();
+    extern void platformUpdateInput(float deltaTime);
+
+    platformUpdateInput(deltaTime);
 
     platformUpdateWindowSystem();
 
@@ -229,6 +227,9 @@ void exitBaseSubsystems()
     extern void platformExitUserInterface();
     extern void platformExitLuaScriptingSystem();
     extern void platformExitWindowSystem();
+    extern void platformExitInput();
+
+    platformExitInput();
 
     platformExitWindowSystem();
 
@@ -243,10 +244,6 @@ void exitBaseSubsystems()
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
 #endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    exitNetwork();
-#endif
 }
 
 //------------------------------------------------------------------------
@@ -256,8 +253,6 @@ void exitBaseSubsystems()
 // Must be called after Graphics::initRenderer()
 void setupPlatformUI(const IApp::Settings* pSettings)
 {
-    gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
-
 #ifdef ENABLE_FORGE_UI
 
     // WINDOW AND RESOLUTION CONTROL
@@ -267,11 +262,11 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     // VSYNC CONTROL
     UIComponentDesc uiDesc = {};
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.8f);
-    uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
+    uiAddComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
     CheckboxWidget checkbox;
     checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+    UIWidget* pCheckbox = uiAddComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
 
     // MICROPROFILER UI
@@ -281,62 +276,26 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     // RELOAD CONTROL
     uiDesc = {};
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.9f);
-    uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
+    uiAddComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
-    // API SWITCHING
+    // GPU SWITCHING
     uiDesc = {};
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.6f, pSettings->mHeight * 0.01f);
-    uiCreateComponent("API Switching", &uiDesc, &pAPISwitchingComponent);
+    uiAddComponent("GPU Switching", &uiDesc, &pGPUSwitchingComponent);
 
-    static const char* pApiNames[] = {
-#if defined(DIRECT3D12)
-        "D3D12",
-#endif
-#if defined(VULKAN)
-        "Vulkan",
-#endif
-#if defined(DIRECT3D11)
-        "D3D11",
-#endif
-    };
-
-    // Select Api
-    DropdownWidget selectApUIWidget = {};
-    selectApUIWidget.pData = &gSelectedApiIndex;
-
-    uint32_t apiCount = RENDERER_API_COUNT;
-#ifdef DIRECT3D11
-    if (gD3D11Unsupported)
-    {
-        --apiCount;
-    }
-#endif
-    ASSERT(apiCount != 0 && "No supported Graphics API available!");
-    selectApUIWidget.pNames = pApiNames;
-    selectApUIWidget.mCount = apiCount;
-
-    pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-    pSelectApUIWidget->pOnEdited = [](void* pUserData)
-    {
-        UNREF_PARAM(pUserData);
-        ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
-        requestReset(&resetDescriptor);
-    };
-    REGISTER_LUA_WIDGET(pSelectApUIWidget);
-
-    static const char* gpuNames[] = { gPlatformParameters.ppAvailableGpuNames[0], gPlatformParameters.ppAvailableGpuNames[1],
-                                      gPlatformParameters.ppAvailableGpuNames[2], gPlatformParameters.ppAvailableGpuNames[3] };
+    static const char* gpuNames[] = { gGpuSelection.ppAvailableGpuNames[0], gGpuSelection.ppAvailableGpuNames[1],
+                                      gGpuSelection.ppAvailableGpuNames[2], gGpuSelection.ppAvailableGpuNames[3] };
 
     DropdownWidget selectGraphicCardUIWidget = {};
-    selectGraphicCardUIWidget.pData = &gPlatformParameters.mSelectedGpuIndex;
+    selectGraphicCardUIWidget.pData = &gGpuSelection.mSelectedGpuIndex;
     selectGraphicCardUIWidget.pNames = gpuNames;
-    selectGraphicCardUIWidget.mCount = gPlatformParameters.mAvailableGpuCount;
+    selectGraphicCardUIWidget.mCount = gGpuSelection.mAvailableGpuCount;
 
     pSelectGraphicCardWidget =
-        uiCreateComponentWidget(pAPISwitchingComponent, "Select Graphic Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);
+        uiAddComponentWidget(pGPUSwitchingComponent, "Select Graphics Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);
     pSelectGraphicCardWidget->pOnEdited = [](void* pUserData)
     {
         UNREF_PARAM(pUserData);
@@ -368,7 +327,7 @@ void togglePlatformUI()
     platformToggleWindowSystemUI(gShowPlatformUI);
 
     uiSetComponentActive(pToggleVSyncComponent, gShowPlatformUI);
-    uiSetComponentActive(pAPISwitchingComponent, gShowPlatformUI);
+    uiSetComponentActive(pGPUSwitchingComponent, gShowPlatformUI);
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
 #endif
@@ -404,10 +363,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
     // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
     // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
     SetEnvironmentVariableA("VK_LAYER_PATH", pSystemFileIO->GetResourceMount(RM_DEBUG));
-#endif
-
-#ifdef ENABLE_MTUNER
-    rmemInit(0);
 #endif
 
     initLog(app->GetName(), DEFAULT_LOG_LEVEL);
@@ -524,7 +479,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 ASSERT(false);
                 return -1;
             }
-            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D11;
             paramRenderingAPIFound = true;
         }
 #endif
@@ -537,7 +491,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 ASSERT(false);
                 return -1;
             }
-            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D12;
             paramRenderingAPIFound = true;
         }
 #endif
@@ -550,7 +503,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 ASSERT(false);
                 return -1;
             }
-            gPlatformParameters.mSelectedRendererApi = RENDERER_API_VULKAN;
             paramRenderingAPIFound = true;
         }
 #endif
@@ -565,12 +517,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
         initTimer(&t);
         if (!pApp->Init())
         {
-            const char* pRendererReason;
-            if (hasRendererInitializationError(&pRendererReason))
-            {
-                pApp->ShowUnsupportedMessage(pRendererReason);
-            }
-
             if (pApp->mUnsupported)
             {
                 errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
@@ -618,6 +564,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
         bool lastMinimized = gWindow->minimized;
 
+        extern void platformUpdateLastInputState();
+        platformUpdateLastInputState();
+
         extern bool handleMessages();
         quit = handleMessages() || pSettings->mQuit;
 
@@ -638,15 +587,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
             if (gResetDescriptor.mType & RESET_TYPE_GRAPHIC_CARD_SWITCH)
             {
-                ASSERT(gPlatformParameters.mSelectedGpuIndex < gPlatformParameters.mAvailableGpuCount);
-                gPlatformParameters.mPreferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.mSelectedGpuIndex];
+                ASSERT(gGpuSelection.mSelectedGpuIndex < gGpuSelection.mAvailableGpuCount);
+                gGpuSelection.mPreferedGpuId = gGpuSelection.pAvailableGpuIds[gGpuSelection.mSelectedGpuIndex];
             }
 
             gReloadDescriptor.mType = RELOAD_TYPE_ALL;
             pApp->Unload(&gReloadDescriptor);
             pApp->Exit();
 
-            gPlatformParameters.mSelectedRendererApi = (RendererApi)gSelectedApiIndex;
             pSettings->mInitialized = false;
 
             closeWindow(app->pWindow);
@@ -753,16 +701,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
     WindowsStackTrace::Exit();
 #endif
 
-    exitLog();
-
     exitBaseSubsystems();
 
-    exitFileSystem();
+    exitLog();
 
-#ifdef ENABLE_MTUNER
-    rmemUnload();
-    rmemShutDown();
-#endif
+    exitFileSystem();
 
     exitMemAlloc();
 

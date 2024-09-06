@@ -26,9 +26,7 @@
     <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
-      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
-    </ProjectReference>
+
     <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
       <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
     </ProjectReference>
@@ -63,7 +61,6 @@
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\SDF_Constant.h.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Shader_Defs.h.fsl" />
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\shading.h.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\sss_resources.h.fsl" />
@@ -81,27 +78,27 @@
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visualizeSDFMesh.comp.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua" />
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua" />
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua" />
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua" />
-    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua" />
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_0.lua" />
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_2.lua" />
-    <None Include="..\..\..\..\Art\UnitTestResources\Scripts\Test_MSAA_4.lua" />
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ASM.lua" />
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ESM.lua" />
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_MSM.lua" />
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_SDF.lua" />
+    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_VSM.lua" />
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_0.lua" />
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_2.lua" />
+    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_4.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A99DA1E5-B36E-41E3-88D1-0154F0B60A29}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>LightShadowPlayground</RootNamespace>
+    <RootNamespace>UT09_LightShadowPlayground</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>09_LightShadowPlayground</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <Import Project="..\AGDEVersions.props" />
+  <Import Project="..\..\..\Build_Props\VS\AGDEVersions.Android.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
@@ -127,11 +124,13 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -143,26 +142,28 @@
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+      <Command>
+        %(Command)
 
-xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "%ART%\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\SanMiguel_3\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\SanMiguel_3\"
+        xcopy /Y /S /D  "$(TheForgeArtDir)Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+        xcopy /Y /S /D "$(TheForgeArtDir)SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
 
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\$(ProjectName)\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\$(ProjectName)\"
 
-if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
-if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
+        if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
+        if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
 
-xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
-xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
+        xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
+        xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
+        xcopy /Y /S /D "$(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
+        xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+      </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
@@ -186,11 +187,13 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -202,26 +205,28 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
+      <Command>
+        %(Command)
 
-xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy /Y /S /D "%ART%\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\SanMiguel_3\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\SanMiguel_3\"
+        xcopy /Y /S /D  "$(TheForgeArtDir)Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+        xcopy /Y /S /D "$(TheForgeArtDir)SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\"
 
-xcopy /Y /S /D "%ART%\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-xcopy /Y /S /D  "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\$(ProjectName)\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\$(ProjectName)\"
 
-if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
-if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
+        if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
+        if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
 
-xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
-xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
+        xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
+        xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
+        xcopy /Y /S /D "$(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
+        xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+      </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

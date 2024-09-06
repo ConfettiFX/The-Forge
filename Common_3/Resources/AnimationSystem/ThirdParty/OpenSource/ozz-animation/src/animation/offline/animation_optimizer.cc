@@ -33,7 +33,7 @@
 
 // Internal include file
 #define OZZ_INCLUDE_PRIVATE_HEADER  // Allows to include private headers.
-#include "../src/animation/offline/decimate.h"
+#include "../../../src/animation/offline/decimate.h"
 #include "../../../include/ozz/animation/offline/raw_animation.h"
 #include "../../../include/ozz/animation/offline/raw_animation_utils.h"
 #include "../../../include/ozz/animation/runtime/skeleton.h"

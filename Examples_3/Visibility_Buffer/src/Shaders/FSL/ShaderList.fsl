@@ -65,10 +65,6 @@
 #include "godray_blur.comp.fsl"
 #end
 
-#frag CurveConversion.frag
-#include "CurveConversion.frag.fsl"
-#end
-
 #frag FT_MULTIVIEW display.frag
 #include "display.frag.fsl"
 #end
@@ -89,9 +85,18 @@
 #include "resolve.vert.fsl"
 #end
 
+//--------------------------------------------
+//-- Visibility Buffer Shading
+//--------------------------------------------
+
 // We should have a better way of generating these
 #frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_1.frag
 #define SAMPLE_COUNT 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_1_GRAY.frag
+#define SAMPLE_COUNT 1
+#define ENABLED_GODRAY
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
@@ -99,9 +104,20 @@
 #define SAMPLE_COUNT 1
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_1_AO_GRAY.frag
+#define SAMPLE_COUNT 1
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
 
 #frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_2.frag
 #define SAMPLE_COUNT 2
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_2_GRAY.frag
+#define SAMPLE_COUNT 2
+#define ENABLED_GODRAY
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 
@@ -109,14 +125,31 @@
 #define SAMPLE_COUNT 2
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_2_AO_GRAY.frag
+#define SAMPLE_COUNT 2
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
 
 #frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4.frag
 #define SAMPLE_COUNT 4
 #include "visibilityBuffer_shade.frag.fsl"
 #end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4_GRAY.frag
+#define SAMPLE_COUNT 4
+#define ENABLED_GODRAY
+#include "visibilityBuffer_shade.frag.fsl"
+#end
 
 #frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4_AO.frag
 #define SAMPLE_COUNT 4
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag FT_MULTIVIEW visibilityBuffer_shade_SAMPLE_4_AO_GRAY.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#define ENABLED_GODRAY
 #include "visibilityBuffer_shade.frag.fsl"
 #end
 

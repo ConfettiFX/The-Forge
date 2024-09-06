@@ -58,8 +58,17 @@
     <Filter Include="Common_3\OS\ThirdParty">
       <UniqueIdentifier>{f036e4ca-25d4-4d65-b0ab-acd9f5e271aa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common_3\OS\ThirdParty\OpenSource\hidapi\windows">
+      <UniqueIdentifier>{e5bace24-df63-4982-ab49-0762c6269e99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\ThirdParty\OpenSource\hidapi">
+      <UniqueIdentifier>{6fdaa790-41d9-41c9-9e0a-d19c40cc31cf}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common_3\OS\WindowSystem">
       <UniqueIdentifier>{dbb92f86-e05e-4857-a7c0-f2e272777511}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Windows">
+      <UniqueIdentifier>{dee388b8-ac00-4e88-b63e-615a3fbb0546}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\FileSystem">
       <UniqueIdentifier>{24e960d4-36b2-4c36-a506-984b10c35270}</UniqueIdentifier>
@@ -88,12 +97,6 @@
     <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\lz4">
       <UniqueIdentifier>{ac5c3008-e639-4a83-abef-0ed9f0da28da}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\rmem\src">
-      <UniqueIdentifier>{b0f90bce-20fb-40b5-814f-8b64cd13c032}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\rmem">
-      <UniqueIdentifier>{59cb8eb2-b046-4a46-a79d-0672c8346325}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\zstd\common">
       <UniqueIdentifier>{85a4fc60-4e43-4d71-98d3-75cc3991db2c}</UniqueIdentifier>
     </Filter>
@@ -106,9 +109,6 @@
     <Filter Include="Common_3\Utilities\Threading">
       <UniqueIdentifier>{4574763c-39fd-433e-a5cd-bb37b991447e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\OS\Windows">
-      <UniqueIdentifier>{dee388b8-ac00-4e88-b63e-615a3fbb0546}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\Resources\AnimationSystem\Animation">
       <UniqueIdentifier>{a1322ea6-af1b-436c-9bcc-695806aa5933}</UniqueIdentifier>
     </Filter>
@@ -117,6 +117,12 @@
     </Filter>
     <Filter Include="Common_3\Resources">
       <UniqueIdentifier>{0e763fa5-f48a-4a32-bf2a-f054e7b8d8e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Input\HID">
+      <UniqueIdentifier>{43fe320e-56f2-46c2-80bb-a769eec1f354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Input">
+      <UniqueIdentifier>{2e49f4b5-49e9-4340-894d-bdc2c38b0a4d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Application\Interfaces">
       <UniqueIdentifier>{7c8fc946-dd8c-4fb7-a0c1-6bc5516db1f2}</UniqueIdentifier>
@@ -168,17 +174,11 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp">
       <Filter>Common_3\Application</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp">
-      <Filter>Common_3\Application</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.cpp">
       <Filter>Common_3\Application\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.cpp">
       <Filter>Common_3\Application\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp">
-      <Filter>Common_3\Application</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp">
       <Filter>Common_3\Application</Filter>
@@ -321,8 +321,14 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\impl_x86_windows.c">
       <Filter>Common_3\OS\ThirdParty\OpenSource\cpu_features\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\hidapi\windows\hid.c">
+      <Filter>Common_3\OS\ThirdParty\OpenSource\hidapi\windows</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
       <Filter>Common_3\OS\WindowSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsInput.cpp">
+      <Filter>Common_3\OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\FileSystem.c">
       <Filter>Common_3\Utilities\FileSystem</Filter>
@@ -347,15 +353,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\lz4\lz4.c">
       <Filter>Common_3\Utilities\ThirdParty\OpenSource\lz4</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
-      <Filter>Common_3\Utilities\ThirdParty\OpenSource\rmem\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp">
-      <Filter>Common_3\Utilities\ThirdParty\OpenSource\rmem\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
-      <Filter>Common_3\Utilities\ThirdParty\OpenSource\rmem\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\debug.c">
       <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
@@ -441,6 +438,15 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.cpp">
       <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
     </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserPS4Controller.h">
+      <Filter>Common_3\OS\Input\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserPS5Controller.h">
+      <Filter>Common_3\OS\Input\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserSwitchController.h">
+      <Filter>Common_3\OS\Input\HID</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Config.h">
       <Filter>Common_3\Application</Filter>
     </ClInclude>
@@ -448,9 +454,6 @@
       <Filter>Common_3\Application\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\ICameraController.h">
-      <Filter>Common_3\Application\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h">
       <Filter>Common_3\Application\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IMiddleware.h">
@@ -507,8 +510,23 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\CPUConfig.h">
       <Filter>Common_3\OS</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDInput.h">
+      <Filter>Common_3\OS\Input\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\TouchInput.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
+      <Filter>Common_3\OS\Interfaces</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>Common_3\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\hidapi\hidapi.h">
+      <Filter>Common_3\OS\ThirdParty\OpenSource\hidapi</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h">
       <Filter>Common_3\OS\Windows</Filter>

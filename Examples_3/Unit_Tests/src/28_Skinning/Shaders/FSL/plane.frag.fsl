@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,16 +11,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 // Shader for ground plane in Unit Tests Animation
 
@@ -38,43 +38,43 @@ STRUCT(VSOutput)
 // Takes world position, normalized light direction
 // k is the shadow sharpness, higher value = sharper shadows
 
-float cap_shadow( float3 ro, float3 rd, float k, float intensity)
+float cap_shadow(float3 ro, float3 rd, float k, float intensity)
 {
     float shadow = 1.0;
 
-    for(uint i = 0; i < Get(capsules_count); i++)
+    for (uint i = 0; i < uniformBlock.capsules_count; i++)
     {
-        capsule _cap = Get(capsules)[i];
+        capsule _cap = uniformBlock.capsules[i];
 
         float r = _cap.b.w;
-        
-        if(r < 0.0001) // Capsule validity check
+
+        if (r < 0.0001) // Capsule validity check
             break;
 
         float3 a = _cap.a.xyz;
         float3 b = _cap.b.xyz;
 
-        float3 ba =  b - a;
+        float3 ba = b - a;
         float3 oa = ro - a;
 
-        float oad  = dot( oa, rd );
-        float dba  = dot( rd, ba );
-        float baba = dot( ba, ba );
-        float oaba = dot( oa, ba );
-        float2 th = float2( -oad*baba + dba*oaba, oaba - oad*dba ) / (baba - dba*dba);
-        
-        th.x = max(   th.x, 0.0001 );
-        th.y = saturate( th.y );
-        
-        float3  p =  a + ba*th.y;
-        float3  q = ro + rd*th.x;
-        float d = length( p-q )-r;
+        float  oad = dot(oa, rd);
+        float  dba = dot(rd, ba);
+        float  baba = dot(ba, ba);
+        float  oaba = dot(oa, ba);
+        float2 th = float2(-oad * baba + dba * oaba, oaba - oad * dba) / (baba - dba * dba);
 
-        float s = saturate( k*d/th.x+0.3 );
-        s = s*s*(3.0-2.0*s);
+        th.x = max(th.x, 0.0001);
+        th.y = saturate(th.y);
+
+        float3 p = a + ba * th.y;
+        float3 q = ro + rd * th.x;
+        float  d = length(p - q) - r;
+
+        float s = saturate(k * d / th.x + 0.3);
+        s = s * s * (3.0 - 2.0 * s);
         shadow *= s;
     }
-    shadow = saturate( shadow * (1-intensity) + intensity);
+    shadow = saturate(shadow * (1 - intensity) + intensity);
     return shadow;
 }
 
@@ -82,19 +82,19 @@ float4 PS_MAIN(VSOutput In)
 {
     INIT_MAIN;
     float4 Out;
-    float tol = 0.0025f;
-    float res = 0.05f;
+    float  tol = 0.0025f;
+    float  res = 0.05f;
 
     float4 backgroundColor = float4(0.49f, 0.64f, 0.68f, 1.0f); // blue
-    float4 lineColor = float4( 0.15f, 0.15f, 0.15f, 1.0f ); // grey
-    float4 originColor = float4(0.0f, 0.0f, 0.0f, 1.0f); //black
+    float4 lineColor = float4(0.15f, 0.15f, 0.15f, 1.0f);       // grey
+    float4 originColor = float4(0.0f, 0.0f, 0.0f, 1.0f);        // black
 
     if ((abs(In.TexCoord.x - 0.5f) <= tol) && (abs(In.TexCoord.y - 0.5f) <= tol))
     {
         Out = originColor;
     }
-    else if ((fmod(In.TexCoord.x, res) >= (res - tol)) || (fmod(In.TexCoord.x, res) < tol) ||
-      (fmod(In.TexCoord.y, res) >= (res - tol)) || (fmod(In.TexCoord.y, res) < tol))
+    else if ((fmod(In.TexCoord.x, res) >= (res - tol)) || (fmod(In.TexCoord.x, res) < tol) || (fmod(In.TexCoord.y, res) >= (res - tol)) ||
+             (fmod(In.TexCoord.y, res) < tol))
     {
         Out = lineColor;
     }
@@ -103,6 +103,6 @@ float4 PS_MAIN(VSOutput In)
         Out = backgroundColor;
     }
 
-    Out *= cap_shadow(In.worldPos, normalize(float3(1,0.8,0.5)), 2, 0.1);
+    Out *= cap_shadow(In.worldPos, normalize(float3(1, 0.8, 0.5)), 2, 0.1);
     RETURN(Out);
 }

@@ -1,27 +1,29 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
-*/
+ */
 
 #ifndef SKINNING_H
 #define SKINNING_H
 
 #include "../Shared.h"
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
     DATA(float4x4, vpMatrix[VR_MULTIVIEW_COUNT], None);
 #else
     DATA(float4x4, vpMatrix, None);
 #endif
-    
+
     DATA(float4x4, modelMatrix, None);
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 
-CBUFFER(boneMatrices, UPDATE_FREQ_PER_DRAW, b1, binding = 1)
+STRUCT(BoneMatrices)
 {
     DATA(float4x4, boneMatrix[MAX_NUM_BONES], None);
 };
+RES(CBUFFER(BoneMatrices), boneMatrices, UPDATE_FREQ_PER_DRAW, b1, binding = 1);
 
 RES(Tex2D(float4), DiffuseTexture, UPDATE_FREQ_NONE, t0, binding = 3);
 RES(SamplerState, DefaultSampler, UPDATE_FREQ_NONE, s0, binding = 4);

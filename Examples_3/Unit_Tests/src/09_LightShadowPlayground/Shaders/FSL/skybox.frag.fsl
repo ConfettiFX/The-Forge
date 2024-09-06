@@ -25,10 +25,11 @@
 RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 
-CBUFFER(UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(UniformCameraSkyData)
 {
 	DATA(float4x4, projView, None);
 };
+RES(CBUFFER(UniformCameraSkyData), UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSinput) {
 	DATA(float4, Position, POSITION);
@@ -43,6 +44,6 @@ float4 PS_MAIN( VSOutput Input )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), Input.pos);
+    Out = SampleTexCube(skyboxTex, skyboxSampler, Input.pos);
     RETURN(Out);
 }

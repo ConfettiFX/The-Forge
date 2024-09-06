@@ -34,8 +34,6 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
-
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Application/Interfaces/IFont.h"
 #include "../../Application/Interfaces/IProfiler.h"
@@ -47,11 +45,9 @@
 #include "../../Utilities/Interfaces/IThread.h"
 #include "../../Utilities/Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../Interfaces/IInput.h"
 
 #include "../../OS/CPUConfig.h"
-#if defined(ENABLE_FORGE_REMOTE_UI)
-#include "../../Tools/Network/Network.h"
-#endif
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
 #endif
@@ -86,6 +82,9 @@ static UIComponent* pToggleVSyncWindow = NULL;
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 static UIComponent* pReloadShaderComponent = NULL;
 #endif
+
+bool gCaptureCursorOnMouseDown = true;
+
 @interface ForgeApplication: NSApplication
 @end
 
@@ -233,9 +232,12 @@ bool initBaseSubsystems()
     extern bool platformInitUserInterface();
     extern void platformInitLuaScriptingSystem();
     extern void platformInitWindowSystem(WindowDesc*);
+    extern void platformInitInput(WindowDesc*);
 
     platformInitWindowSystem(&gCurrentWindow);
     pApp->pWindow = &gCurrentWindow;
+
+    platformInitInput(&gCurrentWindow);
 
 #ifdef ENABLE_FORGE_FONTS
     if (!platformInitFontSystem())
@@ -263,10 +265,6 @@ bool initBaseSubsystems()
 #endif
 #endif
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    initNetwork();
-#endif
-
     return true;
 }
 
@@ -276,8 +274,11 @@ void updateBaseSubsystems(float deltaTime, bool appDrawn)
     extern void platformUpdateLuaScriptingSystem(bool appDrawn);
     extern void platformUpdateUserInterface(float deltaTime);
     extern void platformUpdateWindowSystem();
+    extern void platformUpdateInput(uint32_t width, uint32_t height, float dt);
 
     platformUpdateWindowSystem();
+
+    platformUpdateInput(pApp->mSettings.mWidth, pApp->mSettings.mHeight, deltaTime);
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformUpdateLuaScriptingSystem(appDrawn);
@@ -295,6 +296,9 @@ void exitBaseSubsystems()
     extern void platformExitUserInterface();
     extern void platformExitLuaScriptingSystem();
     extern void platformExitWindowSystem();
+    extern void platformExitInput();
+
+    platformExitInput();
 
     platformExitWindowSystem();
 
@@ -308,10 +312,6 @@ void exitBaseSubsystems()
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformExitLuaScriptingSystem();
-#endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    exitNetwork();
 #endif
 }
 
@@ -330,18 +330,18 @@ void setupPlatformUI(int32_t width, int32_t height)
     // VSYNC CONTROL
     UIComponentDesc UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
-    uiCreateComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
+    uiAddComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
 
     CheckboxWidget checkbox;
     checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+    UIWidget* pCheckbox = uiAddComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
     REGISTER_LUA_WIDGET(pCheckbox);
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
-    uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+    uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 #endif
 
@@ -552,10 +552,6 @@ char     benchmarkOutput[1024] = { "\0" };
         initCpuInfo(&gCpu);
         initHiresTimer(&deltaTimer);
 
-#if TF_USE_MTUNER
-        rmemInit(0);
-#endif
-
         FileSystemInitDesc fsDesc = {};
         fsDesc.pAppName = pApp->GetName();
         if (!initFileSystem(&fsDesc))
@@ -673,12 +669,6 @@ char     benchmarkOutput[1024] = { "\0" };
             // if app init fails then exit the app
             if (!pApp->Init())
             {
-                const char* pRendererReason;
-                if (hasRendererInitializationError(&pRendererReason))
-                {
-                    pApp->ShowUnsupportedMessage(pRendererReason);
-                }
-
                 if (pApp->mUnsupported)
                 {
                     errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
@@ -800,6 +790,9 @@ char     benchmarkOutput[1024] = { "\0" };
     }
 #endif
 
+    extern void platformResetInputState();
+    platformResetInputState();
+
 #ifdef AUTOMATED_TESTING
     extern bool gAutomatedTestingScriptsFinished;
     // wait for the automated testing if it hasn't managed to finish in time
@@ -850,11 +843,6 @@ char     benchmarkOutput[1024] = { "\0" };
     exitLog();
 
     exitFileSystem();
-
-#if TF_USE_MTUNER
-    rmemUnload();
-    rmemShutDown();
-#endif
 
     exitMemAlloc();
 }

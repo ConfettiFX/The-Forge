@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Common_3\Application">
-      <UniqueIdentifier>{77a939f9-e84d-40ae-bf62-95dd8d39e845}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3">
-      <UniqueIdentifier>{908dd332-1b99-4a44-a34d-ad09d48c93a5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\OS\Android">
       <UniqueIdentifier>{2051fcd0-5fca-481c-b6d7-4e84e24382ac}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\OS">
       <UniqueIdentifier>{9dd8ab04-e92b-4d9c-81ce-dd973fef609d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{908dd332-1b99-4a44-a34d-ad09d48c93a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application">
+      <UniqueIdentifier>{77a939f9-e84d-40ae-bf62-95dd8d39e845}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\Math">
       <UniqueIdentifier>{834f5227-e939-4089-b0b6-48bf7eac0cbc}</UniqueIdentifier>
@@ -121,14 +121,17 @@
     <Filter Include="Common_3\Application\Fonts\Shaders">
       <UniqueIdentifier>{52f9b081-7c08-4022-8c80-2b5ef2629f7a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common_3\OS\Input">
+      <UniqueIdentifier>{63981857-6fba-47c3-8f64-fe72356ce971}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Interfaces">
+      <UniqueIdentifier>{3b47301a-f245-439b-8533-088b4ab127f5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common_3\Application\Interfaces">
       <UniqueIdentifier>{dde95e7a-1a7f-4f9e-8f3c-75827bbe44ed}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Utilities\Interfaces">
       <UniqueIdentifier>{a97dbe8b-4907-4af9-bad1-086f79e47804}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\OS\Interfaces">
-      <UniqueIdentifier>{3b47301a-f245-439b-8533-088b4ab127f5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common_3\Game\Interfaces">
       <UniqueIdentifier>{f48e7c56-96e6-4010-844b-316d2b6f332e}</UniqueIdentifier>
@@ -165,13 +168,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp">
-      <Filter>Common_3\Application</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp">
       <Filter>Common_3\OS\Android</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidInput.cpp">
       <Filter>Common_3\OS\Android</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c">
@@ -260,9 +263,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\stbtt.cpp">
       <Filter>Common_3\Application\Fonts</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp">
-      <Filter>Common_3\Application</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Log\Log.c">
       <Filter>Common_3\Utilities\Log</Filter>
@@ -441,6 +441,15 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h">
       <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\TouchInput.h">
+      <Filter>Common_3\OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
+      <Filter>Common_3\OS\Interfaces</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.h">
       <Filter>Common_3\Utilities\Math</Filter>
     </ClInclude>
@@ -488,9 +497,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>Common_3\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h">
-      <Filter>Common_3\Application\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IProfiler.h">
       <Filter>Common_3\Application\Interfaces</Filter>

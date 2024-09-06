@@ -42,7 +42,7 @@ float4 PS_MAIN( PsIn In )
     value = f4(0);
     uint2 texCoord = uint2(In.Position.xy);
     for(int i = 0; i < SAMPLE_COUNT; ++i)
-        value += LoadTex2DMS(Get(msaaSource), NO_SAMPLER, texCoord, i);
+        value += LoadTex2DMS(msaaSource, NO_SAMPLER, texCoord, i);
     value /= SAMPLE_COUNT;
     RETURN(value);
 }

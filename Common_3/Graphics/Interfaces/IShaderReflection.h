@@ -25,9 +25,6 @@
 #pragma once
 
 #include "../GraphicsConfig.h"
-#ifdef GLES
-#include "../ThirdParty/OpenSource/OpenGL/GLES2/gl2.h"
-#endif
 
 #include <ctype.h>
 
@@ -122,10 +119,6 @@ struct ShaderVariable
 
     // name size
     uint32_t name_size;
-
-#if defined(GLES)
-    GLenum type; // Needed to use the right glUniform(i) function to upload the data
-#endif
 };
 
 struct ShaderReflection
@@ -181,10 +174,10 @@ struct PipelineReflection
     uint32_t        mVariableCount;
 };
 
-FORGE_RENDERER_API void destroyShaderReflection(ShaderReflection* pReflection);
+FORGE_RENDERER_API void removeShaderReflection(ShaderReflection* pReflection);
 
-FORGE_RENDERER_API void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection);
-FORGE_RENDERER_API void destroyPipelineReflection(PipelineReflection* pReflection);
+FORGE_RENDERER_API void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection);
+FORGE_RENDERER_API void removePipelineReflection(PipelineReflection* pReflection);
 
 inline bool isDescriptorRootConstant(const char* resourceName)
 {

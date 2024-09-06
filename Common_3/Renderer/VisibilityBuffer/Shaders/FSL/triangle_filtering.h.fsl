@@ -65,7 +65,7 @@ GroupShared(FilterDispatchGroupData, filterDispatchGroupData);
 
 float4 LoadVertex(uint index)
 {
-	return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1);
+	return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
 }
 
 STATIC const uint cullFlags = 0xFFFFFFFF;

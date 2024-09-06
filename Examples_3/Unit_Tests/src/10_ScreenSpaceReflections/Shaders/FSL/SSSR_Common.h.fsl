@@ -113,7 +113,7 @@ FFX_SSSR_DEPTH_UNPACK_FUNCTION
 FFX_SSSR_SCENE_RADIANCE_UNPACK_FUNCTION
 
 // Common constants
-CBUFFER(Constants, UPDATE_FREQ_NONE, b0, binding = 0)
+STRUCT(ConstantsData)
 {
     DATA(float4x4, g_inv_view_proj, None);
     DATA(float4x4, g_proj, None);
@@ -134,6 +134,7 @@ CBUFFER(Constants, UPDATE_FREQ_NONE, b0, binding = 0)
     DATA(float, g_roughness_threshold, None);
     DATA(uint, g_skip_denoiser, None);
 };
+RES(CBUFFER(ConstantsData), Constants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 // Mat must be able to transform origin from its current space into screen space.
 float3 ProjectPosition(float3 origin, float4x4 mat)
@@ -171,7 +172,7 @@ STRUCT(Ray)
 // Create a ray that originates at the depth buffer surface and points away from the camera.
 Ray CreateViewSpaceRay(float3 screen_space_pos)
 {
-    float3 view_space_pos = InvProjectPosition(screen_space_pos, Get(g_inv_proj));
+    float3 view_space_pos = InvProjectPosition(screen_space_pos, Constants.g_inv_proj);
     Ray view_space_ray;
     view_space_ray.origin = view_space_pos;
     view_space_ray.direction = view_space_pos;
@@ -191,7 +192,7 @@ float LoadRoughness(int2 index, Tex2D(float4) tex)
 
 bool IsGlossy(float roughness)
 {
-    return roughness < Get(g_roughness_threshold);
+    return roughness < Constants.g_roughness_threshold;
 }
 
 bool IsMirrorReflection(float roughness)

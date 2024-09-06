@@ -25,10 +25,12 @@
 RES(Tex2D(float4), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
 RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
 
-CBUFFER(uniformBlockVS, UPDATE_FREQ_NONE, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 	DATA(float4x4, ProjectionMatrix, None);
 };
+
+RES(CBUFFER(UniformBlock), uniformBlockVS, UPDATE_FREQ_NONE, b0, binding = 0);
 
 STRUCT(VS_INPUT)
 {
@@ -48,7 +50,7 @@ PS_INPUT VS_MAIN( VS_INPUT In )
 {
 	INIT_MAIN;
 	PS_INPUT Out;
-	Out.pos = mul(Get(ProjectionMatrix), float4(In.pos.xy, 0.f, 1.f));
+	Out.pos = mul(uniformBlockVS.ProjectionMatrix, float4(In.pos.xy, 0.f, 1.f));
 	Out.col = In.col;
 	Out.uv = In.uv;
 	RETURN(Out);

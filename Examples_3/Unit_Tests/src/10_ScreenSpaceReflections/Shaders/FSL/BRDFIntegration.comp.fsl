@@ -140,6 +140,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	INIT_MAIN;
 	float2 texcoords = float2(float(DTid.x + 0.5) / 512.0f, float(DTid.y + 0.5) / 512.0f);
 	float4 Out = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0, 0.0);
-	Write2D(Get(dstTexture), DTid.xy, Out.xy);
+	Write2D(dstTexture, DTid.xy, Out.xy);
 	RETURN();
 }

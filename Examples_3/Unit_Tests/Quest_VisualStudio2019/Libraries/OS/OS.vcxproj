@@ -11,9 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidInput.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c" />
@@ -43,7 +43,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\UnixFileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\FontSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\stbtt.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Log\Log.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\MemoryTracking.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.cpp" />
@@ -105,6 +104,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\TouchInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\AlgorithmsImpl.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Random.h" />
@@ -121,7 +123,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IMemory.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IProfiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Interfaces\IScripting.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IThread.h" />
@@ -207,7 +208,7 @@
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">

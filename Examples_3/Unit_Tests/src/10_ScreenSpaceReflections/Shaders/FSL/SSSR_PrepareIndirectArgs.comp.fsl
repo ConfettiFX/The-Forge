@@ -56,19 +56,19 @@ NUM_THREADS(1,  1,  1)
 void CS_MAIN()
 {
 	INIT_MAIN;
-    uint tile_counter   = Get(g_tile_counter)[0];
-    uint ray_counter    = Get(g_ray_counter)[0];
+    uint tile_counter   = g_tile_counter[0];
+    uint ray_counter    = g_ray_counter[0];
 
-    Get(g_tile_counter)[0]   = 0u;
-    Get(g_ray_counter)[0]    = 0u;
+    g_tile_counter[0]   = 0u;
+    g_ray_counter[0]    = 0u;
 
-    Get(g_intersect_args)[0] = (ray_counter + 63u) / 64u;
-    Get(g_intersect_args)[1] = 1u;
-    Get(g_intersect_args)[2] = 1u;
+    g_intersect_args[0] = (ray_counter + 63u) / 64u;
+    g_intersect_args[1] = 1u;
+    g_intersect_args[2] = 1u;
 
-    Get(g_denoiser_args)[0]  = tile_counter;
-    Get(g_denoiser_args)[1]  = 1u;
-    Get(g_denoiser_args)[2]  = 1u;
+    g_denoiser_args[0]  = tile_counter;
+    g_denoiser_args[1]  = 1u;
+    g_denoiser_args[2]  = 1u;
 	RETURN();
 }
 #endif // FFX_SSSR_INDIRECT_ARGS

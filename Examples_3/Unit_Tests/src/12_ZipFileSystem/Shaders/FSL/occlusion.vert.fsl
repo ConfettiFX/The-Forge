@@ -23,7 +23,7 @@
  * under the License.
 */
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(uniformBlockData)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
@@ -34,6 +34,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float4x4, ModelMatrixCube, None);
     DATA(float4x4, ModelMatrixOcclusion, None);
 };
+RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSInput)
 {
@@ -52,9 +53,9 @@ VSOutput VS_MAIN( VSInput In )
 	VSOutput Out;
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(ProjectionViewMat)[VR_VIEW_ID], Get(ModelMatrixOcclusion));
+    float4x4 tempMat = mul(uniformBlock.ProjectionViewMat[VR_VIEW_ID], uniformBlock.ModelMatrixOcclusion);
 #else
-    float4x4 tempMat = mul(Get(ProjectionViewMat), Get(ModelMatrixOcclusion));
+    float4x4 tempMat = mul(uniformBlock.ProjectionViewMat, uniformBlock.ModelMatrixOcclusion);
 #endif
     Out.Position = mul(tempMat, float4(In.Position,1.0));
 	RETURN(Out);

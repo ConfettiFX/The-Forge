@@ -30,24 +30,24 @@ void PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId)
 {
 	INIT_MAIN;
 
-	uint2 screenSize = uint2(Get(cullingViewports[VIEW_CAMERA]).windowSize);
+	uint2 screenSize = uint2(PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize);
 
 	uint nodeIdx = 0; 
 	uint2 screenPos = uint2(In.position.xy);
 
 	if (screenPos.x < screenSize.x && screenPos.y < screenSize.y)
 	{
-		AtomicAdd(Get(geometryCountBuffer)[0].count, 1, nodeIdx);
+		AtomicAdd(geometryCountBuffer[0].count, 1, nodeIdx);
 
 		const uint maxNodeCount = OIT_MAX_FRAG_COUNT * screenSize.x * screenSize.y;
 		if (nodeIdx < maxNodeCount)
 		{
 			uint prevHeadIdx = OIT_HEAD_INVALID;
 			uint bufferIdx = screenPos.y * screenSize.x + screenPos.x; 
-			AtomicExchange(Get(headIndexBufferUAV)[bufferIdx], nodeIdx, prevHeadIdx);
+			AtomicExchange(headIndexBufferUAV[bufferIdx], nodeIdx, prevHeadIdx);
 
-			Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = PACK_VB_DATA(GEOMSET_ALPHA_BLEND, primitiveId);
-			Get(vbDepthLinkedListUAV)[nodeIdx].next = prevHeadIdx;
+			vbDepthLinkedListUAV[nodeIdx].triangleData = PACK_VB_DATA(GEOMSET_ALPHA_BLEND, primitiveId);
+			vbDepthLinkedListUAV[nodeIdx].next = prevHeadIdx;
 		}
 	}
 

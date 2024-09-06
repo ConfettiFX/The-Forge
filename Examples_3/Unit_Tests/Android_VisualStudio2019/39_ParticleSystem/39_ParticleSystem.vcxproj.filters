@@ -37,6 +37,15 @@
     <Filter Include="Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders">
       <UniqueIdentifier>{007a1611-2bb2-48a0-bb27-450294eb6879}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Art\Scripts\39_ParticleSystem">
+      <UniqueIdentifier>{a8679543-5997-46c4-a027-81703460db01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{97939be9-8a2e-4850-bf8e-a92bb696e81a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{b3cce22e-cb70-425c-85d8-3c66ce1adb76}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
@@ -117,9 +126,6 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shader_defs.h.fsl">
       <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shading.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_filtering.comp.fsl">
       <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
     </FSLShader>
@@ -159,5 +165,8 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
       <Filter>Examples_3\Unit_Tests\src\39_ParticleSystem\Shaders\FSL</Filter>
     </FSLShader>
+    <None Include="..\..\..\..\Art\Scripts\39_ParticleSystem\Test_AllSets.lua">
+      <Filter>Art\Scripts\39_ParticleSystem</Filter>
+    </None>
   </ItemGroup>
 </Project>

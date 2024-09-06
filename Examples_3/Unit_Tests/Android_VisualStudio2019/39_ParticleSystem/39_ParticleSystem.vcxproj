@@ -17,9 +17,7 @@
     <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
-      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
-    </ProjectReference>
+
     <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
       <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
     </ProjectReference>
@@ -53,7 +51,6 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\resolve.frag.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shader_defs.h.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shading.h.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_filtering.comp.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.frag.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.vert.fsl" />
@@ -68,23 +65,28 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\Art\Scripts\39_ParticleSystem\Test_AllSets.lua" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8ACC82DD-1721-45DC-9244-E07D9A177070}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>ParticleSystem</RootNamespace>
+    <RootNamespace>UT39_ParticleSystem</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>39_ParticleSystem</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <Import Project="..\AGDEVersions.props" />
+  <Import Project="..\..\..\Build_Props\VS\AGDEVersions.Android.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\Android-arm64-v8a.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\Android-arm64-v8a.props" />
+  </ImportGroup>
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
@@ -92,7 +94,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <LinkIncremental>false</LinkIncremental>
-    <AndroidApkLocation>D:\dev\The-Forge\Examples_3\Unit_Tests\Android_VisualStudio2019\Android-arm64-v8a\Release\39_ParticleSystem\arm64-v8a\libs\ParticleSystem.apk</AndroidApkLocation>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
     <ClCompile>
@@ -115,11 +116,13 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -131,23 +134,24 @@
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
-xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy %ART%\UnitTestResources\Meshes\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
-xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+      <Command>
+        %(Command)
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\Particles\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Particles\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\SanMiguel_3\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\SanMiguel_3\"
+        xcopy "$(TheForgeArtDir)Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+        xcopy "$(TheForgeArtDir)Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 
-xcopy %ART%\UnitTestResources\Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
-xcopy /Y /S /D "%ART%\Particles\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures"
+        xcopy $(TheForgeArtDir)Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+        xcopy /Y /S /D "$(TheForgeArtDir)cameraPath.txt" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\Particles\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\Particles\"
 
-xcopy "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\" /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-</Command>
+        xcopy "$(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\" /s /y /d
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+      </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
@@ -175,11 +179,13 @@ xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>%(Command) 
+      <Command>
+        %(Command)
       </Command>
     </CustomBuildStep>
     <CustomBuildStep>
@@ -191,23 +197,24 @@ xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform
       </Outputs>
     </CustomBuildStep>
     <PreLinkEvent>
-      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\
-xcopy /Y /S /D "%ART%\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
-xcopy /Y /S /D "%ART%\SanMiguel_3\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-xcopy "%ART%\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
-xcopy %ART%\UnitTestResources\Meshes\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
-xcopy "%ART%\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+      <Command>
+        %(Command)
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Meshes\Particles\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Particles\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\SanMiguel_3\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\SanMiguel_3\"
+        xcopy "$(TheForgeArtDir)Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
+        xcopy "$(TheForgeArtDir)Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
 
-xcopy %ART%\UnitTestResources\Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
-xcopy /Y /S /D "%ART%\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
-xcopy /Y /S /D "%ART%\Particles\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures"
+        xcopy $(TheForgeArtDir)Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
+        xcopy /Y /S /D "$(TheForgeArtDir)cameraPath.txt" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\Particles\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\Particles\"
 
-xcopy "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\" /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-xcopy /Y /S /D "%ART%\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-</Command>
+        xcopy "$(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\" /s /y /d
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+      </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

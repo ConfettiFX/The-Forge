@@ -85,13 +85,13 @@
 		7F6E00F02A93FEBE00981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		7F6E01292A94099200981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
 		7F6E012B2A94099800981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
-		7F6EFFE22A93D92F00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE32A93D92F00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE42A93D92F00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE52A93D92F00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE62A93D92F00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE72A93D92F00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFE82A93D92F00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE22A93D92F00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE32A93D92F00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE42A93D92F00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE52A93D92F00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE62A93D92F00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE72A93D92F00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFE82A93D92F00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
 		97C908B425BF3A9A003C978D /* Particle.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Particle.frag.fsl; path = ../../../src/03_MultiThread/Shaders/FSL/Particle.frag.fsl; sourceTree = "<group>"; };
 		97C908B525BF3A9B003C978D /* Skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Skybox.vert.fsl; path = ../../../src/03_MultiThread/Shaders/FSL/Skybox.vert.fsl; sourceTree = "<group>"; };
 		97C908B625BF3A9B003C978D /* Graph.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Graph.frag.fsl; path = ../../../src/03_MultiThread/Shaders/FSL/Graph.frag.fsl; sourceTree = "<group>"; };
@@ -317,7 +317,6 @@
 				TargetAttributes = {
 					28A5ABFF201F58BF000E571F = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = BT67ZY58A8;
 						ProvisioningStyle = Automatic;
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
@@ -443,7 +442,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
 		};
 		5CC501C324D21975003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -460,7 +459,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art/UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u -rv --include '*/' --include 'Palette*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -525,11 +524,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -548,11 +543,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
+				HEADER_SEARCH_PATHS = ();
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -582,11 +573,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7F6EFFE82A93D92F00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -601,11 +588,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7F6EFFE32A93D92F00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
+				HEADER_SEARCH_PATHS = ();
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

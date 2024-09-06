@@ -41,8 +41,6 @@
 
 #include "../../Utilities/Math/MathTypes.h"
 
-struct UserInterfaceDrawData;
-
 typedef struct Renderer      Renderer;
 typedef struct Cmd           Cmd;
 typedef struct RenderTarget  RenderTarget;
@@ -487,31 +485,6 @@ typedef struct UserInterfaceLoadDesc
     uint32_t       mDisplayHeight;
 } UserInterfaceLoadDesc;
 
-typedef struct UserInterfaceDrawCommand
-{
-    float4   mClipRect;
-    uint64_t mTextureId;
-    uint32_t mVertexOffset;
-    uint32_t mIndexOffset;
-    uint32_t mVertexCount;
-    uint32_t mIndexCount;
-    uint32_t mElemCount;
-} UserInterfaceDrawElement;
-
-typedef struct UserInterfaceDrawData
-{
-    uint32_t                  mVertexCount;
-    uint32_t                  mIndexCount;
-    uint32_t                  mVertexSize;
-    uint32_t                  mIndexSize;
-    float2                    mDisplayPos;
-    float2                    mDisplaySize;
-    uint32_t                  mNumDrawCommands;
-    unsigned char*            mVertexBufferData;
-    unsigned char*            mIndexBufferData;
-    UserInterfaceDrawCommand* mDrawCommands;
-} UserInterfaceDrawData;
-
 /****************************************************************************/
 // MARK: - Application Life Cycle
 /****************************************************************************/
@@ -535,9 +508,9 @@ FORGE_API void unloadUserInterface(uint32_t unloadType);
 
 /// Renders defined ImGUI components and widgets using The Forge's Renderer
 /// This function also handles rendering the Forge Profiler's UI Window.
-/// If pUIDrawData* is NULL, the current ImGUI state will be used, otherwise the passed in draw data will be used.
-/// Due to the nature of ImGUI not being thread safe, this call must be made on the main thread if pUIDrawData* is kept NULL.
-FORGE_API void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData = NULL);
+/// it will use the current ImGUI state, and Due to the nature of ImGUI
+/// not being thread safe, this call must be made on the main thread.
+FORGE_API void cmdDrawUserInterface(Cmd* pCmd);
 
 /****************************************************************************/
 // MARK: - Collapsing Header Widget Public Functions
@@ -557,10 +530,10 @@ inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget
 /****************************************************************************/
 
 /// Create an independent set of widgets which can be dynamically added to a UI Component
-FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type);
+FORGE_API UIWidget* uiAddDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type);
 
 /// Free memory associated with a set of dynamic UI widgets
-FORGE_API void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI);
+FORGE_API void uiRemoveDynamicWidgets(DynamicUIWidgets* pDynamicUI);
 
 /// Add an existing set of dynamic widgets to an existing UI Component
 FORGE_API void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui);
@@ -574,27 +547,27 @@ FORGE_API void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UICompon
 
 /// Create a UI Component "window" to which Widgets can be added
 /// User is NOT responsible for freeing this memory at application exit
-FORGE_API void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponent** ppGuiComponent);
+FORGE_API void uiAddComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponent** ppGuiComponent);
 
 /// Free memory associated with a UI Component "window"
 /// Only necessary for replacement purposes. UI Component memory will be freed internally on exit
-FORGE_API void uiDestroyComponent(UIComponent* pGui);
+FORGE_API void uiRemoveComponent(UIComponent* pGui);
 
 /// Set whether or not a given UI Component is active and visible on the screen
 FORGE_API void uiSetComponentActive(UIComponent* pGuiComponent, bool active);
 
 /// Create a Widget to be assigned to a given UI Component
 /// User is NOT responsible for freeing this memory at application exit
-FORGE_API UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, //-V1071
-                                            bool clone = true);
+FORGE_API UIWidget* uiAddComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, //-V1071
+                                         bool clone = true);
 
 /// Destroy and free memory associated with a Widget
 /// Only necessary for replacement purposes. UI Widget memory will be freed internally on exit
-FORGE_API void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget);
+FORGE_API void uiRemoveComponentWidget(UIComponent* pGui, UIWidget* pWidget);
 
 /// Destroy and free memory associated with all Widgets in a given UI Component
 /// Only necessary for replacement purposes. UI Widget memory will be freed internally on exit
-FORGE_API void uiDestroyAllComponentWidgets(UIComponent* pGui);
+FORGE_API void uiRemoveAllComponentWidgets(UIComponent* pGui);
 
 /****************************************************************************/
 // MARK: - Safe UI Component and Widget Setter Functions
@@ -644,9 +617,6 @@ FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);
 /// Returns whether or not the UI is currently "focused" by the cursor
 FORGE_API bool uiIsFocused();
 
-/// Callback function to share any type of input data w/ ImGUI.
-FORGE_API void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick);
-
 /// Callback function to share text entry data w/ ImGUI
 FORGE_API void uiOnText(const wchar_t* pText);
 
@@ -654,21 +624,13 @@ FORGE_API void uiOnText(const wchar_t* pText);
 /// 0 -> Not pressed, 1 -> Digits Only keyboard, 2 -> Full Keyboard (Chars + Digits)
 FORGE_API uint8_t uiWantTextInput();
 
+// Toggle UI
+FORGE_API void uiToggleActive();
+
 /// Toggle UI rendering, input processing still works (used to hide UI components while taking screenshots)
 FORGE_API void uiToggleRendering(bool enabled);
 
 /// Returns whether or not UI rendering is currently enabled (see uiToggleRendering)
 FORGE_API bool uiIsRenderingEnabled();
-
-/// Creates a UserInterfaceDrawData* which can be passed to cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData) explicitly.
-/// It's the caller's responsibility to call removeUIDrawData(...) when done.
-FORGE_API UserInterfaceDrawData* addUIDrawData();
-
-/// Populates a UserInterfaceDrawData* with current frame draw data so that it can be passed to cmdDrawUserInterface(Cmd* pCmd,
-/// UserInterfaceDrawData* pUIDrawData) at a later time.
-FORGE_API void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData);
-
-/// Removes a UserInterfaceDrawData*.  It should not be reused after this point.
-FORGE_API void removeUIDrawData(UserInterfaceDrawData* pUIDrawData);
 
 #endif // IUI_H

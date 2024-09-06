@@ -26,7 +26,7 @@
 // Shader for simple shading with a point light
 // for skeletons in Unit Test Animation
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
     DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
@@ -42,6 +42,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
     DATA(uint4, skeletonInfo, None);
     DATA(float4x4, toWorld[MAX_INSTANCES], None);
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 
 STRUCT(VSOutput)
 {
@@ -63,12 +64,12 @@ float4 PS_MAIN(VSOutput In)
     }
     float4 localNormal = float4(In.QuadCoord.xy,0.0f,0.0f);
     localNormal.xyz = lerp( float3( 0.0f, 0.0f, -1.0f ), float3(In.QuadCoord.xy,0.0f), radius );
-    float4 normal = normalize(mul(Get(viewMatrix), normalize(localNormal))); 
+    float4 normal = normalize(mul(uniformBlock.viewMatrix, normalize(localNormal)));
     float3 lightDir = In.LightDirection.xyz;
     float lightIntensity = 1.0f;
     float ambientCoeff = 0.4;
-    float3 baseColor = Get(jointColor).xyz;
-    float3 blendedColor = (Get(lightColor).xyz  * baseColor) * lightIntensity;
+    float3 baseColor = uniformBlock.jointColor.xyz;
+    float3 blendedColor = (uniformBlock.lightColor.xyz  * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out = float4(diffuse + ambient, 1.0);

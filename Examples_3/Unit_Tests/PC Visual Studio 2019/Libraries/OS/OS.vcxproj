@@ -12,10 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
@@ -62,8 +60,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\FontSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\stbtt.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\CPUConfig.cpp" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserPS4Controller.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserPS5Controller.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDParserSwitchController.h" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\impl_x86_windows.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\hidapi\windows\hid.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsInput.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\FileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\SystemRun.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Log\Log.c" />
@@ -72,9 +75,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\MemoryTracking.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\lz4\lz4.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\debug.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\entropy_common.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\error_private.c" />
@@ -92,7 +92,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\ICameraController.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IProfiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IScreenshot.h" />
@@ -125,7 +124,12 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Rig.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\CPUConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\HID\HIDInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\TouchInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\hidapi\hidapi.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\AnimatedObject.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Animation.h" />
@@ -201,7 +205,7 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -220,7 +224,6 @@
       </PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -238,7 +241,7 @@
     <FSLShader>
       <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
       <BinaryOutDir>$(OutDir)/$(ProjectName)/CompiledShaders</BinaryOutDir>
-      <Language>DIRECT3D11 DIRECT3D12 VULKAN</Language>
+      <Language>DIRECT3D12</Language>
       <Port>
       </Port>
       <CacheArgs>false</CacheArgs>
@@ -252,7 +255,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -260,7 +262,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+        vulkan-1.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
@@ -275,7 +280,7 @@
     <FSLShader>
       <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
       <BinaryOutDir>$(OutDir)/$(ProjectName)/CompiledShaders</BinaryOutDir>
-      <Language>DIRECT3D11 DIRECT3D12 VULKAN</Language>
+      <Language>DIRECT3D12</Language>
       <CacheArgs>false</CacheArgs>
     </FSLShader>
   </ItemDefinitionGroup>

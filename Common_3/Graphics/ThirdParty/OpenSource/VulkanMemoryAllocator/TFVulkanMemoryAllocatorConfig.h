@@ -67,7 +67,7 @@ struct TFVmaMutex
 	}
 	~TFVmaMutex()
 	{
-		destroyMutex(&mMutex);
+		exitMutex(&mMutex);
 	}
 	void Lock() { acquireMutex(&mMutex); }
 	void Unlock() { releaseMutex(&mMutex); }
@@ -86,7 +86,7 @@ struct TFVmaRWMutex
 	}
 	~TFVmaRWMutex()
 	{
-		destroyMutex(&mMutex);
+		exitMutex(&mMutex);
 	}
 
 	// For now TF API doesn't support RW mutexes, we just use a normal mutex

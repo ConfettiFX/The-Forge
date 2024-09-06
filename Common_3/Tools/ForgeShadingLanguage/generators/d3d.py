@@ -96,6 +96,8 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
     # ray query
     awaiting_ray_query_calls = []
 
+    replacements = []
+
     # for SV_PrimitiveID usage in pixel shaders, generate a pass-through gs
     passthrough_gs = False
     if pssl and shader.stage == Stages.FRAG:
@@ -150,27 +152,8 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             else:
                 line = 'thread_group_memory '+dtype+' '+dname+';\n'
 
-        if line.strip().startswith('STRUCT(') or line.strip().startswith('CBUFFER(') or line.strip().startswith('PUSH_CONSTANT('):
+        if line.strip().startswith('STRUCT('):
             parsing_struct = getMacro(line)
-
-            struct_name = parsing_struct[0]
-
-            if pssl and 'PUSH_CONSTANT' in line:
-                skip_semantics = True
-                srt_free_resources += [pssl.declare_rootconstant(struct_name)]
-
-            if pssl and 'CBUFFER' in line:
-                skip_semantics = True
-                res_freq = parsing_struct[1]
-                if 'rootcbv' in struct_name:
-                    srt_free_resources += [pssl.declare_cbuffer(struct_name)]
-                else:
-                    srt_resources[res_freq] += [pssl.declare_cbuffer(struct_name)]
-
-            if d3d11 and 'CBUFFER' in line:
-                name, freq, reg, _ = parsing_struct
-                freq = DescriptorSets[freq].value
-                shader_src += [f'#define {name} _fslF{freq}_{name}\n']
 
         if parsing_struct and line.strip().startswith('DATA('):
             data_decl = getMacro(line)
@@ -179,15 +162,6 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
 
             if not pssl and Features.INVARIANT in binary.features and data_decl[2].upper() == 'SV_POSITION':
                     line = get_whitespace(line) + 'precise ' + line.strip() + '\n'
-
-            if pssl and type(parsing_struct) is not str:
-                basename = getArrayBaseName(data_decl[1])
-                init, ref = pssl.declare_element_reference(shader, parsing_struct, data_decl)
-                shader_src += [*init, '\n']
-                if len(parsing_struct) > 2: # only pad cbuffers
-                     line = pssl.apply_cpad(data_decl)
-                shader_src += ['#line {}\n'.format(line_index), line]
-                continue
 
         if parsing_struct and '};' in line:
 
@@ -206,19 +180,25 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
         resource_decl = None
         if line.strip().startswith('RES('):
             resource_decl = getMacro(line)
+            if 'ROOT_CONSTANT' in resource_decl[0]:
+                srt_loc = len(shader_src) + 1
 
         if d3d11 and resource_decl:
             dtype, name, freq, reg, _ = resource_decl
             freq = DescriptorSets[freq].value
             shader_src += [f'#define {name} _fslF{freq}_{name}\n']
+            if 'CBUFFER' in dtype or 'ROOT_CONSTANT' in dtype:
+                line = line[:-2] + f' {{{getMacro(dtype)} {name};}};\n'
 
         if pssl and resource_decl:
-            _, res_name, res_freq, _, _ = resource_decl
-
-            srt_resources[res_freq] += [pssl.declare_resource(resource_decl)]
-
-            init, ref = pssl.declare_reference(shader, resource_decl)
-            shader_src += [*init, '\n']
+            resType, res_name, res_freq, _, _ = resource_decl
+            if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                line = f'struct {res_name} {{ {getMacro(resType)} m; }};\n'
+            if 'rootcbv' in res_name:
+                srt_free_resources += [pssl.declare_resource(resource_decl)]
+            else:
+                srt_resources[res_freq] += [pssl.declare_resource(resource_decl)]
+            replacements += [ pssl.declare_reference(shader, resource_decl) ]
 
         if '_MAIN(' in line and shader.returnType:
             if shader.returnType not in shader.structs:
@@ -264,7 +244,6 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             ws = get_whitespace(line)
             if shader.returnType:
                 line = ws+'//'+line.strip()+'\n'
-
 
             # if this shader is the receiving end of a passthrough_gs, copy the PrimitiveID from GS output
             if passthrough_gs:
@@ -327,8 +306,13 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             shader_src[awaiting_call[2]] = awaiting_call[1][0:lastCharacter] + ");}\n"
         if srt_loc > 0: # skip srt altogether if no declared resourced or not requested
             srt = pssl.gen_srt(srt_resources, srt_free_resources)
-            open(dst + '.srt.h', 'w').write(srt)
-            shader_src.insert(srt_loc, '\n#include \"' + os.path.basename(dst) + '.srt.h\"\n')
+            shader_src0, shader_src1 = shader_src[:srt_loc], shader_src[srt_loc:]
+            shader_src0 += [srt]
+            shader_src1 = ''.join(shader_src1)
+            for s, d in replacements:
+                rr = re.compile(rf'\b{s}\b\s*(.)', re.DOTALL)
+                shader_src1 = rr.sub(lambda x: x.group() if x.group(1) == '{' else d+x.group(1), shader_src1)
+            shader_src = shader_src0 + [shader_src1]
 
     open(dst, 'w').writelines(shader_src)
 

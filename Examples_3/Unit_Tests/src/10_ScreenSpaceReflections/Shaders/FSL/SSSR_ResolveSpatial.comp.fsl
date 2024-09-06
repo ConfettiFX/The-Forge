@@ -69,57 +69,57 @@ GroupShared(float, g_shared_depth[17][17]);
 
 min16float LoadRayLengthFP16(int2 idx)
 {
-    return min16float(LoadRWTex2D(Get(g_ray_lengths), idx).x);
+    return min16float(LoadRWTex2D(g_ray_lengths, idx).x);
 }
 
 min16float3 LoadRadianceFP16(int2 idx)
 {
-    return min16float3(LoadRWTex2D(Get(g_intersection_result), idx).xyz);
+    return min16float3(LoadRWTex2D(g_intersection_result, idx).xyz);
 }
 
 min16float3 LoadNormalFP16(int2 idx)
 {
-    return min16float3(FfxSssrUnpackNormals(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, idx, 0)));
+    return min16float3(FfxSssrUnpackNormals(LoadTex2D(g_normal_roughness, NO_SAMPLER, idx, 0)));
 }
 
 float LoadDepth(int2 idx)
 {
-    return FfxSssrUnpackDepth(LoadTex2D(Get(g_depth_buffer), NO_SAMPLER, idx, 0).x);
+    return FfxSssrUnpackDepth(LoadTex2D(g_depth_buffer, NO_SAMPLER, idx, 0).x);
 }
 
 bool LoadHasRay(int2 idx)
 {
-    return LoadRWTex2D(Get(g_has_ray), idx).x != 0.0f;
+    return LoadRWTex2D(g_has_ray, idx).x != 0.0f;
 }
 
 min16float4 LoadRadianceFromGroupSharedMemory(int2 idx)
 {
     uint2 tmp;
-    tmp.x = Get(g_shared_0)[idx.x][idx.y];
-    tmp.y = Get(g_shared_1)[idx.x][idx.y];
+    tmp.x = g_shared_0[idx.x][idx.y];
+    tmp.y = g_shared_1[idx.x][idx.y];
     return min16float4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
 }
 
 min16float3 LoadNormalFromGroupSharedMemory(int2 idx)
 {
     uint2 tmp;
-    tmp.x = Get(g_shared_2)[idx.x][idx.y];
-    tmp.y = Get(g_shared_3)[idx.x][idx.y];
+    tmp.x = g_shared_2[idx.x][idx.y];
+    tmp.y = g_shared_3[idx.x][idx.y];
     return min16float4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y)).xyz;
 }
 
 float LoadDepthFromGroupSharedMemory(int2 idx)
 {
-    return Get(g_shared_depth)[idx.x][idx.y];
+    return g_shared_depth[idx.x][idx.y];
 }
 
 void StoreInGroupSharedMemory(int2 idx, float4 radiance, float3 normal, float depth)
 {
-    Get(g_shared_0)[idx.x][idx.y] = PackFloat16(min16float2(radiance.xy));
-    Get(g_shared_1)[idx.x][idx.y] = PackFloat16(min16float2(radiance.zw));
-    Get(g_shared_2)[idx.x][idx.y] = PackFloat16(min16float2(normal.xy));
-    Get(g_shared_3)[idx.x][idx.y] = PackFloat16(min16float2(normal.z, 0));
-    Get(g_shared_depth)[idx.x][idx.y] = depth;
+    g_shared_0[idx.x][idx.y] = PackFloat16(min16float2(radiance.xy));
+    g_shared_1[idx.x][idx.y] = PackFloat16(min16float2(radiance.zw));
+    g_shared_2[idx.x][idx.y] = PackFloat16(min16float2(normal.xy));
+    g_shared_3[idx.x][idx.y] = PackFloat16(min16float2(normal.z, 0));
+    g_shared_depth[idx.x][idx.y] = depth;
 }
 
 void LoadWithOffset(int2 did, int2 offset, int2 image_size, out(float) ray_length, out(float3) radiance, out(float3) normal, out(float) depth, out(bool) has_ray)
@@ -141,8 +141,8 @@ void StoreWithOffset(int2 gtid, int2 offset, float ray_length, float3 radiance, 
 
 void InitializeGroupSharedMemory(int2 did, int2 gtid, uint group_thread_id_linear)
 {
-    const uint samples_per_quad = Get(g_samples_per_quad);
-    const int2 image_size = int2(GetDimensions(Get(g_normal_roughness), NO_SAMPLER));
+    const uint samples_per_quad = Constants.g_samples_per_quad;
+    const int2 image_size = int2(GetDimensions(g_normal_roughness, NO_SAMPLER));
 
     // First pass, load (1 + 3 + 8 + 3 + 1) = (16x16) region into shared memory.
     // That is a guard band of 3, the inner region of 8 plus one additional band to catch base pixels if we didn't shoot rays for the respective edges/corners of the loaded region.
@@ -310,7 +310,7 @@ min16float3 ResolveScreenspaceReflections(int2 gtid, min16float3 center_radiance
 
 void Resolve(int2 did, int2 gtid, uint group_thread_id_linear)
 {
-    float center_roughness = LoadRoughness(did, Get(g_normal_roughness));
+    float center_roughness = LoadRoughness(did, g_normal_roughness);
     InitializeGroupSharedMemory(did, gtid, group_thread_id_linear);
     GroupMemoryBarrier();
 
@@ -325,15 +325,15 @@ void Resolve(int2 did, int2 gtid, uint group_thread_id_linear)
     min16float3 center_normal   = LoadNormalFromGroupSharedMemory(gtid);
     float  center_depth    = LoadDepthFromGroupSharedMemory(gtid);
     min16float3 radiance = ResolveScreenspaceReflections(gtid, center_radiance.xyz, center_normal, center_depth);
-    Write2D(Get(g_spatially_denoised_reflections), did.xy, float4(float3(radiance.xyz), 1.0));
-    Write2D(Get(g_ray_lengths), did.xy, float(center_radiance.w)); // ray_length
+    Write2D(g_spatially_denoised_reflections, did.xy, float4(float3(radiance.xyz), 1.0));
+    Write2D(g_ray_lengths, did.xy, float(center_radiance.w)); // ray_length
 }
 
 NUM_THREADS(64,  1,  1)
 void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id_linear, SV_GroupID(uint3) group_id )
 {
 	INIT_MAIN;
-    uint packed_base_coords = Get(g_tile_list)[group_id.x];
+    uint packed_base_coords = g_tile_list[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
     uint2 group_thread_id_2d = RemapLane8x8(group_thread_id_linear.x % 64);
     uint2 coords = base_coords + group_thread_id_2d;

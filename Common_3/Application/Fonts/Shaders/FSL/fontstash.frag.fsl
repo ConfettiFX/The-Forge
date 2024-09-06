@@ -34,6 +34,6 @@ float4 PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
 	float4 Out;
-	Out = float4(1.0, 1.0, 1.0, SampleTex2D(Get(uTex0), Get(uSampler0), In.texCoord).r) * Get(color);
+	Out = float4(1.0f, 1.0f, 1.0f, SampleTex2D(uTex0, uSampler0, In.texCoord).r) * uRootConstants.color;
 	RETURN(Out);
 }

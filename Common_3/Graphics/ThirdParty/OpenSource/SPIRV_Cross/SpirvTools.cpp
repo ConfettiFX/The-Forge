@@ -302,7 +302,7 @@ void ReflectShaderResources(CrossCompiler* pCompiler)
    {
 	  spirv_cross::Resource const& input = allResources.push_constant_buffers[i];
 	  SPIRV_Resource& resource = resources[current_resource++];
-
+	  resource = {};
 
 	  resource.SPIRV_code.id = input.id;
 	  resource.SPIRV_code.type_id = input.type_id;

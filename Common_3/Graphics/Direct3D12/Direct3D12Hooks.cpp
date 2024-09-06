@@ -333,7 +333,14 @@ void hook_modify_shader_compile_flags(uint32_t, bool, const WCHAR**, uint32_t* p
 
 void hook_modify_rootsignature_flags(uint32_t, D3D12_ROOT_SIGNATURE_FLAGS*) {}
 
+void hook_fill_dispatch_indirect_argument_desc(D3D12_INDIRECT_ARGUMENT_DESC* pInOutDesc, bool async)
+{
+    UNREF_PARAM(async);
+    pInOutDesc->Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+}
 void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding) { pInOutDesc->ByteStride += padding; }
 
 void hook_pre_resolve_query(Cmd* pCmd) { UNREF_PARAM(pCmd); }
+
+void hook_fill_occlusion_query(Cmd*, uint32_t) {}
 #endif

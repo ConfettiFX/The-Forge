@@ -34,21 +34,21 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 {
 	INIT_MAIN;
 
-	if (threadId.x >= Get(skinBatchDataBuffer)[groupId.x].vertexCount)
+	if (threadId.x >= batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexCount)
 	{
 		RETURN();
 	}
 	
 	// Index for position might be different than index for joints, positions live in a buffer with position all other meshes in
 	// the scene, whereas joints buffer is smaller and only contains the data necessary for the few skinned meshes in the scene
-	uint inVertexIndex = threadId.x + Get(skinBatchDataBuffer)[groupId.x].vertexPositionOffset;
-	uint jointIndex = threadId.x + Get(skinBatchDataBuffer)[groupId.x].vertexJointsOffset;
+	uint inVertexIndex = threadId.x + batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexPositionOffset;
+	uint jointIndex = threadId.x + batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexJointsOffset;
 
 	uint4 joints = LoadJointIndexes4x16(vertexJointsBuffer, jointIndex);
 	float4 weights = LoadJointWeightsFloat4(vertexWeightsBuffer, jointIndex);
 
 	// jointMatrixes buffer contains matrixes for all animated instances in the scene, we need to offset our joints to the correct offset
-	joints += Get(skinBatchDataBuffer)[groupId.x].jointMatrixOffset;
+	joints += batchData_rootcbv.skinBatchDataBuffer[groupId.x].jointMatrixOffset;
 
 	PreSkinIn In;
 	In.position = LoadVertexPositionFloat3(inVertexIndex);

@@ -32,10 +32,7 @@ STRUCT(VSOutput)
 	DATA(float3, worldSpaceNormal, TEXCOORD2);
 };
 
-CBUFFER(gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-	DATA(ShadersConfigBlock, gSettingsData, None);
-};
+RES(CBUFFER(ShadersConfigBlock), gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(PSOut)
 {
@@ -49,10 +46,10 @@ PSOut PS_MAIN(VSOutput In)
 	float2 motionVector = f2(0.0f);
     
     // Compute motion vectors
-    if (Get(gSettingsData).mFrameIndex > 0)
+    if (gSettings.mFrameIndex > 0)
 	{
         // Map current pixel location to 0..1
-		float2 uv = In.position.xy * Get(gSettingsData).mRtInvSize;
+		float2 uv = In.position.xy * gSettings.mRtInvSize;
         
         // Unproject the position from the previous frame then transform it from
         // NDC space to 0..1

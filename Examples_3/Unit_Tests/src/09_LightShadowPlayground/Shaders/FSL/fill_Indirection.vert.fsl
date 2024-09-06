@@ -23,10 +23,11 @@
 */
 #define QUADS_ARRAY_REGS 192
 
-CBUFFER(PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(PackedAtlasQuads)
 {
 	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
 };
+RES(CBUFFER(PackedAtlasQuads), PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(AtlasQuads)
 {
@@ -66,7 +67,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 
 	for(uint i = 0; i < registersPerQuad; ++i)
 	{
-		quadData[i] = Get(mQuadsData)[quadID * registersPerQuad + i];
+		quadData[i] = PackedAtlasQuads_CB.mQuadsData[quadID * registersPerQuad + i];
 	}
 
 	AtlasQuads atlasQuad;

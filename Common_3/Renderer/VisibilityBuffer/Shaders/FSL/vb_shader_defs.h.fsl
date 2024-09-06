@@ -79,22 +79,24 @@ typedef struct IndirectDrawIndexArguments
 	uint32_t mStartInstance;
 } IndirectDrawIndexArguments;
 */
-#define INDIRECT_DRAW_ARGUMENTS_ELEMENTS 8
+#define INDIRECT_DRAW_ARGUMENTS_ELEMENTS 5
 #define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW) * NUM_GEOMETRY_SETS) + (GEOM)) * INDIRECT_DRAW_ARGUMENTS_ELEMENTS) + (ELEM))
 
-CBUFFER(PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
+STRUCT(PerFrameVBConstantsData)
 {
 	DATA(Transform, transform[NUM_CULLING_VIEWPORTS], None);
 	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);
 	DATA(uint, numViewports, None);
 };
+RES(CBUFFER(PerFrameVBConstantsData), PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1);
 
-CBUFFER(VBConstantBuffer, UPDATE_FREQ_NONE, b2, binding = 2)
+STRUCT(VBConstantBufferData)
 {
     DATA(VBConstants, vbConstant[NUM_GEOMETRY_SETS], None);
 };
+RES(CBUFFER(VBConstantBufferData), VBConstantBuffer, UPDATE_FREQ_NONE, b2, binding = 2);
 
-#define INDEXBUFFER_OFFSET(GEOMSET) ( Get(vbConstant)[GEOMSET].indexOffset )
+#define INDEXBUFFER_OFFSET(GEOMSET) ( VBConstantBuffer.vbConstant[GEOMSET].indexOffset )
 
 /************************************************************************/
 // OIT

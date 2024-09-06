@@ -29,11 +29,11 @@ NUM_THREADS(8,  8,  1)
 void CS_MAIN( SV_DispatchThreadID(uint3) did) 
 {    
 	INIT_MAIN;
-    uint2 screen_size = uint2(GetDimensions(Get(Source), NO_SAMPLER));
+    uint2 screen_size = uint2(GetDimensions(Source, NO_SAMPLER));
 
     if (did.x < screen_size.x && did.y < screen_size.y)
     {
-        Write2D(Get(Destination), did.xy, LoadTex2D(Get(Source), NO_SAMPLER, did.xy, 0));
+        Write2D(Destination, did.xy, LoadTex2D(Source, NO_SAMPLER, did.xy, 0));
     }
 	RETURN();
 }

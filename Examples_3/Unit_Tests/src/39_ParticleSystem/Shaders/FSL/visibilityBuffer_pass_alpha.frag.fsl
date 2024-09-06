@@ -22,16 +22,21 @@
  * under the License.
 */
 
-PUSH_CONSTANT(ShadowRootConstants, b0)
+STRUCT(ShadowRootConstantsData)
 {
     DATA(uint, CubeIndex, None);
     DATA(uint, ParticleIndex, None);
 };
+RES(ROOT_CONSTANT(ShadowRootConstantsData), ShadowRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
+
+RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, t0, binding = 11);
+RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, t1, binding = 10);
+
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
@@ -44,7 +49,7 @@ float4 PS_MAIN( PsInVBAlphaTested In, SV_PrimitiveID(uint) primitiveId )
     uint materialID = In.materialID;
 
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+		alpha = SampleTex2D(diffuseMaps[materialID], textureFilter, In.texCoord).a;
     EndNonUniformResourceIndex();
     
     clip(alpha < 0.5f ? -1 : 1);

@@ -23,7 +23,7 @@
 """ metal shader generation """
 
 from utils import WaveopsFlags, Stages, DescriptorSets, Features, Platforms, ShaderBinary
-from utils import getHeader, getShader, getMacro, getMacroName, iter_lines
+from utils import getHeader, getShader, getMacro, getMacroName, iter_lines, isBaseType
 from utils import isArray, getArrayLen , getArrayBaseName, get_interpolation_modifier
 from utils import is_input_struct, get_input_struct_var, fsl_assert, get_whitespace, getArrayLenFlat
 from utils import get_array_decl, get_fn_table, is_groupshared_decl, collect_shader_decl
@@ -149,9 +149,6 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     # statements which need to be inserted into INIT_MAIN
     entry_declarations = []
-
-    parsing_cbuffer = None
-    parsing_pushconstant = None
     attribute_index  = 0
 
     # reversed list of functions, used to determine where a resource is being accessed
@@ -159,25 +156,54 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     parsing_main = False
     global_scope_count = 0
+    global_resources = [res[1] for res in shader.resources]
+    reGlobalResources = []
+
+    reFn = re.compile(r'\b\w+\s+(\w+)\s*\(([^\{;]*)\)\s*?\{', re.DOTALL)
+    for dtype in [res[0] for res in shader.resources]:
+        if not isBaseType(getMacro(dtype)):
+            if 'CBUFFER' in dtype or 'ROOT_CONSTANT' in dtype:
+                shader_src += [f'{dtype};\n']
+            elif 'Buffer' in dtype:
+                shader_src += [f'struct {dtype};\n']
+    res = {}
+    for m in reFn.finditer(''.join(shader.lines)):
+        a = m.group(2).split(',')
+        if not m.group(2): continue
+        a = [ a.split()[-1] for a in a ]
+        if m.group(1) not in res: res[m.group(1)] = []
+        res[m.group(1)] += a
     for i, line in enumerate(shader.lines):
         if line.strip().startswith('//'): continue
+
+        if is_groupshared_decl(line):
+            dtype, dname = getMacro(line)
+            basename = getArrayBaseName(dname)
+            if basename not in global_resources:
+                global_resources += [basename]
 
         if '{' in line: global_scope_count += 1
         if '}' in line: global_scope_count -= 1
 
-        l_get = line.find('Get(')
-        while l_get > 0 and not parsing_main:
-            resource = line[l_get:]
-            resource = resource[4:resource.find(')')]
-            br = resource.find('[')
-            if -1 != br:
-                resource = resource[:br]
-            for fn, (_, fn_i) in reversed_fns:
-                if fn_i[0] < i:
-                    if fn not in global_references: global_references[fn] = set()
-                    global_references[fn].add(resource)
-                    break
-            l_get = line.find('Get(', l_get+1)
+        if global_scope_count == 0: continue
+
+        for global_resource in global_resources:
+            resource_name = getArrayBaseName(global_resource)
+            l_get = line.find(resource_name)
+            while l_get > 0 and not parsing_main:
+                resource = line[l_get:]
+                resource = resource_name #resource[4:resource.find(')')]
+                br = resource.find('[')
+                if -1 != br:
+                    resource = resource[:br]
+                for fn, (_, fn_i) in reversed_fns:
+                    if 'GetMetalIntersectionParams' == fn: continue
+                    if fn_i[0] < i:
+                        if fn not in global_references: global_references[fn] = set()
+                        if not fn in res or resource not in res[fn]:
+                            global_references[fn].add(resource)
+                        break
+                l_get = line.find(resource_name, l_get+1)
 
         l_get = line.find('WaveGetLaneIndex()')
         while l_get > 0 and not parsing_main:
@@ -216,23 +242,22 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             if not elements: continue
 
             argBufType = 'AB_' + freq
-            ab_decl += ['\n\t// Generated Metal Resource Declaration: ', argBufType, '\n' ]
 
             # make AB declaration only active if any member is defined
             space = 'constant'
             ifreq = metal_ab_frequencies.index(freq)
             mainArgs += [[space, ' struct ', argBufType, '& ', argBufType, f'[[buffer({ifreq})]]']]
 
-            ab_decl += ['\tstruct ', argBufType, '\n\t{\n']
+            ab_decl += ['struct ', argBufType, '\n{\n']
             sorted_elements = sorted(elements, key=lambda x: x[0], reverse=False)
             vkbinding = 0
             for elem in sorted_elements:
                 binding = cleaneval(elem[0].split('=')[-1])
                 arr = 1 if not isArray(elem[1][2]) else cleaneval(getArrayLenFlat(elem[1][2]))
                 while vkbinding < binding:
-                    ab_decl += [f'\t\tconstant void* _dummy_{ifreq}_{vkbinding};\n']
+                    ab_decl += [f'\tconstant void* _dummy_{ifreq}_{vkbinding};\n']
                     vkbinding += 1
-                ab_decl += ['\t\t', *elem[1], ';\n']
+                ab_decl += ['\t', *elem[1], ';\n']
                 vkbinding += arr
 
             if len(sorted_elements) == 1:
@@ -240,12 +265,16 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 if 'SamplerState' in elem0[0]:
                     print('WARN: Sampler-only AB not supported!')
 
-            ab_decl += ['\t};\n']
+            ab_decl += ['};\n']
         return ab_decl
     
     last_res_decl = 0
     explicit_res_decl = None
+    global_scope_count = 0
     for fi, line_index, line in iter_lines(shader.lines):
+
+        if '{' in line: global_scope_count += 1
+        if '}' in line: global_scope_count -= 1
         
         shader_src_len = len(shader_src)
 
@@ -341,30 +370,6 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 shader_src += [get_whitespace(line), dtype, ' ', name, ' ', attribute, ';\n']
                 continue
 
-        # handle cbuffer and pushconstant elements
-        if (parsing_cbuffer or parsing_pushconstant) and line.strip().startswith('DATA('):
-            dt, name, sem = getMacro(line)
-            element_basename = getArrayBaseName(name)
-
-            if parsing_cbuffer:
-                elemen_path = parsing_cbuffer[0] + '.' + element_basename
-
-                # for non-embedded cbuffer, access directly using struct access
-                global_reference_paths[element_basename] = parsing_cbuffer[0]
-                global_reference_args[element_basename] = 'constant struct ' + parsing_cbuffer[0] + '& ' + parsing_cbuffer[0]
-                if is_cbuffer_embedded(binary, parsing_cbuffer):
-                    elemen_path = 'AB_' + parsing_cbuffer[1] + '.' + elemen_path
-                    global_reference_paths[element_basename] = 'AB_' + parsing_cbuffer[1]
-                    global_reference_args[element_basename] = 'constant struct AB_' + parsing_cbuffer[1] + '& ' + 'AB_' + parsing_cbuffer[1]
-
-            if parsing_pushconstant:
-                elemen_path = parsing_pushconstant[0] + '.' + element_basename
-                global_reference_paths[element_basename] = parsing_pushconstant[0]
-                global_reference_args[element_basename] = 'constant struct ' + parsing_pushconstant[0] + '& ' + parsing_pushconstant[0]
-
-            shader_src += ['#define _Get_', element_basename, ' ', elemen_path, '\n']
-
-
         if is_groupshared_decl(line):
             dtype, dname = getMacro(line)
             basename = getArrayBaseName(dname)
@@ -377,63 +382,8 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             global_reference_paths[basename] = basename
             global_reference_args[basename] = 'threadgroup ' + dtype + ' (&' + basename + ')' + array_decl
 
-            shader_src += ['#define _Get_', basename, ' ', basename, '\n']
-
             shader_src += ['#line {}\n'.format(line_index)]
             shader_src += ['\t// End of GroupShared Declaration: ', basename, '\n']
-            continue
-
-        if 'PUSH_CONSTANT' in line:
-            parsing_pushconstant = tuple(getMacro(line))
-
-        if '};' in line and parsing_pushconstant:
-
-            shader_src += [line]
-            push_constant_decl = parsing_pushconstant
-            pushconstant_name = push_constant_decl[0]
-
-            location = dxRegisterToMSLBinding('PUSH_CONSTANT', push_constant_decl[1])
-            location = getBufferId(1)
-            push_constant_location = f'[[buffer({location})]]'
-
-            mainArgs += [ ['constant struct ', pushconstant_name, '& ', pushconstant_name, ' ', push_constant_location] ]
-
-            parsing_pushconstant = None
-            struct_references = []
-            last_res_decl = len(shader_src)+1
-            continue
-
-        if 'CBUFFER' in line:
-            fsl_assert(parsing_cbuffer == None, fi, line_index, message='Inconsistent cbuffer declaration')
-            parsing_cbuffer = tuple(getMacro(line))
-
-        if '};' in line and parsing_cbuffer:
-            shader_src += [line]
-            cbuffer_name, cbuffer_freq, dxreg, vkbinding = parsing_cbuffer[:4]
-            is_embedded = is_cbuffer_embedded(binary, parsing_cbuffer)
-
-            if cbuffer_freq not in metal_ab_frequencies and is_embedded:
-                shader_src += ['#line {}\n'.format(line_index)]
-                shader_src += ['\t// Ignored CBuffer Declaration: '+line+'\n']
-                continue
-
-            if not is_embedded:
-                location = dxRegisterToMSLBinding('CBUFFER', dxreg)
-                location = getBufferId(1)
-
-                fr = metal_ab_frequencies.index(cbuffer_freq)
-                nameWithFrequency = f'_fslF{fr}_{cbuffer_name}'
-
-                mainArgs += [['constant struct ', cbuffer_name, '& ', nameWithFrequency, f' [[buffer({location})]] // {dxreg}']]
-                entry_declarations += [f'constant auto& {cbuffer_name} = {nameWithFrequency};']
-            else:
-                ab_element = ['constant struct ', cbuffer_name, '& ', cbuffer_name]
-                ab_elements[cbuffer_freq] += [( vkbinding, ab_element )]
-
-            parsing_cbuffer = None
-            struct_references = []
-            last_res_decl = len(shader_src)+1
-
             continue
 
         # consume resources
@@ -443,6 +393,10 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             baseName = getArrayBaseName(resName)
 
             is_embedded = False
+
+            if 'CBUFFER' in resType and is_cbuffer_embedded(binary, resName):
+                is_embedded = True
+            
             if not Features.NO_AB in binary.features:
                 if 'SamplerState' == resType:
                     is_embedded = False
@@ -465,13 +419,11 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 continue
 
             if not is_embedded: # regular resource
-                shader_src += ['\n\t// Metal Resource Declaration: ', line, '\n']
                 is_array = isArray(resName)
                 array_len = int(cleaneval(getArrayLenFlat(resName))) if is_array else 1
                 prefix = ''
                 postfix = ' '
-                is_buffer = 'Buffer' in resType
-
+                is_buffer = 'Buffer' in resType or 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType
 
                 fr = metal_ab_frequencies.index(resource[2])
                 nameWithFrequency = f'_fslF{fr}_{baseName}'
@@ -479,6 +431,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 if is_buffer:
                     prefix = 'device ' if 'RW' in resType else 'const device '
                     postfix = '* '
+                    if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                        postfix = '& '
+                        prefix = 'constant '
                 if 'Sampler' in resType:
                     location = getSamplerId(array_len)
                     binding = ' [[sampler({})]]'.format(location)
@@ -486,10 +441,10 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     location = getTextureId(array_len)
                     _, group_index = getMacro(resType)
                     binding = ' [[raster_order_group({0}), texture({1})]]'.format(group_index, location)
-                elif 'Tex' in resType or 'Depth' in getMacroName(resType):
+                elif 'Tex' in getMacroName(resType) or 'Depth' in getMacroName(resType):
                     location = getTextureId(array_len)
                     binding = ' [[texture({})]]'.format(location)
-                elif 'Buffer' in resType:
+                elif is_buffer:
                     location = getBufferId(array_len)
                     binding = ' [[buffer({})]]'.format(location)
                 else:
@@ -512,7 +467,10 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                         mainArgType = f'array<{resType}, {array_len}>'
                     main_arg = [prefix , mainArgType, postfix, nameWithFrequency, binding, ' // main arg ', resource[2]]
                     mainArgs += [main_arg]
-                    entry_declarations += [f'auto {baseName} = {nameWithFrequency};']
+                    if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                        entry_declarations += [f'constant auto& {baseName} = {nameWithFrequency};']
+                    else:
+                        entry_declarations += [f'auto {baseName} = {nameWithFrequency};']
 
                 global_reference_paths[baseName] = baseName
                 
@@ -520,6 +478,8 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     space = 'device' if 'RW' in resType else 'const device'
                     if is_array:
                         ref_arg = f'{space} {resType} *(&{baseName})[{array_len}] '
+                    elif 'CBUFFER' in resType or "ROOT_CONSTANT" in resType:
+                        ref_arg = f'constant {resType}& {resName}'
                     else:
                         ref_arg = f'{space} {resType} *{resName}'
                 else:
@@ -529,17 +489,15 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                         ref_arg = f'thread {resType}& {resName}'
                 global_reference_args[baseName] = ref_arg
 
-                shader_src += ['#define _Get_', baseName, ' ', baseName, '\n']
-
-                shader_src += ['\t// End of Resource Declaration: ', resName, '\n']
-
             else: # resource is embedded in argbuf
 
                 shader_src += ['\n\t// Metal Embedded Resource Declaration: ', line, '\n']
                 argBufType = 'AB_' + freq
                 basename = getArrayBaseName(resName)
 
-                if 'Buffer' in resType:
+                if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                    ab_element = ['constant ', resType, '& ', resName]
+                elif 'Buffer' in resType:
                     space = ' device ' if 'RW' in resType else ' const device '
                     ab_element = [space, resType, '* ', resName]
                 elif 'RasterizerOrderedTex2D' in resType:
@@ -559,10 +517,11 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     array = resName[resName.find('['):]
                     global_reference_args[baseName] = 'constant ' + resType + '(&' + baseName+') ' + array
                 global_reference_args[baseName] = 'constant struct ' + argBufType + '& ' + argBufType
-                shader_src += ['#define _Get_', baseName, ' ', argBufType, '.', baseName, '\n']
+                entry_declarations += [f'auto {baseName} = {argBufType}.{baseName};']
 
                 shader_src += ['\t//End of Resource Declaration: ', baseName, '\n']
 
+                reGlobalResources += [ (f'{argBufType}.{baseName}', re.compile(fr'\b{baseName}\b', re.DOTALL)) ]
             last_res_decl = len(shader_src)+1
             shader_src += ['#line {}\n'.format(line_index)]
             continue
@@ -604,6 +563,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 
             if shader.waveops_flags != WaveopsFlags.WAVE_OPS_NONE:
                 shader_src += [prefix, 'uint simd_lane_id [[thread_index_in_simdgroup]]\n']
+                shader_src += [prefix, 'uint simdgroup_size [[threads_per_simdgroup]]\n']
                 prefix = '\t,'
 
             for arg in mainArgs:
@@ -614,6 +574,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['#line {}\n'.format(line_index)]
             continue
 
+        if global_scope_count > 0:
+            for ab, reGr in reGlobalResources:
+                line = reGr.sub(ab, line)
         if 'INIT_MAIN' in line:
 
             for entry_declaration in entry_declarations:
@@ -693,6 +656,5 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     else:
                         line = line[:l2] + argument + ', ' + line[l2:]
                 shader_src[i] = line
-
     open(dst, 'w').writelines(shader_src)
     return 0, []

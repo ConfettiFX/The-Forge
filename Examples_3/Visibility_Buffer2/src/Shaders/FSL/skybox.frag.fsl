@@ -38,6 +38,6 @@ float4 PS_MAIN( VSOutput Input )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), Input.pos);
+    Out = SampleTexCube(skyboxTex, skyboxSampler, Input.pos);
     RETURN(Out);
 }

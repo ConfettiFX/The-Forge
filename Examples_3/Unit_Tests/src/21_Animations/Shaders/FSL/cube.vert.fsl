@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,23 +11,23 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 // Shader for simple shading with a point light
 // for skeletons in Unit Tests Animation
 
 #define MAX_INSTANCES 804
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+STRUCT(UniformBlock)
 {
 #if FT_MULTIVIEW
     DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
@@ -43,6 +43,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
     DATA(uint4, skeletonInfo, None);
     DATA(float4x4, toWorld[MAX_INSTANCES], None);
 };
+RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 
 STRUCT(VSInput)
 {
@@ -61,27 +62,27 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld)[InstanceID]);
+    float4x4 tempMat = mul(uniformBlock.mvp[VR_VIEW_ID], uniformBlock.toWorld[InstanceID]);
 #else
-    float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
+    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld[InstanceID]);
 #endif
     Out.Position = mul(tempMat, In.Position);
 
-    float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
-    float4 pos = mul(Get(toWorld)[InstanceID], float4(In.Position.xyz, 1.0f));
+    float4 normal = normalize(mul(uniformBlock.toWorld[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
+    float4 pos = mul(uniformBlock.toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
 
     float lightIntensity = 1.0f;
     float quadraticCoeff = 1.2;
     float ambientCoeff = 0.4;
 
-    float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
+    float3 lightDir = normalize(uniformBlock.lightPosition.xyz - pos.xyz);
 
-    //float distance = length(lightDir);
-    //float attenuation = 1.0 / (quadraticCoeff * distance * distance);
-    //float intensity = lightIntensity * attenuation;
+    // float distance = length(lightDir);
+    // float attenuation = 1.0 / (quadraticCoeff * distance * distance);
+    // float intensity = lightIntensity * attenuation;
 
-    float3 baseColor = Get(jointColor).xyz;
-    float3 blendedColor = (Get(lightColor).xyz * baseColor) * lightIntensity;
+    float3 baseColor = uniformBlock.jointColor.xyz;
+    float3 blendedColor = (uniformBlock.lightColor.xyz * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out.Color = float4(diffuse + ambient, 1.0);

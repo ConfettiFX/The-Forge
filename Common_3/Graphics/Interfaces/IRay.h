@@ -144,24 +144,23 @@ typedef struct RaytracingBuildASDesc
     bool                   mIssueRWBarrier;
 } RaytracingBuildASDesc;
 
-DECLARE_RENDERER_FUNCTION(bool, initRaytracing, Renderer* pRenderer, Raytracing** ppRaytracing);
-DECLARE_RENDERER_FUNCTION(void, removeRaytracing, Renderer* pRenderer, Raytracing* pRaytracing)
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
+void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
-DECLARE_RENDERER_FUNCTION(void, addAccelerationStructure, Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
-                          AccelerationStructure** ppAccelerationStructure)
-DECLARE_RENDERER_FUNCTION(void, removeAccelerationStructure, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                              AccelerationStructure** ppAccelerationStructure);
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 /// Free the scratch memory allocated by acceleration structure after it has been built completely
 /// Does not free acceleration structure
-DECLARE_RENDERER_FUNCTION(void, removeAccelerationStructureScratch, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
-DECLARE_RENDERER_FUNCTION(void, cmdBuildAccelerationStructure, Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
 
 #ifdef METAL
-DECLARE_RENDERER_FUNCTION(void, addSSVGFDenoiser, Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
-DECLARE_RENDERER_FUNCTION(void, removeSSVGFDenoiser, SSVGFDenoiser* pDenoiser);
-DECLARE_RENDERER_FUNCTION(void, clearSSVGFDenoiserTemporalHistory, SSVGFDenoiser* pDenoiser);
-DECLARE_RENDERER_FUNCTION(void, cmdSSVGFDenoise, Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture,
-                          Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture,
-                          Texture** ppOut);
+void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
+void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser);
+void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser);
+void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture,
+                     Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
 #endif

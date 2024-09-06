@@ -45,46 +45,44 @@ struct BarycentricDeriv
 };
 
 #ifdef USE_RAY_DIFFERENTIALS
-// Calculates the local (barycentric coordinates) position of a ray hitting a triangle (Muller-Trumbore algorithm)
-// Parameters: p0,p1,p2 -> World space coordinates of triangle
-// o -> Origin of ray in world space (Mainly view camera here)
-// d-> Unit vector direction of ray from origin
-float3 rayTriangleIntersection(float3 p0, float3 p1, float3 p2, float3 o, float3 d)
-{
-	float3 v0v1 = p1-p0;
-	float3 v0v2 = p2-p0;
-	float3 pvec = cross(d,v0v2);
-	float det = dot(v0v1,pvec);
-	float invDet = 1/det;
-	float3 tvec = o - p0;
-	float u = dot(tvec,pvec) * invDet;
-	float3 qvec = cross(tvec,v0v1);
-	float v = dot(d,qvec) *invDet;
-	float w = 1.0f - v - u;
-	return float3(w,u,v);
-}
-
 // Calculate ray differentials for a point in world-space
-// Parameters: pt0,pt1,pt2 -> world space coordinates of the triangle currently visible on the pixel
-// position -> world-space calculated position of the current pixel by reconstructing Z value
-// positionDX,positionDY -> world-space positions a pixel footprint right and down of the calculated position w.r.t traingle
-BarycentricDeriv CalcRayBary(float3 pt0, float3 pt1, float3 pt2,float3 position,float3 positionDX,float3 positionDY,
-								float3 camPos)
+// Parameters
+// - pt0,pt1,pt2 -> world space coordinates of the triangle currently visible on the pixel
+// - screenPos -> 2D NDC position of current pixel, range [-1, 1]
+// - rayOrigin -> camera position
+// 
+// This approach produces the same quality as CalcFullBary, but a bit slower
+//   with more register allocation and generates more MUL/FMA instructions for matrix multiplication
+BarycentricDeriv CalcRayBary(float3 pt0, float3 pt1, float3 pt2, float2 pixelNdc, float3 rayOrigin, float4x4 viewInv, float4x4 projInv, float2 twoOverScreenSize)
 {
-	BarycentricDeriv ret ;
+	BarycentricDeriv ret;
 
-	// Calculating unit vector directions of all 3 rays
-	float3 curRay = position - camPos;
-	float3 rayDX = positionDX - camPos;
-	float3 rayDY = positionDY - camPos;
-	// Calculating barycentric coordinates of each rays hitting the triangle
-	float3 H = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(curRay));
-	float3 Hx = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(rayDX));
-	float3 Hy = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(rayDY));
-	ret.m_lambda = H;
-	// Ray coordinates differential
-	ret.m_ddx = Hx-H;
-	ret.m_ddy = Hy-H;
+	// On the near plane, calculate the NDC of two nearby pixels in X and Y directions
+	// Projection matrix is ReverseZ, so the Z value on the near plane is 1.0
+	float3 ndcPos = float3(pixelNdc, 1.0);
+	float3 ndcDx = float3(pixelNdc + float2(twoOverScreenSize.x, 0), 1.0);
+	float3 ndcDy = float3(pixelNdc - float2(0, twoOverScreenSize.y), 1.0);
+
+	// Inverse projection transform into view space
+	float4 viewPos = mul(projInv, float4(ndcPos, 1.0));
+	float4 viewDx = mul(projInv, float4(ndcDx, 1.0));
+	float4 viewDy = mul(projInv, float4(ndcDy, 1.0));
+
+	// Inverse view transform into world space
+	// By setting homogeneous coordinate W to 0, this directly generates ray directions
+	float3 rayDir = normalize(mul(viewInv, float4(viewPos.xyz, 0)).xyz);
+	float3 rayDirDx = normalize(mul(viewInv, float4(viewDx.xyz, 0)).xyz);
+	float3 rayDirDy = normalize(mul(viewInv, float4(viewDy.xyz, 0)).xyz);
+
+	// Ray-triangle intersection for barycentric coordinates
+	float3 lambda = rayTriangleIntersection(pt0, pt1, pt2, rayOrigin, rayDir);
+	float3 lambdaDx = rayTriangleIntersection(pt0, pt1, pt2, rayOrigin, rayDirDx);
+	float3 lambdaDy = rayTriangleIntersection(pt0, pt1, pt2, rayOrigin, rayDirDy);
+
+	// Derivatives
+	ret.m_lambda = lambda;
+	ret.m_ddx = lambdaDx - lambda;
+	ret.m_ddy = lambdaDy - lambda;
 	return ret;
 }
 #endif

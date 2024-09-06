@@ -26,30 +26,31 @@
 RES(Buffer(float), SDFVolumeDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
 RES(RWTex3D(half), SDFVolumeTextureAtlas, UPDATE_FREQ_NONE, u0, binding = 2);
 
-CBUFFER(UpdateSDFVolumeTextureAtlasCB, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
+STRUCT(UpdateSDFVolumeTextureAtlas)
 {
-	DATA(uint3, mSourceAtlasVolumeMinCoord, None);
-	DATA(uint3, mSourceDimensionSize, None);
-	DATA(uint3, mSourceAtlasVolumeMaxCoord, None);
+	DATA(uint4, mSourceAtlasVolumeMinCoord, None);
+	DATA(uint4, mSourceDimensionSize, None);
+	DATA(uint4, mSourceAtlasVolumeMaxCoord, None);
 };
+RES(CBUFFER(UpdateSDFVolumeTextureAtlas), updateSDFVolumeAtlas, UPDATE_FREQ_PER_FRAME, b1, binding = 1);
 
 NUM_THREADS(8, 8, 8)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID, SV_GroupThreadID(uint3) GTid )
 {
 	INIT_MAIN;
-	if(Get(mSourceAtlasVolumeMinCoord).x > threadID.x || 
-		Get(mSourceAtlasVolumeMinCoord).y > threadID.y ||
-		Get(mSourceAtlasVolumeMinCoord).z > threadID.z || 
-		Get(mSourceAtlasVolumeMaxCoord).x < threadID.x || 
-		Get(mSourceAtlasVolumeMaxCoord).y < threadID.y ||
-		Get(mSourceAtlasVolumeMaxCoord).z < threadID.z)
+	if(updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.x > threadID.x || 
+		updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.y > threadID.y ||
+		updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.z > threadID.z || 
+		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.x < threadID.x || 
+		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.y < threadID.y ||
+		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.z < threadID.z)
 		RETURN();
 
-	uint3 localThreadID = threadID - Get(mSourceAtlasVolumeMinCoord);
+	uint3 localThreadID = threadID - updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.xyz;
 
-	uint finalLocalIndex = localThreadID.z * Get(mSourceDimensionSize).x * 
-		Get(mSourceDimensionSize).y + localThreadID.y * Get(mSourceDimensionSize).x + localThreadID.x;
+	uint finalLocalIndex = localThreadID.z * updateSDFVolumeAtlas.mSourceDimensionSize.x * 
+		updateSDFVolumeAtlas.mSourceDimensionSize.y + localThreadID.y * updateSDFVolumeAtlas.mSourceDimensionSize.x + localThreadID.x;
 
-	Write3D(Get(SDFVolumeTextureAtlas), threadID, half(Get(SDFVolumeDataBuffer)[finalLocalIndex]));
+	Write3D(SDFVolumeTextureAtlas, threadID, half(SDFVolumeDataBuffer[finalLocalIndex]));
 	RETURN();
 }

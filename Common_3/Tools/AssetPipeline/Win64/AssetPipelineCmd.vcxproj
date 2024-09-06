@@ -100,33 +100,33 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="..\..\..\IDE\Visual Studio\TF_Shared.props" />
+    <Import Project="..\..\..\..\Examples_3\Build_Props\VS\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>

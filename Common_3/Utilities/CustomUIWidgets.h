@@ -222,13 +222,13 @@ static void internalDestroyBufferAllocatorPlotWidget(void* pUserData)
     pPlotWidget->pValues = NULL;
 }
 
-UIWidget* uiCreateBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* pUserData)
+UIWidget* uiAddBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* pUserData)
 {
     CustomWidget customWidget = {};
     customWidget.pCallback = internalProcessBufferAllocatorPlotWidget;
     customWidget.pUserData = pUserData;
     customWidget.pDestroyCallback = internalDestroyBufferAllocatorPlotWidget;
-    return uiCreateComponentWidget(pGui, pLabel, &customWidget, WIDGET_TYPE_CUSTOM);
+    return uiAddComponentWidget(pGui, pLabel, &customWidget, WIDGET_TYPE_CUSTOM);
 }
 
 static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t pointCount, uint64_t bufferSize)
@@ -239,7 +239,7 @@ static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t
 /// Update data from BufferChunkAllocator once
 /// Caller takes care of race conditions
 /// Widget must be of type CustomWidget and pUserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
-/// uiCreateBufferChunkAllocatorPlotWidget it's okay
+/// uiAddBufferChunkAllocatorPlotWidget it's okay
 static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 size, struct BufferChunkAllocator* data)
 {
     ASSERT(pWidget);

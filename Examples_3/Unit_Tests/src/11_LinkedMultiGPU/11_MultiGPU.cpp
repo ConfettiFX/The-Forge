@@ -33,7 +33,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -146,7 +146,7 @@ bool             gMultiGPURestart = false;
 bool             gMultiGpuAvailable = false;
 float*           pSpherePoints;
 
-const char* gTestScripts[] = { "Test0.lua" };
+const char* gTestScripts[] = { "11_LinkedMultiGPU/Test0.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
@@ -177,11 +177,13 @@ public:
 
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         gClearColor.r = 0.0f;
         gClearColor.g = 0.0f;
@@ -298,10 +300,15 @@ public:
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
             return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
         initResourceLoaderInterface(pRenderer);
 
@@ -325,7 +332,7 @@ public:
             if (!gMultiGPU && i > 0)
                 pGraphicsQueue[i] = pGraphicsQueue[0];
             else
-                addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
+                initQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
 
             snprintf(gGpuProfilerNames[i], MAX_GPU_PROFILER_NAME_LENGTH, "Graphics");
 
@@ -357,10 +364,6 @@ public:
             scriptDescs[i].pScriptFileName = gTestScripts[i];
         luaDefineScripts(scriptDescs, numScripts);
 
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-        uiCreateComponent(GetName(), &guiDesc, &pGui);
-
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
@@ -368,8 +371,6 @@ public:
         profiler.ppProfilerNames = pGpuProfilerNames;
         profiler.pProfileTokens = gGpuProfilerTokens;
         profiler.mGpuProfilerCount = gViewCount;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
         for (uint32_t j = 0; j < gViewCount; ++j)
@@ -379,10 +380,10 @@ public:
             cmdRingDesc.mPoolCount = gDataBufferCount;
             cmdRingDesc.mCmdPerPoolCount = 1;
             cmdRingDesc.mAddSyncPrimitives = true;
-            addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing[j]);
+            initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing[j]);
         }
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         SamplerDesc samplerDesc = { FILTER_LINEAR,
                                     FILTER_LINEAR,
@@ -484,56 +485,6 @@ public:
             addResource(&ubDesc, NULL);
         }
 
-        // Reset graphics with a button.
-        // Show this checkbox only when multiple GPUs are present
-        if (gMultiGpuAvailable)
-        {
-            CheckboxWidget multiGpuCheckbox;
-            multiGpuCheckbox.pData = &gMultiGpuUi;
-            UIWidget* pMultiGPUToggle = uiCreateComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
-            uiSetWidgetOnEditedCallback(pMultiGPUToggle, nullptr, SwitchGpuMode);
-            luaRegisterWidget(pMultiGPUToggle);
-        }
-
-        SliderFloatWidget camHorFovSlider;
-        camHorFovSlider.pData = &gPaniniParams.FoVH;
-        camHorFovSlider.mMin = 30.0f;
-        camHorFovSlider.mMax = 179.0f;
-        camHorFovSlider.mStep = 1.0f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget paniniSliderD;
-        paniniSliderD.pData = &gPaniniParams.D;
-        paniniSliderD.mMin = 0.0f;
-        paniniSliderD.mMax = 1.0f;
-        paniniSliderD.mStep = 0.001f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget paniniSliderS;
-        paniniSliderS.pData = &gPaniniParams.S;
-        paniniSliderS.mMin = 0.0f;
-        paniniSliderS.mMax = 1.0f;
-        paniniSliderS.mStep = 0.001f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
-
-        SliderFloatWidget screenScaleSlider;
-        screenScaleSlider.pData = &gPaniniParams.scale;
-        screenScaleSlider.mMin = 1.0f;
-        screenScaleSlider.mMax = 10.0f;
-        screenScaleSlider.mStep = 0.01f;
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-        DropdownWidget ddTestScripts;
-        ddTestScripts.pData = &gCurrentScriptIndex;
-        ddTestScripts.pNames = gTestScripts;
-        ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
-        luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
-
-        ButtonWidget bRunScript;
-        UIWidget*    pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-        uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
-        luaRegisterWidget(pRunScript);
-
         if (!gPanini.Init(pRenderer))
             return false;
 
@@ -546,103 +497,8 @@ public:
         pCameraController = initFpsCameraController(camPos, lookAt);
         pCameraController->setMotionParameters(cmp);
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
-
+        AddCustomInputBindings();
+        initScreenshotInterface(pRenderer, pGraphicsQueue[0]);
         gFrameIndex = 0;
         gMultiGPURestart = false;
 
@@ -653,7 +509,7 @@ public:
 
     void Exit()
     {
-        exitInputSystem();
+        exitScreenshotInterface();
 
         exitCameraController(pCameraController);
 
@@ -686,21 +542,22 @@ public:
 
         for (uint32_t j = 0; j < gViewCount; ++j)
         {
-            removeGpuCmdRing(pRenderer, &gGraphicsCmdRing[j]);
+            exitGpuCmdRing(pRenderer, &gGraphicsCmdRing[j]);
         }
 
         for (uint32_t view = 0; view < gViewCount; ++view)
         {
             if (!gMultiGPU && view > 0)
                 break;
-            removeQueue(pRenderer, pGraphicsQueue[view]);
+            exitQueue(pRenderer, pGraphicsQueue[view]);
         }
 
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
 
         exitResourceLoaderInterface(pRenderer);
 
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
         pRenderer = NULL;
 
         if (!gMultiGPURestart)
@@ -724,6 +581,62 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGui);
+
+            // Reset graphics with a button.
+            // Show this checkbox only when multiple GPUs are present
+            if (gMultiGpuAvailable)
+            {
+                CheckboxWidget multiGpuCheckbox;
+                multiGpuCheckbox.pData = &gMultiGpuUi;
+                UIWidget* pMultiGPUToggle = uiAddComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
+                uiSetWidgetOnEditedCallback(pMultiGPUToggle, nullptr, SwitchGpuMode);
+                luaRegisterWidget(pMultiGPUToggle);
+            }
+
+            SliderFloatWidget camHorFovSlider;
+            camHorFovSlider.pData = &gPaniniParams.FoVH;
+            camHorFovSlider.mMin = 30.0f;
+            camHorFovSlider.mMax = 179.0f;
+            camHorFovSlider.mStep = 1.0f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget paniniSliderD;
+            paniniSliderD.pData = &gPaniniParams.D;
+            paniniSliderD.mMin = 0.0f;
+            paniniSliderD.mMax = 1.0f;
+            paniniSliderD.mStep = 0.001f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget paniniSliderS;
+            paniniSliderS.pData = &gPaniniParams.S;
+            paniniSliderS.mMin = 0.0f;
+            paniniSliderS.mMax = 1.0f;
+            paniniSliderS.mStep = 0.001f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
+
+            SliderFloatWidget screenScaleSlider;
+            screenScaleSlider.pData = &gPaniniParams.scale;
+            screenScaleSlider.mMin = 1.0f;
+            screenScaleSlider.mMax = 10.0f;
+            screenScaleSlider.mStep = 0.01f;
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            DropdownWidget ddTestScripts;
+            ddTestScripts.pData = &gCurrentScriptIndex;
+            ddTestScripts.pNames = gTestScripts;
+            ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+            luaRegisterWidget(uiAddComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+            ButtonWidget bRunScript;
+            UIWidget*    pRunScript = uiAddComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+            uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
+            luaRegisterWidget(pRunScript);
+
             if (!addSwapChain())
                 return false;
 
@@ -760,8 +673,6 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue[0]);
-
         return true;
     }
 
@@ -787,6 +698,9 @@ public:
 
             for (uint32_t i = 0; i < gViewCount; ++i)
                 removeRenderTarget(pRenderer, pDepthBuffers[i]);
+
+            uiRemoveComponent(pGui);
+            unloadProfilerUI();
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -795,14 +709,36 @@ public:
             removeRootSignatures();
             removeShaders();
         }
-
-        exitScreenshotInterface();
     }
 
     void Update(float deltaTime)
     {
-        updateInputSystem(deltaTime, mSettings.mHeight, mSettings.mHeight);
-
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
         /************************************************************************/
         // Update GUI
         /************************************************************************/
@@ -1109,11 +1045,11 @@ public:
     void addShaders()
     {
         ShaderLoadDesc skyShader = {};
-        skyShader.mStages[0].pFileName = "skybox.vert";
-        skyShader.mStages[1].pFileName = "skybox.frag";
+        skyShader.mVert.pFileName = "skybox.vert";
+        skyShader.mFrag.pFileName = "skybox.frag";
         ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0].pFileName = "basic.vert";
-        basicShader.mStages[1].pFileName = "basic.frag";
+        basicShader.mVert.pFileName = "basic.vert";
+        basicShader.mFrag.pFileName = "basic.frag";
 
         addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
         addShader(pRenderer, &basicShader, &pSphereShader);

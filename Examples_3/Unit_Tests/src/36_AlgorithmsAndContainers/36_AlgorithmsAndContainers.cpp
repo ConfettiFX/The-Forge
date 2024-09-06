@@ -27,7 +27,6 @@
 // Interfaces
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
 #include "../../../../Common_3/Utilities/Interfaces/ILog.h"
 
@@ -63,6 +62,7 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         //////////////////////////////////////////////
         // Actual unit tests

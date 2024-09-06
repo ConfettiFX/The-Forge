@@ -22,11 +22,11 @@
 * under the License.
 */
 
-
-CBUFFER(SkyboxUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0)
+STRUCT(SkyboxUniformBufferData)
 {
     DATA(float4x4, InverseViewProjection, None);
 };
+RES(CBUFFER(SkyboxUniformBufferData), SkyboxUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0);
 
 RES(TexCube(float4), skyboxTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 RES(SamplerState, skyboxTextureSampler, UPDATE_FREQ_NONE, s0, binding = 2);
@@ -46,6 +46,6 @@ VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
     float4 position = float4(uv * 2.0 - float2(1.0, 1.0), 1.0, 1.0);
 
     Out.Position = position;
-    Out.TexCoord = mul(Get(InverseViewProjection), position).xyz;
+    Out.TexCoord = mul(SkyboxUniformBuffer.InverseViewProjection, position).xyz;
     RETURN(Out);
 }

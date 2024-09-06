@@ -26,7 +26,7 @@
 #define _SHADER_DEFS_H
 
 #define LIGHT_COUNT 128
-#define LIGHT_SIZE 150.0f
+#define LIGHT_SIZE 30.0f
 
 #define LIGHT_CLUSTER_WIDTH 8
 #define LIGHT_CLUSTER_HEIGHT 8
@@ -49,7 +49,7 @@ STRUCT(MeshConstants)
 	DATA(uint, twoSided, None); //0 or 1
 };
 
-CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(PerFrameConstantsData)
 {
 	DATA(float4, camPos, None);
 	//========================================
@@ -58,8 +58,8 @@ CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float4, lightColor, None);
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
-	DATA(uint, lightingMode, None);
 	DATA(uint, outputMode, None);
+	DATA(uint, _pad0, None);
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
@@ -71,6 +71,7 @@ CBUFFER(PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float, aoIntensity, None);
 	DATA(uint, visualizeAo, None);
 };
+RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(LightData)
 {

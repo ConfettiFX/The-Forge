@@ -22,16 +22,21 @@
  * under the License.
 */
 
-PUSH_CONSTANT(ShadowRootConstants, b0)
+STRUCT(ShadowRootConstantsData)
 {
-	DATA(uint, CubeIndex, None);
-	DATA(uint, ParticleIndex, None);
+    DATA(uint, CubeIndex, None);
+    DATA(uint, ParticleIndex, None);
 };
+RES(ROOT_CONSTANT(ShadowRootConstantsData), ShadowRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
+
+RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, t0, binding = 11);
+RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, t1, binding = 10);
+
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
@@ -41,7 +46,7 @@ PsInVBOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 	PsInVBOpaque Out;
 
 	float4 vertexPos = LoadVertex(vertexID);
-	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp.mat, vertexPos);
+	Out.position = mul(PerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, vertexPos);
 
 	RETURN(Out);
 }

@@ -52,23 +52,23 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	INIT_MAIN;
 	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x);
 
-	float stiffness = Get(LocalStiffness);
+	float stiffness = cbSimulation.LocalStiffness;
 	stiffness = 0.5f * min(stiffness, 0.95f);
 
 	uint globalVertexIndex = 0;
-	float4 position = Get(HairVertexPositions)[indices.globalRootVertexIndex + 1];
+	float4 position = HairVertexPositions[indices.globalRootVertexIndex + 1];
 	float4 nextPosition;
-	float4 globalRotation = Get(HairGlobalRotations)[indices.globalRootVertexIndex];
+	float4 globalRotation = HairGlobalRotations[indices.globalRootVertexIndex];
 	float4 worldRotation;
 
-	for (uint localVertexIndex = 1; localVertexIndex < Get(NumVerticesPerStrand) - 1; ++localVertexIndex)
+	for (uint localVertexIndex = 1; localVertexIndex < cbSimulation.NumVerticesPerStrand - 1; ++localVertexIndex)
 	{
 		globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
-		nextPosition = Get(HairVertexPositions)[globalVertexIndex + 1];
+		nextPosition = HairVertexPositions[globalVertexIndex + 1];
 
-		worldRotation = MultQuaternionAndQuaternion(Get(QuatRotation), globalRotation);
+		worldRotation = MultQuaternionAndQuaternion(cbSimulation.QuatRotation, globalRotation);
 
-		float3 localNextPositionRest = Get(HairRefsInLocalFrame)[globalVertexIndex + 1].xyz * Get(Scale);
+		float3 localNextPositionRest = HairRefsInLocalFrame[globalVertexIndex + 1].xyz * cbSimulation.Scale;
 		float3 globalNextPosition = RotateVec(worldRotation, localNextPositionRest) + position.xyz;
 
 		float3 weighted = stiffness * (globalNextPosition - nextPosition.xyz);
@@ -94,8 +94,8 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 			globalRotation = MultQuaternionAndQuaternion(globalRotation, localRotation);
 		}
 
-		Get(HairVertexPositions)[globalVertexIndex] = position;
-		Get(HairVertexPositions)[globalVertexIndex + 1] = nextPosition;
+		HairVertexPositions[globalVertexIndex] = position;
+		HairVertexPositions[globalVertexIndex + 1] = nextPosition;
 
 		position = nextPosition;
 	} 

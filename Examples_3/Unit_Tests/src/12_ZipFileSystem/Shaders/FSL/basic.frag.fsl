@@ -42,6 +42,6 @@ float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	Out = SampleTex2D(Get(ZipTexture), Get(uSampler0), In.texcoords);
+	Out = SampleTex2D(ZipTexture, uSampler0, In.texcoords);
 	RETURN(Out);
 }

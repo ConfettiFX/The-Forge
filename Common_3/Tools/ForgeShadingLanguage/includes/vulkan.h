@@ -83,7 +83,6 @@
 #define in_array(T, X)    in(T) X
 #define groupshared inout
 
-#define Get(X) _Get##X
 
 #define _NONE
 #define NUM_THREADS(X, Y, Z) layout (local_size_x = X, local_size_y = Y, local_size_z = Z) in(_NONE);
@@ -192,7 +191,7 @@ bool allGreaterThan(const vec4 a, const vec4 b)
 #define AtomicCompareExchange(DEST, COMPARE_VALUE, VALUE, ORIGINAL_VALUE) \
     ORIGINAL_VALUE = atomicCompSwap((DEST), (COMPARE_VALUE), (VALUE))
 
-#define CBUFFER(NAME, FREQ, REG, BINDING) layout(std140, FREQ, BINDING) uniform NAME
+#define CBUFFER(T)
 #define PUSH_CONSTANT(NAME, REG) layout(push_constant) uniform NAME##Block
 
 // #define mul(a, b) (a * b)
@@ -770,6 +769,7 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
 
 #ifdef WAVE_OPS_BASIC_BIT
     #extension GL_KHR_shader_subgroup_basic: enable
+    #define WaveGetLaneCount() gl_SubgroupSize
 #endif
 
 #ifdef TARGET_SWITCH

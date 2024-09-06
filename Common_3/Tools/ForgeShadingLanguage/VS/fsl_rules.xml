@@ -16,7 +16,6 @@
         <EnumValue Name="PROSPERO" DisplayName="PROSPERO"/>
         <EnumValue Name="XBOX" DisplayName="XBOX"/>
         <EnumValue Name="SCARLETT" DisplayName="SCARLETT"/>
-        <EnumValue Name="ANDROID_GLES" DisplayName="ANDROID_GLES"/>
         <EnumValue Name="SWITCH" DisplayName="SWITCH"/>
         <EnumValue Name="ANDROID_VULKAN" DisplayName="ANDROID_VULKAN"/>
         <EnumValue Name="QUEST" DisplayName="QUEST"/>

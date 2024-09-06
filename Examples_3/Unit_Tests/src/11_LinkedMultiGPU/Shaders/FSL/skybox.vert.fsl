@@ -26,7 +26,7 @@
 
 #define MAX_PLANETS 20
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(uniformBlockData)
 {
     DATA(float4x4, mvp, None);
     DATA(float4x4, toWorld[MAX_PLANETS], None);
@@ -36,6 +36,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float3, lightPosition, None);
     DATA(float3, lightColor, None);
 };
+RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSOutput)
 {
@@ -54,7 +55,7 @@ VSOutput VS_MAIN( VSInput In )
 	VSOutput Out;
  
     float4 p = float4(In.Position.x*9, In.Position.y*9, In.Position.z*9, 1.0);
-    float4x4 m =  Get(mvp);
+    float4x4 m =  uniformBlock.mvp;
     p = mul(m,p);
     Out.Position = p.xyww;
     Out.TexCoord = float4(In.Position.x, In.Position.y, In.Position.z,In.Position.w);

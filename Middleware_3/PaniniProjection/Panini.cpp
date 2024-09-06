@@ -136,8 +136,8 @@ bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
     // SHADER
     //----------------------------------------------------------------------------------------------------------------
     ShaderLoadDesc paniniPass = {};
-    paniniPass.mStages[0].pFileName = "panini_projection.vert";
-    paniniPass.mStages[1].pFileName = "panini_projection.frag";
+    paniniPass.mVert.pFileName = "panini_projection.vert";
+    paniniPass.mFrag.pFileName = "panini_projection.frag";
     addShader(pRenderer, &paniniPass, &pShader);
 
     // SAMPLERS & STATES

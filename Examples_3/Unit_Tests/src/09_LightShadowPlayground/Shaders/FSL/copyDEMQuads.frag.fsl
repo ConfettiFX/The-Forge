@@ -27,10 +27,11 @@
 RES(SamplerState, clampToEdgeNearSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 RES(Tex2D(float4), DepthPassTexture, UPDATE_FREQ_NONE, t1, binding = 0);
 
-CBUFFER(PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(PackedAtlasQuads)
 {
 	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
 };
+RES(CBUFFER(PackedAtlasQuads), PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0);	
 
 STRUCT(VSOutput)
 {
@@ -45,6 +46,6 @@ float PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float Out;
-	Out = SampleLvlTex2D(Get(DepthPassTexture), Get(clampToEdgeNearSampler), In.UV, 0.0).r;
+	Out = SampleLvlTex2D(DepthPassTexture, clampToEdgeNearSampler, In.UV, 0.0).r;
 	RETURN(Out);
 }

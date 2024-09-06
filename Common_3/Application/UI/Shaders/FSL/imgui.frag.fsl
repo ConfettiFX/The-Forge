@@ -21,11 +21,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- 
-#if GLES
-#undef SAMPLE_COUNT
-#define SAMPLE_COUNT 1
-#endif
 
 #if SAMPLE_COUNT == 1
 RES(Tex2D(float4), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
@@ -34,10 +29,11 @@ RES(Tex2DMS(float4, SAMPLE_COUNT), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1)
 #endif
 RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
 
-CBUFFER(uniformBlockVS, UPDATE_FREQ_NONE, b0, binding = 0)
+STRUCT(UniformBlockVS)
 {
 	DATA(float4x4, ProjectionMatrix, None);
 };
+RES(CBUFFER(UniformBlockVS), uniformBlockVS, UPDATE_FREQ_NONE, b0, binding = 0);
 
 STRUCT(PS_INPUT)
 {
@@ -51,12 +47,12 @@ float4 PS_MAIN( PS_INPUT In )
 	INIT_MAIN;
 	float4 Out = f4(0);
 #if SAMPLE_COUNT == 1
-	Out = In.col * SampleTex2D(Get(uTex), Get(uSampler), In.uv);
+	Out = In.col * SampleTex2D(uTex, uSampler, In.uv);
 #else
-	GetDimensionsMS(Get(uTex), texSize);
+	GetDimensionsMS(uTex, texSize);
 	uint2 coord = uint2(float2(texSize) * In.uv);
 	for(int s = 0; s < SAMPLE_COUNT; ++s)
-		Out += LoadTex2DMS(Get(uTex), Get(uSampler), coord, s);
+		Out += LoadTex2DMS(uTex, uSampler, coord, s);
 	Out = In.col * (Out / SAMPLE_COUNT);
 #endif
 	RETURN(Out);

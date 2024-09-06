@@ -85,6 +85,8 @@ extern void hook_modify_buffer_resource_desc(const BufferDesc* pBuffer, D3D12_RE
 extern void hook_modify_texture_resource_flags(TextureCreationFlags creationFlags, D3D12_RESOURCE_FLAGS* pInOutFlags);
 extern void hook_modify_shader_compile_flags(uint32_t stage, bool enablePrimitiveId, const WCHAR** pData, uint32_t* pInOutNumFlags);
 extern void hook_modify_rootsignature_flags(uint32_t stages, D3D12_ROOT_SIGNATURE_FLAGS* pInOutFlags);
+extern void hook_fill_dispatch_indirect_argument_desc(D3D12_INDIRECT_ARGUMENT_DESC* pInOutDesc, bool async);
 extern void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding);
 extern void hook_pre_resolve_query(Cmd* pCmd);
+extern void hook_fill_occlusion_query(Cmd* pCmd, uint32_t sampleCount);
 #endif

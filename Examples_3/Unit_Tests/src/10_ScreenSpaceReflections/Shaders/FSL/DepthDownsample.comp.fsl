@@ -59,38 +59,38 @@ GroupShared(uint, g_group_shared_counter);
 // Define fetch and store functions
 float4 SpdLoadSourceImage(int2 index)
 {
-    return LoadTex2D(Get(g_depth_buffer), NO_SAMPLER, index, 0).xxxx;
+    return LoadTex2D(g_depth_buffer, NO_SAMPLER, index, 0).xxxx;
 }
 float4 SpdLoad(uint2 index)
 {
     // 5 -> 6 as we store a copy of the depth buffer at index 0
-    return LoadRWTex2D(Get(g_downsampled_depth_buffer)[6], index).xxxx;
+    return LoadRWTex2D(g_downsampled_depth_buffer[6], index).xxxx;
 }
 void SpdStore(uint2 pix, float4 outValue, uint index)
 {
     // + 1 as we store a copy of the depth buffer at index 0
-    Write2D(Get(g_downsampled_depth_buffer)[index + 1], pix, outValue.x);
+    Write2D(g_downsampled_depth_buffer[index + 1], pix, outValue.x);
 }
 void SpdIncreaseAtomicCounter()
 {
-    AtomicAdd(Get(g_global_atomic)[0], 1u, Get(g_group_shared_counter));
+    AtomicAdd(g_global_atomic[0], 1u, g_group_shared_counter);
 }
 void SpdResetAtomicCounter()
 {
-    AtomicStore(Get(g_global_atomic)[0], 0);
+    AtomicStore(g_global_atomic[0], 0);
 }
 uint SpdGetAtomicCounter()
 {
-    return Get(g_group_shared_counter);
+    return g_group_shared_counter;
 }
 float4 SpdLoadIntermediate(uint x, uint y)
 {
-	float f = Get(g_group_shared_depth_values)[x][y];
+	float f = g_group_shared_depth_values[x][y];
     return f4(f);
 }
 void SpdStoreIntermediate(uint x, uint y, float4 value)
 {
-    Get(g_group_shared_depth_values)[x][y] = value.x;
+    g_group_shared_depth_values[x][y] = value.x;
 }
 float4 SpdReduce4(float4 v0, float4 v1, float4 v2, float4 v3)
 {
@@ -387,7 +387,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupID(uint3) gid, SV_GroupInd
 {
 	INIT_MAIN;
 
-    int2 image_size = GetDimensions(Get(g_downsampled_depth_buffer)[0], NO_SAMPLER);
+    int2 image_size = GetDimensions(g_downsampled_depth_buffer[0], NO_SAMPLER);
     // reduce by 1 since we skip the first mip and offset spd writes
     float spd_mips_count = GetMipsCount(image_size) - 1;
     uint threadgroup_count = GetThreadgroupCount(image_size);

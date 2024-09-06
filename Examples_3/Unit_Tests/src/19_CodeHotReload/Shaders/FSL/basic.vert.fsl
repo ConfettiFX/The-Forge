@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,21 +11,21 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 STRUCT(InstanceData)
 {
-	DATA(float4x4, modelMtx, None);
-	DATA(float4, colorIndex, None);
+    DATA(float4x4, modelMtx, None);
+    DATA(float4, colorIndex, None);
 };
 
 RES(Buffer(InstanceData), instanceBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
@@ -45,18 +45,18 @@ STRUCT(VSOutput)
     DATA(float2, uv, TEXCOORD0);
 };
 
-VSOutput VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId) 
+VSOutput VS_MAIN(VsIn In, SV_InstanceID(uint) instanceId)
 {
-	INIT_MAIN;
-	VSOutput Out;
-    float x = float(int(In.position) / 2);
-    float y = float(fmod(In.position, 2.0));
+    INIT_MAIN;
+    VSOutput Out;
+    float    x = float(int(In.position) / 2);
+    float    y = float(fmod(In.position, 2.0));
 
-    float4 colorIndex = Get(instanceBuffer)[instanceId].colorIndex;
+    float4 colorIndex = instanceBuffer[instanceId].colorIndex;
 
-    Out.pos = mul(Get(instanceBuffer)[instanceId].modelMtx, float4(x, y, 0.f, 1.f) - float4(0.5f, 0.5f, 0.f, 0.f) );
+    Out.pos = mul(instanceBuffer[instanceId].modelMtx, float4(x, y, 0.f, 1.f) - float4(0.5f, 0.5f, 0.f, 0.f));
     Out.pos.w = 1.0f;
-    Out.uv    = float2((x + colorIndex.w)/8.0,1.0-y);
+    Out.uv = float2((x + colorIndex.w) / 8.0, 1.0 - y);
     Out.color = colorIndex.rgb;
-	RETURN(Out);
+    RETURN(Out);
 }

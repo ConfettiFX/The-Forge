@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include "../../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
 #include <stddef.h>
 #include <math.h>
 

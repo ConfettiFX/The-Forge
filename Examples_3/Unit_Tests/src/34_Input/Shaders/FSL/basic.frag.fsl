@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2017-2024 The Forge Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,16 +11,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "../../ButtonDefs.h"
 
@@ -145,235 +145,222 @@ STATIC float2 ALT_L_POS = { NUM_3_POS.x, 0.9f };
 STATIC float2 SPACE_POS = { NUM_6_POS.x, 0.9f };
 STATIC float2 ALT_R_POS = { NUM_9_POS.x, 0.9f };
 STATIC float2 CTRL_R_POS = { MINUS_POS.x, 0.9f };
-STATIC float2 LEFT_POS = { CTRL_R_POS.x + (0.168f * 1.f), 0.9f + 0.0335f};
-STATIC float2 RIGHT_POS = { CTRL_R_POS.x + (0.168f * 3.f), 0.9f + 0.0335f};
-STATIC float2 UP_POS = { CTRL_R_POS.x + (0.168f * 2.f), 0.9f - 0.0535f};
-STATIC float2 DOWN_POS = { CTRL_R_POS.x + (0.168f * 2.f), 0.9f + 0.0335f};
+STATIC float2 LEFT_POS = { CTRL_R_POS.x + (0.168f * 1.f), 0.9f + 0.0335f };
+STATIC float2 RIGHT_POS = { CTRL_R_POS.x + (0.168f * 3.f), 0.9f + 0.0335f };
+STATIC float2 UP_POS = { CTRL_R_POS.x + (0.168f * 2.f), 0.9f - 0.0535f };
+STATIC float2 DOWN_POS = { CTRL_R_POS.x + (0.168f * 2.f), 0.9f + 0.0335f };
 STATIC float2 KP_0_INSERT_POS = { KP_4_LEFT_POS.x, 0.9f };
 
 STATIC float2 LEFT_CLICK_POS = { 3.23f, 0.25f };
 STATIC float2 MID_CLICK_POS = { 3.36f, 0.25f };
 STATIC float2 RIGHT_CLICK_POS = { 3.49f, 0.25f };
-STATIC float2 SCROLL_UP_POS = {  3.36f, 0.21f };
-STATIC float2 SCROLL_DOWN_POS = {  3.36f, 0.29f };
-
+STATIC float2 SCROLL_UP_POS = { 3.36f, 0.21f };
+STATIC float2 SCROLL_DOWN_POS = { 3.36f, 0.29f };
 
 RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s0, binding = 0);
 RES(Tex2D(float4), uTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 
 STRUCT(VSOutput)
 {
-	DATA(float4, Position, SV_Position);
-	DATA(float2, TexCoords, TEXCOORD0);
+    DATA(float4, Position, SV_Position);
+    DATA(float2, TexCoords, TEXCOORD0);
 };
 
-CBUFFER(InputData, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(InputData)
 {
-	DATA(float2, wndSize, None);
+    DATA(float2, wndSize, None);
 
     DATA(float2, leftAxis, None);
     DATA(float2, rightAxis, None);
-	DATA(float2, motionButtons, None);
-	DATA(uint, deviceType, None); // 0.Invalid 1.Gamepad 2.Touch 3&4.Keyboard+Mouse
-	DATA(uint, buttonSet0, None);
-	DATA(uint, buttonSet1, None);
-	DATA(uint, buttonSet2, None);
-	DATA(uint, buttonSet3, None);
+    DATA(float2, motionButtons, None);
+    DATA(uint, deviceType, None); // 0.Invalid 1.Gamepad 2.Touch 3&4.Keyboard+Mouse
+    DATA(uint, buttonSet0, None);
+    DATA(uint, buttonSet1, None);
+    DATA(uint, buttonSet2, None);
+    DATA(uint, buttonSet3, None);
 };
+RES(CBUFFER(InputData), uInputData, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
-float circle(float2 pos, float rad)
-{
-	return step(rad, length(pos));
-}
+float circle(float2 pos, float rad) { return step(rad, length(pos)); }
 
 float4 Gamepad(VSOutput In, float4 Out, float2 uv)
 {
-	Out.yz *= circle((uv - (LEFT_STICK_POS + Get(leftAxis) * projectionScale)).xy, 0.01f);
-	Out.yz *= circle((uv - (RIGHT_STICK_POS + Get(rightAxis) * projectionScale)).xy, 0.01f);
+    Out.yz *= circle((uv - (LEFT_STICK_POS + uInputData.leftAxis * projectionScale)).xy, 0.01f);
+    Out.yz *= circle((uv - (RIGHT_STICK_POS + uInputData.rightAxis * projectionScale)).xy, 0.01f);
 
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_DPAD_LEFT_BIT) != 0 ? circle(uv - BUTTON_DPAD_LEFT_POS, 0.02f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_DPAD_RIGHT_BIT) != 0 ? circle(uv - BUTTON_DPAD_RIGHT_POS, 0.02f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_DPAD_UP_BIT) != 0 ? circle(uv - BUTTON_DPAD_UP_POS, 0.02f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_DPAD_DOWN_BIT) != 0 ? circle(uv - BUTTON_DPAD_DOWN_POS, 0.02f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_A_BIT) != 0 ? circle(uv - BUTTON_SOUTH_POS, 0.03f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_B_BIT) != 0 ? circle(uv - BUTTON_EAST_POS, 0.03f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_X_BIT) != 0 ? circle(uv - BUTTON_WEST_POS, 0.03f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_Y_BIT) != 0 ? circle(uv - BUTTON_NORTH_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_DPAD_LEFT_BIT) != 0 ? circle(uv - BUTTON_DPAD_LEFT_POS, 0.02f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_DPAD_RIGHT_BIT) != 0 ? circle(uv - BUTTON_DPAD_RIGHT_POS, 0.02f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_DPAD_UP_BIT) != 0 ? circle(uv - BUTTON_DPAD_UP_POS, 0.02f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_DPAD_DOWN_BIT) != 0 ? circle(uv - BUTTON_DPAD_DOWN_POS, 0.02f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_A_BIT) != 0 ? circle(uv - BUTTON_SOUTH_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_B_BIT) != 0 ? circle(uv - BUTTON_EAST_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_X_BIT) != 0 ? circle(uv - BUTTON_WEST_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_Y_BIT) != 0 ? circle(uv - BUTTON_NORTH_POS, 0.03f) : 1.0f;
 
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_L1_BIT) != 0 ? circle(uv - BUTTON_L1_POS, 0.02f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_R1_BIT) != 0 ? circle(uv - BUTTON_R1_POS, 0.02f) : 1.0f;
-	Out.yz *= circle(uv - BUTTON_L2_POS + float2(0.0f, Get(motionButtons).x * projectionScale), 0.02f);
-	Out.yz *= circle(uv - BUTTON_R2_POS + float2(0.0f, Get(motionButtons).y * projectionScale), 0.02f);
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_L3_BIT) != 0 ? circle(uv - BUTTON_L3_POS, 0.03f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_R3_BIT) != 0 ? circle(uv - BUTTON_R3_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_L1_BIT) != 0 ? circle(uv - BUTTON_L1_POS, 0.02f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_R1_BIT) != 0 ? circle(uv - BUTTON_R1_POS, 0.02f) : 1.0f;
+    Out.yz *= circle(uv - BUTTON_L2_POS + float2(0.0f, uInputData.motionButtons.x * projectionScale), 0.02f);
+    Out.yz *= circle(uv - BUTTON_R2_POS + float2(0.0f, uInputData.motionButtons.y * projectionScale), 0.02f);
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_L3_BIT) != 0 ? circle(uv - BUTTON_L3_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_R3_BIT) != 0 ? circle(uv - BUTTON_R3_POS, 0.03f) : 1.0f;
 
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_START_BIT) != 0 ? circle(uv - BUTTON_START_POS, 0.01f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_SELECT_BIT) != 0 ? circle(uv - BUTTON_SELECT_POS, 0.01f) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & CONTROLLER_HOME_BIT) != 0 ? circle(uv - BUTTON_HOME_POS, 0.03f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_START_BIT) != 0 ? circle(uv - BUTTON_START_POS, 0.01f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_SELECT_BIT) != 0 ? circle(uv - BUTTON_SELECT_POS, 0.01f) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & CONTROLLER_HOME_BIT) != 0 ? circle(uv - BUTTON_HOME_POS, 0.03f) : 1.0f;
 
-	return Out;
+    return Out;
 }
 
-float4 Touch(VSOutput In, float4 Out, float2 uv)
-{
-	return Out;
-}
+float4 Touch(VSOutput In, float4 Out, float2 uv) { return Out; }
 
 float4 KeyboardMouse(VSOutput In, float4 Out, float2 uv)
 {
-	float circleRadius = 0.02f;
-	
-	Out.yz *= (Get(buttonSet0) & ESCAPE_BIT) != 0 ? circle(uv - ESCAPE_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F1_BIT) != 0 ? circle(uv - F1_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F2_BIT) != 0 ? circle(uv - F2_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F3_BIT) != 0 ? circle(uv - F3_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F4_BIT) != 0 ? circle(uv - F4_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F5_BIT) != 0 ? circle(uv - F5_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F6_BIT) != 0 ? circle(uv - F6_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F7_BIT) != 0 ? circle(uv - F7_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F8_BIT) != 0 ? circle(uv - F8_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F9_BIT) != 0 ? circle(uv - F9_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F10_BIT) != 0 ? circle(uv - F10_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F11_BIT) != 0 ? circle(uv - F11_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & F12_BIT) != 0 ? circle(uv - F12_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & BREAK_BIT) != 0 ? circle(uv - BREAK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & INSERT_BIT) != 0 ? circle(uv - INSERT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & DEL_BIT) != 0 ? circle(uv - DEL_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_LOCK_BIT) != 0 ? circle(uv - NUM_LOCK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & KP_MULTIPLY_BIT) != 0 ? circle(uv - KP_MULTIPLY_POS, circleRadius) : 1.0f;
+    float circleRadius = 0.02f;
 
-	Out.yz *= (Get(buttonSet0) & ACUTE_BIT) != 0 ? circle(uv - ACUTE_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_1_BIT) != 0 ? circle(uv - NUM_1_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_2_BIT) != 0 ? circle(uv - NUM_2_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_3_BIT) != 0 ? circle(uv - NUM_3_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_4_BIT) != 0 ? circle(uv - NUM_4_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_5_BIT) != 0 ? circle(uv - NUM_5_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_6_BIT) != 0 ? circle(uv - NUM_6_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_7_BIT) != 0 ? circle(uv - NUM_7_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_8_BIT) != 0 ? circle(uv - NUM_8_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_9_BIT) != 0 ? circle(uv - NUM_9_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & NUM_0_BIT) != 0 ? circle(uv - NUM_0_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & MINUS_BIT) != 0 ? circle(uv - MINUS_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & EQUAL_BIT) != 0 ? circle(uv - EQUAL_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet0) & BACK_SPACE_BIT) != 0 ? circle(uv - BACK_SPACE_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & KP_ADD_BIT) != 0 ? circle(uv - KP_ADD_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & KP_SUBTRACT_BIT) != 0 ? circle(uv - KP_SUBTRACT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & ESCAPE_BIT) != 0 ? circle(uv - ESCAPE_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F1_BIT) != 0 ? circle(uv - F1_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F2_BIT) != 0 ? circle(uv - F2_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F3_BIT) != 0 ? circle(uv - F3_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F4_BIT) != 0 ? circle(uv - F4_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F5_BIT) != 0 ? circle(uv - F5_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F6_BIT) != 0 ? circle(uv - F6_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F7_BIT) != 0 ? circle(uv - F7_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F8_BIT) != 0 ? circle(uv - F8_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F9_BIT) != 0 ? circle(uv - F9_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F10_BIT) != 0 ? circle(uv - F10_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F11_BIT) != 0 ? circle(uv - F11_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & F12_BIT) != 0 ? circle(uv - F12_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & BREAK_BIT) != 0 ? circle(uv - BREAK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & INSERT_BIT) != 0 ? circle(uv - INSERT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & DEL_BIT) != 0 ? circle(uv - DEL_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_LOCK_BIT) != 0 ? circle(uv - NUM_LOCK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & KP_MULTIPLY_BIT) != 0 ? circle(uv - KP_MULTIPLY_POS, circleRadius) : 1.0f;
 
-	Out.yz *= (Get(buttonSet1) & TAB_BIT) != 0 ? circle(uv - TAB_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & Q_BIT) != 0 ? circle(uv - Q_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & W_BIT) != 0 ? circle(uv - W_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & E_BIT) != 0 ? circle(uv - E_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & R_BIT) != 0 ? circle(uv - R_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & T_BIT) != 0 ? circle(uv - T_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & Y_BIT) != 0 ? circle(uv - Y_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & U_BIT) != 0 ? circle(uv - U_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & I_BIT) != 0 ? circle(uv - I_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & O_BIT) != 0 ? circle(uv - O_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & P_BIT) != 0 ? circle(uv - P_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & BRACKET_LEFT_BIT) != 0 ? circle(uv - BRACKET_LEFT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & BRACKET_RIGHT_BIT) != 0 ? circle(uv - BRACKET_RIGHT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & BACK_SLASH_BIT) != 0 ? circle(uv - BACK_SLASH_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & KP_7_HOME_BIT) != 0 ? circle(uv - KP_7_HOME_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & KP_8_UP_BIT) != 0 ? circle(uv - KP_8_UP_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & KP_9_PAGE_UP_BIT) != 0 ? circle(uv - KP_9_PAGE_UP_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & ACUTE_BIT) != 0 ? circle(uv - ACUTE_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_1_BIT) != 0 ? circle(uv - NUM_1_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_2_BIT) != 0 ? circle(uv - NUM_2_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_3_BIT) != 0 ? circle(uv - NUM_3_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_4_BIT) != 0 ? circle(uv - NUM_4_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_5_BIT) != 0 ? circle(uv - NUM_5_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_6_BIT) != 0 ? circle(uv - NUM_6_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_7_BIT) != 0 ? circle(uv - NUM_7_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_8_BIT) != 0 ? circle(uv - NUM_8_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_9_BIT) != 0 ? circle(uv - NUM_9_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & NUM_0_BIT) != 0 ? circle(uv - NUM_0_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & MINUS_BIT) != 0 ? circle(uv - MINUS_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & EQUAL_BIT) != 0 ? circle(uv - EQUAL_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet0 & BACK_SPACE_BIT) != 0 ? circle(uv - BACK_SPACE_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & KP_ADD_BIT) != 0 ? circle(uv - KP_ADD_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & KP_SUBTRACT_BIT) != 0 ? circle(uv - KP_SUBTRACT_POS, circleRadius) : 1.0f;
 
-	Out.yz *= (Get(buttonSet1) & CAPS_LOCK_BIT) != 0 ? circle(uv - CAPS_LOCK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & A_BIT) != 0 ? circle(uv - A_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & S_BIT) != 0 ? circle(uv - S_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & D_BIT) != 0 ? circle(uv - D_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & F_BIT) != 0 ? circle(uv - F_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & G_BIT) != 0 ? circle(uv - G_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & H_BIT) != 0 ? circle(uv - H_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & J_BIT) != 0 ? circle(uv - J_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & K_BIT) != 0 ? circle(uv - K_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & L_BIT) != 0 ? circle(uv - L_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & SEMICOLON_BIT) != 0 ? circle(uv - SEMICOLON_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & APOSTROPHE_BIT) != 0 ? circle(uv - APOSTROPHE_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet1) & ENTER_BIT) != 0 ? circle(uv - ENTER_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_4_LEFT_BIT) != 0 ? circle(uv - KP_4_LEFT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_5_BEGIN_BIT) != 0 ? circle(uv - KP_5_BEGIN_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_6_RIGHT_BIT) != 0 ? circle(uv - KP_6_RIGHT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & TAB_BIT) != 0 ? circle(uv - TAB_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & Q_BIT) != 0 ? circle(uv - Q_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & W_BIT) != 0 ? circle(uv - W_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & E_BIT) != 0 ? circle(uv - E_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & R_BIT) != 0 ? circle(uv - R_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & T_BIT) != 0 ? circle(uv - T_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & Y_BIT) != 0 ? circle(uv - Y_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & U_BIT) != 0 ? circle(uv - U_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & I_BIT) != 0 ? circle(uv - I_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & O_BIT) != 0 ? circle(uv - O_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & P_BIT) != 0 ? circle(uv - P_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & BRACKET_LEFT_BIT) != 0 ? circle(uv - BRACKET_LEFT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & BRACKET_RIGHT_BIT) != 0 ? circle(uv - BRACKET_RIGHT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & BACK_SLASH_BIT) != 0 ? circle(uv - BACK_SLASH_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & KP_7_HOME_BIT) != 0 ? circle(uv - KP_7_HOME_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & KP_8_UP_BIT) != 0 ? circle(uv - KP_8_UP_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & KP_9_PAGE_UP_BIT) != 0 ? circle(uv - KP_9_PAGE_UP_POS, circleRadius) : 1.0f;
 
-	Out.yz *= (Get(buttonSet2) & SHIFT_L_BIT) != 0 ? circle(uv - SHIFT_L_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & Z_BIT) != 0 ? circle(uv - Z_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & X_BIT) != 0 ? circle(uv - X_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & C_BIT) != 0 ? circle(uv - C_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & V_BIT) != 0 ? circle(uv - V_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & B_BIT) != 0 ? circle(uv - B_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & N_BIT) != 0 ? circle(uv - N_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & M_BIT) != 0 ? circle(uv - M_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & COMMA_BIT) != 0 ? circle(uv - COMMA_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & PERIOD_BIT) != 0 ? circle(uv - PERIOD_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & FWRD_SLASH_BIT) != 0 ? circle(uv - FWRD_SLASH_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & SHIFT_R_BIT) != 0 ? circle(uv - SHIFT_R_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_1_END_BIT) != 0 ? circle(uv - KP_1_END_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_2_DOWN_BIT) != 0 ? circle(uv - KP_2_DOWN_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_3_PAGE_DOWN_BIT) != 0 ? circle(uv - KP_3_PAGE_DOWN_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & CAPS_LOCK_BIT) != 0 ? circle(uv - CAPS_LOCK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & A_BIT) != 0 ? circle(uv - A_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & S_BIT) != 0 ? circle(uv - S_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & D_BIT) != 0 ? circle(uv - D_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & F_BIT) != 0 ? circle(uv - F_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & G_BIT) != 0 ? circle(uv - G_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & H_BIT) != 0 ? circle(uv - H_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & J_BIT) != 0 ? circle(uv - J_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & K_BIT) != 0 ? circle(uv - K_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & L_BIT) != 0 ? circle(uv - L_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & SEMICOLON_BIT) != 0 ? circle(uv - SEMICOLON_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & APOSTROPHE_BIT) != 0 ? circle(uv - APOSTROPHE_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet1 & ENTER_BIT) != 0 ? circle(uv - ENTER_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_4_LEFT_BIT) != 0 ? circle(uv - KP_4_LEFT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_5_BEGIN_BIT) != 0 ? circle(uv - KP_5_BEGIN_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_6_RIGHT_BIT) != 0 ? circle(uv - KP_6_RIGHT_POS, circleRadius) : 1.0f;
 
-	Out.yz *= (Get(buttonSet2) & CTRL_L_BIT) != 0 ? circle(uv - CTRL_L_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & ALT_L_BIT) != 0 ? circle(uv - ALT_L_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & SPACE_BIT) != 0 ? circle(uv - SPACE_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & ALT_R_BIT) != 0 ? circle(uv - ALT_R_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & CTRL_R_BIT) != 0 ? circle(uv - CTRL_R_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & LEFT_BIT) != 0 ? circle(uv - LEFT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & RIGHT_BIT) != 0 ? circle(uv - RIGHT_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & UP_BIT) != 0 ? circle(uv - UP_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & DOWN_BIT) != 0 ? circle(uv - DOWN_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & KP_0_INSERT_BIT) != 0 ? circle(uv - KP_0_INSERT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & SHIFT_L_BIT) != 0 ? circle(uv - SHIFT_L_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & Z_BIT) != 0 ? circle(uv - Z_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & X_BIT) != 0 ? circle(uv - X_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & C_BIT) != 0 ? circle(uv - C_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & V_BIT) != 0 ? circle(uv - V_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & B_BIT) != 0 ? circle(uv - B_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & N_BIT) != 0 ? circle(uv - N_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & M_BIT) != 0 ? circle(uv - M_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & COMMA_BIT) != 0 ? circle(uv - COMMA_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & PERIOD_BIT) != 0 ? circle(uv - PERIOD_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & FWRD_SLASH_BIT) != 0 ? circle(uv - FWRD_SLASH_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & SHIFT_R_BIT) != 0 ? circle(uv - SHIFT_R_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_1_END_BIT) != 0 ? circle(uv - KP_1_END_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_2_DOWN_BIT) != 0 ? circle(uv - KP_2_DOWN_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_3_PAGE_DOWN_BIT) != 0 ? circle(uv - KP_3_PAGE_DOWN_POS, circleRadius) : 1.0f;
 
-	Out.yz *= (Get(buttonSet2) & LEFT_CLICK_BIT) != 0 ? circle(uv - LEFT_CLICK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & MID_CLICK_BIT) != 0 ? circle(uv - MID_CLICK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & RIGHT_CLICK_BIT) != 0 ? circle(uv - RIGHT_CLICK_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet2) & SCROLL_UP_BIT) != 0 ? circle(uv - SCROLL_UP_POS, circleRadius) : 1.0f;
-	Out.yz *= (Get(buttonSet3) & SCROLL_DOWN_BIT) != 0 ? circle(uv - SCROLL_DOWN_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & CTRL_L_BIT) != 0 ? circle(uv - CTRL_L_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & ALT_L_BIT) != 0 ? circle(uv - ALT_L_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & SPACE_BIT) != 0 ? circle(uv - SPACE_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & ALT_R_BIT) != 0 ? circle(uv - ALT_R_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & CTRL_R_BIT) != 0 ? circle(uv - CTRL_R_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & LEFT_BIT) != 0 ? circle(uv - LEFT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & RIGHT_BIT) != 0 ? circle(uv - RIGHT_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & UP_BIT) != 0 ? circle(uv - UP_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & DOWN_BIT) != 0 ? circle(uv - DOWN_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & KP_0_INSERT_BIT) != 0 ? circle(uv - KP_0_INSERT_POS, circleRadius) : 1.0f;
 
-	return Out;
+    Out.yz *= (uInputData.buttonSet2 & LEFT_CLICK_BIT) != 0 ? circle(uv - LEFT_CLICK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & MID_CLICK_BIT) != 0 ? circle(uv - MID_CLICK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & RIGHT_CLICK_BIT) != 0 ? circle(uv - RIGHT_CLICK_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet2 & SCROLL_UP_BIT) != 0 ? circle(uv - SCROLL_UP_POS, circleRadius) : 1.0f;
+    Out.yz *= (uInputData.buttonSet3 & SCROLL_DOWN_BIT) != 0 ? circle(uv - SCROLL_DOWN_POS, circleRadius) : 1.0f;
+
+    return Out;
 }
 
-float4 PS_MAIN( VSOutput In )
+float4 PS_MAIN(VSOutput In)
 {
-	INIT_MAIN;
+    INIT_MAIN;
 
-	float4 Out = { 0.5f, 0.5f, 0.5f, 0.5f };
-	float2 uv = In.TexCoords;
-	
-	uint dt = Get(deviceType);
-	if(dt == 0)
-	{
-		discard;
-	} 
-	else if(dt == 1)
-	{
-		float2 adjustment = float2(
-			min((Get(wndSize).y / Get(wndSize).x) * (GamepadTexRes.x / GamepadTexRes.y), 1.0f),
-			min((Get(wndSize).x / Get(wndSize).y) * (GamepadTexRes.y / GamepadTexRes.x), 1.0f)
-		);
+    float4 Out = { 0.5f, 0.5f, 0.5f, 0.5f };
+    float2 uv = In.TexCoords;
 
-		uv -= (1.0f - adjustment) * 0.5f;
-		uv /= adjustment;
+    uint dt = uInputData.deviceType;
+    if (dt == INPUT_DEVICE_GAMEPAD)
+    {
+        float2 adjustment = float2(min((uInputData.wndSize.y / uInputData.wndSize.x) * (GamepadTexRes.x / GamepadTexRes.y), 1.0f),
+                                   min((uInputData.wndSize.x / uInputData.wndSize.y) * (GamepadTexRes.y / GamepadTexRes.x), 1.0f));
 
-  		Out = SampleTex2D(Get(uTexture), Get(uSampler), uv);
-		uv /= float2(GamepadTexRes.y / GamepadTexRes.x, 1.0f);
-		Out = Gamepad(In, Out, uv);
-	}
-	else if(dt == 2)
-	{
-		Out = Touch(In, Out, uv);
-	}
-	else if(dt == 3 || dt == 4)
-	{
-		float2 adjustment = float2(
-			min((Get(wndSize).y / Get(wndSize).x) * (KeyboardMouseTexRes.x / KeyboardMouseTexRes.y), 1.0f),
-			min((Get(wndSize).x / Get(wndSize).y) * (KeyboardMouseTexRes.y / KeyboardMouseTexRes.x), 1.0f)
-		);
+        uv -= (1.0f - adjustment) * 0.5f;
+        uv /= adjustment;
 
-		uv -= (1.0f - adjustment) * 0.5f;
-		uv /= adjustment;
-		
-  		Out = SampleTex2D(Get(uTexture), Get(uSampler), uv);
-		uv /= float2(KeyboardMouseTexRes.y / KeyboardMouseTexRes.x, 1.0f);
-		Out = KeyboardMouse(In, Out, uv);
-	}
+        Out = SampleTex2D(uTexture, uSampler, uv);
+        uv /= float2(GamepadTexRes.y / GamepadTexRes.x, 1.0f);
+        Out = Gamepad(In, Out, uv);
+    }
+    else if (dt == INPUT_DEVICE_TOUCH)
+    {
+        Out = Touch(In, Out, uv);
+    }
+    else if (dt == INPUT_DEVICE_KBM)
+    {
+        float2 adjustment =
+            float2(min((uInputData.wndSize.y / uInputData.wndSize.x) * (KeyboardMouseTexRes.x / KeyboardMouseTexRes.y), 1.0f),
+                   min((uInputData.wndSize.x / uInputData.wndSize.y) * (KeyboardMouseTexRes.y / KeyboardMouseTexRes.x), 1.0f));
 
-	RETURN(Out);
+        uv -= (1.0f - adjustment) * 0.5f;
+        uv /= adjustment;
+
+        Out = SampleTex2D(uTexture, uSampler, uv);
+        uv /= float2(KeyboardMouseTexRes.y / KeyboardMouseTexRes.x, 1.0f);
+        Out = KeyboardMouse(In, Out, uv);
+    }
+
+    RETURN(Out);
 }

@@ -30,10 +30,12 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID)
 {
 	INIT_MAIN;
 	#if TEXTURE_ATOMIC_SUPPORTED
-		Write2D(Get(OutputTexture), dispatchID.xy, SHADOW_MAX_VALUE);
+		Write2D(OutputTexture, dispatchID.xy, SHADOW_MAX_VALUE);
 	#else
-		uint index = dispatchID.x + uint(Get(mScreenSize).x) * dispatchID.y;
-		Get(OutputTexture)[index] = SHADOW_MAX_VALUE;
+		uint index = dispatchID.x + uint(SSSUniform.mScreenSize.x) * dispatchID.y;
+		if (index < SSSUniform.mScreenSize.x * SSSUniform.mScreenSize.y) {
+			OutputTexture[index] = SHADOW_MAX_VALUE;
+		}
 	#endif
 	RETURN();
 }

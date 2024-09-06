@@ -26,8 +26,8 @@
 #include "../ThirdParty/OpenSource/imgui/imgui.h"
 #include "../ThirdParty/OpenSource/imgui/imgui_internal.h"
 
+#include "../../OS/Interfaces/IInput.h"
 #include "../../Application/Interfaces/IFont.h"
-#include "../../Application/Interfaces/IInput.h"
 #include "../../Application/Interfaces/IUI.h"
 #include "../../Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
@@ -36,10 +36,6 @@
 #include "../../Utilities/Math/Algorithms.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
-
-#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
-#define TOUCH_INPUT 1
-#endif
 
 #define FALLBACK_FONT_TEXTURE_INDEX 0
 
@@ -108,6 +104,7 @@ typedef struct UserInterface
     uint32_t       mDynamicTexturesCount = 0;
     Shader*        pShaderTextured[SAMPLE_COUNT_COUNT] = { NULL };
     RootSignature* pRootSignatureTextured = NULL;
+    RootSignature* pRootSignatureTexturedMs = NULL;
     DescriptorSet* pDescriptorSetUniforms = NULL;
     DescriptorSet* pDescriptorSetTexture = NULL;
     Pipeline*      pPipelineTextured[SAMPLE_COUNT_COUNT] = { NULL };
@@ -117,34 +114,25 @@ typedef struct UserInterface
     /// Default states
     Sampler*       pDefaultSampler = NULL;
     VertexLayout   mVertexLayoutTextured = {};
-    float          mNavInputs[ImGuiNavInput_COUNT] = { 0.0f };
-    const float2*  pMovePosition = NULL;
-    uint32_t       mLastUpdateCount = 0;
-    float2         mLastUpdateMin[64] = {};
-    float2         mLastUpdateMax[64] = {};
-    bool           mActive = false;
-    bool           mPostUpdateKeyDownStates[ImGuiKey::ImGuiKey_COUNT] = { false };
 
-    // Since gestures events always come first, we want to dismiss any other inputs after that
-    bool mHandledGestures = false;
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+    // Virtual joystick UI
+    Shader*        pVJShader = {};
+    RootSignature* pVJRootSignature = {};
+    DescriptorSet* pVJDescriptorSet = {};
+    Pipeline*      pVJPipeline = {};
+    Texture*       pVJTexture = {};
+    uint32_t       mVJRootConstantIndex = {};
+#endif
+
+    uint32_t mLastUpdateCount = 0;
+    float2   mLastUpdateMin[64] = {};
+    float2   mLastUpdateMax[64] = {};
+    bool     mActive = false;
 
     // Stops rendering UI elements (disables command recording)
     bool mEnableRendering = true;
-
-    // Enable Net Imgui to control UI remotely.
-    bool mEnableRemoteUI = true;
 } UserInterface;
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-extern void initRemoteAppServer(uint16_t port);
-extern void exitRemoteAppServer();
-extern void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData);
-extern void remoteAppReceiveInputData();
-extern bool remoteAppIsConnected();
-extern bool remoteAppShouldSendFontTexture();
-extern void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
-                                     unsigned char* ptr);
-#endif
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING) || defined(GFX_DEVICE_MEMORY_TRACKING)
 extern uint32_t    GetTrackedObjectTypeCount();
@@ -251,7 +239,7 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
 static UIWidget* cloneWidget(const UIWidget* pWidget);
 static void      processWidgetCallbacks(UIWidget* pWidget, bool deferred = false);
 static void      processWidget(UIWidget* pWidget);
-static void      destroyWidget(UIWidget* pWidget, bool freeUnderlying);
+static void      removeWidget(UIWidget* pWidget, bool freeUnderlying);
 
 static void* alloc_func(size_t size, void* user_data)
 {
@@ -2092,7 +2080,7 @@ void processWidget(UIWidget* pWidget)
     }
 }
 
-void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
+void removeWidget(UIWidget* pWidget, bool freeUnderlying)
 {
     if (freeUnderlying)
     {
@@ -2102,14 +2090,14 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         {
             CollapsingHeaderWidget* pOriginalWidget = (CollapsingHeaderWidget*)(pWidget->pWidget);
             for (uint32_t i = 0; i < pOriginalWidget->mWidgetsCount; ++i)
-                destroyWidget(pOriginalWidget->pGroupedWidgets[i], true);
+                removeWidget(pOriginalWidget->pGroupedWidgets[i], true);
             break;
         }
         case WIDGET_TYPE_COLUMN:
         {
             ColumnWidget* pOriginalWidget = (ColumnWidget*)(pWidget->pWidget);
             for (ptrdiff_t i = 0; i < pOriginalWidget->mWidgetsCount; ++i)
-                destroyWidget(pOriginalWidget->pPerColumnWidgets[i], true);
+                removeWidget(pOriginalWidget->pPerColumnWidgets[i], true);
             break;
         }
 
@@ -2174,7 +2162,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
 // MARK: - Dynamic UI Public Functions
 /****************************************************************************/
 
-UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type)
+UIWidget* uiAddDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type)
 {
 #ifdef ENABLE_FORGE_UI
     UIWidget widget{};
@@ -2194,7 +2182,7 @@ void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
     for (ptrdiff_t i = 0; i < arrlen(pDynamicUI->mDynamicProperties); ++i)
     {
         UIWidget* pWidget = pDynamicUI->mDynamicProperties[i];
-        UIWidget* pNewWidget = uiCreateComponentWidget(pGui, pWidget->mLabel, pWidget->pWidget, pWidget->mType, false);
+        UIWidget* pNewWidget = uiAddComponentWidget(pGui, pWidget->mLabel, pWidget->pWidget, pWidget->mType, false);
         cloneWidgetBase(pNewWidget, pWidget);
     }
 #endif
@@ -2207,17 +2195,17 @@ void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
     {
         // We should not erase the widgets in this for-loop, otherwise the IDs
         // in mDynamicPropHandles will not match once  UIComponent::mWidgets changes size.
-        uiDestroyComponentWidget(pGui, pDynamicUI->mDynamicProperties[i]);
+        uiRemoveComponentWidget(pGui, pDynamicUI->mDynamicProperties[i]);
     }
 #endif
 }
 
-void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI)
+void uiRemoveDynamicWidgets(DynamicUIWidgets* pDynamicUI)
 {
 #ifdef ENABLE_FORGE_UI
     for (ptrdiff_t i = 0; i < arrlen(pDynamicUI->mDynamicProperties); ++i)
     {
-        destroyWidget(pDynamicUI->mDynamicProperties[i], true);
+        removeWidget(pDynamicUI->mDynamicProperties[i], true);
     }
 
     arrfree(pDynamicUI->mDynamicProperties);
@@ -2228,7 +2216,7 @@ void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI)
 // MARK: - UI Component Public Functions
 /****************************************************************************/
 
-void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponent** ppUIComponent)
+void uiAddComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponent** ppUIComponent)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(ppUIComponent);
@@ -2277,7 +2265,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
             else
             {
-                LOGF(eWARNING, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'mMaxUIFonts' when initializing the "
+                LOGF(eWARNING, "uiAddComponent() has reached fonts capacity.  Consider increasing 'mMaxUIFonts' when initializing the "
                                "user interface.");
                 useDefaultFallbackFont = true;
             }
@@ -2285,7 +2273,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
     }
     else
     {
-        LOGF(eWARNING, "uiCreateComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->mFontID);
+        LOGF(eWARNING, "uiAddComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->mFontID);
         useDefaultFallbackFont = true;
     }
 #else
@@ -2310,12 +2298,12 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
 #endif
 }
 
-void uiDestroyComponent(UIComponent* pGui)
+void uiRemoveComponent(UIComponent* pGui)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pGui);
 
-    uiDestroyAllComponentWidgets(pGui);
+    uiRemoveAllComponentWidgets(pGui);
 
     ptrdiff_t componentIndex = 0;
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->mComponents); ++i)
@@ -2327,7 +2315,7 @@ void uiDestroyComponent(UIComponent* pGui)
 
     if (componentIndex < arrlen(pUserInterface->mComponents))
     {
-        uiDestroyAllComponentWidgets(pGui);
+        uiRemoveAllComponentWidgets(pGui);
         arrdel(pUserInterface->mComponents, componentIndex);
         arrfree(pGui->mWidgets);
     }
@@ -2348,7 +2336,7 @@ void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 // MARK: - Public UIWidget Add/Remove Functions
 /****************************************************************************/
 
-UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone /* = true*/)
+UIWidget* uiAddComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone /* = true*/)
 {
 #ifdef ENABLE_FORGE_UI
     UIWidget* pBaseWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
@@ -2368,7 +2356,7 @@ UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const v
 #endif
 }
 
-void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget)
+void uiRemoveComponentWidget(UIComponent* pGui, UIWidget* pWidget)
 {
 #ifdef ENABLE_FORGE_UI
     ptrdiff_t i;
@@ -2380,19 +2368,19 @@ void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget)
     if (i < arrlen(pGui->mWidgets))
     {
         UIWidget* iterWidget = pGui->mWidgets[i];
-        destroyWidget(iterWidget, pGui->mWidgetsClone[i]);
+        removeWidget(iterWidget, pGui->mWidgetsClone[i]);
         arrdel(pGui->mWidgetsClone, i);
         arrdel(pGui->mWidgets, i);
     }
 #endif
 }
 
-void uiDestroyAllComponentWidgets(UIComponent* pGui)
+void uiRemoveAllComponentWidgets(UIComponent* pGui)
 {
 #ifdef ENABLE_FORGE_UI
     for (ptrdiff_t i = 0; i < arrlen(pGui->mWidgets); ++i)
     {
-        destroyWidget(pGui->mWidgets[i], pGui->mWidgetsClone[i]); //-V595
+        removeWidget(pGui->mWidgets[i], pGui->mWidgetsClone[i]); //-V595
     }
 
     arrfree(pGui->mWidgets);
@@ -2492,23 +2480,10 @@ FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine)
 
 void uiNewFrame()
 {
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    if (pUserInterface->mEnableRemoteUI && remoteAppIsConnected())
-    {
-        remoteAppReceiveInputData();
-        if (remoteAppShouldSendFontTexture())
-        {
-            unsigned char* pPixelData = NULL;
-            int            width = 0;
-            int            height = 0;
-            ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &width, &height);
-            remoteControlSendTexture(TinyImageFormat_R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height,
-                                     width * height * 4, pPixelData);
-        }
-    }
-#endif
+#ifdef ENABLE_FORGE_UI
     pUserInterface->mDynamicTexturesCount = 0;
     ImGui::NewFrame();
+#endif
 }
 
 void uiEndFrame() { ImGui::EndFrame(); }
@@ -2517,6 +2492,8 @@ void uiEndFrame() { ImGui::EndFrame(); }
 // MARK: - Private Platform Layer Life Cycle Functions
 /****************************************************************************/
 
+static InputEnum gKeyMap[ImGuiKey_NamedKey_COUNT] = {};
+
 bool platformInitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
@@ -2524,9 +2501,7 @@ bool platformInitUserInterface()
 
     pAppUI->mShowDemoUiWindow = false;
 
-    pAppUI->mHandledGestures = false;
     pAppUI->mActive = true;
-    memset(pAppUI->mPostUpdateKeyDownStates, 0, sizeof(pAppUI->mPostUpdateKeyDownStates));
 
     const uint32_t monitorIdx = getActiveMonitorIdx();
     getMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
@@ -2540,34 +2515,13 @@ bool platformInitUserInterface()
 
     ImGuiIO& io = ImGui::GetIO();
 
-    // TODO: Might be a good idea to considder adding these flags in some platforms:
-    //         - ImGuiConfigFlags_NavEnableKeyboard
-    io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad | ImGuiConfigFlags_NavEnableKeyboard;
 
     // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always set it to 0
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
-    io.KeyMap[ImGuiKey_Tab] = UISystemInputActions::UI_ACTION_KEY_TAB;
-    io.KeyMap[ImGuiKey_LeftArrow] = UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW;
-    io.KeyMap[ImGuiKey_RightArrow] = UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW;
-    io.KeyMap[ImGuiKey_UpArrow] = UISystemInputActions::UI_ACTION_KEY_UP_ARROW;
-    io.KeyMap[ImGuiKey_DownArrow] = UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW;
-    io.KeyMap[ImGuiKey_PageUp] = UISystemInputActions::UI_ACTION_KEY_PAGE_UP;
-    io.KeyMap[ImGuiKey_PageDown] = UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN;
-    io.KeyMap[ImGuiKey_Home] = UISystemInputActions::UI_ACTION_KEY_HOME;
-    io.KeyMap[ImGuiKey_End] = UISystemInputActions::UI_ACTION_KEY_END;
-    io.KeyMap[ImGuiKey_Insert] = UISystemInputActions::UI_ACTION_KEY_INSERT;
-    io.KeyMap[ImGuiKey_Delete] = UISystemInputActions::UI_ACTION_KEY_DELETE;
-    io.KeyMap[ImGuiKey_Backspace] = UISystemInputActions::UI_ACTION_KEY_BACK_SPACE;
-    io.KeyMap[ImGuiKey_Space] = UISystemInputActions::UI_ACTION_KEY_SPACE;
-    io.KeyMap[ImGuiKey_Enter] = UISystemInputActions::UI_ACTION_KEY_ENTER;
-    io.KeyMap[ImGuiKey_Escape] = UISystemInputActions::UI_ACTION_KEY_ESCAPE;
-    io.KeyMap[ImGuiKey_A] = UISystemInputActions::UI_ACTION_KEY_A;
-    io.KeyMap[ImGuiKey_C] = UISystemInputActions::UI_ACTION_KEY_C;
-    io.KeyMap[ImGuiKey_V] = UISystemInputActions::UI_ACTION_KEY_V;
-    io.KeyMap[ImGuiKey_X] = UISystemInputActions::UI_ACTION_KEY_X;
-    io.KeyMap[ImGuiKey_Y] = UISystemInputActions::UI_ACTION_KEY_Y;
-    io.KeyMap[ImGuiKey_Z] = UISystemInputActions::UI_ACTION_KEY_Z;
+    extern void InputFillImguiKeyMap(InputEnum * keyMap);
+    InputFillImguiKeyMap(gKeyMap);
 
     pUserInterface = pAppUI;
 #endif
@@ -2580,7 +2534,7 @@ void platformExitUserInterface()
 #ifdef ENABLE_FORGE_UI
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->mComponents); ++i)
     {
-        uiDestroyAllComponentWidgets(pUserInterface->mComponents[i]);
+        uiRemoveAllComponentWidgets(pUserInterface->mComponents[i]);
         tf_free(pUserInterface->mComponents[i]);
     }
     arrfree(pUserInterface->mComponents);
@@ -2597,7 +2551,59 @@ void platformUpdateUserInterface(float deltaTime)
     // Render can me nullptr when initUserInterface wasn't called, this can happen when the build compiled using
     // ENABLED_FORGE_UI but then in runtime the App decided not to use the UI
     if (pUserInterface->pRenderer == nullptr)
+    {
         return;
+    }
+
+    deltaTime = deltaTime == 0.0f ? 0.016f : deltaTime;
+
+    ImGui::SetCurrentContext(pUserInterface->context);
+
+    ImGuiIO& io = ImGui::GetIO();
+    // Always show navigation highlight
+    io.NavActive = true;
+    io.NavVisible = true;
+    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+
+    // #TODO: Use window size as render-target size cannot be trusted to be the same as window size
+    io.DisplaySize.x = pUserInterface->mDisplayWidth;
+    io.DisplaySize.y = pUserInterface->mDisplayHeight;
+    io.DisplayFramebufferScale.x = pUserInterface->mWidth / pUserInterface->mDisplayWidth;
+    io.DisplayFramebufferScale.y = pUserInterface->mHeight / pUserInterface->mDisplayHeight;
+    io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    io.DeltaTime = deltaTime;
+
+    for (uint32_t k = ImGuiKey_NamedKey_BEGIN; k <= ImGuiKey_GamepadR3; ++k)
+    {
+        if (!gKeyMap[k - ImGuiKey_NamedKey_BEGIN])
+        {
+            continue;
+        }
+        io.AddKeyEvent((ImGuiKey)k, inputGetValue(0, gKeyMap[k - ImGuiKey_NamedKey_BEGIN]));
+    }
+    const float x = inputGetValue(0, gKeyMap[ImGuiKey_MouseX1 - ImGuiKey_NamedKey_BEGIN]) * io.DisplayFramebufferScale.x;
+    const float y = inputGetValue(0, gKeyMap[ImGuiKey_MouseX2 - ImGuiKey_NamedKey_BEGIN]) * io.DisplayFramebufferScale.y;
+    const float wheel = inputGetValue(0, gKeyMap[ImGuiKey_MouseWheelX - ImGuiKey_NamedKey_BEGIN]) -
+                        inputGetValue(0, gKeyMap[ImGuiKey_MouseWheelY - ImGuiKey_NamedKey_BEGIN]);
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+    io.AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
+#endif
+    io.AddMousePosEvent(x, y);
+    io.AddMouseWheelEvent(0.0f, wheel);
+    io.AddMouseButtonEvent(ImGuiMouseButton_Left, inputGetValue(0, gKeyMap[ImGuiKey_MouseLeft - ImGuiKey_NamedKey_BEGIN]));
+    io.AddMouseButtonEvent(ImGuiMouseButton_Right, inputGetValue(0, gKeyMap[ImGuiKey_MouseRight - ImGuiKey_NamedKey_BEGIN]));
+    io.AddMouseButtonEvent(ImGuiMouseButton_Middle, inputGetValue(0, gKeyMap[ImGuiKey_MouseMiddle - ImGuiKey_NamedKey_BEGIN]));
+
+    if (io.WantTextInput)
+    {
+        char32_t* chars;
+        uint32_t  charCount;
+        inputGetCharInput(&chars, &charCount);
+        for (uint32_t i = 0; i < charCount; ++i)
+        {
+            io.AddInputCharacter(chars[i]);
+        }
+    }
 
     // (UIComponent*)[dyn_size]
     UIComponent** activeComponents = NULL;
@@ -2620,32 +2626,6 @@ void platformUpdateUserInterface(float deltaTime)
     guiUpdate.width = pUserInterface->mDisplayWidth;
     guiUpdate.height = pUserInterface->mDisplayHeight;
     guiUpdate.showDemoWindow = pUserInterface->mShowDemoUiWindow;
-
-    ImGui::SetCurrentContext(pUserInterface->context);
-    // #TODO: Use window size as render-target size cannot be trusted to be the same as window size
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize.x = pUserInterface->mDisplayWidth;
-    io.DisplaySize.y = pUserInterface->mDisplayHeight;
-    io.DisplayFramebufferScale.x = pUserInterface->mWidth / pUserInterface->mDisplayWidth;
-    io.DisplayFramebufferScale.y = pUserInterface->mHeight / pUserInterface->mDisplayHeight;
-    io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-    io.DeltaTime = guiUpdate.deltaTime;
-    if (pUserInterface->pMovePosition)
-        io.MousePos = *pUserInterface->pMovePosition * io.DisplayFramebufferScale;
-
-    // Gamepad connected
-    {
-        bool anyGamepadConnected = false;
-        for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
-            anyGamepadConnected |= gamePadConnected(i);
-
-        if (anyGamepadConnected)
-            io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-        else
-            io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
-    }
-
-    memcpy(io.NavInputs, pUserInterface->mNavInputs, sizeof(pUserInterface->mNavInputs));
 
     uiNewFrame();
 
@@ -2804,17 +2784,6 @@ void platformUpdateUserInterface(float deltaTime)
         }
     }
 
-    if (!io.MouseDown[0])
-    {
-        io.MousePos = float2(-FLT_MAX);
-    }
-
-    pUserInterface->mHandledGestures = false;
-
-    // Apply post update keydown states
-    COMPILE_ASSERT(sizeof(pUserInterface->mPostUpdateKeyDownStates) == sizeof(io.KeysDown));
-    memcpy(io.KeysDown, pUserInterface->mPostUpdateKeyDownStates, sizeof(io.KeysDown));
-
     arrfree(activeComponents);
 
     extern void updateProfilerUI();
@@ -2826,33 +2795,6 @@ void platformUpdateUserInterface(float deltaTime)
 // MARK: - Private Static Reused Draw Functionalities
 /****************************************************************************/
 #if defined(ENABLE_FORGE_UI)
-static void fillDrawInformation(UserInterfaceDrawData* pUIDrawData, ImDrawData* pImDrawData)
-{
-    pUIDrawData->mDisplayPos = pImDrawData->DisplayPos;
-    pUIDrawData->mDisplaySize = pImDrawData->DisplaySize;
-    pUIDrawData->mVertexSize = sizeof(ImDrawVert);
-    pUIDrawData->mIndexSize = sizeof(ImDrawIdx);
-
-    uint32_t numVtx = 0;
-    uint32_t numIdx = 0;
-    for (int n = 0; n < pImDrawData->CmdListsCount; n++)
-    {
-        const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
-        numVtx += pCmdList->VtxBuffer.size();
-        numIdx += pCmdList->IdxBuffer.size();
-    }
-
-    pUIDrawData->mVertexCount = numVtx;
-    pUIDrawData->mIndexCount = numIdx;
-
-    pUIDrawData->mNumDrawCommands = 0;
-    for (int n = 0; n < pImDrawData->CmdListsCount; n++)
-    {
-        const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
-        pUIDrawData->mNumDrawCommands += pCmdList->CmdBuffer.size();
-    }
-}
-
 static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const float2& displaySize, Pipeline* pPipeline,
                                      const uint64_t vOffset, const uint64_t iOffset)
 {
@@ -2884,11 +2826,10 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     cmdBindDescriptorSet(pCmd, pUserInterface->frameIdx, pUserInterface->pDescriptorSetUniforms);
 }
 
-static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawCmd, const float2& displayPos, const float2& displaySize,
-                             Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, int32_t& globalVtxOffsetInOut,
-                             int32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut)
+static void cmdDrawUICommand(Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float2& displayPos, const float2& displaySize,
+                             Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, uint32_t& globalVtxOffsetInOut,
+                             uint32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut, int32_t vertexCount, int32_t indexCount)
 {
-    // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.size(); i++)
     //{
     //	const ImDrawCmd* pImDrawCmd = &pCmdList->CmdBuffer[i];
     //	if (pImDrawCmd->UserCallback)
@@ -2899,15 +2840,15 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
     //	else
     //	{
     //  Clamp to viewport as cmdSetScissor() won't accept values that are off bounds
-    float2 clipMin = { clamp(pImDrawCmd->mClipRect.x - displayPos.x, 0.0f, displaySize.x),
-                       clamp(pImDrawCmd->mClipRect.y - displayPos.y, 0.0f, displaySize.y) };
-    float2 clipMax = { clamp(pImDrawCmd->mClipRect.z - displayPos.x, 0.0f, displaySize.x),
-                       clamp(pImDrawCmd->mClipRect.w - displayPos.y, 0.0f, displaySize.y) };
+    float2 clipMin = { clamp(pImDrawCmd->ClipRect.x - displayPos.x, 0.0f, displaySize.x),
+                       clamp(pImDrawCmd->ClipRect.y - displayPos.y, 0.0f, displaySize.y) };
+    float2 clipMax = { clamp(pImDrawCmd->ClipRect.z - displayPos.x, 0.0f, displaySize.x),
+                       clamp(pImDrawCmd->ClipRect.w - displayPos.y, 0.0f, displaySize.y) };
     if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
     {
         return;
     }
-    if (!pImDrawCmd->mElemCount)
+    if (!pImDrawCmd->ElemCount)
     {
         return;
     }
@@ -2916,7 +2857,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
     uint2 ext = { (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y) };
     cmdSetScissor(pCmd, offset.x, offset.y, ext.x, ext.y);
 
-    ptrdiff_t id = (ptrdiff_t)pImDrawCmd->mTextureId;
+    ptrdiff_t id = (ptrdiff_t)pImDrawCmd->TextureId;
     uint32_t  setIndex = (uint32_t)id;
     if (id >= pUserInterface->mMaxUIFonts)
     {
@@ -2927,16 +2868,6 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
             return;
         }
         Texture* tex = hmgetp(pUserInterface->pTextureHashmap, id)->value;
-
-#ifdef ENABLE_FORGE_REMOTE_UI
-        // UI Remote Control still receives texture pointers as IDs
-        if (tex == NULL)
-        {
-            tex = (Texture*)id;
-            setIndex = (uint32_t)(pUserInterface->mMaxUIFonts + (pUserInterface->frameIdx * pUserInterface->mMaxDynamicUIUpdatesPerBatch +
-                                                                 pUserInterface->mDynamicTexturesCount++));
-        }
-#endif // ENABLE_FORGE_REMOTE_UI
 
         DescriptorData params[1] = {};
         params[0].pName = "uTex";
@@ -2963,10 +2894,11 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
         prevSetIndexInOut = setIndex;
     }
 
-    cmdDrawIndexed(pCmd, pImDrawCmd->mElemCount, pImDrawCmd->mIndexOffset + globalIdxOffsetInOut,
-                   pImDrawCmd->mVertexOffset + globalVtxOffsetInOut);
-    globalIdxOffsetInOut += pImDrawCmd->mIndexCount;
-    globalVtxOffsetInOut += pImDrawCmd->mVertexCount;
+    const uint32_t vtxSize = round_up(vertexCount * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+    const uint32_t idxSize = round_up(indexCount * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+    cmdDrawIndexed(pCmd, pImDrawCmd->ElemCount, pImDrawCmd->IdxOffset + globalIdxOffsetInOut, pImDrawCmd->VtxOffset + globalVtxOffsetInOut);
+    globalIdxOffsetInOut += idxSize / sizeof(ImDrawIdx);
+    globalVtxOffsetInOut += round_up(vtxSize, sizeof(ImDrawVert)) / sizeof(ImDrawVert);
 }
 
 #endif // ENABLE_FORGE_UI
@@ -2983,7 +2915,6 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     pUserInterface->mMaxDynamicUIUpdatesPerBatch = pDesc->mMaxDynamicUIUpdatesPerBatch;
     pUserInterface->mMaxUIFonts = pDesc->mMaxUIFonts + 1; // +1 to account for a default fallback font
     pUserInterface->mFrameCount = pDesc->mFrameCount;
-    pUserInterface->mEnableRemoteUI = pDesc->mEnableRemoteUI;
     ASSERT(pUserInterface->mFrameCount <= MAX_FRAMES);
     /************************************************************************/
     // Rendering resources
@@ -3053,17 +2984,6 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     // Add a default fallback font (at index 0)
     uint32_t fallbackFontTexId = addImguiFont(NULL, 0, NULL, UINT_MAX, 0.f, &pUserInterface->pDefaultFallbackFont);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
-
-    /************************************************************************/
-    // Remote imgui
-    /************************************************************************/
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    if (pUserInterface->mEnableRemoteUI)
-    {
-        initRemoteAppServer(8889);
-    }
-#endif
-
 #endif
 }
 
@@ -3095,18 +3015,215 @@ void exitUserInterface()
         uiNewFrame();
         uiEndFrame();
     }
-
-    /************************************************************************/
-    // Remote Control
-    /************************************************************************/
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    if (pUserInterface->mEnableRemoteUI)
-    {
-        exitRemoteAppServer();
-    }
-#endif
 #endif
 }
+
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+
+extern void InputGetVirtualJoystickData(bool* outActive, bool* outPressed, float* outRadius, float* outDeadzone, float2* outStartPos,
+                                        float2* outPos);
+const char* gVirtualJoystickTextureName = "circlepad.tex";
+
+bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat)
+{
+    bool active = false;
+    InputGetVirtualJoystickData(&active, NULL, NULL, NULL, NULL, NULL);
+    if (!active)
+    {
+        return true;
+    }
+
+    TextureLoadDesc loadDesc = {};
+    SyncToken       token = {};
+    loadDesc.pFileName = gVirtualJoystickTextureName;
+    loadDesc.ppTexture = &pUserInterface->pVJTexture;
+    // Textures representing color should be stored in SRGB or HDR format
+    loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+    addResource(&loadDesc, &token);
+    waitForToken(&token);
+
+    Renderer* pRenderer = pUserInterface->pRenderer;
+    if (loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+    {
+        if (loadType & RELOAD_TYPE_SHADER)
+        {
+            /************************************************************************/
+            // Shader
+            /************************************************************************/
+            ShaderLoadDesc texturedShaderDesc = {};
+            texturedShaderDesc.mVert.pFileName = "textured_mesh.vert";
+            texturedShaderDesc.mFrag.pFileName = "textured_mesh.frag";
+            addShader(pRenderer, &texturedShaderDesc, &pUserInterface->pVJShader);
+
+            const char*       pStaticSamplerNames[] = { "uSampler" };
+            RootSignatureDesc textureRootDesc = { &pUserInterface->pVJShader, 1 };
+            textureRootDesc.mStaticSamplerCount = 1;
+            textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+            textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
+            addRootSignature(pRenderer, &textureRootDesc, &pUserInterface->pVJRootSignature);
+            pUserInterface->mVJRootConstantIndex = getDescriptorIndexFromName(pUserInterface->pVJRootSignature, "uRootConstants");
+
+            DescriptorSetDesc descriptorSetDesc = { pUserInterface->pVJRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            addDescriptorSet(pRenderer, &descriptorSetDesc, &pUserInterface->pVJDescriptorSet);
+        }
+
+        VertexLayout vertexLayout = {};
+        vertexLayout.mBindingCount = 1;
+        vertexLayout.mAttribCount = 2;
+        vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+        vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.mAttribs[0].mBinding = 0;
+        vertexLayout.mAttribs[0].mLocation = 0;
+        vertexLayout.mAttribs[0].mOffset = 0;
+
+        vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+        vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
+        vertexLayout.mAttribs[1].mBinding = 0;
+        vertexLayout.mAttribs[1].mLocation = 1;
+        vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
+
+        BlendStateDesc blendStateDesc = {};
+        blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
+        blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+        blendStateDesc.mIndependentBlend = false;
+
+        DepthStateDesc depthStateDesc = {};
+        depthStateDesc.mDepthTest = false;
+        depthStateDesc.mDepthWrite = false;
+
+        RasterizerStateDesc rasterizerStateDesc = {};
+        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+        rasterizerStateDesc.mScissor = true;
+
+        PipelineDesc desc = {};
+        desc.mType = PIPELINE_TYPE_GRAPHICS;
+        GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
+        pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+        pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+        pipelineDesc.mRenderTargetCount = 1;
+        pipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.mSampleQuality = 0;
+        pipelineDesc.pBlendState = &blendStateDesc;
+        pipelineDesc.pColorFormats = &colorFormat;
+        pipelineDesc.pDepthState = &depthStateDesc;
+        pipelineDesc.pRasterizerState = &rasterizerStateDesc;
+        pipelineDesc.pRootSignature = pUserInterface->pVJRootSignature;
+        pipelineDesc.pShaderProgram = pUserInterface->pVJShader;
+        pipelineDesc.pVertexLayout = &vertexLayout;
+        addPipeline(pRenderer, &desc, &pUserInterface->pVJPipeline);
+    }
+
+    DescriptorData params[1] = {};
+    params[0].pName = "uTex";
+    params[0].ppTextures = &pUserInterface->pVJTexture;
+    updateDescriptorSet(pRenderer, 0, pUserInterface->pVJDescriptorSet, 1, params);
+
+    return true;
+}
+
+void unloadVirtualJoystick(ReloadType unloadType)
+{
+    bool active = false;
+    InputGetVirtualJoystickData(&active, NULL, NULL, NULL, NULL, NULL);
+    if (!active)
+    {
+        return;
+    }
+
+    removeResource(pUserInterface->pVJTexture);
+    if (unloadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+    {
+        Renderer* pRenderer = pUserInterface->pRenderer;
+        removePipeline(pRenderer, pUserInterface->pVJPipeline);
+
+        if (unloadType & RELOAD_TYPE_SHADER)
+        {
+            removeDescriptorSet(pRenderer, pUserInterface->pVJDescriptorSet);
+            removeRootSignature(pRenderer, pUserInterface->pVJRootSignature);
+            removeShader(pRenderer, pUserInterface->pVJShader);
+        }
+    }
+}
+
+void drawVirtualJoystick(Cmd* pCmd, const float4* color, uint64_t vOffset)
+{
+    bool   active = false;
+    bool   pressed = false;
+    float  radius = 0.0f;
+    float  deadzone = 0.0f;
+    float2 startPos = {};
+    float2 pos = {};
+    InputGetVirtualJoystickData(&active, &pressed, &radius, &deadzone, &startPos, &pos);
+    if (uiIsFocused() || !pressed)
+    {
+        return;
+    }
+    struct RootConstants
+    {
+        float4 color;
+        float2 scaleBias;
+        int    _pad[2];
+    } data = {};
+
+    float2 renderSize = { (float)pUserInterface->mWidth, (float)pUserInterface->mHeight };
+    float2 renderScale = { (float)pUserInterface->mWidth / pUserInterface->mDisplayWidth,
+                           (float)pUserInterface->mHeight / pUserInterface->mDisplayHeight };
+
+    cmdSetViewport(pCmd, 0.0f, 0.0f, renderSize[0], renderSize[1], 0.0f, 1.0f);
+    cmdSetScissor(pCmd, 0u, 0u, (uint32_t)renderSize[0], (uint32_t)renderSize[1]);
+
+    cmdBindPipeline(pCmd, pUserInterface->pVJPipeline);
+    cmdBindDescriptorSet(pCmd, 0, pUserInterface->pVJDescriptorSet);
+    data.color = *color;
+    data.scaleBias = { 2.0f / (float)renderSize[0], -2.0f / (float)renderSize[1] };
+    cmdBindPushConstants(pCmd, pUserInterface->pVJRootSignature, pUserInterface->mVJRootConstantIndex, &data);
+
+    float extSide = radius;
+    float intSide = radius * 0.5f;
+
+    // Outer stick
+    float2 joystickSize = float2(extSide) * renderScale;
+    float2 joystickCenter = startPos * renderScale - float2(0.0f, renderSize.y * 0.1f);
+    float2 joystickPos = joystickCenter - joystickSize * 0.5f;
+
+    const uint32_t   vertexStride = sizeof(float4);
+    BufferUpdateDesc updateDesc = { pUserInterface->pVertexBuffer, vOffset };
+    beginUpdateResource(&updateDesc);
+    TexVertex vertices[4] = {};
+    // the last variable can be used to create a border
+    MAKETEXQUAD(vertices, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+    memcpy(updateDesc.pMappedData, vertices, sizeof(vertices));
+    endUpdateResource(&updateDesc);
+    cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
+    cmdDraw(pCmd, 4, 0);
+    vOffset += sizeof(TexVertex) * 4;
+
+    // Inner stick
+    float2 stickPos = pos;
+    float2 delta = pos - startPos;
+    float  halfRad = (radius * 0.5f) - deadzone;
+    if (length(delta) > halfRad)
+    {
+        stickPos = startPos + halfRad * normalize(delta);
+    }
+    joystickSize = float2(intSide) * renderScale;
+    joystickCenter = stickPos * renderScale - float2(0.0f, renderSize.y * 0.1f);
+    joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
+    updateDesc = { pUserInterface->pVertexBuffer, vOffset };
+    beginUpdateResource(&updateDesc);
+    TexVertex verticesInner[4] = {};
+    // the last variable can be used to create a border
+    MAKETEXQUAD(verticesInner, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+    memcpy(updateDesc.pMappedData, verticesInner, sizeof(verticesInner));
+    endUpdateResource(&updateDesc);
+    cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
+    cmdDraw(pCmd, 4, 0);
+}
+#endif
 
 void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 {
@@ -3120,19 +3237,23 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
                 "imgui_SAMPLE_COUNT_8.frag", "imgui_SAMPLE_COUNT_16.frag",
             };
             ShaderLoadDesc texturedShaderDesc = {};
-            texturedShaderDesc.mStages[0] = { "imgui.vert" };
+            texturedShaderDesc.mVert = { "imgui.vert" };
             for (uint32_t s = 0; s < TF_ARRAY_COUNT(imguiFrag); ++s)
             {
-                texturedShaderDesc.mStages[1] = { imguiFrag[s] };
+                texturedShaderDesc.mFrag = { imguiFrag[s] };
                 addShader(pUserInterface->pRenderer, &texturedShaderDesc, &pUserInterface->pShaderTextured[s]);
             }
 
             const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { pUserInterface->pShaderTextured, TF_ARRAY_COUNT(pUserInterface->pShaderTextured) };
+            RootSignatureDesc textureRootDesc = { pUserInterface->pShaderTextured, 1 };
             textureRootDesc.mStaticSamplerCount = 1;
             textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
             textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
             addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTextured);
+
+            textureRootDesc.mShaderCount = TF_ARRAY_COUNT(pUserInterface->pShaderTextured) - 1;
+            textureRootDesc.ppShaders = pUserInterface->pShaderTextured + 1;
+            addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTexturedMs);
 
             DescriptorSetDesc setDesc = { pUserInterface->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
                                           pUserInterface->mMaxUIFonts +
@@ -3186,6 +3307,10 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         for (uint32_t s = 0; s < TF_ARRAY_COUNT(pUserInterface->pShaderTextured); ++s)
         {
             pipelineDesc.pShaderProgram = pUserInterface->pShaderTextured[s];
+            if (s > 0)
+            {
+                pipelineDesc.pRootSignature = pUserInterface->pRootSignatureTexturedMs;
+            }
             addPipeline(pUserInterface->pRenderer, &desc, &pUserInterface->pPipelineTextured[s]);
         }
     }
@@ -3206,11 +3331,8 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         updateDescriptorSet(pUserInterface->pRenderer, (uint32_t)tex, pUserInterface->pDescriptorSetTexture, 1, params);
     }
 
-#if TOUCH_INPUT
-    bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
-                             uint32_t dispayHeight);
-    loadVirtualJoystick((ReloadType)pDesc->mLoadType, (TinyImageFormat)pDesc->mColorFormat, pUserInterface->mWidth, pUserInterface->mHeight,
-                        pUserInterface->mDisplayWidth, pUserInterface->mDisplayHeight);
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+    loadVirtualJoystick((ReloadType)pDesc->mLoadType, (TinyImageFormat)pDesc->mColorFormat);
 #endif
 #endif
 }
@@ -3218,8 +3340,7 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 void unloadUserInterface(uint32_t unloadType)
 {
 #ifdef ENABLE_FORGE_UI
-#if TOUCH_INPUT
-    extern void unloadVirtualJoystick(ReloadType unloadType);
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
     unloadVirtualJoystick((ReloadType)unloadType);
 #endif
 
@@ -3239,124 +3360,76 @@ void unloadUserInterface(uint32_t unloadType)
             removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetTexture);
             removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetUniforms);
             removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTextured);
+            removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTexturedMs);
         }
     }
 #endif
 }
 
-void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
+void cmdDrawUserInterface(Cmd* pCmd)
 {
 #ifdef ENABLE_FORGE_UI
 
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    bool removeDataAfterRendering = false;
-#else
     // Early return if UI rendering has been disabled
     if (!pUserInterface->mEnableRendering)
     {
         return;
     }
-#endif
 
-    UserInterfaceDrawData localDrawData = {};
+    ImGui::SetCurrentContext(pUserInterface->context);
+    ImGui::Render();
+    ImDrawData* pImDrawData = ImGui::GetDrawData();
 
-    if (!pUIDrawData)
-    {
-#if defined(ENABLE_FORGE_REMOTE_UI)
-        if (pUserInterface->mEnableRemoteUI && remoteAppIsConnected())
-        {
-            UserInterfaceDrawData remoteDrawData = {};
-            uiPopulateDrawData(&remoteDrawData);
-            remoteAppSendDrawData(&remoteDrawData);
-            pUIDrawData = &remoteDrawData;
-            removeDataAfterRendering = true;
-        }
-        else
-        {
-            ImGui::SetCurrentContext(pUserInterface->context);
-            ImGui::Render();
-            ImDrawData* pImDrawData = ImGui::GetDrawData();
-            fillDrawInformation(&localDrawData, pImDrawData);
-            pUIDrawData = &localDrawData;
-        }
+    float2 displayPos(0.f, 0.f);
+    float2 displaySize(0.f, 0.f);
 
-        if (!pUserInterface->mEnableRendering)
-        {
-            if (removeDataAfterRendering)
-            {
-                removeUIDrawData(pUIDrawData);
-            }
-            return;
-        }
-#else
-        ImGui::SetCurrentContext(pUserInterface->context);
-        ImGui::Render();
-        ImDrawData* pImDrawData = ImGui::GetDrawData();
-        fillDrawInformation(&localDrawData, pImDrawData);
-        pUIDrawData = &localDrawData;
-#endif
-    }
+    displayPos = pImDrawData->DisplayPos;
+    displaySize = pImDrawData->DisplaySize;
 
-    float2  displayPos(0.f, 0.f);
-    float2  displaySize(0.f, 0.f);
-    int32_t numDrawCommands = 0;
+    uint64_t vSize = pImDrawData->TotalVtxCount * sizeof(ImDrawVert);
+    uint64_t iSize = pImDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 
-    displayPos = pUIDrawData->mDisplayPos;
-    displaySize = pUIDrawData->mDisplaySize;
-    numDrawCommands = pUIDrawData->mNumDrawCommands;
-
-    uint64_t vSize = pUIDrawData->mVertexCount * pUIDrawData->mVertexSize;
-    uint64_t iSize = pUIDrawData->mIndexCount * pUIDrawData->mIndexSize;
     vSize = min<uint64_t>(vSize, VERTEX_BUFFER_SIZE);
     iSize = min<uint64_t>(iSize, INDEX_BUFFER_SIZE);
 
     uint64_t vOffset = pUserInterface->frameIdx * VERTEX_BUFFER_SIZE;
     uint64_t iOffset = pUserInterface->frameIdx * INDEX_BUFFER_SIZE;
 
-    if (pUIDrawData->mVertexCount > FORGE_UI_MAX_VERTEXES || pUIDrawData->mIndexCount > FORGE_UI_MAX_INDEXES)
+    if (pImDrawData->TotalVtxCount > FORGE_UI_MAX_VERTEXES || pImDrawData->TotalIdxCount > FORGE_UI_MAX_INDEXES)
     {
         LOGF(eWARNING, "UI exceeds amount of verts/inds.  Consider updating FORGE_UI_MAX_VERTEXES/FORGE_UI_MAX_INDEXES defines.");
-        LOGF(eWARNING, "Num verts: %u (max %d) | Num inds: %u (max %d)", pUIDrawData->mVertexCount, FORGE_UI_MAX_VERTEXES,
-             pUIDrawData->mIndexCount, FORGE_UI_MAX_INDEXES);
-        pUIDrawData->mVertexCount = pUIDrawData->mVertexCount > FORGE_UI_MAX_VERTEXES ? FORGE_UI_MAX_VERTEXES : pUIDrawData->mVertexCount;
-        pUIDrawData->mIndexCount = pUIDrawData->mIndexCount > FORGE_UI_MAX_INDEXES ? FORGE_UI_MAX_INDEXES : pUIDrawData->mIndexCount;
+        LOGF(eWARNING, "Num verts: %d (max %d) | Num inds: %d (max %d)", pImDrawData->TotalVtxCount, FORGE_UI_MAX_VERTEXES,
+             pImDrawData->TotalIdxCount, FORGE_UI_MAX_INDEXES);
+        pImDrawData->TotalVtxCount =
+            pImDrawData->TotalVtxCount > FORGE_UI_MAX_VERTEXES ? FORGE_UI_MAX_VERTEXES : pImDrawData->TotalVtxCount;
+        pImDrawData->TotalIdxCount = pImDrawData->TotalIdxCount > FORGE_UI_MAX_INDEXES ? FORGE_UI_MAX_INDEXES : pImDrawData->TotalIdxCount;
     }
 
     uint64_t vtxDst = vOffset;
     uint64_t idxDst = iOffset;
 
-    if (pUIDrawData->mVertexBufferData && pUIDrawData->mIndexBufferData)
+    // Use regular draws for client
+
+    for (int32_t i = 0; i < pImDrawData->CmdListsCount; i++)
     {
-        BufferUpdateDesc update = { pUserInterface->pVertexBuffer, vOffset };
+        const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
+        const uint64_t    vtxSize =
+            round_up_64(pCmdList->VtxBuffer.size() * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+        const uint64_t idxSize =
+            round_up_64(pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+        BufferUpdateDesc update = { pUserInterface->pVertexBuffer, vtxDst, vtxSize };
         beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->mVertexBufferData, (size_t)pUIDrawData->mVertexCount * pUIDrawData->mVertexSize);
+        memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
         endUpdateResource(&update);
 
-        update = { pUserInterface->pIndexBuffer, iOffset };
+        update = { pUserInterface->pIndexBuffer, idxDst, idxSize };
         beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->mIndexBufferData, (size_t)pUIDrawData->mIndexCount * pUIDrawData->mIndexSize);
+        memcpy(update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
         endUpdateResource(&update);
-    }
-    else
-    {
-        ImDrawData* pImDrawData = ImGui::GetDrawData();
 
-        for (int32_t i = 0; i < pImDrawData->CmdListsCount; i++)
-        {
-            const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
-            BufferUpdateDesc  update = { pUserInterface->pVertexBuffer, vtxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-            endUpdateResource(&update);
-
-            update = { pUserInterface->pIndexBuffer, idxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-            endUpdateResource(&update);
-
-            vtxDst += (pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-            idxDst += (pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-        }
+        // Round up in case the buffer alignment is not a multiple of vertex/index size
+        vtxDst += round_up_64(vtxSize, sizeof(ImDrawVert));
+        idxDst += round_up_64(idxSize, sizeof(ImDrawIdx));
     }
 
     Pipeline* pPipeline = pUserInterface->pPipelineTextured[0];
@@ -3366,20 +3439,10 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
     cmdPrepareRenderingForUI(pCmd, displayPos, displaySize, pPipeline, vOffset, iOffset);
 
     // Render command lists
-    int32_t globalVtxOffset = 0;
-    int32_t globalIdxOffset = 0;
+    uint32_t globalVtxOffset = 0;
+    uint32_t globalIdxOffset = 0;
 
-    if (pUIDrawData->mDrawCommands)
     {
-        for (int32_t i = 0; i < numDrawCommands; i++)
-        {
-            cmdDrawUICommand(pCmd, &pUIDrawData->mDrawCommands[i], displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                             globalIdxOffset, prevSetIndex);
-        }
-    }
-    else
-    {
-        ImDrawData* pImDrawData = ImGui::GetDrawData();
         for (int n = 0; n < pImDrawData->CmdListsCount; n++)
         {
             const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
@@ -3395,41 +3458,28 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
                     continue;
                 }
 
-                UserInterfaceDrawCommand drawCommand = {};
-                drawCommand.mClipRect = pImDrawCmd->ClipRect;
-                drawCommand.mTextureId = (uint64_t)pImDrawCmd->TextureId;
-                drawCommand.mVertexOffset = pImDrawCmd->VtxOffset;
-                drawCommand.mIndexOffset = pImDrawCmd->IdxOffset;
+                int32_t vertexCount, indexCount;
                 if (c == pCmdList->CmdBuffer.size() - 1)
                 {
-                    drawCommand.mVertexCount = pCmdList->VtxBuffer.size();
-                    drawCommand.mIndexCount = pCmdList->IdxBuffer.size();
+                    vertexCount = pCmdList->VtxBuffer.size();
+                    indexCount = pCmdList->IdxBuffer.size();
                 }
                 else
                 {
-                    drawCommand.mVertexCount = 0;
-                    drawCommand.mIndexCount = 0;
+                    vertexCount = 0;
+                    indexCount = 0;
                 }
-                drawCommand.mElemCount = pImDrawCmd->ElemCount;
-                cmdDrawUICommand(pCmd, &drawCommand, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
-                                 globalIdxOffset, prevSetIndex);
+                cmdDrawUICommand(pCmd, pImDrawCmd, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
+                                 globalIdxOffset, prevSetIndex, vertexCount, indexCount);
             }
         }
     }
 
     pUserInterface->frameIdx = (pUserInterface->frameIdx + 1) % pUserInterface->mFrameCount;
 
-#if TOUCH_INPUT
-    extern void drawVirtualJoystick(Cmd * pCmd, const float4* color);
-    float4      color{ 1.0f, 1.0f, 1.0f, 1.0f };
-    drawVirtualJoystick(pCmd, &color);
-#endif
-
-#if defined(ENABLE_FORGE_REMOTE_UI)
-    if (removeDataAfterRendering)
-    {
-        removeUIDrawData(pUIDrawData);
-    }
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+    float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+    drawVirtualJoystick(pCmd, &color, vtxDst);
 #endif
 #endif
 }
@@ -3442,288 +3492,6 @@ void uiOnText(const wchar_t* pText)
     uint32_t len = (uint32_t)wcslen(pText);
     for (uint32_t i = 0; i < len; ++i)
         io.AddInputCharacter(pText[i]);
-#endif
-}
-
-void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
-{
-#ifdef ENABLE_FORGE_UI
-    ImGui::SetCurrentContext(pUserInterface->context);
-    ImGuiIO& io = ImGui::GetIO();
-    if (pVec)
-        pUserInterface->pMovePosition = pVec;
-
-    switch (actionId)
-    {
-    case UISystemInputActions::UI_ACTION_NAV_TOGGLE_UI:
-        if (!press)
-        {
-            pUserInterface->mActive = !pUserInterface->mActive;
-        }
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_HIDE_UI_TOGGLE:
-        if (!press)
-        {
-            pUserInterface->mEnableRendering = !pUserInterface->mEnableRendering;
-        }
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_ACTIVATE:
-        pUserInterface->mNavInputs[ImGuiNavInput_Activate] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_CANCEL:
-        pUserInterface->mNavInputs[ImGuiNavInput_Cancel] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_INPUT:
-        pUserInterface->mNavInputs[ImGuiNavInput_Input] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_MENU:
-        pUserInterface->mNavInputs[ImGuiNavInput_Menu] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_LEFT:
-        pUserInterface->mNavInputs[ImGuiNavInput_DpadLeft] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_RIGHT:
-        pUserInterface->mNavInputs[ImGuiNavInput_DpadRight] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_UP:
-        pUserInterface->mNavInputs[ImGuiNavInput_DpadUp] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_DOWN:
-        pUserInterface->mNavInputs[ImGuiNavInput_DpadDown] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_FOCUS_PREV:
-        pUserInterface->mNavInputs[ImGuiNavInput_FocusPrev] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_FOCUS_NEXT:
-        pUserInterface->mNavInputs[ImGuiNavInput_FocusNext] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_SLOW:
-        pUserInterface->mNavInputs[ImGuiNavInput_TweakSlow] = (float)press;
-        break;
-    case UISystemInputActions::UI_ACTION_NAV_TWEAK_FAST:
-        pUserInterface->mNavInputs[ImGuiNavInput_TweakFast] = (float)press;
-        break;
-
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_L:
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_R:
-        io.KeyCtrl = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_L:
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_R:
-        io.KeyShift = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ALT_L:
-    case UISystemInputActions::UI_ACTION_KEY_ALT_R:
-        io.KeyAlt = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_L:
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_R:
-        io.KeySuper = press;
-        break;
-    case UISystemInputActions::UI_ACTION_MOUSE_LEFT:
-    case UISystemInputActions::UI_ACTION_MOUSE_RIGHT:
-    case UISystemInputActions::UI_ACTION_MOUSE_MIDDLE:
-    case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP:
-    case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN:
-    case UISystemInputActions::UI_ACTION_MOUSE_MOVE:
-    {
-        const float scrollScale =
-            0.25f; // This should maybe be customized by client?  1.f would scroll ~5 lines of txt according to ImGui doc.
-        pUserInterface->mNavInputs[ImGuiNavInput_Activate] = (float)press;
-        if (pVec)
-        {
-            if (UISystemInputActions::UI_ACTION_MOUSE_LEFT == actionId)
-                io.MouseDown[0] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_RIGHT == actionId)
-                io.MouseDown[1] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_MIDDLE == actionId)
-                io.MouseDown[2] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP == actionId)
-                io.MouseWheel = 1.f * scrollScale;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN == actionId)
-                io.MouseWheel = -1.f * scrollScale;
-        }
-        if (io.MousePos.x != -FLT_MAX && io.MousePos.y != -FLT_MAX)
-        {
-            io.MousePos = *pVec;
-            break;
-        }
-        else if (pVec)
-        {
-            io.MousePos = *pVec;
-            for (uint32_t i = 0; i < pUserInterface->mLastUpdateCount; ++i)
-            {
-                if (ImGui::IsMouseHoveringRect(pUserInterface->mLastUpdateMin[i], pUserInterface->mLastUpdateMax[i], false))
-                {
-                    // TOOD: io.WantCaptureMouse is meant to be for the application to read, ImGui modifies it internally. We should find
-                    // another way to do this rather than changing it.
-                    io.WantCaptureMouse = true;
-                }
-            }
-            break;
-        }
-        break;
-    }
-
-    // Note that for keyboard keys, we only set them to true here if they are pressed because we may have a press/release
-    // happening in one frame and it would never get registered.  Instead, unpressed are deferred at the end of update().
-    // This scenario occurs with mobile soft (on-screen) keyboards.
-    case UISystemInputActions::UI_ACTION_KEY_TAB:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_TAB] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_UP_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_UP:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_HOME:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_HOME] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_HOME] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_END:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_END] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_END] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_INSERT:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_INSERT] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_INSERT] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DELETE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DELETE] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DELETE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_BACK_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_SPACE] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ENTER:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ENTER] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ENTER] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ESCAPE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_A:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_A] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_A] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_C:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_C] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_C] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_V:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_V] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_V] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_X:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_X] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_X] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Y:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Y] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Y] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Z:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Z] = true;
-        pUserInterface->mPostUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Z] = press;
-        break;
-
-    default:
-        break;
-    }
-#endif
-}
-
-void uiOnStick(uint32_t actionId, const float2* pStick)
-{
-#ifdef ENABLE_FORGE_UI
-    ImGui::SetCurrentContext(pUserInterface->context);
-
-    switch (actionId)
-    {
-    case UISystemInputActions::UI_ACTION_NAV_SCROLL_MOVE_WINDOW:
-    {
-        ASSERT(pStick);
-        const float2 vec = *pStick;
-        if (vec.x < 0.f)
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickLeft] = abs(vec.x);
-        else if (vec.x > 0.f)
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickRight] = vec.x;
-        else
-        {
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickLeft] = 0.f;
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickRight] = 0.f;
-        }
-
-        if (vec.y < 0.f)
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickDown] = abs(vec.y);
-        else if (vec.y > 0.f)
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickUp] = vec.y;
-        else
-        {
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickDown] = 0.f;
-            pUserInterface->mNavInputs[ImGuiNavInput_LStickUp] = 0.f;
-        }
-
-        break;
-    }
-    }
-#endif
-}
-
-void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick)
-{
-#ifdef ENABLE_FORGE_UI
-    if (actionId == UISystemInputActions::UI_ACTION_NAV_SCROLL_MOVE_WINDOW)
-        uiOnStick(actionId, pStick);
-    else
-        uiOnButton(actionId, buttonPress, pMousePos);
 #endif
 }
 
@@ -3761,9 +3529,17 @@ bool uiIsFocused()
     }
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
-    return io.WantCaptureMouse || io.WantCaptureKeyboard || io.NavVisible;
+    return io.WantCaptureMouse || io.NavVisible;
 #else
     return false;
+#endif
+}
+
+void uiToggleActive()
+{
+#ifdef ENABLE_FORGE_UI
+    ASSERT(pUserInterface);
+    pUserInterface->mActive = !pUserInterface->mActive;
 #endif
 }
 
@@ -3783,88 +3559,4 @@ bool uiIsRenderingEnabled()
 #else
     return false;
 #endif
-}
-
-UserInterfaceDrawData* addUIDrawData()
-{
-    UserInterfaceDrawData* pRet = (UserInterfaceDrawData*)tf_calloc(1, sizeof(UserInterfaceDrawData));
-    return pRet;
-}
-
-void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData)
-{
-#ifdef ENABLE_FORGE_UI
-    ASSERT(pUIDrawData);
-    ASSERT(pUserInterface);
-
-    ImGui::SetCurrentContext(pUserInterface->context);
-    ImGui::Render();
-
-    ImDrawData* pImDrawData = ImGui::GetDrawData();
-    fillDrawInformation(pUIDrawData, pImDrawData);
-
-    pUIDrawData->mVertexBufferData = (unsigned char*)tf_malloc(pUIDrawData->mVertexCount * sizeof(ImDrawVert));
-    pUIDrawData->mIndexBufferData = (unsigned char*)tf_malloc(pUIDrawData->mIndexCount * sizeof(ImDrawIdx));
-
-    uint64_t vtxOffset = 0;
-    uint64_t idxOffset = 0;
-    for (int n = 0; n < pImDrawData->CmdListsCount; n++)
-    {
-        const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
-        memcpy(pUIDrawData->mVertexBufferData + vtxOffset, pCmdList->VtxBuffer.Data,
-               (size_t)pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-        memcpy(pUIDrawData->mIndexBufferData + idxOffset, pCmdList->IdxBuffer.Data, (size_t)pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-
-        vtxOffset += (pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-        idxOffset += (pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-    }
-
-    if (!pUIDrawData->mDrawCommands || arrlen(pUIDrawData->mDrawCommands) < pUIDrawData->mNumDrawCommands)
-    {
-        arrsetlen(pUIDrawData->mDrawCommands, 0);
-        arrsetlen(pUIDrawData->mDrawCommands, pUIDrawData->mNumDrawCommands);
-    }
-
-    uint32_t drawCommandsOffset = 0;
-    for (int n = 0; n < pImDrawData->CmdListsCount; n++)
-    {
-        const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
-
-        for (int c = 0; c < pCmdList->CmdBuffer.size(); c++)
-        {
-            const ImDrawCmd* pImDrawCmd = &pCmdList->CmdBuffer[c];
-
-            if (pUIDrawData->mDrawCommands)
-            {
-                pUIDrawData->mDrawCommands[drawCommandsOffset].mClipRect = pImDrawCmd->ClipRect;
-                pUIDrawData->mDrawCommands[drawCommandsOffset].mTextureId = (uint64_t)pImDrawCmd->TextureId;
-                pUIDrawData->mDrawCommands[drawCommandsOffset].mVertexOffset = pImDrawCmd->VtxOffset;
-                pUIDrawData->mDrawCommands[drawCommandsOffset].mIndexOffset = pImDrawCmd->IdxOffset;
-                if (c == pCmdList->CmdBuffer.size() - 1)
-                {
-                    pUIDrawData->mDrawCommands[drawCommandsOffset].mVertexCount = pCmdList->VtxBuffer.size();
-                    pUIDrawData->mDrawCommands[drawCommandsOffset].mIndexCount = pCmdList->IdxBuffer.size();
-                }
-                else
-                {
-                    pUIDrawData->mDrawCommands[drawCommandsOffset].mVertexCount = 0;
-                    pUIDrawData->mDrawCommands[drawCommandsOffset].mIndexCount = 0;
-                }
-                pUIDrawData->mDrawCommands[drawCommandsOffset].mElemCount = pImDrawCmd->ElemCount;
-
-                drawCommandsOffset++;
-            }
-        }
-    }
-#endif
-}
-
-void removeUIDrawData(UserInterfaceDrawData* pUIDrawData)
-{
-    if (pUIDrawData)
-    {
-        tf_free(pUIDrawData->mVertexBufferData);
-        tf_free(pUIDrawData->mIndexBufferData);
-        arrfree(pUIDrawData->mDrawCommands);
-    }
 }

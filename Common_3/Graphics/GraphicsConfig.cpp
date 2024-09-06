@@ -41,8 +41,8 @@
 #define GPUCFG_VERSION_MAJOR           0
 #define GPUCFG_VERSION_MINOR           2
 
-extern PlatformParameters gPlatformParameters;
-GPUPresetLevel            gDefaultPresetLevel;
+GPUSelection   gGpuSelection;
+GPUPresetLevel gDefaultPresetLevel;
 
 typedef uint64_t (*PropertyGetter)(const GPUSettings* pSetting);
 typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
@@ -100,6 +100,51 @@ const GPUProperty availableGpuProperties[] = {
 #if defined(VULKAN)
     GPU_CONFIG_PROPERTY("dynamicrenderingenabled", mDynamicRenderingSupported),
     GPU_CONFIG_PROPERTY("xclipsetransferqueueworkaroundenabled", mXclipseTransferQueueWorkaround),
+
+    GPU_CONFIG_PROPERTY("ycbcrextension", mYCbCrExtension),
+    GPU_CONFIG_PROPERTY("fillmodenonSolid", mFillModeNonSolid),
+    GPU_CONFIG_PROPERTY("khrrayqueryextension", mKHRRayQueryExtension),
+    GPU_CONFIG_PROPERTY("amdgcnshaderextension", mAMDGCNShaderExtension),
+    GPU_CONFIG_PROPERTY("mamddrawindirectcountextension", mAMDDrawIndirectCountExtension),
+    GPU_CONFIG_PROPERTY("mamdshaderinfoextension", mAMDShaderInfoExtension),
+    GPU_CONFIG_PROPERTY("descriptorindexingextension", mDescriptorIndexingExtension),
+    GPU_CONFIG_PROPERTY("dynamicrenderingextension", mDynamicRenderingExtension),
+    GPU_CONFIG_PROPERTY("shadersampledimagearraydynamicindexingsupported", mShaderSampledImageArrayDynamicIndexingSupported),
+    GPU_CONFIG_PROPERTY("bufferdeviceaddresssupported", mBufferDeviceAddressSupported),
+    GPU_CONFIG_PROPERTY("drawindirectcountextension", mDrawIndirectCountExtension),
+    GPU_CONFIG_PROPERTY("dedicatedallocationextension", mDedicatedAllocationExtension),
+    GPU_CONFIG_PROPERTY("debugmarkerextension", mDebugMarkerExtension),
+    GPU_CONFIG_PROPERTY("memoryreq2extension", mMemoryReq2Extension),
+    GPU_CONFIG_PROPERTY("fragmentshaderinterlockextension", mFragmentShaderInterlockExtension),
+    GPU_CONFIG_PROPERTY("bufferdeviceaddressextension", mBufferDeviceAddressExtension),
+    GPU_CONFIG_PROPERTY("accelerationstructureextension", mAccelerationStructureExtension),
+    GPU_CONFIG_PROPERTY("raytracingpipelineextension", mRayTracingPipelineExtension),
+    GPU_CONFIG_PROPERTY("rayqueryextension", mRayQueryExtension),
+    GPU_CONFIG_PROPERTY("shaderatomicint64extension", mShaderAtomicInt64Extension),
+    GPU_CONFIG_PROPERTY("bufferdeviceaddressfeature", mBufferDeviceAddressFeature),
+    GPU_CONFIG_PROPERTY("shaderfloatcontrolsextension", mShaderFloatControlsExtension),
+    GPU_CONFIG_PROPERTY("spirv14extension", mSpirv14Extension),
+    GPU_CONFIG_PROPERTY("deferredhostoperationsextension", mDeferredHostOperationsExtension),
+    GPU_CONFIG_PROPERTY("devicefaultextension", mDeviceFaultExtension),
+    GPU_CONFIG_PROPERTY("deviceFaultSupported", mDeviceFaultSupported),
+    GPU_CONFIG_PROPERTY("astcdecodemodeextension", mASTCDecodeModeExtension),
+    GPU_CONFIG_PROPERTY("devicememoryreportextension", mDeviceMemoryReportExtension),
+    GPU_CONFIG_PROPERTY("amdbuffermarkerextension", mAMDBufferMarkerExtension),
+    GPU_CONFIG_PROPERTY("amddevicecoherentmemoryextension", mAMDDeviceCoherentMemoryExtension),
+    GPU_CONFIG_PROPERTY("amddevicecoherentmemorysupported", mAMDDeviceCoherentMemorySupported),
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+    GPU_CONFIG_PROPERTY("externalmemoryextension", mExternalMemoryExtension),
+    GPU_CONFIG_PROPERTY("externalmemorywin32extension", mExternalMemoryWin32Extension),
+#endif
+#if defined(QUEST_VR)
+    GPU_CONFIG_PROPERTY("multiviewextension", mMultiviewExtension),
+#endif
+#if defined(ENABLE_NSIGHT_AFTERMATH)
+    GPU_CONFIG_PROPERTY("mnvdevicediagnosticscheckpointextension", mNVDeviceDiagnosticsCheckpointExtension),
+    GPU_CONFIG_PROPERTY("nvdevicediagnosticsconfigextension", mNVDeviceDiagnosticsConfigExtension),
+    GPU_CONFIG_PROPERTY("aftermathsupport", mAftermathSupport),
+#endif
+
 #endif
     GPU_CONFIG_PROPERTY("indirectcommandbuffer", mIndirectCommandBuffer),
     GPU_CONFIG_PROPERTY("indirectrootconstant", mIndirectRootConstant),
@@ -112,8 +157,10 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY("occlusionqueries", mOcclusionQueries),
     GPU_CONFIG_PROPERTY("pipelinestatsqueries", mPipelineStatsQueries),
     GPU_CONFIG_PROPERTY("primitiveidsupported", mPrimitiveIdSupported),
+    GPU_CONFIG_PROPERTY("primitiveidpssupported", mPrimitiveIdPsSupported),
     GPU_CONFIG_PROPERTY("rasterorderviewsupport", mROVsSupported),
     GPU_CONFIG_PROPERTY("raytracingsupported", mRaytracingSupported),
+    GPU_CONFIG_PROPERTY("unifiedmemorysupported", mUnifiedMemorySupported),
     GPU_CONFIG_PROPERTY("rayquerysupported", mRayQuerySupported),
     GPU_CONFIG_PROPERTY("raypipelinesupported", mRayPipelineSupported),
     GPU_CONFIG_PROPERTY("softwarevrssupported", mSoftwareVRSSupported),
@@ -138,14 +185,13 @@ void setDefaultGPUSettings(GPUSettings* pGpuSettings)
 }
 
 /* ------------------------ gpu.data ------------------------ */
-// intel use 3 identifiers 0x163C, 0x8086, 0x8087;
-#define MAX_GPU_VENDOR_COUNT                 64
-#define MAX_GPU_VENDOR_IDENTIFIER_LENGTH     16
-#define MAX_INDENTIFIER_PER_GPU_VENDOR_COUNT 8
+#define MAX_GPU_VENDOR_COUNT                64
+#define MAX_GPU_VENDOR_IDENTIFIER_LENGTH    16
+#define MAX_IDENTIFIER_PER_GPU_VENDOR_COUNT 8
 struct GPUVendorDefinition
 {
     char     vendorName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    uint32_t identifierArray[MAX_INDENTIFIER_PER_GPU_VENDOR_COUNT] = {};
+    uint32_t identifierArray[MAX_IDENTIFIER_PER_GPU_VENDOR_COUNT] = {};
     uint32_t identifierCount = 0;
 };
 
@@ -156,8 +202,6 @@ struct GPUModelDefinition
     GPUPresetLevel mPreset;
     char           mModelName[MAX_GPU_VENDOR_STRING_LENGTH];
 };
-
-static GPUModelDefinition* gGPUModels = NULL;
 
 /* ------------------------ gpu.cfg ------------------------ */
 struct ConfigurationRule
@@ -208,36 +252,21 @@ bool               isValidGPUVendorId(uint32_t vendorId);
 bool               isValidGPUVendorId(uint32_t vendorId);
 const char*        getGPUVendorName(uint32_t modelId);
 const GPUProperty* propertyNameToGpuProperty(const char* str);
-bool               compare(const char* cmp, uint64_t, uint64_t);
-bool               compare(const char* cmp, const char*, const char*);
 uint32_t           getSettingIndex(const char* string, uint32_t numSettings, const char** gameSettingNames);
 bool               parseDriverVersion(const char* driverStr, DriverVersion* pDriverVersionOut);
 
 // -------- Parsing Helpers ------- //
-char*          stringToLower(char* str);
-bool           stringToInteger(char* str, uint32_t* pOutResult, uint32_t base);
-bool           stringToLargeInteger(char* str, uint64_t* pOutResult, uint32_t base);
-bool           contains(char* str, const char* sub_str);
-void           tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, char** pTokens);
-GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorName, const char* inModelName, const char* inModelId,
-                                    const char* inRevId);
-bool           parseConfigLine(const char* pLine, const char* pInVendorName, const char* pInModelName, const char* pInModelId,
-                               const char* pInRevisionId, char pOutVendorName[MAX_GPU_VENDOR_STRING_LENGTH],
-                               char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
-                               char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], GPUPresetLevel* pOutPresetLevel);
-void           parseGPUDataFile();
-void           parseGPUConfigFile(ExtendedSettings* pExtendedSettings);
-void           parseDefaultDataConfigurationLine(char* currentLine);
-void           parseGPUVendorLine(char* currentLine);
-void           parseGPUSelectionLine(char* currentLine);
-void           parseDriverRejectionLine(char* currentLine);
-void           parseConfigurationSettingLine(char* currentLine);
-void           parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtendedSettings);
-void           parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t* pRulesCount, char* ruleStr);
-void           printConfigureRules(ConfigurationRule* pRules, uint32_t rulesCount, char* result);
-
-// -------- Buffered file reader ------- //
-bool bufferedGetLine(char* lineStrOut, char** bufferCursorInOut, const char* bufferEnd);
+void parseGPUDataFile();
+void parseGPUConfigFile(ExtendedSettings* pExtendedSettings, uint32_t preferedGpuId);
+void parseDefaultDataConfigurationLine(char* currentLine);
+void parseGPUVendorLine(char* currentLine);
+void parseGPUModelLine(char* currentLine, const char* pLineEnd);
+void parseGPUSelectionLine(char* currentLine, uint32_t preferedGpuId);
+void parseDriverRejectionLine(char* currentLine);
+void parseConfigurationSettingLine(char* currentLine, uint32_t preferedGpuId);
+void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtendedSettings, uint32_t preferedGpuId);
+void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t* pRulesCount, char* ruleStr, uint32_t preferedGpuId);
+void printConfigureRules(ConfigurationRule* pRules, uint32_t rulesCount, char* result);
 
 ///////////////////////////////////////////////////////////
 // CONFIG INTERFACE
@@ -259,26 +288,35 @@ typedef enum ConfigParsingStatus
     CONFIG_PARSE_USER_EXTENDED_SETTINGS,
 } ConfigParsingStatus;
 
+/************************************************************************/
+// Internal initialization settings
+/************************************************************************/
+
 // ------ gpu.data
-static GPUVendorDefinition  gGPUVendorDefinitions[MAX_GPU_VENDOR_COUNT] = {};
-static uint32_t             gGPUVendorCount = 0;
-static char*                gGpuDataFileBuffer = nullptr;
-// ------ gpu.cfg
-static GPUComparisonChoice  gGPUComparisonChoices[MAXIMUM_GPU_COMPARISON_CHOICES] = {};
-static ConfigurationSetting gConfigurationSettings[MAXIMUM_GPU_SETTINGS];
-static UserSetting          gUserSettings[MAXIMUM_GPU_SETTINGS];
-// gDriverRejectionRules[MAXIMUM_GPU_COMPARISON_CHOICES]; 72776 bytes moves it on the heap instead
-static DriverRejectionRule* gDriverRejectionRules = NULL;
-static uint32_t             gGPUComparisonChoiceCount = 0;
-static uint32_t             gDriverRejectionRulesCount = 0;
-static uint32_t             gConfigurationSettingsCount = 0;
-static uint32_t             gUserExtendedSettingsCount = 0;
+static GPUVendorDefinition gGPUVendorDefinitions[MAX_GPU_VENDOR_COUNT] = {};
+static uint32_t            gGPUVendorCount = 0;
+
+struct GraphicsConfigRules
+{
+    GPUModelDefinition*  mGPUModels = NULL;
+    // ------ gpu.cfg
+    GPUComparisonChoice  mGPUComparisonChoices[MAXIMUM_GPU_COMPARISON_CHOICES] = {};
+    ConfigurationSetting mConfigurationSettings[MAXIMUM_GPU_SETTINGS];
+    UserSetting          mUserSettings[MAXIMUM_GPU_SETTINGS];
+    // gDriverRejectionRules[MAXIMUM_GPU_COMPARISON_CHOICES]; 72776 bytes moves it on the heap instead
+    DriverRejectionRule* mDriverRejectionRules = NULL;
+    uint32_t             mGPUComparisonChoiceCount = 0;
+    uint32_t             mDriverRejectionRulesCount = 0;
+    uint32_t             mConfigurationSettingsCount = 0;
+    uint32_t             mUserExtendedSettingsCount = 0;
+};
+
+static GraphicsConfigRules gGraphicsConfigRules;
 
 void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings)
 {
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
     parseGPUDataFile();
-    parseGPUConfigFile(pExtendedSettings);
+    parseGPUConfigFile(pExtendedSettings, gGpuSelection.mPreferedGpuId);
 }
 
 void parseGPUDataFile()
@@ -286,7 +324,7 @@ void parseGPUDataFile()
     gDefaultPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 
     FileStream fh = {};
-    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.data", FM_READ, &fh))
+    if (!fsOpenStreamFromPath(RD_OTHER_FILES, "gpu.data", FM_READ, &fh))
     {
         LOGF(LogLevel::eWARNING, "gpu.data could not be found, setting preset will be set to Low as a default.");
         return;
@@ -298,10 +336,10 @@ void parseGPUDataFile()
     char* gpuListEndFileCursor = nullptr;
 
     size_t fileSize = fsGetStreamFileSize(&fh);
-    gGpuDataFileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
-    fsReadFromStream(&fh, (void*)gGpuDataFileBuffer, fileSize);
-    char* fileCursor = gGpuDataFileBuffer;
-    char* gGpuDataFileEnd = gGpuDataFileBuffer + fileSize;
+    char*  gpuDataFileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
+    fsReadFromStream(&fh, (void*)gpuDataFileBuffer, fileSize);
+    char* fileCursor = gpuDataFileBuffer;
+    char* gGpuDataFileEnd = gpuDataFileBuffer + fileSize;
     char* previousLineCursor = fileCursor;
 
     if (bufferedGetLine(currentLineStr, &fileCursor, gGpuDataFileEnd))
@@ -376,25 +414,7 @@ void parseGPUDataFile()
             }
             else
             {
-                char  vendorIdStr[256] = {};
-                char  modelIdStr[256] = {};
-                char  presetStr[256] = {};
-                char  vendorNameStr[256] = {};
-                char  modelNameStr[256] = {};
-                char* tokens[] = { vendorIdStr, modelIdStr, presetStr, vendorNameStr, modelNameStr };
-                tokenizeLine(currentLineStr, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
-                GPUModelDefinition model = {};
-                model.mVendorId = (uint32_t)strtoul(vendorIdStr + 2, NULL, 16);
-                model.mDeviceId = (uint32_t)strtoul(modelIdStr + 2, NULL, 16);
-                model.mPreset = stringToPresetLevel(presetStr);
-                if (modelNameStr[0] != '\0')
-                {
-                    strncpy(model.mModelName, modelNameStr, TF_ARRAY_COUNT(modelNameStr));
-                }
-                if (model.mVendorId && model.mDeviceId)
-                {
-                    arrpush(gGPUModels, model);
-                }
+                parseGPUModelLine(currentLineStr, pLineEnd);
             }
             break;
         case DataParsingStatus::DATA_PARSE_DEFAULT_CONFIGURATION:
@@ -445,10 +465,11 @@ void parseGPUDataFile()
         LOGF(eINFO, "Could not find a valid list of gpu in gpu.data please check BEGIN_GPU_LIST; END_GPU_LIST; is properly defined");
     }
 
+    tf_free(gpuDataFileBuffer);
     fsCloseStream(&fh);
 }
 
-void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
+void parseGPUConfigFile(ExtendedSettings* pExtendedSettings, uint32_t preferedGpuId)
 {
     FileStream fh = {};
     if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
@@ -458,11 +479,11 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     }
     ConfigParsingStatus parsingStatus = ConfigParsingStatus::CONFIG_PARSE_NONE;
     char                currentLineStr[1024] = {};
-    gDriverRejectionRules = (DriverRejectionRule*)tf_malloc(MAXIMUM_GPU_SETTINGS * sizeof(DriverRejectionRule));
-    gConfigurationSettingsCount = 0;
-    gDriverRejectionRulesCount = 0;
-    gGPUComparisonChoiceCount = 0;
-    gUserExtendedSettingsCount = 0;
+    gGraphicsConfigRules.mDriverRejectionRules = (DriverRejectionRule*)tf_malloc(MAXIMUM_GPU_SETTINGS * sizeof(DriverRejectionRule));
+    gGraphicsConfigRules.mConfigurationSettingsCount = 0;
+    gGraphicsConfigRules.mDriverRejectionRulesCount = 0;
+    gGraphicsConfigRules.mGPUComparisonChoiceCount = 0;
+    gGraphicsConfigRules.mUserExtendedSettingsCount = 0;
 
     size_t fileSize = fsGetStreamFileSize(&fh);
     char*  fileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
@@ -509,7 +530,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
             }
             else
             {
-                parseGPUSelectionLine(lineCursor);
+                parseGPUSelectionLine(lineCursor, preferedGpuId);
             }
             break;
         case ConfigParsingStatus::CONFIG_PARSE_DRIVER_REJECTION:
@@ -529,7 +550,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
             }
             else
             {
-                parseConfigurationSettingLine(lineCursor);
+                parseConfigurationSettingLine(lineCursor, preferedGpuId);
             }
             break;
         case ConfigParsingStatus::CONFIG_PARSE_USER_EXTENDED_SETTINGS:
@@ -540,7 +561,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
             else
             {
                 ASSERT(pExtendedSettings);
-                parseUserExtendedSettingLine(lineCursor, pExtendedSettings);
+                parseUserExtendedSettingLine(lineCursor, pExtendedSettings, preferedGpuId);
             }
             break;
         default:
@@ -550,19 +571,19 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
 
     // log configuration rules and settings
     LOGF(eINFO, "GPU selection settings:");
-    for (uint32_t choiceIndex = 0; choiceIndex < gGPUComparisonChoiceCount; choiceIndex++)
+    for (uint32_t choiceIndex = 0; choiceIndex < gGraphicsConfigRules.mGPUComparisonChoiceCount; choiceIndex++)
     {
         char                 choiceStr[1024] = { '\0' };
-        GPUComparisonChoice* currentGPUChoice = &gGPUComparisonChoices[choiceIndex];
+        GPUComparisonChoice* currentGPUChoice = &gGraphicsConfigRules.mGPUComparisonChoices[choiceIndex];
         printConfigureRules(currentGPUChoice->pGpuComparisonRules, currentGPUChoice->comparisonRulesCount, choiceStr);
         LOGF(eINFO, "    Rule: %s", choiceStr);
     }
     // log driver rejection rules
     LOGF(eINFO, "Driver rejections:");
-    for (uint32_t driverIndex = 0; driverIndex < gDriverRejectionRulesCount; driverIndex++)
+    for (uint32_t driverIndex = 0; driverIndex < gGraphicsConfigRules.mDriverRejectionRulesCount; driverIndex++)
     {
         char                 ruleStr[1024] = {};
-        DriverRejectionRule* currentRule = &gDriverRejectionRules[driverIndex];
+        DriverRejectionRule* currentRule = &gGraphicsConfigRules.mDriverRejectionRules[driverIndex];
         snprintf(ruleStr, 1024, "%s: DriverVersion %s ", getGPUVendorName(currentRule->vendorId), currentRule->comparator);
         const char* separator = "";
         for (uint32_t numberIndex = 0; numberIndex < currentRule->driverComparisonValue.versionNumbersCount; numberIndex++)
@@ -577,11 +598,11 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         LOGF(eINFO, "    %s", ruleStr);
     }
     LOGF(eINFO, "GPU configuration settings:");
-    for (uint32_t settingIndex = 0; settingIndex < gConfigurationSettingsCount; settingIndex++)
+    for (uint32_t settingIndex = 0; settingIndex < gGraphicsConfigRules.mConfigurationSettingsCount; settingIndex++)
     {
         char                  settingStr[1024] = {};
         char                  assignmentValueStr[32] = {};
-        ConfigurationSetting* currentConfigurationSetting = &gConfigurationSettings[settingIndex];
+        ConfigurationSetting* currentConfigurationSetting = &gGraphicsConfigRules.mConfigurationSettings[settingIndex];
         snprintf(settingStr, 1024, "%s: ", currentConfigurationSetting->pUpdateProperty->name);
         printConfigureRules(currentConfigurationSetting->pConfigurationRules, currentConfigurationSetting->comparisonRulesCount,
                             settingStr);
@@ -590,11 +611,11 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         LOGF(eINFO, "    %s", settingStr);
     }
     LOGF(eINFO, "User settings:");
-    for (uint32_t settingIndex = 0; settingIndex < gUserExtendedSettingsCount; settingIndex++)
+    for (uint32_t settingIndex = 0; settingIndex < gGraphicsConfigRules.mUserExtendedSettingsCount; settingIndex++)
     {
         char         settingStr[1024] = {};
         char         assignmentValueStr[32] = {};
-        UserSetting* currentUserSetting = &gUserSettings[settingIndex];
+        UserSetting* currentUserSetting = &gGraphicsConfigRules.mUserSettings[settingIndex];
         snprintf(settingStr, 1024, "%s: ", currentUserSetting->name);
         printConfigureRules(currentUserSetting->pConfigurationRules, currentUserSetting->comparisonRulesCount, settingStr);
         snprintf(assignmentValueStr, 32, ": %u", currentUserSetting->assignmentValue);
@@ -608,29 +629,28 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
 
 void removeGPUConfigurationRules()
 {
-    tf_free(gGpuDataFileBuffer);
-    tf_free(gDriverRejectionRules);
-    arrfree(gGPUModels);
-    gDriverRejectionRules = NULL;
+    tf_free(gGraphicsConfigRules.mDriverRejectionRules);
+    arrfree(gGraphicsConfigRules.mGPUModels);
+    gGraphicsConfigRules.mDriverRejectionRules = NULL;
 
-    for (uint32_t i = 0; i < gGPUComparisonChoiceCount; i++)
+    for (uint32_t i = 0; i < gGraphicsConfigRules.mGPUComparisonChoiceCount; i++)
     {
-        tf_free(gGPUComparisonChoices[i].pGpuComparisonRules);
+        tf_free(gGraphicsConfigRules.mGPUComparisonChoices[i].pGpuComparisonRules);
     }
 
-    for (uint32_t i = 0; i < gConfigurationSettingsCount; i++)
+    for (uint32_t i = 0; i < gGraphicsConfigRules.mConfigurationSettingsCount; i++)
     {
-        tf_free(gConfigurationSettings[i].pConfigurationRules);
+        tf_free(gGraphicsConfigRules.mConfigurationSettings[i].pConfigurationRules);
     }
 
-    for (uint32_t i = 0; i < gUserExtendedSettingsCount; i++)
+    for (uint32_t i = 0; i < gGraphicsConfigRules.mUserExtendedSettingsCount; i++)
     {
-        tf_free(gUserSettings[i].pConfigurationRules);
+        tf_free(gGraphicsConfigRules.mUserSettings[i].pConfigurationRules);
     }
-    gGPUComparisonChoiceCount = 0;
-    gDriverRejectionRulesCount = 0;
-    gConfigurationSettingsCount = 0;
-    gUserExtendedSettingsCount = 0;
+    gGraphicsConfigRules.mGPUComparisonChoiceCount = 0;
+    gGraphicsConfigRules.mDriverRejectionRulesCount = 0;
+    gGraphicsConfigRules.mConfigurationSettingsCount = 0;
+    gGraphicsConfigRules.mUserExtendedSettingsCount = 0;
 }
 
 void parseDefaultDataConfigurationLine(char* currentLine)
@@ -640,7 +660,7 @@ void parseDefaultDataConfigurationLine(char* currentLine)
     char        ruleName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char        assignmentValue[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char*       tokens[] = { ruleName, assignmentValue };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
 
     if (strcmp(ruleName, "DefaultPresetLevel") == 0)
     {
@@ -670,7 +690,7 @@ void parseGPUVendorLine(char* currentLine)
     GPUVendorDefinition* currentVendor = &gGPUVendorDefinitions[gGPUVendorCount];
     *currentVendor = {};
     char* tokens[] = { currentVendor->vendorName, gpuIdentifierList };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
 
     char* currentIdentifier = gpuIdentifierList;
     char* identifierEnd = gpuIdentifierList + strlen(gpuIdentifierList);
@@ -681,6 +701,12 @@ void parseGPUVendorLine(char* currentLine)
         optionLength = TF_MIN(optionLength, MAX_GPU_VENDOR_IDENTIFIER_LENGTH - 1);
         strncpy(gpuIdentifier, currentIdentifier, optionLength);
         gpuIdentifier[optionLength] = '\0';
+        if (currentVendor->identifierCount >= MAX_IDENTIFIER_PER_GPU_VENDOR_COUNT)
+        {
+            LOGF(eDEBUG, "max number of GPU vendor identifiers exceeded %d in '%s'.", MAX_IDENTIFIER_PER_GPU_VENDOR_COUNT, currentLine);
+            break;
+        }
+
         bool validConversion = stringToInteger(gpuIdentifier, &currentVendor->identifierArray[currentVendor->identifierCount], 16);
         if (validConversion)
         {
@@ -705,45 +731,67 @@ void parseGPUVendorLine(char* currentLine)
     }
 }
 
-void parseGPUSelectionLine(char* currentLine)
+void parseGPUModelLine(char* pCurrentLine, const char* pLineEnd)
+{
+    char  vendorIdStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char  modelIdStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char  presetStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char  vendorNameStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char  modelNameStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char* tokens[] = { vendorIdStr, modelIdStr, presetStr, vendorNameStr, modelNameStr };
+    tokenizeLine(pCurrentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
+    GPUModelDefinition model = {};
+    model.mVendorId = (uint32_t)strtoul(vendorIdStr + 2, NULL, 16);
+    model.mDeviceId = (uint32_t)strtoul(modelIdStr + 2, NULL, 16);
+    model.mPreset = stringToPresetLevel(presetStr);
+    if (modelNameStr[0] != '\0')
+    {
+        strncpy(model.mModelName, modelNameStr, TF_ARRAY_COUNT(modelNameStr));
+    }
+    if (model.mVendorId && model.mDeviceId)
+    {
+        arrpush(gGraphicsConfigRules.mGPUModels, model);
+    }
+}
+
+void parseGPUSelectionLine(char* currentLine, uint32_t preferedGpuId)
 {
     // parse selection rule
     char                 ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     size_t               ruleLength = strcspn(currentLine, "#");
     const char*          pLineEnd = currentLine + ruleLength;
-    GPUComparisonChoice* currentChoice = &gGPUComparisonChoices[gGPUComparisonChoiceCount];
+    GPUComparisonChoice* currentChoice = &gGraphicsConfigRules.mGPUComparisonChoices[gGraphicsConfigRules.mGPUComparisonChoiceCount];
     *currentChoice = {};
     char* tokens[] = { ruleParameters };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
 
     // parse comparison rules separated by ","
-    parseConfigurationRules(&currentChoice->pGpuComparisonRules, &currentChoice->comparisonRulesCount, ruleParameters);
+    parseConfigurationRules(&currentChoice->pGpuComparisonRules, &currentChoice->comparisonRulesCount, ruleParameters, preferedGpuId);
     if (currentChoice->pGpuComparisonRules == NULL)
     {
         LOGF(eDEBUG, "Invalid GPU Selection rule: '%s'.", currentLine);
     }
     else
     {
-        gGPUComparisonChoiceCount++;
+        gGraphicsConfigRules.mGPUComparisonChoiceCount++;
     }
 }
 
 void parseDriverRejectionLine(char* currentLine)
 {
-    char vendorStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char reasonStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-
+    char        vendorStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char        ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+    char        reasonStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     // parse driver rule
     size_t      ruleLength = strcspn(currentLine, "#");
     const char* pLineEnd = currentLine + ruleLength;
     char*       tokens[] = { vendorStr, ruleParameters, reasonStr };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
     uint32_t vendorId;
     stringToInteger(vendorStr, &vendorId, 16);
     if (isValidGPUVendorId(vendorId))
     {
-        DriverRejectionRule* currentRule = &gDriverRejectionRules[gDriverRejectionRulesCount];
+        DriverRejectionRule* currentRule = &gGraphicsConfigRules.mDriverRejectionRules[gGraphicsConfigRules.mDriverRejectionRulesCount];
         *currentRule = {};
         DriverVersion* currentVersion = &currentRule->driverComparisonValue;
         currentRule->vendorId = vendorId;
@@ -765,7 +813,7 @@ void parseDriverRejectionLine(char* currentLine)
             if (validConversion)
             {
                 strncpy(currentRule->reasonStr, reasonStr, MAX_GPU_VENDOR_STRING_LENGTH);
-                gDriverRejectionRulesCount++;
+                gGraphicsConfigRules.mDriverRejectionRulesCount++;
             }
             else
             {
@@ -783,7 +831,7 @@ void parseDriverRejectionLine(char* currentLine)
     }
 }
 
-void parseConfigurationSettingLine(char* currentLine)
+void parseConfigurationSettingLine(char* currentLine, uint32_t preferedGpuId)
 {
     char propertyName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -792,10 +840,10 @@ void parseConfigurationSettingLine(char* currentLine)
     // parse selection rule
     size_t                ruleLength = strcspn(currentLine, "#");
     const char*           pLineEnd = currentLine + ruleLength;
-    ConfigurationSetting* currentSettings = &gConfigurationSettings[gConfigurationSettingsCount];
+    ConfigurationSetting* currentSettings = &gGraphicsConfigRules.mConfigurationSettings[gGraphicsConfigRules.mConfigurationSettingsCount];
     *currentSettings = {};
     char* tokens[] = { propertyName, ruleParameters, assignmentValue };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
     char* rulesBegin = ruleParameters;
     currentSettings->pUpdateProperty = propertyNameToGpuProperty(stringToLower(propertyName));
     if (currentSettings->pUpdateProperty)
@@ -807,7 +855,7 @@ void parseConfigurationSettingLine(char* currentLine)
                         : 10;
         bool validConversion = stringToLargeInteger(assignmentValue, &currentSettings->assignmentValue, base);
         // parse comparison rules separated by ","
-        parseConfigurationRules(&currentSettings->pConfigurationRules, &currentSettings->comparisonRulesCount, rulesBegin);
+        parseConfigurationRules(&currentSettings->pConfigurationRules, &currentSettings->comparisonRulesCount, rulesBegin, preferedGpuId);
         if (currentSettings->pConfigurationRules == NULL)
         {
             LOGF(eDEBUG, "parseGPUConfigurationSetting: invalid rules for Field name: '%s'.", currentSettings->pUpdateProperty->name);
@@ -821,7 +869,7 @@ void parseConfigurationSettingLine(char* currentLine)
         }
         else
         {
-            gConfigurationSettingsCount++;
+            gGraphicsConfigRules.mConfigurationSettingsCount++;
         }
     }
     else
@@ -831,7 +879,7 @@ void parseConfigurationSettingLine(char* currentLine)
     }
 }
 
-void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtendedSettings)
+void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtendedSettings, uint32_t preferedGpuId)
 {
     char settingName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -841,17 +889,17 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
     size_t      ruleLength = strcspn(currentLine, "#");
     const char* pLineEnd = currentLine + ruleLength;
     char*       tokens[] = { settingName, ruleParameters, assignmentValue };
-    tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
+    tokenizeLine(currentLine, pLineEnd, ";", MAX_GPU_VENDOR_STRING_LENGTH, TF_ARRAY_COUNT(tokens), tokens);
 
     uint32_t settingIndex = getSettingIndex(settingName, pExtendedSettings->mNumSettings, pExtendedSettings->ppSettingNames);
     if (settingIndex != INVALID_OPTION)
     {
         char*        rulesBegin = ruleParameters;
-        UserSetting* currentSetting = &gUserSettings[gUserExtendedSettingsCount];
+        UserSetting* currentSetting = &gGraphicsConfigRules.mUserSettings[gGraphicsConfigRules.mUserExtendedSettingsCount];
         *currentSetting = {};
         currentSetting->name = pExtendedSettings->ppSettingNames[settingIndex];
         currentSetting->pSettingValue = &pExtendedSettings->pSettings[settingIndex];
-        parseConfigurationRules(&currentSetting->pConfigurationRules, &currentSetting->comparisonRulesCount, rulesBegin);
+        parseConfigurationRules(&currentSetting->pConfigurationRules, &currentSetting->comparisonRulesCount, rulesBegin, preferedGpuId);
         bool validConversion = stringToInteger(assignmentValue, &currentSetting->assignmentValue, 10);
         if (!validConversion)
         {
@@ -860,7 +908,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
         }
         else
         {
-            gUserExtendedSettingsCount++;
+            gGraphicsConfigRules.mUserExtendedSettingsCount++;
         }
     }
     else
@@ -869,7 +917,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
     }
 }
 
-void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t* pRulesCount, char* ruleStr)
+void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t* pRulesCount, char* ruleStr, uint32_t preferedGpuId)
 {
     char* rulesEnd = ruleStr + strlen(ruleStr);
     while (ruleStr < rulesEnd)
@@ -917,7 +965,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
             // hack for preferred gpu
             if (strstr(stringToLower(parsedValue), "preferredgpu") != 0)
             {
-                currentComparisonRule->comparatorValue = gPlatformParameters.mPreferedGpuId;
+                currentComparisonRule->comparatorValue = preferedGpuId;
             }
             else
             {
@@ -992,8 +1040,8 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
                     {
                         if (currentRule->comparatorValue != INVALID_OPTION)
                         {
-                            refPass &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
-                            testPass &= compare(currentRule->comparator, testValue, currentRule->comparatorValue);
+                            refPass &= tokenCompare(currentRule->comparator, refValue, currentRule->comparatorValue);
+                            testPass &= tokenCompare(currentRule->comparator, testValue, currentRule->comparatorValue);
                         }
                         else
                         {
@@ -1036,18 +1084,19 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
     // perform gpu selection based on gpu.cfg rules
     for (uint32_t i = 1; i < gpuCount; ++i)
     {
-        if (isDeviceBetterThan(&availableSettings[i], &availableSettings[gpuIndex], gGPUComparisonChoices, gGPUComparisonChoiceCount))
+        if (isDeviceBetterThan(&availableSettings[i], &availableSettings[gpuIndex], gGraphicsConfigRules.mGPUComparisonChoices,
+                               gGraphicsConfigRules.mGPUComparisonChoiceCount))
         {
             gpuIndex = i;
         }
     }
 
     // if there are no rules, we select the preffered gpu
-    if (gGPUComparisonChoiceCount == 0)
+    if (gGraphicsConfigRules.mGPUComparisonChoiceCount == 0 || gGpuSelection.mPreferedGpuId != 0)
     {
         for (uint32_t i = 0; i < gpuCount; ++i)
         {
-            if (availableSettings[i].mGpuVendorPreset.mModelId == gPlatformParameters.mPreferedGpuId)
+            if (availableSettings[i].mGpuVendorPreset.mModelId == gGpuSelection.mPreferedGpuId)
             {
                 gpuIndex = i;
                 break;
@@ -1067,9 +1116,9 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
 void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
 {
     UNREF_PARAM(pCapBits);
-    for (uint32_t i = 0; i < gConfigurationSettingsCount; i++)
+    for (uint32_t i = 0; i < gGraphicsConfigRules.mConfigurationSettingsCount; i++)
     {
-        ConfigurationSetting* currentSetting = &gConfigurationSettings[i];
+        ConfigurationSetting* currentSetting = &gGraphicsConfigRules.mConfigurationSettings[i];
         bool                  hasValidatedComparisonRules = true;
         for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
         {
@@ -1077,7 +1126,7 @@ void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
             uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
             if (currentRule->comparatorValue != INVALID_OPTION)
             {
-                hasValidatedComparisonRules &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
+                hasValidatedComparisonRules &= tokenCompare(currentRule->comparator, refValue, currentRule->comparatorValue);
             }
             else
             {
@@ -1094,14 +1143,14 @@ void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
     }
 }
 
-void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSettings* pGpuSettings)
+void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSettings* pGpuSettings)
 {
     ASSERT(pExtendedSettings && pExtendedSettings->pSettings);
 
     // apply rules to ExtendedSettings
-    for (uint32_t i = 0; i < gUserExtendedSettingsCount; i++)
+    for (uint32_t i = 0; i < gGraphicsConfigRules.mUserExtendedSettingsCount; i++)
     {
-        UserSetting* currentSetting = &gUserSettings[i];
+        UserSetting* currentSetting = &gGraphicsConfigRules.mUserSettings[i];
         bool         hasValidatedComparisonRules = true;
         for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
         {
@@ -1109,7 +1158,7 @@ void setupExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSetting
             uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
             if (currentRule->comparatorValue != INVALID_OPTION)
             {
-                hasValidatedComparisonRules &= compare(currentRule->comparator, refValue, currentRule->comparatorValue);
+                hasValidatedComparisonRules &= tokenCompare(currentRule->comparator, refValue, currentRule->comparatorValue);
             }
             else
             {
@@ -1131,15 +1180,15 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
     bool          hasValidDriverStr = parseDriverVersion(pGpuSettings->mGpuVendorPreset.mGpuDriverVersion, &driverVersion);
     if (hasValidDriverStr)
     {
-        for (uint32_t i = 0; i < gDriverRejectionRulesCount; i++)
+        for (uint32_t i = 0; i < gGraphicsConfigRules.mDriverRejectionRulesCount; i++)
         {
-            if (pGpuSettings->mGpuVendorPreset.mVendorId == gDriverRejectionRules[i].vendorId)
+            if (pGpuSettings->mGpuVendorPreset.mVendorId == gGraphicsConfigRules.mDriverRejectionRules[i].vendorId)
             {
-                DriverVersion* comparisonVersion = &gDriverRejectionRules[i].driverComparisonValue;
+                DriverVersion* comparisonVersion = &gGraphicsConfigRules.mDriverRejectionRules[i].driverComparisonValue;
                 uint32_t       tokenLength = TF_MAX(comparisonVersion->versionNumbersCount, driverVersion.versionNumbersCount);
-                bool           shouldCheckEqualityFirst = strcmp(gDriverRejectionRules[i].comparator, "<=") == 0 ||
-                                                strcmp(gDriverRejectionRules[i].comparator, ">=") == 0 ||
-                                                strcmp(gDriverRejectionRules[i].comparator, "==") == 0;
+                bool           shouldCheckEqualityFirst = strcmp(gGraphicsConfigRules.mDriverRejectionRules[i].comparator, "<=") == 0 ||
+                                                strcmp(gGraphicsConfigRules.mDriverRejectionRules[i].comparator, ">=") == 0 ||
+                                                strcmp(gGraphicsConfigRules.mDriverRejectionRules[i].comparator, "==") == 0;
                 // first check for equality 30.0.12 <= 30.0.12.0
                 if (shouldCheckEqualityFirst)
                 {
@@ -1152,10 +1201,10 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
                     if (isEqual)
                     {
                         LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
-                             gDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
+                             gGraphicsConfigRules.mDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
                              comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
                              comparisonVersion->versionNumbers[3]);
-                        LOGF(eINFO, "Driver rejection reason: %s ", gDriverRejectionRules[i].reasonStr);
+                        LOGF(eINFO, "Driver rejection reason: %s ", gGraphicsConfigRules.mDriverRejectionRules[i].reasonStr);
                         return false;
                     }
                 }
@@ -1165,15 +1214,15 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
                 {
                     if (driverVersion.versionNumbers[j] != comparisonVersion->versionNumbers[j])
                     {
-                        bool shouldBeRejected = compare(gDriverRejectionRules[i].comparator, driverVersion.versionNumbers[j],
-                                                        comparisonVersion->versionNumbers[j]);
+                        bool shouldBeRejected = tokenCompare(gGraphicsConfigRules.mDriverRejectionRules[i].comparator,
+                                                             driverVersion.versionNumbers[j], comparisonVersion->versionNumbers[j]);
                         if (shouldBeRejected)
                         {
                             LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
-                                 gDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
+                                 gGraphicsConfigRules.mDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
                                  comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
                                  comparisonVersion->versionNumbers[3]);
-                            LOGF(eINFO, "Driver rejection reason: %s ", gDriverRejectionRules[i].reasonStr);
+                            LOGF(eINFO, "Driver rejection reason: %s ", gGraphicsConfigRules.mDriverRejectionRules[i].reasonStr);
                             return false;
                         }
                         break;
@@ -1193,11 +1242,11 @@ GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char
     UNREF_PARAM(modelName);
     GPUPresetLevel presetLevel = GPU_PRESET_NONE;
 
-    if (arrlenu(gGPUModels))
+    if (arrlenu(gGraphicsConfigRules.mGPUModels))
     {
-        for (uint32_t gpuModelIndex = 0; gpuModelIndex < arrlenu(gGPUModels); ++gpuModelIndex)
+        for (uint32_t gpuModelIndex = 0; gpuModelIndex < arrlenu(gGraphicsConfigRules.mGPUModels); ++gpuModelIndex)
         {
-            GPUModelDefinition model = gGPUModels[gpuModelIndex];
+            GPUModelDefinition model = gGraphicsConfigRules.mGPUModels[gpuModelIndex];
             if (model.mVendorId == vendorId && model.mDeviceId == modelId && model.mDeviceId)
             {
                 presetLevel = model.mPreset;
@@ -1339,9 +1388,9 @@ bool gpuVendorEquals(uint32_t vendorId, const char* vendorName)
 #if defined(__APPLE__)
 uint32_t getGPUModelID(const char* modelName)
 {
-    for (uint32_t i = 0; i < arrlenu(gGPUModels); ++i)
+    for (uint32_t i = 0; i < arrlenu(gGraphicsConfigRules.mGPUModels); ++i)
     {
-        GPUModelDefinition* model = &gGPUModels[i];
+        GPUModelDefinition* model = &gGraphicsConfigRules.mGPUModels[i];
         if (!strncmp(modelName, model->mModelName, TF_ARRAY_COUNT(model->mModelName)))
         {
             return model->mDeviceId;
@@ -1350,50 +1399,6 @@ uint32_t getGPUModelID(const char* modelName)
     return UINT32_MAX;
 }
 #endif
-
-bool compare(const char* cmp, uint64_t a, uint64_t b)
-{
-    if (strcmp(cmp, "<=") == 0)
-    {
-        return a <= b;
-    }
-    if (strcmp(cmp, "<") == 0)
-    {
-        return a < b;
-    }
-    if (strcmp(cmp, ">=") == 0)
-    {
-        return a >= b;
-    }
-    if (strcmp(cmp, ">") == 0)
-    {
-        return a > b;
-    }
-    if (strcmp(cmp, "==") == 0)
-    {
-        return a == b;
-    }
-    if (strcmp(cmp, "!=") == 0)
-    {
-        return a != b;
-    }
-
-    return false;
-}
-
-bool compare(const char* cmp, const char* a, const char* b)
-{
-    if (strcmp(cmp, "==") == 0)
-    {
-        return (strcmp(a, b) == 0);
-    }
-    if (strcmp(cmp, "!=") == 0)
-    {
-        return (strcmp(a, b) != 0);
-    }
-
-    return false;
-}
 
 uint32_t getSettingIndex(const char* settingName, uint32_t numSettings, const char** gameSettingNames)
 {
@@ -1432,184 +1437,40 @@ bool parseDriverVersion(const char* driverStr, DriverVersion* pDriverVersionOut)
     return validConversion;
 }
 
-// --- Parsing Helpers --- //
-char* stringToLower(char* str)
+void initGPUConfiguration(ExtendedSettings* pExtendedSettings) { addGPUConfigurationRules(pExtendedSettings); }
+
+void exitGPUConfiguration()
 {
-    for (char* p = str; *p != '\0'; ++p)
-        *p = (char)tolower(*p);
-    return str;
+    removeGPUConfigurationRules();
+    gGpuSelection.mAvailableGpuCount = 0;
+    gGpuSelection.mSelectedGpuIndex = 0;
 }
 
-bool stringToInteger(char* str, uint32_t* pOutResult, uint32_t base)
+/************************************************************************/
+// Internal initialization functions
+/************************************************************************/
+void setupGPUConfigurationPlatformParameters(Renderer* pRenderer, ExtendedSettings* pExtendedSettings)
 {
-    char* endConversionPtr = NULL;
-    // return end of string or index of the first space encountered
-    char* endStr = str + strcspn(str, " ");
-    *pOutResult = (uint32_t)strtoll(str, &endConversionPtr, base);
-    // check emptiness
-    bool validConversion = str != endStr;
-    // check if successfully parsed the full string
-    validConversion &= endStr == endConversionPtr;
-    return validConversion;
-}
-
-bool stringToLargeInteger(char* str, uint64_t* pOutResult, uint32_t base)
-{
-    char* endConversionPtr = NULL;
-    // return end of string or index of the first space encountered
-    char* endStr = str + strcspn(str, " ");
-    *pOutResult = strtoll(str, &endConversionPtr, base);
-    // check emptiness
-    bool validConversion = str != endStr;
-    // check if successfully parsed the full string
-    validConversion &= endStr == endConversionPtr;
-    return validConversion;
-}
-
-bool contains(char* str, const char* substr) { return strstr(str, substr) != nullptr; }
-
-bool bufferedGetLine(char* lineStrOut, char** bufferCursorInOut, const char* bufferEnd)
-{
-    if (*bufferCursorInOut < bufferEnd)
+    gGpuSelection.mAvailableGpuCount = 0;
+    gGpuSelection.mSelectedGpuIndex = 0;
+    // update available gpus
+    if (pRenderer != NULL)
     {
-        size_t lineIndex = 0;
-        // copy current line, memcpy seems to make it slower
-        while (*(*bufferCursorInOut) != '\n' && *(*bufferCursorInOut) != '\r' && *bufferCursorInOut != bufferEnd)
+        uint32_t gpuCount = pRenderer->pContext->mGpuCount;
+        ASSERT(gpuCount <= MAX_MULTIPLE_GPUS);
+        gGpuSelection.mAvailableGpuCount = gpuCount;
+        gGpuSelection.mSelectedGpuIndex = (uint32_t)(pRenderer->pGpu - pRenderer->pContext->mGpus);
+        for (uint32_t i = 0; i < gpuCount; ++i)
         {
-            lineStrOut[lineIndex] = *(*bufferCursorInOut);
-            lineIndex++;
-            (*bufferCursorInOut)++;
+            GPUSettings& gpuSettings = pRenderer->pContext->mGpus[i].mSettings;
+            strncpy(gGpuSelection.ppAvailableGpuNames[i], gpuSettings.mGpuVendorPreset.mGpuName, MAX_GPU_VENDOR_STRING_LENGTH);
+            gGpuSelection.pAvailableGpuIds[i] = gpuSettings.mGpuVendorPreset.mModelId;
         }
-        lineStrOut[lineIndex] = '\0';
-        // skip /r/n
-        if (*(*bufferCursorInOut) == '\r' && *bufferCursorInOut != bufferEnd && *((*bufferCursorInOut) + 1) == '\n')
+
+        // configure the user's settings using the newly created device
+        if (pExtendedSettings)
         {
-            (*bufferCursorInOut)++;
-        }
-        (*bufferCursorInOut)++;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, char** pTokens)
-{
-    //  initialize all tokens to empty string
-    for (uint32_t i = 0; i < numTokens; ++i)
-        pTokens[i][0] = '\0';
-
-    for (uint32_t i = 0; pLine < pLineEnd && i < numTokens; ++i)
-    {
-        const char* begin = pLine;
-        const char* end = pLine + strcspn(pLine, ";");
-
-        if (end > pLineEnd)
-            end = pLineEnd;
-
-        pLine = end + 1;
-
-        //  Remove whitespace from the front and end
-        while (begin != end && isspace(*begin))
-            ++begin;
-        while (begin != end && isspace(end[-1]))
-            --end;
-
-        ptrdiff_t length = end - begin;
-        //  NOTE: the last character must be NULL, this assert makes sure the string isnt a
-        //  full 256 characters, as that would leave no room for a null-terminator
-        ASSERT(length < MAX_GPU_VENDOR_STRING_LENGTH - 1);
-
-        strncpy(pTokens[i], begin, length);
-        //  set token to be NUL-terminated
-        pTokens[i][length] = '\0';
-    }
-}
-
-GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorName, const char* inModelName, const char* inModelId,
-                                    const char* inRevId)
-{
-    char           vendorName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char           deviceName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char           deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    char           revisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-    GPUPresetLevel presetLevel = {};
-
-    // check if current vendor line is one of the selected gpu's
-    if (!parseConfigLine(line, inVendorName, inModelName, inModelId, inRevId, vendorName, deviceName, deviceId, revisionId, &presetLevel))
-        return GPU_PRESET_NONE;
-
-    return presetLevel;
-}
-
-bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* pInModelName, const char* pInModelId,
-                     const char* pInRevisionId, char pOutVendorName[MAX_GPU_VENDOR_STRING_LENGTH],
-                     char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH], char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
-                     char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH], GPUPresetLevel* pOutPresetLevel)
-{
-    UNREF_PARAM(pInRevisionId);
-    const char* pOrigLine = pLine;
-    ASSERT(pLine && pOutPresetLevel);
-    ASSERT(pInVendorName);
-    ASSERT(pInModelName);
-    *pOutPresetLevel = GPU_PRESET_LOW;
-
-    // exclude comments from line
-    size_t      lineSize = strcspn(pLine, "#");
-    const char* pLineEnd = pLine + lineSize;
-
-    // Exclude whitespace in the beginning (for early exit)
-    while (pLine != pLineEnd && isspace(*pLine))
-        ++pLine;
-
-    if (pLine == pLineEnd)
-        return false;
-
-    char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH];
-
-    char* tokens[] = {
-        pOutVendorName, pOutModelName, presetLevel, pOutModelId, pOutRevisionId,
-        // codename is not used
-    };
-    tokenizeLine(pLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
-
-    // validate required fields
-    if (pOutVendorName[0] == '\0' || pOutModelName[0] == '\0' || presetLevel[0] == '\0')
-    {
-        LOGF(eWARNING,
-             "GPU config requires VendorName, DeviceName and PresetLevel. "
-             "Following line has invalid format:\n'%s'",
-             pOrigLine);
-        return false;
-    }
-
-    // convert ids to lower case
-    stringToLower(presetLevel);
-    stringToLower(pOutModelId);
-    stringToLower(pOutRevisionId); // RevisionID is no longer used for comparision. Just compare name and modelID if provided in gpu.data
-
-    // Parsing logic
-
-    *pOutPresetLevel = stringToPresetLevel(presetLevel);
-
-    bool success = true;
-
-    success = success && strcmp(pInVendorName, pOutVendorName) == 0;
-    success = success && strcmp(pInModelName, pOutModelName) == 0;
-
-    if (success && pInModelId && pOutModelId[0] != '\0')
-    {
-        if (strcmp(pInModelId, pOutModelId) != 0)
-        {
-            LOGF(LogLevel::eWARNING, "Entry with matching GPUName found in gpu.data, however there was a mismatch in device IDs. \
-                                      Entry has ID: %s | Device has ID: %s",
-                 pInModelId, pInModelName);
-            success = false;
+            setupGPUConfigurationExtendedSettings(pExtendedSettings, &pRenderer->pGpu->mSettings);
         }
     }
-
-    return success;
 }
-///////////////////////////////////////////////////////////

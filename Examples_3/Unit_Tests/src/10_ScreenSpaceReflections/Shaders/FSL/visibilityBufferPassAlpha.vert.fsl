@@ -33,11 +33,11 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 
     float4 vertexPos = LoadVertex(vertexID);
 
-	Out.position = mul(Get(worldViewProjMat), vertexPos);
+	Out.position = mul(objectUniformBlock.worldViewProjMat, vertexPos);
 	Out.currPosition = Out.position;
-	Out.prevPosition = mul(Get(prevWorldViewProjMat), vertexPos);
+	Out.prevPosition = mul(objectUniformBlock.prevWorldViewProjMat, vertexPos);
 	Out.texCoord = LoadTexCoord(vertexID);
 	// IndirectDataBuffer stores mesh index, which in this case is the same as material ID
-	Out.materialID = Get(indirectDataBuffer)[vertexID]; 
+	Out.materialID = indirectDataBuffer[vertexID]; 
 	RETURN(Out);
 }

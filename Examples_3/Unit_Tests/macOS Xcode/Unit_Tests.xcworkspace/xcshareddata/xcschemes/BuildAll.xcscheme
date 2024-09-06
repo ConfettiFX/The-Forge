@@ -113,6 +113,34 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "09a_HybridRaytracing.app"
+               BlueprintName = "09a_HybridRaytracing"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
+               BuildableName = "09a_HybridRaytracing_iOS.app"
+               BlueprintName = "09a_HybridRaytracing_iOS"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "10_ScreenSpaceReflections.app"
                BlueprintName = "10_ScreenSpaceReflections"
                ReferencedContainer = "container:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
@@ -144,48 +172,6 @@
                BuildableName = "14_WaveIntrinsics.app"
                BlueprintName = "14_WaveIntrinsics"
                ReferencedContainer = "container:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "15_Transparency.app"
-               BlueprintName = "15_Transparency"
-               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "17_EntityComponentSystem.app"
-               BlueprintName = "17_EntityComponentSystem"
-               ReferencedContainer = "container:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "17_EntityComponentSystem_iOS.app"
-               BlueprintName = "17_EntityComponentSystem_iOS"
-               ReferencedContainer = "container:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -308,20 +294,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5CB55CA0246C128800BAE550"
-               BuildableName = "15_Transparency_iOS.app"
-               BlueprintName = "15_Transparency_iOS"
-               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "15a_VisibilityBufferOIT.app"
                BlueprintName = "15a_VisibilityBufferOIT"
@@ -427,11 +399,11 @@
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
@@ -441,11 +413,11 @@
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"

@@ -13968,7 +13968,7 @@ ecs_os_mutex_t tf_flecs_mutex_new(void)
 void tf_flecs_mutex_free(ecs_os_mutex_t mtx)
 {
 	Mutex *pMutex = (Mutex *)mtx;
-	destroyMutex(pMutex);
+	exitMutex(pMutex);
 	ecs_os_free(pMutex);
 }
 
@@ -13994,7 +13994,7 @@ ecs_os_cond_t tf_flecs_cond_new(void)
 void tf_flecs_cond_free(ecs_os_cond_t cond)
 {
 	ConditionVariable *pCondVar = (ConditionVariable *)cond;
-	destroyConditionVariable(pCondVar);
+	exitConditionVariable(pCondVar);
 	ecs_os_free(pCondVar);
 }
 

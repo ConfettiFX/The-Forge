@@ -59,7 +59,7 @@
 #define ENABLE_GUARD_BAND				0
 
 
-#define LoadVertex(I) float4(asfloat(LoadByte4(Get(vertexPositionBuffer), (I) * 12)).xyz, 1)
+#define LoadVertex(I) float4(asfloat(LoadByte4(vertexPositionBuffer, (I) * 12)).xyz, 1)
 
 STATIC const uint cullFlags = 0xFFFFFFFF;
 

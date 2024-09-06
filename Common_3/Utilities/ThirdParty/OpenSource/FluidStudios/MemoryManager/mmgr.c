@@ -2065,7 +2065,7 @@ void RemoveMutex(MUTEX** mutex)
 {
     if (*mutex)
     {
-        destroyMutex(*mutex);
+        exitMutex(*mutex);
         free(*mutex);
         *mutex = NULL;
     }

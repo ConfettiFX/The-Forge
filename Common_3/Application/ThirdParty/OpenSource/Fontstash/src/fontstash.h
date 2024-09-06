@@ -110,7 +110,6 @@ FONS_DEF int fonsExpandAtlas(FONScontext* s, int width, int height);
 FONS_DEF int fonsResetAtlas(FONScontext* stash, int width, int height);
 
 // Add fonts
-FONS_DEF int fonsAddFont(FONScontext* s, const char* name, const char* path);
 FONS_DEF int fonsAddFontMem(FONScontext* s, const char* name, unsigned char* data, int ndata, int freeData);
 FONS_DEF int fonsGetFontByName(FONScontext* s, const char* name);
 FONS_DEF int fonsAddFallbackFont(FONScontext* stash, int base, int fallback);
@@ -891,75 +890,6 @@ static int fons__allocFont(FONScontext* stash)
 error:
 	fons__freeFont(font);
 
-	return FONS_INVALID;
-}
-
-static FILE* fons__fopen(const char* filename, const char* mode)
-{
-#ifdef _WIN32
-	int len = 0;
-	// #TheForgeChangesBegin
-	int fileLen = (int)strlen(filename);
-	int modeLen = (int)strlen(mode);
-	// #TheForgeChangesEnd
-	wchar_t wpath[MAX_PATH];
-	wchar_t wmode[MAX_PATH];
-	FILE* f;
-
-	if (fileLen == 0)
-		return NULL;
-	if (modeLen == 0)
-		return NULL;
-	len = MultiByteToWideChar(CP_UTF8, 0, filename, fileLen, wpath, fileLen);
-	if (len >= MAX_PATH)
-		return NULL;
-	wpath[len] = L'\0';
-	len = MultiByteToWideChar(CP_UTF8, 0, mode, modeLen, wmode, modeLen);
-	if (len >= MAX_PATH)
-		return NULL;
-	wmode[len] = L'\0';
-	// #TheForgeChangesBegin
-#if _MSC_VER
-	errno_t err = _wfopen_s(&f, wpath, wmode);
-	ASSERT(err == 0);
-#else
-	f = _wfopen(wpath, wmode);
-#endif
-	// #TheForgeChangesEnd
-
-	return f;
-#else
-	return fopen(filename, mode);
-#endif
-}
-
-int fonsAddFont(FONScontext* stash, const char* name, const char* path)
-{
-	FILE* fp = 0;
-	int dataSize = 0, readed;
-	unsigned char* data = NULL;
-
-	// Read in the font data.
-	fp = fons__fopen(path, "rb");
-	if (fp == NULL) goto error;
-	fseek(fp,0,SEEK_END);
-	dataSize = (int)ftell(fp);
-	fseek(fp,0,SEEK_SET);
-	data = (unsigned char*)tf_malloc(dataSize);
-	if (data == NULL) goto error;
-
-	// #TheForgeChangesBegin
-	readed = (int)fread(data, 1, dataSize, fp);
-	// #TheForgeChangesEnd
-	fclose(fp);
-	fp = 0;
-	if (readed != dataSize) goto error;
-
-	return fonsAddFontMem(stash, name, data, dataSize, 1);
-
-error:
-	if (data) tf_free(data);
-	if (fp) fclose(fp);
 	return FONS_INVALID;
 }
 

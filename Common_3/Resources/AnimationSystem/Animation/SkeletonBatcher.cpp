@@ -137,18 +137,18 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         // if a custom shader is required for joints
         if (mJointVertShaderName && mJointFragShaderName)
         {
-            jointShader.mStages[0].pFileName = mJointVertShaderName;
-            jointShader.mStages[1].pFileName = mJointFragShaderName;
+            jointShader.mVert.pFileName = mJointVertShaderName;
+            jointShader.mFrag.pFileName = mJointFragShaderName;
         }
         else
         {
-            jointShader.mStages[0].pFileName = "joint.vert";
-            jointShader.mStages[1].pFileName = "joint.frag";
+            jointShader.mVert.pFileName = "joint.vert";
+            jointShader.mFrag.pFileName = "joint.frag";
         }
 
         ShaderLoadDesc boneShader = {};
-        boneShader.mStages[0].pFileName = "bone.vert";
-        boneShader.mStages[1].pFileName = "bone.frag";
+        boneShader.mVert.pFileName = "bone.vert";
+        boneShader.mFrag.pFileName = "bone.frag";
 
         addShader(mRenderer, &jointShader, &mJointShader);
         addShader(mRenderer, &boneShader, &mBoneShader);

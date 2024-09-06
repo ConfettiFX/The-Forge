@@ -27,24 +27,25 @@
 
 RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
 
-PUSH_CONSTANT(RootConstantRenderTargetInfo, b0)
+STRUCT(RootConstantRenderTargetData)
 {
     DATA(uint, view, None);
     DATA(int, width, None);
     DATA(int, height, None);
 };
+RES(ROOT_CONSTANT(RootConstantRenderTargetData), RootConstantRenderTargetInfo, UPDATE_FREQ_NONE, b0, binding = 0);
 
 NUM_THREADS(256, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
     INIT_MAIN;
     
-    if (threadID.x >= Get(width))
+    if (threadID.x >= RootConstantRenderTargetInfo.width)
     {
         RETURN();
     }
 
-    Get(visibilityBuffer)[threadID.x] = INVALID_VISIBILITY_DATA;
+    visibilityBuffer[threadID.x] = INVALID_VISIBILITY_DATA;
 
     RETURN();
 }

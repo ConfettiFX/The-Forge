@@ -42,9 +42,9 @@ VSOutput VS_MAIN( VSInput In )
  
     float4 p = float4(In.Position.x*9, In.Position.y*9, In.Position.z*9, 1.0);
 #if FT_MULTIVIEW
-    p = mul(Get(mvp)[VR_VIEW_ID], p);
+    p = mul(uniformBlock.mvp[VR_VIEW_ID], p);
 #else
-    p = mul(Get(mvp), p);
+    p = mul(uniformBlock.mvp, p);
 #endif
     Out.Position = p.xyww;
     Out.TexCoord = float4(In.Position.x, In.Position.y, In.Position.z,In.Position.w);

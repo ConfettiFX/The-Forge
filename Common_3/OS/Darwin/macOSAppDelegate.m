@@ -26,6 +26,7 @@
 
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #define DISPATCH_APPROACH
+//#define LOOP_IN_FINISH_LAUNCHING
 
 static IOPMAssertionID systemSleepAssertionID, displaySleepAssertionID;
 @protocol              RenderDestinationProvider
@@ -85,7 +86,7 @@ static IOPMAssertionID systemSleepAssertionID, displaySleepAssertionID;
         NSEvent* Event;
         @autoreleasepool
         {
-            while ((Event = [NSApp nextEventMatchingMask:NSAnyEventMask untilDate:nil inMode:NSDefaultRunLoopMode dequeue:TRUE]))
+            while ((Event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:TRUE]))
                 [NSApp sendEvent:Event];
 
             [myController draw];

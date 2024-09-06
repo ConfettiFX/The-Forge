@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<Name>TFAndroidCommon</Name>
+	</PropertyGroup>
+	<Target Name="TFAndroidPreGradle"
+			BeforeTargets="AndroidPreGradle">
+		<Exec Command="xcopy $(TheForgeRoot)Common_3\OS\Android\Packaging $(IntDir) /s /y /d"/>
+	</Target>
+	<Target Name="TFAndroidAssetsCleanUp"
+			AfterTargets="AndroidPackageApk"
+			DependsOnTargets="AndroidPackageApk">
+		<Message Text="Start android assets clean-up. Removes everything inside 'AndroidBuild/intermediates/' except ['apk']." Importance="high" />
+		<Exec Command="if exist $(AndroidBuildIntDir) for /D %%A in ($(AndroidBuildIntDir)*) DO if not %%A==$(AndroidBuildIntDir)apk (rmdir /s /q %%A)"/>
+	</Target>
+</Project>

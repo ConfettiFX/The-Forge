@@ -156,7 +156,7 @@ static inline GPURingBufferOffset getGPURingBufferOffset(GPURingBuffer* pRingBuf
     return ret;
 }
 
-static inline void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing* pOut)
+static inline void initGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing* pOut)
 {
     ASSERT(pDesc->mPoolCount <= MAX_GPU_CMD_POOLS_PER_RING);
     ASSERT(pDesc->mCmdPerPoolCount <= MAX_GPU_CMDS_PER_POOL);
@@ -170,7 +170,7 @@ static inline void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDes
 
     for (uint32_t pool = 0; pool < pDesc->mPoolCount; ++pool)
     {
-        addCmdPool(pRenderer, &poolDesc, &pOut->pCmdPools[pool]);
+        initCmdPool(pRenderer, &poolDesc, &pOut->pCmdPools[pool]);
         CmdDesc cmdDesc = {};
         cmdDesc.pPool = pOut->pCmdPools[pool];
         for (uint32_t cmd = 0; cmd < pDesc->mCmdPerPoolCount; ++cmd)
@@ -180,12 +180,12 @@ static inline void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDes
             snprintf(buffer, sizeof(buffer), "GpuCmdRing Pool %u Cmd %u", pool, cmd);
             cmdDesc.pName = buffer;
 #endif // ENABLE_GRAPHICS_DEBUG
-            addCmd(pRenderer, &cmdDesc, &pOut->pCmds[pool][cmd]);
+            initCmd(pRenderer, &cmdDesc, &pOut->pCmds[pool][cmd]);
 
             if (pDesc->mAddSyncPrimitives)
             {
-                addFence(pRenderer, &pOut->pFences[pool][cmd]);
-                addSemaphore(pRenderer, &pOut->pSemaphores[pool][cmd]);
+                initFence(pRenderer, &pOut->pFences[pool][cmd]);
+                initSemaphore(pRenderer, &pOut->pSemaphores[pool][cmd]);
             }
         }
     }
@@ -195,23 +195,23 @@ static inline void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDes
     pOut->mFenceIndex = UINT32_MAX;
 }
 
-static inline void removeGpuCmdRing(Renderer* pRenderer, GpuCmdRing* pRing)
+static inline void exitGpuCmdRing(Renderer* pRenderer, GpuCmdRing* pRing)
 {
     for (uint32_t pool = 0; pool < pRing->mPoolCount; ++pool)
     {
         for (uint32_t cmd = 0; cmd < pRing->mCmdPerPoolCount; ++cmd)
         {
-            removeCmd(pRenderer, pRing->pCmds[pool][cmd]);
+            exitCmd(pRenderer, pRing->pCmds[pool][cmd]);
             if (pRing->pSemaphores[pool][cmd])
             {
-                removeSemaphore(pRenderer, pRing->pSemaphores[pool][cmd]);
+                exitSemaphore(pRenderer, pRing->pSemaphores[pool][cmd]);
             }
             if (pRing->pFences[pool][cmd])
             {
-                removeFence(pRenderer, pRing->pFences[pool][cmd]);
+                exitFence(pRenderer, pRing->pFences[pool][cmd]);
             }
         }
-        removeCmdPool(pRenderer, pRing->pCmdPools[pool]);
+        exitCmdPool(pRenderer, pRing->pCmdPools[pool]);
     }
     *pRing = {};
 }

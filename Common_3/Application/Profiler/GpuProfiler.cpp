@@ -29,7 +29,7 @@
 #include "../../Graphics/GraphicsConfig.h"
 
 #ifndef ENABLE_GPU_PROFILER
-ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName) { return PROFILE_INVALID_TOKEN; }
+ProfileToken initGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName) { return PROFILE_INVALID_TOKEN; }
 void         cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMarker) {}
 void         cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken) {}
 ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* pName, bool bUseMarker)
@@ -43,7 +43,7 @@ float        getGpuProfileMinTime(ProfileToken nProfileToken) { return -1.0f; }
 float        getGpuProfileMaxTime(ProfileToken nProfileToken) { return -1.0f; }
 uint64_t     getGpuProfileTicksPerSecond(ProfileToken nProfileToken) { return 0; }
 GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
-void         removeGpuProfiler(ProfileToken nProfileToken) {}
+void         exitGpuProfiler(ProfileToken nProfileToken) {}
 #else
 
 #include "../../Graphics/Interfaces/IGraphics.h"
@@ -55,8 +55,8 @@ void         removeGpuProfiler(ProfileToken nProfileToken) {}
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
+void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 GpuProfilerContainer* gGpuProfilerContainer = NULL;
 
@@ -157,7 +157,7 @@ double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
     return ((double)(elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0;
 }
 
-void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char* pName)
+void initGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char* pName)
 {
     GpuProfiler* pGpuProfiler = (GpuProfiler*)tf_calloc(1, sizeof(*pGpuProfiler));
     ASSERT(pGpuProfiler);
@@ -175,7 +175,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
     for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
     {
-        addQueryPool(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryPool[i]);
+        initQueryPool(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryPool[i]);
     }
 
     getTimestampFrequency(pQueue, &pGpuProfiler->mGpuTimeStampFrequency);
@@ -192,11 +192,11 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
     *ppGpuProfiler = pGpuProfiler;
 }
 
-void removeGpuProfiler(struct GpuProfiler* pGpuProfiler)
+void exitGpuProfiler(struct GpuProfiler* pGpuProfiler)
 {
     for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
     {
-        removeQueryPool(pGpuProfiler->pRenderer, pGpuProfiler->pQueryPool[i]);
+        exitQueryPool(pGpuProfiler->pRenderer, pGpuProfiler->pQueryPool[i]);
     }
 
     ProfileRemoveThreadLog(pGpuProfiler->pLog);
@@ -312,7 +312,7 @@ void exitGpuProfilers()
     {
         if (gGpuProfilerContainer->mProfilers[i])
         {
-            removeGpuProfiler(gGpuProfilerContainer->mProfilers[i]);
+            exitGpuProfiler(gGpuProfilerContainer->mProfilers[i]);
             gGpuProfilerContainer->mProfilers[i] = NULL;
         }
     }
@@ -321,7 +321,7 @@ void exitGpuProfilers()
     gGpuProfilerContainer = NULL;
 }
 
-ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName)
+ProfileToken initGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName)
 {
     if (!pRenderer->pGpu->mSettings.mTimestampQueries)
     {
@@ -336,7 +336,7 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
     }
 
     GpuProfiler* pGpuProfiler;
-    addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, pName);
+    initGpuProfiler(pRenderer, pQueue, &pGpuProfiler, pName);
     ASSERT(pGpuProfiler);
 
     for (uint32_t i = 0; i < GpuProfilerContainer::MAX_GPU_PROFILERS; ++i)
@@ -352,12 +352,12 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
     return getProfileToken(pGpuProfiler->mProfilerIndex, 0);
 }
 
-void removeGpuProfiler(ProfileToken nProfileToken)
+void exitGpuProfiler(ProfileToken nProfileToken)
 {
     GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
     if (!pGpuProfiler)
         return;
-    removeGpuProfiler(pGpuProfiler);
+    exitGpuProfiler(pGpuProfiler);
     gGpuProfilerContainer->mProfilers[getProfileIndex(nProfileToken)] = NULL;
     --gGpuProfilerContainer->mSize;
 }

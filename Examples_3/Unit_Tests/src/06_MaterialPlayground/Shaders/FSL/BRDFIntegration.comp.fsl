@@ -41,11 +41,13 @@ float RadicalInverse_VdC(uint bits)
 	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
+// Returns the low-discrepancy sample i from set of N
 float2 Hammersley(uint i, uint N)
 {
 	return float2(float(i) / float(N), RadicalInverse_VdC(i));
 }
 
+// Builds a sample vector that's oriented around microsurface's halfway vector 
 float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 {
 	float a = roughness * roughness;
@@ -81,16 +83,15 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 	return nom / denom;
 }
 
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
+float GeometrySmith(float NdotV, float NdotL, float roughness)
 {
-	float NdotV = max(dot(N, V), 0.0);
-	float NdotL = max(dot(N, L), 0.0);
 	float ggx2 = GeometrySchlickGGX(NdotV, roughness);
 	float ggx1 = GeometrySchlickGGX(NdotL, roughness);
 
 	return ggx1 * ggx2;
 }
 
+// Convolution over an angle and roughness value.
 float2 IntegrateBRDF(float NdotV, float roughness)
 {
 	float3 V;
@@ -101,7 +102,7 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 	float A = 0.0;
 	float B = 0.0;
 
-	float3 N = float3(0.0, 0.0, 1.0);
+	float3 N = float3(0.0f, 0.0f, 1.0f);
 	for (uint i = 0; i < SampleCount; ++i)
 	{
 		// generates a sample vector that's biased towards the
@@ -116,7 +117,7 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 
 		if (NdotL > 0.0)
 		{
-			float G = GeometrySmith(N, V, L, roughness);
+			float G = GeometrySmith(NdotV, NdotL, roughness);
 			float G_Vis = (G * VdotH) / (NdotH * NdotV);
 			float Fc = pow(1.0 - VdotH, 5.0);
 
@@ -138,7 +139,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 {
 	INIT_MAIN;
 	float2 texcoords = float2(float(DTid.x + 0.5) / 512.0f, float(DTid.y + 0.5) / 512.0f);
-	float4 result = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0, 0.0);
-	Write2D(Get(dstTexture), DTid.xy, result.xy);
+	float4 result = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0f, 0.0f);
+	Write2D(dstTexture, DTid.xy, result.xy);
 	RETURN();
 }

@@ -38,7 +38,7 @@
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
-#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
@@ -110,225 +110,225 @@ struct ConfigSettings
 
 // kinda: 0.09f // thin: 0.15f // superthin: 0.5f // triplethin: 0.8f
 MeshInfo opaqueMeshInfos[] = {
-    { "twosided_superthin_innerfloor_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "twosided_triplethin_hugewall_02", MATERIAL_FLAG_TWO_SIDED, 0.8f },
-    { "twosided_triplethin_hugewall_01", MATERIAL_FLAG_TWO_SIDED, 0.8f },
-    { "balcony_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "outerfloor_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_06", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_07", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_11", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_10", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_09", MATERIAL_FLAG_NONE, 0.0f },
-    { "indoortable_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "outdoortable_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "outdoortable_07", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_15", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_14", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_13", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_12", MATERIAL_FLAG_NONE, 0.0f },
-    { "outdoortable_08", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_10", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_06", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_09", MATERIAL_FLAG_NONE, 0.0f },
-    { "outertable_11", MATERIAL_FLAG_NONE, 0.0f },
-    { "uppertable_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "uppertable_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "uppertable_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "uppertable_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "opendoor_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "opendoor_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "indoortable_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "indoortable_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "indoortable_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "indoortable_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "waterpool_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_06", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_10", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_09", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_08", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_07", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_12", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_thin_leavesbasket_01", MATERIAL_FLAG_TWO_SIDED, 0.15f },
-    { "twosided_kinda_double_combinedoutdoorchairs_01", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "gargoyle_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "gargoyle_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "gargoyle_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "gargoyle_06", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_kinda_double_outdoorchairs_02", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_indoorchairs_02", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_thin_double_indoorchairs_03", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.15f },
-    { "twosided_thin_double_indoorchairs_04", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.15f },
-    { "twosided_kinda_double_indoorchairs_05", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_indoorchairs_06", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "double_upperchairs_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "longpillar_11", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_thin_leavesbasket_02", MATERIAL_FLAG_TWO_SIDED, 0.15f },
-    { "twosided_kinda_double_outdoorchairs_01", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_04", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "double_upperchairs_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "double_upperchairs_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "double_upperchairs_04", MATERIAL_FLAG_NONE, 0.0f },
-    { "doorwall_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "doorwall_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "underledge_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "underceil_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "underceil_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_kinda_double_indoorchairs_07", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "hugewallfront_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_kinda_metalLedges_02", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_07", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_01", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_05", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_03", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_04", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_06", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_06", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_05", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_metalLedges_08", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_metalLedges_09", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_doorwall_03", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "twosided_kinda_doorwall_04", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "myinnerfloor_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_kinda_double_outdoorchairs_07", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_08", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "mywall_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_kinda_double_outdoorchairs_09", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_10", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_11", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_12", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_13", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_14", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_double_outdoorchairs_15", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
-    { "twosided_kinda_metalLedges_10", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "curvepillar_12", MATERIAL_FLAG_NONE, 0.0f },
-    { "curvepillar_08", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_superthin_innerhall_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "doorwall_06", MATERIAL_FLAG_NONE, 0.0f },
-    { "doorwall_05", MATERIAL_FLAG_NONE, 0.0f },
-    { "double_doorwall_07", MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.0f },
-    { "twosided_kinda_basketonly_01", MATERIAL_FLAG_TWO_SIDED, 0.09f },
-    { "backmuros_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "shortceil_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "shortceil_02", MATERIAL_FLAG_NONE, 0.0f },
-    { "shortceil_03", MATERIAL_FLAG_NONE, 0.0f },
-    { "cap03", MATERIAL_FLAG_NONE, 0.0f },
-    { "cap01", MATERIAL_FLAG_NONE, 0.0f },
-    { "cap02", MATERIAL_FLAG_NONE, 0.0f },
-    { "cap04", MATERIAL_FLAG_NONE, 0.0f }
+    { "SDF/twosided_superthin_innerfloor_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/twosided_triplethin_hugewall_02", MATERIAL_FLAG_TWO_SIDED, 0.8f },
+    { "SDF/twosided_triplethin_hugewall_01", MATERIAL_FLAG_TWO_SIDED, 0.8f },
+    { "SDF/balcony_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outerfloor_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_06", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_07", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_11", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_10", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_09", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/indoortable_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outdoortable_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outdoortable_07", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_15", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_14", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_13", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_12", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outdoortable_08", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_10", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_06", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_09", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/outertable_11", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/uppertable_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/uppertable_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/uppertable_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/uppertable_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/opendoor_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/opendoor_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/indoortable_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/indoortable_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/indoortable_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/indoortable_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/waterpool_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_06", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_10", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_09", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_08", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_07", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_12", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_thin_leavesbasket_01", MATERIAL_FLAG_TWO_SIDED, 0.15f },
+    { "SDF/twosided_kinda_double_combinedoutdoorchairs_01", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/gargoyle_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_06", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_kinda_double_outdoorchairs_02", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_indoorchairs_02", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_thin_double_indoorchairs_03", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.15f },
+    { "SDF/twosided_thin_double_indoorchairs_04", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.15f },
+    { "SDF/twosided_kinda_double_indoorchairs_05", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_indoorchairs_06", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/double_upperchairs_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/longpillar_11", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_thin_leavesbasket_02", MATERIAL_FLAG_TWO_SIDED, 0.15f },
+    { "SDF/twosided_kinda_double_outdoorchairs_01", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_04", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/double_upperchairs_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/double_upperchairs_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/double_upperchairs_04", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/doorwall_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/doorwall_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/underledge_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/underceil_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/underceil_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_kinda_double_indoorchairs_07", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/hugewallfront_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_kinda_metalLedges_02", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_07", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_01", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_05", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_03", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_04", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_06", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_06", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_05", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_08", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_09", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_doorwall_03", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/twosided_kinda_doorwall_04", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/myinnerfloor_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_kinda_double_outdoorchairs_07", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_08", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/mywall_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_kinda_double_outdoorchairs_09", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_10", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_11", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_12", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_13", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_14", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_double_outdoorchairs_15", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.09f },
+    { "SDF/twosided_kinda_metalLedges_10", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/curvepillar_12", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/curvepillar_08", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_superthin_innerhall_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/doorwall_06", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/doorwall_05", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/double_doorwall_07", MATERIAL_FLAG_DOUBLE_VOXEL_SIZE, 0.0f },
+    { "SDF/twosided_kinda_basketonly_01", MATERIAL_FLAG_TWO_SIDED, 0.09f },
+    { "SDF/backmuros_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/shortceil_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/shortceil_02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/shortceil_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/cap03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/cap01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/cap02", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/cap04", MATERIAL_FLAG_NONE, 0.0f }
 };
 
 MeshInfo flagsMeshInfos[] = {
-    { "gargoyle_08", MATERIAL_FLAG_NONE, 0.0f },
-    { "twosided_superthin_forgeflags_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "twosided_superthin_forgeflags_02", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "twosided_superthin_forgeflags_04", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "twosided_superthin_forgeflags_03", MATERIAL_FLAG_TWO_SIDED, 0.5f },
-    { "gargoyle_01", MATERIAL_FLAG_NONE, 0.0f },
-    { "gargoyle_07", MATERIAL_FLAG_NONE, 0.0f },
-    { "gargoyle_03", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_08", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/twosided_superthin_forgeflags_01", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/twosided_superthin_forgeflags_02", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/twosided_superthin_forgeflags_04", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/twosided_superthin_forgeflags_03", MATERIAL_FLAG_TWO_SIDED, 0.5f },
+    { "SDF/gargoyle_01", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_07", MATERIAL_FLAG_NONE, 0.0f },
+    { "SDF/gargoyle_03", MATERIAL_FLAG_NONE, 0.0f },
 };
 
 MeshInfo alphaTestedMeshInfos[] = {
     // group 0
-    { "twosided_thin_alphatested_smallLeaves04_beginstack0", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves04_beginstack0", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "flower0339_continuestack0", MATERIAL_FLAG_NONE, 0.0f },
     { "stem01_continuestack0", MATERIAL_FLAG_NONE, 0.0f },
     { "basket01_continuestack0", MATERIAL_FLAG_NONE, 0.0f },
     // group 1
-    { "twosided_thin_alphatested_smallLeaves04_beginstack1", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves04_beginstack1", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "stem_continuestack1", MATERIAL_FLAG_NONE, 0.0f },
     { "smallLeaves019_alphatested_continuestack1", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "smallLeaves0377_alphatested_continuestack1", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack1", MATERIAL_FLAG_NONE, 0.0f },
     { "rose00_alphatested_continuestack1", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     // group 2
-    { "twosided_thin_alphatested_smallLeaves00_beginstack2", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves00_beginstack2", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves023_continuestack2", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "stem02_continuestack2", MATERIAL_FLAG_NONE, 0.0f },
     { "alphatested_flower0304_continuestack2", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "stem03_continuestack2", MATERIAL_FLAG_NONE, 0.0f },
     { "basket02_continuestack2", MATERIAL_FLAG_NONE, 0.0f },
     // group 3
-    { "twosided_thin_alphatested_smallLeaves04_beginstack3", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
-    { "twosided_thin_alphatested_smallLeaves09_continuestack3", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves04_beginstack3", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves09_continuestack3", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket_continuestack3", MATERIAL_FLAG_NONE, 0.0f },
     // group 4
-    { "twosided_thin_alphatested_smallLeaves022_beginstack4", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves022_beginstack4", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket_continuestack4", MATERIAL_FLAG_NONE, 0.0f },
     // group 5
-    { "twosided_thin_alphatested_smallLeaves013_beginstack5", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves013_beginstack5", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves012_continuestack5", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves020_continuestack5", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
-    { "alphatested_twosided_thin_smallLeaves07_continuestack5", MATERIAL_FLAG_ALPHA_TESTED | MATERIAL_FLAG_TWO_SIDED, 0.15f },
-    { "alphatested_twosided_thin_smallLeaves05_continuestack5", MATERIAL_FLAG_ALPHA_TESTED | MATERIAL_FLAG_TWO_SIDED, 0.15f },
-    { "twosided_thin_alphatested_floor1_continuestack5", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "alphatested_SDF/twosided_thin_smallLeaves07_continuestack5", MATERIAL_FLAG_ALPHA_TESTED | MATERIAL_FLAG_TWO_SIDED, 0.15f },
+    { "alphatested_SDF/twosided_thin_smallLeaves05_continuestack5", MATERIAL_FLAG_ALPHA_TESTED | MATERIAL_FLAG_TWO_SIDED, 0.15f },
+    { "SDF/twosided_thin_alphatested_floor1_continuestack5", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack5", MATERIAL_FLAG_NONE, 0.0f },
     // group 6
-    { "twosided_thin_alphatested_smallLeaves023_beginstack6", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves023_beginstack6", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves0300_continuestack6", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves016_continuestack6", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower0341_continuestack6", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack6", MATERIAL_FLAG_NONE, 0.0f },
     // group 7
-    { "twosided_thin_alphatested_smallLeaves014_beginstack7", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves014_beginstack7", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves015_continuestack7", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack7", MATERIAL_FLAG_NONE, 0.0f },
     // group 8
-    { "twosided_thin_alphatested_smallLeaves027_beginstack8", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves027_beginstack8", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0343_continuestack8", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves018_continuestack8", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack8", MATERIAL_FLAG_NONE, 0.0f },
     // group 9
-    { "twosided_thin_alphatested_smallLeaves0380_beginstack9", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves0380_beginstack9", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0338_continuestack9", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "bakset01_continuestack9", MATERIAL_FLAG_NONE, 0.0f },
     // group 10
-    { "twosided_thin_alphatested_smallLeaves00_beginstack10", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves00_beginstack10", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0304_continuestack10", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack10", MATERIAL_FLAG_NONE, 0.0f },
     // group 11
-    { "twosided_thin_double_alphatested__group146_beginstack11", MATERIAL_FLAG_ALL, 0.15f },
+    { "SDF/twosided_thin_double_alphatested__group146_beginstack11", MATERIAL_FLAG_ALL, 0.15f },
     { "alphatested_group147_continuestack11", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "branch_group145_continuestack11", MATERIAL_FLAG_NONE, 0.0f },
     // group 12
-    { "twosided_superthin_alphatested_double_treeLeaves04_beginstack12", MATERIAL_FLAG_ALL, 0.5f },
+    { "SDF/twosided_superthin_alphatested_double_treeLeaves04_beginstack12", MATERIAL_FLAG_ALL, 0.5f },
     { "alphatested_treeLeaves00_continuestack12", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_treeLeaves02_continuestack12", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_treeLeaves05_continuestack12", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     // group 13
-    { "twosided_superthin_alphatested_double_treeLeaves08_beginstack13", MATERIAL_FLAG_ALL, 0.5f },
+    { "SDF/twosided_superthin_alphatested_double_treeLeaves08_beginstack13", MATERIAL_FLAG_ALL, 0.5f },
     { "alphatested_treeLeaves05_continuestack13", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_treeLeaves07_continuestack13", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     // group 14
-    { "twosided_superthin_alphatested_double_treeLeaves03_beginstack14", MATERIAL_FLAG_ALL, 0.5f },
+    { "SDF/twosided_superthin_alphatested_double_treeLeaves03_beginstack14", MATERIAL_FLAG_ALL, 0.5f },
     { "alphatested_treeLeaves01_continuestack14", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_treeLeaves06_continuestack14", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     // group 15
-    { "twosided_thin_alphatested_smallLeaves02_beginstack15", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves02_beginstack15", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves08_continuestack15", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack15", MATERIAL_FLAG_NONE, 0.0f },
     // group 16
-    { "twosided_thin_double_alphatested_smallLeaves019_beginstack16", MATERIAL_FLAG_ALL, 0.15f },
+    { "SDF/twosided_thin_double_alphatested_smallLeaves019_beginstack16", MATERIAL_FLAG_ALL, 0.15f },
     { "alphatested_flower0343_continuestack16", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves018_continuestack16", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves0377_continuestack16", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_rose00_continuestack16", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack16", MATERIAL_FLAG_NONE, 0.0f },
     // group 17
-    { "twosided_thin_alphatested_smallLeaves0380_beginstack17", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves0380_beginstack17", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0342_continuestack17", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves07_continuestack17", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves05_continuestack17", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
@@ -336,13 +336,13 @@ MeshInfo alphaTestedMeshInfos[] = {
     { "alphatested_flower0338_continuestack17", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack17", MATERIAL_FLAG_NONE, 0.0f },
     // group 18
-    { "twosided_thin_alphatested_smallLeaves06_beginstack18", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves06_beginstack18", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves0378_continuestack18", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower0344_continuestack18", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower0340_continuestack18", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack18", MATERIAL_FLAG_NONE, 0.0f },
     // group 19
-    { "twosided_thin_double_alphatested_smallLeaves00_beginstack19", MATERIAL_FLAG_ALL, 0.15f },
+    { "SDF/twosided_thin_double_alphatested_smallLeaves00_beginstack19", MATERIAL_FLAG_ALL, 0.15f },
     { "alphatested_smallLeaves016_continuestack19", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower0341_continuestack19", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves017_continuestack19", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
@@ -350,42 +350,42 @@ MeshInfo alphaTestedMeshInfos[] = {
     { "alphatested_flower0304_continuestack19", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack19", MATERIAL_FLAG_NONE, 0.0f },
     // group 20
-    { "twosided_thin_alphatested_smallLeaves024_beginstack20", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves024_beginstack20", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack20", MATERIAL_FLAG_NONE, 0.0f },
     // group 21
-    { "twosided_thin_alphatested_smallLeaves010_beginstack21", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves010_beginstack21", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack21", MATERIAL_FLAG_NONE, 0.0f },
     // group 22
-    { "twosided_thin_alphatested_smallLeaves01_beginstack22", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves01_beginstack22", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack22", MATERIAL_FLAG_NONE, 0.0f },
     // group 23
-    { "twosided_thin_alphatested_smallLeaves04_beginstack23", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves04_beginstack23", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack23", MATERIAL_FLAG_NONE, 0.0f },
     // group 24
-    { "twosided_thin_alphatested_smallLeaves024_beginstack24", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves024_beginstack24", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack24", MATERIAL_FLAG_NONE, 0.0f },
     // group 25
-    { "twosided_thin_alphatested_smallLeaves00_beginstack25", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves00_beginstack25", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0304_continuestack25", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack25", MATERIAL_FLAG_NONE, 0.0f },
     // group 26
-    { "twosided_thin_alphatested_smallLeaves00_beginstack26", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves00_beginstack26", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves023_continuestack26", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower0304_continuestack26", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack26", MATERIAL_FLAG_NONE, 0.0f },
     // group 27
-    { "twosided_thin_double_alphatested_smallLeaves025_beginstack27", MATERIAL_FLAG_ALL, 0.15f },
+    { "SDF/twosided_thin_double_alphatested_smallLeaves025_beginstack27", MATERIAL_FLAG_ALL, 0.15f },
     { "alphatested_smallLeaves011_continuestack27", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves021_continuestack27", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves017_continuestack27", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves08_continuestack27", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack27", MATERIAL_FLAG_NONE, 0.0f },
     // group 28
-    { "twosided_thin_alphatested_smallLeaves0377_beginstack28", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves0377_beginstack28", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_rose00_continuestack28", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack28", MATERIAL_FLAG_NONE, 0.0f },
     // group 29
-    { "twosided_thin_double_alphatested_smallLeaves00_beginstack29", MATERIAL_FLAG_ALL, 0.15f },
+    { "SDF/twosided_thin_double_alphatested_smallLeaves00_beginstack29", MATERIAL_FLAG_ALL, 0.15f },
     { "alphatested_smallLeaves026_continuestack29", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_flower01_continuestack29", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "alphatested_smallLeaves09_continuestack29", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
@@ -394,27 +394,27 @@ MeshInfo alphaTestedMeshInfos[] = {
     { "alphatested_flower0304_continuestack29", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack29", MATERIAL_FLAG_NONE, 0.0f },
     // group 30
-    { "twosided_thin_alphatested_smallLeaves027_beginstack30", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves027_beginstack30", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "flower00_continuestack30", MATERIAL_FLAG_NONE, 0.0f },
     { "basket01_continuestack30", MATERIAL_FLAG_NONE, 0.0f },
     // group 31
-    { "twosided_thin_alphatested_smallLeaves013_beginstack31", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves013_beginstack31", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack31", MATERIAL_FLAG_NONE, 0.0f },
     // group 32
-    { "twosided_thin_alphatested_smallLeaves04_beginstack32", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves04_beginstack32", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack32", MATERIAL_FLAG_NONE, 0.0f },
     // group 33
-    { "twosided_thin_alphatested_smallLeaves00_beginstack33", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves00_beginstack33", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_flower0304_continuestack33", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack33", MATERIAL_FLAG_NONE, 0.0f },
     // group 34
-    { "twosided_thin_alphatested_smallLeaves0381_beginstack34", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves0381_beginstack34", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack34", MATERIAL_FLAG_NONE, 0.0f },
     // group 35
-    { "twosided_thin_alphatested_smallLeaves0379_beginstack35", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves0379_beginstack35", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "basket01_continuestack35", MATERIAL_FLAG_NONE, 0.0f },
     // group 36
-    { "twosided_thin_alphatested_smallLeaves021_beginstack36", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
+    { "SDF/twosided_thin_alphatested_smallLeaves021_beginstack36", MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED, 0.15f },
     { "alphatested_smallLeaves017_continuestack36", MATERIAL_FLAG_ALPHA_TESTED, 0.0f },
     { "basket01_continuestack36", MATERIAL_FLAG_NONE, 0.0f }
 };
@@ -544,7 +544,7 @@ typedef struct LightUniformBlock
     vec4         mLightColor = { 1, 0, 0, 1 };
     vec4         mLightUpVec;
     vec4         mTanLightAngleAndThresholdValue;
-    vec3         mLightDir;
+    vec4         mLightDir;
 } LightUniformBlock;
 
 typedef struct CameraUniform
@@ -591,11 +591,10 @@ typedef struct SSSInputConstants
     float4   mScreenSize = float4(0.0f);
     float    mSurfaceThickness = 0.01f;
     float    mBilinearThreshold = 0.035f;
-    float    mShadowContrast = 1.0f;
+    float    mShadowContrast = 0.7f;
     uint32_t mIgnoreEdgePixels = 0;
     uint32_t mBilinearSamplingOffsetMode = 0;
     uint32_t mDebugOutputMode = 0;
-    uint32_t mWaveLaneCount = 0;
 } SSSInputConstants;
 
 struct MSMInputConstants
@@ -676,9 +675,9 @@ uint32_t gSDFNumObjects = 0;
 
 typedef struct UpdateSDFVolumeTextureAtlasConstants
 {
-    ivec3 mSourceAtlasVolumeMinCoord;
-    ivec3 mSourceDimensionSize;
-    ivec3 mSourceAtlasVolumeMaxCoord;
+    ivec4 mSourceAtlasVolumeMinCoord;
+    ivec4 mSourceDimensionSize;
+    ivec4 mSourceAtlasVolumeMaxCoord;
 } UpdateSDFVolumeTextureAtlasConstants;
 
 struct ASMCpuSettings
@@ -838,104 +837,103 @@ Pipeline*      pPipelineASMFillIndirection = NULL;
 #if defined(ORBIS) || defined(PROSPERO)
 Shader* pShaderASMFillIndirectionFP16 = NULL;
 #endif
-RootSignature*    pRootSignatureASMFillIndirection = NULL;
-DescriptorSet*    pDescriptorSetASMFillIndirection[3] = { NULL };
+RootSignature* pRootSignatureASMFillIndirection = NULL;
+DescriptorSet* pDescriptorSetASMFillIndirection[3] = { NULL };
 /************************************************************************/
 // ASM fill lod clamp Pack
 /************************************************************************/
 // Reuse pShaderASMFillIndirection since they pretty much has the same shader
-Pipeline*         pPipelineASMFillLodClamp = NULL;
-RootSignature*    pRootSignatureASMFillLodClamp = NULL;
-DescriptorSet*    pDescriptorSetASMFillLodClamp = NULL;
+Pipeline*      pPipelineASMFillLodClamp = NULL;
+RootSignature* pRootSignatureASMFillLodClamp = NULL;
+DescriptorSet* pDescriptorSetASMFillLodClamp = NULL;
 /************************************************************************/
 // ASM Copy DEM Shader Pack
 /************************************************************************/
-Shader*           pShaderASMCopyDEM = NULL;
-Pipeline*         pPipelineASMCopyDEM = NULL;
-RootSignature*    pRootSignatureASMCopyDEM = NULL;
-DescriptorSet*    pDescriptorSetASMCopyDEM[2] = { NULL };
+Shader*        pShaderASMCopyDEM = NULL;
+Pipeline*      pPipelineASMCopyDEM = NULL;
+RootSignature* pRootSignatureASMCopyDEM = NULL;
+DescriptorSet* pDescriptorSetASMCopyDEM[2] = { NULL };
 /************************************************************************/
 // ASM generate DEM Shader Pack
 /************************************************************************/
-Shader*           pShaderASMGenerateDEM = NULL;
-Pipeline*         pPipelineASMDEMAtlasToColor = NULL;
-Pipeline*         pPipelineASMDEMColorToAtlas = NULL;
-RootSignature*    pRootSignatureASMDEMAtlasToColor = NULL;
-DescriptorSet*    pDescriptorSetASMDEMAtlasToColor[2] = { NULL };
-RootSignature*    pRootSignatureASMDEMColorToAtlas = NULL;
-DescriptorSet*    pDescriptorSetASMDEMColorToAtlas[2] = { NULL };
+Shader*        pShaderASMGenerateDEM = NULL;
+Pipeline*      pPipelineASMDEMAtlasToColor = NULL;
+Pipeline*      pPipelineASMDEMColorToAtlas = NULL;
+RootSignature* pRootSignatureASMDEMAtlasToColor = NULL;
+DescriptorSet* pDescriptorSetASMDEMAtlasToColor[2] = { NULL };
+RootSignature* pRootSignatureASMDEMColorToAtlas = NULL;
+DescriptorSet* pDescriptorSetASMDEMColorToAtlas[2] = { NULL };
 /************************************************************************/
 // VB pass pipeline
 /************************************************************************/
-Shader*           pShaderVBBufferPass[gNumGeomSets] = {};
-Pipeline*         pPipelineVBBufferPass[gNumGeomSets] = {};
-RootSignature*    pRootSignatureVBPass = NULL;
-DescriptorSet*    pDescriptorSetVBPass[3] = { NULL };
-CommandSignature* pCmdSignatureVBPass = NULL;
+Shader*        pShaderVBBufferPass[gNumGeomSets] = {};
+Pipeline*      pPipelineVBBufferPass[gNumGeomSets] = {};
+RootSignature* pRootSignatureVBPass = NULL;
+DescriptorSet* pDescriptorSetVBPass[3] = { NULL };
 /************************************************************************/
 // VB shade pipeline
 /************************************************************************/
-Shader*           pShaderVBShade[MSAA_LEVELS_COUNT] = { NULL };
-Pipeline*         pPipelineVBShadeSrgb = NULL;
-RootSignature*    pRootSignatureVBShade = NULL;
-DescriptorSet*    pDescriptorSetVBShade[2] = { NULL };
+Shader*        pShaderVBShade[MSAA_LEVELS_COUNT] = { NULL };
+Pipeline*      pPipelineVBShadeSrgb = NULL;
+RootSignature* pRootSignatureVBShade = NULL;
+DescriptorSet* pDescriptorSetVBShade[2] = { NULL };
 /************************************************************************/
 // SDF draw update volume texture atlas pipeline
 /************************************************************************/
-Shader*           pShaderUpdateSDFVolumeTextureAtlas = NULL;
-Pipeline*         pPipelineUpdateSDFVolumeTextureAtlas = NULL;
-RootSignature*    pRootSignatureUpdateSDFVolumeTextureAtlas = NULL;
-DescriptorSet*    pDescriptorSetUpdateSDFVolumeTextureAtlas[2] = { NULL };
+Shader*        pShaderUpdateSDFVolumeTextureAtlas = NULL;
+Pipeline*      pPipelineUpdateSDFVolumeTextureAtlas = NULL;
+RootSignature* pRootSignatureUpdateSDFVolumeTextureAtlas = NULL;
+DescriptorSet* pDescriptorSetUpdateSDFVolumeTextureAtlas[2] = { NULL };
 /************************************************************************/
 // SDF mesh visualization pipeline
 /************************************************************************/
-Shader*           pShaderSDFMeshVisualization[MSAA_LEVELS_COUNT] = { NULL };
-Pipeline*         pPipelineSDFMeshVisualization = NULL;
-RootSignature*    pRootSignatureSDFMeshVisualization = NULL;
-DescriptorSet*    pDescriptorSetSDFMeshVisualization[2] = { NULL };
+Shader*        pShaderSDFMeshVisualization[MSAA_LEVELS_COUNT] = { NULL };
+Pipeline*      pPipelineSDFMeshVisualization = NULL;
+RootSignature* pRootSignatureSDFMeshVisualization = NULL;
+DescriptorSet* pDescriptorSetSDFMeshVisualization[2] = { NULL };
 /************************************************************************/
 // SDF baked mesh shadow pipeline
 /************************************************************************/
-Shader*           pShaderSDFMeshShadow[MSAA_LEVELS_COUNT] = { NULL };
-Pipeline*         pPipelineSDFMeshShadow = NULL;
-RootSignature*    pRootSignatureSDFMeshShadow = NULL;
-DescriptorSet*    pDescriptorSetSDFMeshShadow[2] = { NULL };
+Shader*        pShaderSDFMeshShadow[MSAA_LEVELS_COUNT] = { NULL };
+Pipeline*      pPipelineSDFMeshShadow = NULL;
+RootSignature* pRootSignatureSDFMeshShadow = NULL;
+DescriptorSet* pDescriptorSetSDFMeshShadow[2] = { NULL };
 /************************************************************************/
 // SDF upsample shadow texture pipeline
 /************************************************************************/
-Shader*           pShaderUpsampleSDFShadow[MSAA_LEVELS_COUNT] = { NULL };
-Pipeline*         pPipelineUpsampleSDFShadow = NULL;
-RootSignature*    pRootSignatureUpsampleSDFShadow = NULL;
-DescriptorSet*    pDescriptorSetUpsampleSDFShadow[2] = { NULL };
+Shader*        pShaderUpsampleSDFShadow[MSAA_LEVELS_COUNT] = { NULL };
+Pipeline*      pPipelineUpsampleSDFShadow = NULL;
+RootSignature* pRootSignatureUpsampleSDFShadow = NULL;
+DescriptorSet* pDescriptorSetUpsampleSDFShadow[2] = { NULL };
 /************************************************************************/
 // Resolve pipeline
 /************************************************************************/
-Shader*           pShaderResolve[MSAA_LEVELS_COUNT] = { NULL };
-Pipeline*         pPipelineResolve = nullptr;
-RootSignature*    pRootSignatureResolve = nullptr;
-DescriptorSet*    pDescriptorSetResolve = { NULL };
+Shader*        pShaderResolve[MSAA_LEVELS_COUNT] = { NULL };
+Pipeline*      pPipelineResolve = nullptr;
+RootSignature* pRootSignatureResolve = nullptr;
+DescriptorSet* pDescriptorSetResolve = { NULL };
 /************************************************************************/
 // Present pipeline
 /************************************************************************/
-Shader*           pShaderPresentPass = NULL;
-Pipeline*         pPipelinePresentPass = NULL;
-RootSignature*    pRootSignaturePresentPass = NULL;
-DescriptorSet*    pDescriptorSetPresentPass = NULL;
+Shader*        pShaderPresentPass = NULL;
+Pipeline*      pPipelinePresentPass = NULL;
+RootSignature* pRootSignaturePresentPass = NULL;
+DescriptorSet* pDescriptorSetPresentPass = NULL;
 /************************************************************************/
 // Samplers
 /************************************************************************/
-Sampler*          pSamplerMiplessSampler = NULL;
-Sampler*          pSamplerTrilinearAniso = NULL;
-Sampler*          pSamplerMiplessNear = NULL;
-Sampler*          pSamplerMiplessLinear = NULL;
-Sampler*          pSamplerComparisonShadow = NULL;
-Sampler*          pSamplerMiplessClampToBorderNear = NULL;
-Sampler*          pSamplerLinearRepeat = NULL;
+Sampler*       pSamplerMiplessSampler = NULL;
+Sampler*       pSamplerTrilinearAniso = NULL;
+Sampler*       pSamplerMiplessNear = NULL;
+Sampler*       pSamplerMiplessLinear = NULL;
+Sampler*       pSamplerComparisonShadow = NULL;
+Sampler*       pSamplerMiplessClampToBorderNear = NULL;
+Sampler*       pSamplerLinearRepeat = NULL;
 /************************************************************************/
 // Constant buffers
 /************************************************************************/
-Buffer*           pBufferMeshTransforms[MESH_COUNT][gDataBufferCount] = { { NULL } };
-Buffer*           pBufferMeshShadowProjectionTransforms[MESH_COUNT][ASM_MAX_TILES_PER_PASS][gDataBufferCount] = { { { NULL } } };
+Buffer*        pBufferMeshTransforms[MESH_COUNT][gDataBufferCount] = { { NULL } };
+Buffer*        pBufferMeshShadowProjectionTransforms[MESH_COUNT][ASM_MAX_TILES_PER_PASS][gDataBufferCount] = { { { NULL } } };
 
 Buffer* pBufferLightUniform[gDataBufferCount] = { NULL };
 Buffer* pBufferESMUniform[gDataBufferCount] = { NULL };
@@ -998,7 +996,7 @@ Texture** gSpecularMapsStorage = NULL;
 struct
 {
     uint32_t mFilterWidth = 2U;
-    float    mEsmControl = 100.f;
+    float    mEsmControl = 225.f;
 } gEsmCpuSettings;
 
 SSSInputConstants gSSSUniformData;
@@ -1054,7 +1052,7 @@ float             gGaussianBlurSigma[2] = { 1.0f, 1.0f };
 QuadDataUniform gQuadUniformData;
 MeshInfoStruct  gMeshInfoData[MESH_COUNT] = {};
 
-PerFrameVBConstants gVBConstants[gDataBufferCount] = {};
+PerFrameVBConstantsData gVBConstants[gDataBufferCount] = {};
 
 vec3 gObjectsCenter = { SAN_MIGUEL_OFFSETX, 0, 0 };
 
@@ -2975,7 +2973,7 @@ public:
 
         uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_SHADOW + tileIndex, geomSet, 0) * sizeof(uint32_t);
         Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-        cmdExecuteIndirect(pCurCmd, pCmdSignatureVBPass, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
+        cmdExecuteIndirect(pCurCmd, INDIRECT_DRAW_INDEX, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
     }
 
     bool NothingToRender() const { return m_renderBatch.empty(); }
@@ -4606,7 +4604,7 @@ void SetupASMDebugTextures(void* pUserData)
 
             UIComponentDesc guiDesc = {};
             guiDesc.mStartPosition.setY(screenSize.getY() - texSize.getY() - 50.f);
-            uiCreateComponent("ASM Debug Textures Info", &guiDesc, &pUIASMDebugTexturesWindow);
+            uiAddComponent("ASM Debug Textures Info", &guiDesc, &pUIASMDebugTexturesWindow);
 
             static const Texture* textures[3];
             textures[0] = pRenderTargetASMDepthAtlas->pTexture;
@@ -4617,7 +4615,7 @@ void SetupASMDebugTextures(void* pUserData)
             widget.pTextures = textures;
             widget.mTexturesCount = sizeof(textures) / sizeof(textures[0]);
             widget.mTextureDisplaySize = texSize;
-            luaRegisterWidget(uiCreateComponentWidget(pUIASMDebugTexturesWindow, "Debug RTs", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
+            luaRegisterWidget(uiAddComponentWidget(pUIASMDebugTexturesWindow, "Debug RTs", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
         }
 
         uiSetComponentActive(pUIASMDebugTexturesWindow, true);
@@ -4666,8 +4664,14 @@ SliderFloat3Widget* GuiController::mLightPosWidget = NULL;
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-const char* gTestScripts[] = { "Test_ESM.lua", "Test_ASM.lua",    "Test_SDF.lua",    "Test_VSM.lua",
-                               "Test_MSM.lua", "Test_MSAA_0.lua", "Test_MSAA_2.lua", "Test_MSAA_4.lua" };
+const char* gTestScripts[] = { "09_LightShadowPlayground/Test_ESM.lua",
+                               "09_LightShadowPlayground/Test_ASM.lua",
+                               "09_LightShadowPlayground/Test_SDF.lua",
+                               "09_LightShadowPlayground/Test_VSM.lua",
+                               "09_LightShadowPlayground/Test_MSM.lua",
+                               "Test_MSAA_0.lua",
+                               "Test_MSAA_2.lua",
+                               "Test_MSAA_4.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
@@ -4716,7 +4720,8 @@ public:
 
     void loadSDFMeshes()
     {
-        static const char* sdfModels[3] = { "SanMiguel_Opaque.bin", "SanMiguel_AlphaTested.bin", "SanMiguel_Flags.bin" };
+        static const char* sdfModels[3] = { "SanMiguel_3/SanMiguel_Opaque.bin", "SanMiguel_3/SanMiguel_AlphaTested.bin",
+                                            "SanMiguel_3/SanMiguel_Flags.bin" };
 
         SDFMeshes[0].pSubMeshesInfo = opaqueMeshInfos;
         SDFMeshes[0].numSubMeshesGroups = sizeof(opaqueMeshInfos) / sizeof(MeshInfo);
@@ -4831,7 +4836,7 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "SDF");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
@@ -4849,8 +4854,15 @@ public:
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         settings.pExtendedSettings = &extendedSettings;
+        initGPUConfiguration(settings.pExtendedSettings);
         initRenderer(GetName(), &settings, &pRenderer);
-
+        // check for init success
+        if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
         if (!gGpuSettings.mBindlessSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer does not run on this device. GPU does not support enough bindless texture entries");
@@ -4875,7 +4887,7 @@ public:
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+        initQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         // Create the command pool and the command lists used to store GPU commands.
         // One Cmd list per back buffer image is stored for triple buffering.
@@ -4884,9 +4896,9 @@ public:
         cmdRingDesc.mPoolCount = gDataBufferCount;
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
-        addGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
+        initGpuCmdRing(pRenderer, &cmdRingDesc, &gGraphicsCmdRing);
 
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+        initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         initResourceLoaderInterface(pRenderer);
 
@@ -4905,10 +4917,6 @@ public:
         uiRenderDesc.pRenderer = pRenderer;
         initUserInterface(&uiRenderDesc);
 
-        UIComponentDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.4f);
-        uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
-
         const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
         LuaScriptDesc  scriptDescs[numScripts] = {};
         for (uint32_t i = 0; i < numScripts; ++i)
@@ -4920,18 +4928,9 @@ public:
         }
         luaDefineScripts(scriptDescs, numScripts);
 
-        InputSystemDesc inputDesc = {};
-        inputDesc.pRenderer = pRenderer;
-        inputDesc.pWindow = pWindow;
-        inputDesc.pJoystickTexture = "circlepad.tex";
-        if (!initInputSystem(&inputDesc))
-            return false;
-
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
         initProfiler(&profiler);
 
         /************************************************************************/
@@ -4955,7 +4954,7 @@ public:
         BufferLoadDesc vbConstantUBDesc = {};
         vbConstantUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         vbConstantUBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        vbConstantUBDesc.mDesc.mSize = sizeof(PerFrameVBConstants);
+        vbConstantUBDesc.mDesc.mSize = sizeof(PerFrameVBConstantsData);
         vbConstantUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
         vbConstantUBDesc.mDesc.pName = "PerFrameVBConstants Buffer Desc";
         vbConstantUBDesc.pData = NULL;
@@ -5201,7 +5200,7 @@ public:
         // Add GPU profiler
         /************************************************************************/
         for (uint32_t i = 0; i < SHADOW_TYPE_COUNT; ++i)
-            gCurrentGpuProfileTokens[i] = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+            gCurrentGpuProfileTokens[i] = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
         gCurrentGpuProfileToken = gCurrentShadowType;
         /************************************************************************/
         // Add samplers
@@ -5449,72 +5448,6 @@ public:
         sdfVolumeTextureAtlasLoadDesc.pDesc = &sdfVolumeTextureAtlasDesc;
         sdfVolumeTextureAtlasLoadDesc.ppTexture = &pTextureSDFVolumeAtlas;
         addResource(&sdfVolumeTextureAtlasLoadDesc, NULL);
-        /*************************************************/
-        //					UI
-        /*************************************************/
-
-        calculateCurSDFMeshesProgress();
-        sSDFProgressMaxValue = LightShadowPlayground::getMaxSDFMeshesProgress();
-
-        UIComponentDesc guiDesc2 = {};
-        guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.4f);
-        uiCreateComponent("Generating SDF", &guiDesc2, &pLoadingGui);
-        ProgressBarWidget ProgressBar;
-        ProgressBar.pData = &sSDFProgressValue;
-        ProgressBar.mMaxProgress = sSDFProgressMaxValue;
-        luaRegisterWidget(
-            uiCreateComponentWidget(pLoadingGui, "               [ProgressBar]               ", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
-
-        UIComponentDesc guiDesc3 = {};
-        guiDesc3.mStartPosition = vec2(mSettings.mWidth * 0.75f, mSettings.mHeight * 0.6f);
-        uiCreateComponent("Screen Space Shadows", &guiDesc3, &pSSSGui);
-
-        // Screen Space Shadows Controls UI
-        {
-            CheckboxWidget SSSEnabled = {};
-            SSSEnabled.pData = (bool*)&gSSSEnabled;
-
-            SliderFloatWidget surfaceThicknessControl = {};
-            surfaceThicknessControl.pData = &gSSSUniformData.mSurfaceThickness;
-            surfaceThicknessControl.mMin = 0.0f;
-            surfaceThicknessControl.mMax = 0.3f;
-            surfaceThicknessControl.mStep = 0.0001f;
-
-            SliderFloatWidget bilinearThresholdControl = {};
-            bilinearThresholdControl.pData = &gSSSUniformData.mBilinearThreshold;
-            bilinearThresholdControl.mMin = 0.0f;
-            bilinearThresholdControl.mMax = 0.5f;
-            bilinearThresholdControl.mStep = 0.001f;
-
-            SliderFloatWidget shadowContrastControl = {};
-            shadowContrastControl.pData = &gSSSUniformData.mShadowContrast;
-            shadowContrastControl.mMin = 0.0f;
-            shadowContrastControl.mMax = 16.0f;
-            shadowContrastControl.mStep = 0.1f;
-
-            CheckboxWidget IgnoreEdgePixels = {};
-            IgnoreEdgePixels.pData = (bool*)&gSSSUniformData.mIgnoreEdgePixels;
-
-            CheckboxWidget BilinearSamplingOffsetMode = {};
-            BilinearSamplingOffsetMode.pData = (bool*)&gSSSUniformData.mBilinearSamplingOffsetMode;
-
-            DropdownWidget debugOutputControl = {};
-            debugOutputControl.pData = &gSSSUniformData.mDebugOutputMode;
-            static const char* debugOutputNames[] = { "None", "Edge Mask", "Thread Index", "Wave Index" };
-            debugOutputControl.pNames = debugOutputNames;
-            debugOutputControl.mCount = 4;
-
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Enable Screen Space Shadows", &SSSEnabled, WIDGET_TYPE_CHECKBOX));
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Surface Thickness", &surfaceThicknessControl, WIDGET_TYPE_SLIDER_FLOAT));
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Bilinear Threshold", &bilinearThresholdControl, WIDGET_TYPE_SLIDER_FLOAT));
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Shadow Contrast", &shadowContrastControl, WIDGET_TYPE_SLIDER_FLOAT));
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Ignore Edge Pixels", &IgnoreEdgePixels, WIDGET_TYPE_CHECKBOX));
-            luaRegisterWidget(
-                uiCreateComponentWidget(pSSSGui, "Bilinear Sampling Offset Mode", &BilinearSamplingOffsetMode, WIDGET_TYPE_CHECKBOX));
-            luaRegisterWidget(uiCreateComponentWidget(pSSSGui, "Debug Ouput Mode", &debugOutputControl, WIDGET_TYPE_DROPDOWN));
-        }
-
-        GuiController::addGui();
 
         CameraMotionParameters cmp{ 146.0f, 300.0f, 140.0f };
         vec3                   camPos = vec3(120.f + SAN_MIGUEL_OFFSETX, 98.f, 14.f);
@@ -5524,101 +5457,12 @@ public:
         pCameraController = initFpsCameraController(camPos, lookAt);
         pCameraController->setMotionParameters(cmp);
 
-        // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
-                                       [](InputActionContext* ctx)
-                                       {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
-                                           return true;
-                                       },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           requestShutdown();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        InputActionCallback onUIInput = [](InputActionContext* ctx)
-        {
-            UNREF_PARAM(ctx);
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
-            {
-                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-            }
-            return true;
-        };
-
-        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
-        static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
-        {
-            if (*(ctx->pCaptured))
-            {
-                float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
-                switch (action)
-                {
-                case DefaultInputActions::ROTATE_CAMERA:
-                    pCameraController->onRotate(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA:
-                    pCameraController->onMove(delta);
-                    break;
-                case DefaultInputActions::TRANSLATE_CAMERA_VERTICAL:
-                    pCameraController->onMoveY(delta[0]);
-                    break;
-                default:
-                    break;
-                }
-            }
-            return true;
-        };
-        actionDesc = { DefaultInputActions::CAPTURE_INPUT,
-                       [](InputActionContext* ctx)
-                       {
-                           setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-                           return true;
-                       },
-                       NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::ROTATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::ROTATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TRANSLATE_CAMERA_VERTICAL,
-                       [](InputActionContext* ctx) { return onCameraInput(ctx, DefaultInputActions::TRANSLATE_CAMERA_VERTICAL); }, NULL };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx)
-                       {
-                           UNREF_PARAM(ctx);
-                           if (!uiWantTextInput())
-                               pCameraController->resetView();
-                           return true;
-                       } };
-        addInputAction(&actionDesc);
-        GlobalInputActionDesc globalInputActionDesc = { GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this };
-        setGlobalInputAction(&globalInputActionDesc);
+        AddCustomInputBindings();
 
         waitForAllResourceLoads();
 
         tf_free(meshConstants);
-
+        initScreenshotInterface(pRenderer, pGraphicsQueue);
         gFrameIndex = 0;
 
         return true;
@@ -5628,7 +5472,7 @@ public:
     {
         SyncToken       token = {};
         TextureLoadDesc skyboxTriDesc = {};
-        skyboxTriDesc.pFileName = "daytime_cube.tex";
+        skyboxTriDesc.pFileName = "SanMiguel_3/daytime_cube.tex";
         skyboxTriDesc.ppTexture = &pTextureSkybox;
         addResource(&skyboxTriDesc, &token);
 
@@ -5743,15 +5587,13 @@ public:
 
     void Exit() override
     {
+        exitScreenshotInterface();
         threadSystemWaitIdle(gThreadSystem);
 
-        exitInputSystem();
         threadSystemExit(&gThreadSystem, &gThreadSystemExitDescDefault);
 
         exitCameraController(pCameraController);
         exitCameraController(pLightView);
-
-        GuiController::removeGui();
 
         for (uint32_t i = 0; i < TF_ARRAY_COUNT(SDFMeshes); ++i)
         {
@@ -5761,7 +5603,7 @@ public:
         }
 
         for (uint32_t i = 0; i < SHADOW_TYPE_COUNT; ++i)
-            removeGpuProfiler(gCurrentGpuProfileTokens[i]);
+            exitGpuProfiler(gCurrentGpuProfileTokens[i]);
 
         exitProfiler();
 
@@ -5873,15 +5715,17 @@ public:
 
         removeResource(pTextureSkybox);
 
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
+        exitSemaphore(pRenderer, pImageAcquiredSemaphore);
+        exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
         exitVisibilityBuffer(pVisibilityBuffer);
 
         exitResourceLoaderInterface(pRenderer);
-        removeQueue(pRenderer, pGraphicsQueue);
+        exitQueue(pRenderer, pGraphicsQueue);
 
         exitRenderer(pRenderer);
+        exitGPUConfiguration();
+
         pRenderer = NULL;
     }
 
@@ -5907,6 +5751,75 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
+            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+
+            UIComponentDesc guiDesc = {};
+            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            uiAddComponent(GetName(), &guiDesc, &pGuiWindow);
+
+            calculateCurSDFMeshesProgress();
+            sSDFProgressMaxValue = LightShadowPlayground::getMaxSDFMeshesProgress();
+
+            UIComponentDesc guiDesc2 = {};
+            guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.4f);
+            uiAddComponent("Generating SDF", &guiDesc2, &pLoadingGui);
+            ProgressBarWidget ProgressBar;
+            ProgressBar.pData = &sSDFProgressValue;
+            ProgressBar.mMaxProgress = sSDFProgressMaxValue;
+            luaRegisterWidget(
+                uiAddComponentWidget(pLoadingGui, "               [ProgressBar]               ", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
+
+            UIComponentDesc guiDesc3 = {};
+            guiDesc3.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.6f);
+            uiAddComponent("Screen Space Shadows", &guiDesc3, &pSSSGui);
+
+            // Screen Space Shadows Controls UI
+            {
+                CheckboxWidget SSSEnabled = {};
+                SSSEnabled.pData = (bool*)&gSSSEnabled;
+
+                SliderFloatWidget surfaceThicknessControl = {};
+                surfaceThicknessControl.pData = &gSSSUniformData.mSurfaceThickness;
+                surfaceThicknessControl.mMin = 0.0f;
+                surfaceThicknessControl.mMax = 0.3f;
+                surfaceThicknessControl.mStep = 0.0001f;
+
+                SliderFloatWidget bilinearThresholdControl = {};
+                bilinearThresholdControl.pData = &gSSSUniformData.mBilinearThreshold;
+                bilinearThresholdControl.mMin = 0.0f;
+                bilinearThresholdControl.mMax = 0.5f;
+                bilinearThresholdControl.mStep = 0.001f;
+
+                SliderFloatWidget shadowContrastControl = {};
+                shadowContrastControl.pData = &gSSSUniformData.mShadowContrast;
+                shadowContrastControl.mMin = 0.0f;
+                shadowContrastControl.mMax = 16.0f;
+                shadowContrastControl.mStep = 0.1f;
+
+                CheckboxWidget IgnoreEdgePixels = {};
+                IgnoreEdgePixels.pData = (bool*)&gSSSUniformData.mIgnoreEdgePixels;
+
+                CheckboxWidget BilinearSamplingOffsetMode = {};
+                BilinearSamplingOffsetMode.pData = (bool*)&gSSSUniformData.mBilinearSamplingOffsetMode;
+
+                DropdownWidget debugOutputControl = {};
+                debugOutputControl.pData = &gSSSUniformData.mDebugOutputMode;
+                static const char* debugOutputNames[] = { "None", "Edge Mask", "Thread Index", "Wave Index" };
+                debugOutputControl.pNames = debugOutputNames;
+                debugOutputControl.mCount = 4;
+
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Enable Screen Space Shadows", &SSSEnabled, WIDGET_TYPE_CHECKBOX));
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Surface Thickness", &surfaceThicknessControl, WIDGET_TYPE_SLIDER_FLOAT));
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Bilinear Threshold", &bilinearThresholdControl, WIDGET_TYPE_SLIDER_FLOAT));
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Shadow Contrast", &shadowContrastControl, WIDGET_TYPE_SLIDER_FLOAT));
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Ignore Edge Pixels", &IgnoreEdgePixels, WIDGET_TYPE_CHECKBOX));
+                luaRegisterWidget(
+                    uiAddComponentWidget(pSSSGui, "Bilinear Sampling Offset Mode", &BilinearSamplingOffsetMode, WIDGET_TYPE_CHECKBOX));
+                luaRegisterWidget(uiAddComponentWidget(pSSSGui, "Debug Ouput Mode", &debugOutputControl, WIDGET_TYPE_DROPDOWN));
+            }
+
+            GuiController::addGui();
+
             if (pReloadDesc->mType & RELOAD_TYPE_RENDERTARGET)
             {
                 if (gAppSettings.mMsaaIndex != gAppSettings.mMsaaIndexRequested)
@@ -5951,8 +5864,6 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
-
         return true;
     }
 
@@ -5975,9 +5886,15 @@ public:
 
             if (pUIASMDebugTexturesWindow)
             {
-                uiDestroyComponent(pUIASMDebugTexturesWindow);
+                uiRemoveComponent(pUIASMDebugTexturesWindow);
                 pUIASMDebugTexturesWindow = NULL;
             }
+
+            GuiController::removeGui();
+            uiRemoveComponent(pGuiWindow);
+            uiRemoveComponent(pSSSGui);
+            uiRemoveComponent(pLoadingGui);
+            unloadProfilerUI();
 
             ESRAM_RESET_ALLOCS(pRenderer);
         }
@@ -5993,8 +5910,6 @@ public:
         {
             sShouldExitSDFGeneration = true;
         }
-
-        exitScreenshotInterface();
     }
 
     void UpdateQuadData() { gQuadUniformData.mModelMat = mat4::translation(vec3(-0.5, -0.5, 0.0)) * mat4::scale(vec3(0.25f)); }
@@ -6079,7 +5994,32 @@ public:
 
     void Update(float deltaTime) override
     {
-        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        if (!uiIsFocused())
+        {
+            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
+            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
+            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            if (inputGetValue(0, CUSTOM_RESET_VIEW))
+            {
+                pCameraController->resetView();
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_FULLSCREEN))
+            {
+                toggleFullscreen(pWindow);
+            }
+            if (inputGetValue(0, CUSTOM_TOGGLE_UI))
+            {
+                uiToggleActive();
+            }
+            if (inputGetValue(0, CUSTOM_DUMP_PROFILE))
+            {
+                dumpProfileData(GetName());
+            }
+            if (inputGetValue(0, CUSTOM_EXIT))
+            {
+                requestShutdown();
+            }
+        }
 
         if (gASMCpuSettings.mSunCanMove && gCurrentShadowType == SHADOW_TYPE_ASM)
         {
@@ -6250,7 +6190,7 @@ public:
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_SHADOW, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-            cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
+            cmdExecuteIndirect(cmd, INDIRECT_DRAW_INDEX, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
         }
 
         cmdBindRenderTargets(cmd, NULL);
@@ -6332,7 +6272,7 @@ public:
         DispatchParams dispatchList[8] = {};
         int            dispatchCount = 0;
 
-        vec3 lightDir = normalize(-gLightUniformData.mLightDir);
+        vec3 lightDir = normalize(-gLightUniformData.mLightDir.getXYZ());
         mat4 viewProject = gCameraUniformData.mViewProject.mCamera;
 
         vec4      lightProjection = viewProject * vec4(lightDir, 0.0f);
@@ -6545,10 +6485,10 @@ public:
         memcpy(updateDesc.pMappedData, node->mSDFVolumeData->mSDFVolumeList, arrlen(node->mSDFVolumeData->mSDFVolumeList) * sizeof(float));
         endUpdateResource(&updateDesc);
 
-        gUpdateSDFVolumeTextureAtlasConstants.mSourceAtlasVolumeMinCoord = node->mAtlasAllocationCoord;
-        gUpdateSDFVolumeTextureAtlasConstants.mSourceDimensionSize = node->mSDFVolumeData->mSDFVolumeSize;
+        gUpdateSDFVolumeTextureAtlasConstants.mSourceAtlasVolumeMinCoord = ivec4(node->mAtlasAllocationCoord.get128());
+        gUpdateSDFVolumeTextureAtlasConstants.mSourceDimensionSize = ivec4(node->mSDFVolumeData->mSDFVolumeSize.get128());
         gUpdateSDFVolumeTextureAtlasConstants.mSourceAtlasVolumeMaxCoord =
-            node->mAtlasAllocationCoord + (node->mSDFVolumeData->mSDFVolumeSize - ivec3(1));
+            ivec4((node->mAtlasAllocationCoord + (node->mSDFVolumeData->mSDFVolumeSize - ivec3(1))).get128());
 
         BufferUpdateDesc meshSDFConstantUpdate = { pBufferUpdateSDFVolumeTextureAtlasConstants[gFrameIndex] };
 
@@ -6661,7 +6601,7 @@ public:
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-            cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
+            cmdExecuteIndirect(cmd, INDIRECT_DRAW_INDEX, 1, pIndirectDrawBuffer, indirectBufferByteOffset, NULL, 0);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
@@ -6844,7 +6784,7 @@ public:
         gCameraUniformData.mFarNear = nearValue * farValue;
         gCameraUniformData.mCameraPos = vec4(pCameraController->getViewPosition(), 1.f);
 
-        gCameraUniformData.mTwoOverRes = vec2(1.5f / width, 1.5f / height);
+        gCameraUniformData.mTwoOverRes = { 2.0f / float(width), 2.0f / float(height) };
 
         float depthMul = projMat.mCamera[2][2];
         float depthAdd = projMat.mCamera[3][2];
@@ -6880,14 +6820,14 @@ public:
         mat4 translation = mat4::translation(-vec3(lightSourcePos));
 
         vec3         newLightDir = vec4(inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ();
-        CameraMatrix lightProjMat = CameraMatrix::orthographic(-140, 140, -210, 90, -220, 100);
+        CameraMatrix lightProjMat = CameraMatrix::orthographicReverseZ(-140, 140, -210, 90, -220, 100);
         mat4         lightView = rotation * translation;
 
         gLightUniformData.mLightPosition = vec4(0.f);
         gLightUniformData.mLightViewProj = lightProjMat * lightView;
         gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
         gLightUniformData.mLightUpVec = transpose(lightView)[1];
-        gLightUniformData.mLightDir = newLightDir;
+        gLightUniformData.mLightDir = vec4(newLightDir, 0.0f);
 
         const float lightSourceAngle = clamp(gLightCpuSettings.mSourceAngle, 0.001f, 4.0f) * PI / 180.0f;
         gLightUniformData.mTanLightAngleAndThresholdValue =
@@ -7438,7 +7378,7 @@ public:
         /************************************************************************/
         RenderTargetDesc shadowRTDesc = {};
         shadowRTDesc.mArraySize = 1;
-        shadowRTDesc.mClearValue.depth = lessEqualDepthStencilClear.depth;
+        shadowRTDesc.mClearValue.depth = depthStencilClear.depth;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         shadowRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_D32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
@@ -8187,7 +8127,7 @@ public:
             {
                 params[0].pName = "SDFVolumeDataBuffer";
                 params[0].ppBuffers = &pBufferSDFVolumeData[i];
-                params[1].pName = "UpdateSDFVolumeTextureAtlasCB";
+                params[1].pName = "updateSDFVolumeAtlas";
                 params[1].ppBuffers = &pBufferUpdateSDFVolumeTextureAtlasConstants[i];
                 updateDescriptorSet(pRenderer, i, pDescriptorSetUpdateSDFVolumeTextureAtlas[1], 2, params);
             }
@@ -8286,7 +8226,7 @@ public:
 
             for (uint32_t i = 0; i < gDataBufferCount; i++)
             {
-                params[2].pName = "SSSUniformData";
+                params[2].pName = "SSSUniform";
                 params[2].ppBuffers = &pBufferSSSUniform[i];
                 params[2].mCount = 1;
 
@@ -8464,11 +8404,6 @@ public:
 
         addRootSignature(pRenderer, &SSSRootDesc, &pRootSignatureSSS);
         gSSSRootConstantIndex = getDescriptorIndexFromName(pRootSignatureSSS, "DispatchRootConstants");
-
-        IndirectArgumentDescriptor indirectArg = {};
-        indirectArg.mType = INDIRECT_DRAW_INDEX;
-        CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, &indirectArg, 1 };
-        addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
     }
 
     void removeRootSignatures()
@@ -8499,107 +8434,101 @@ public:
 
         removeRootSignature(pRenderer, pRootSignatureVBShade);
         removeRootSignature(pRenderer, pRootSignatureSSS);
-        removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
     }
 
     void addShaders()
     {
         ShaderLoadDesc skyboxShaderDesc = {};
-        skyboxShaderDesc.mStages[0].pFileName = "skybox.vert";
-        skyboxShaderDesc.mStages[1].pFileName = "skybox.frag";
+        skyboxShaderDesc.mVert.pFileName = "skybox.vert";
+        skyboxShaderDesc.mFrag.pFileName = "skybox.frag";
 
         addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
         ShaderLoadDesc indirectDepthPassShaderDesc = {};
-        indirectDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPass.vert";
+        indirectDepthPassShaderDesc.mVert.pFileName = "meshDepthPass.vert";
 
         ShaderLoadDesc indirectAlphaDepthPassShaderDesc = {};
-        indirectAlphaDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPassAlpha.vert";
-        indirectAlphaDepthPassShaderDesc.mStages[1].pFileName = "meshDepthPassAlpha.frag";
+        indirectAlphaDepthPassShaderDesc.mVert.pFileName = "meshDepthPassAlpha.vert";
+        indirectAlphaDepthPassShaderDesc.mFrag.pFileName = "meshDepthPassAlpha.frag";
 
         ShaderLoadDesc indirectVSMDepthPassShaderDesc = {};
-        indirectVSMDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPass.vert";
-        indirectVSMDepthPassShaderDesc.mStages[1].pFileName =
+        indirectVSMDepthPassShaderDesc.mVert.pFileName = "meshDepthPass.vert";
+        indirectVSMDepthPassShaderDesc.mFrag.pFileName =
             gFloat2RWTextureSupported ? "meshVSMDepthPass.frag" : "meshVSMDepthPass_F4_VSM.frag";
 
         ShaderLoadDesc indirectMSMDepthPassShaderDesc = {};
-        indirectMSMDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPass.vert";
-        indirectMSMDepthPassShaderDesc.mStages[1].pFileName = "meshMSMDepthPass.frag";
+        indirectMSMDepthPassShaderDesc.mVert.pFileName = "meshDepthPass.vert";
+        indirectMSMDepthPassShaderDesc.mFrag.pFileName = "meshMSMDepthPass.frag";
 
         ShaderLoadDesc indirectVSMAlphaDepthPassShaderDesc = {};
-        indirectVSMAlphaDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPassAlpha.vert";
-        indirectVSMAlphaDepthPassShaderDesc.mStages[1].pFileName =
+        indirectVSMAlphaDepthPassShaderDesc.mVert.pFileName = "meshDepthPassAlpha.vert";
+        indirectVSMAlphaDepthPassShaderDesc.mFrag.pFileName =
             gFloat2RWTextureSupported ? "meshVSMDepthPassAlpha.frag" : "meshVSMDepthPassAlpha_F4_VSM.frag";
 
         ShaderLoadDesc indirectMSMAlphaDepthPassShaderDesc = {};
-        indirectMSMAlphaDepthPassShaderDesc.mStages[0].pFileName = "meshDepthPassAlpha.vert";
-        indirectMSMAlphaDepthPassShaderDesc.mStages[1].pFileName = "meshMSMDepthPassAlpha.frag";
+        indirectMSMAlphaDepthPassShaderDesc.mVert.pFileName = "meshDepthPassAlpha.vert";
+        indirectMSMAlphaDepthPassShaderDesc.mFrag.pFileName = "meshMSMDepthPassAlpha.frag";
 
         ShaderLoadDesc ASMCopyDepthQuadsShaderDesc = {};
-        ASMCopyDepthQuadsShaderDesc.mStages[0].pFileName = "copyDepthQuads.vert";
-        ASMCopyDepthQuadsShaderDesc.mStages[1].pFileName = "copyDepthQuads.frag";
+        ASMCopyDepthQuadsShaderDesc.mVert.pFileName = "copyDepthQuads.vert";
+        ASMCopyDepthQuadsShaderDesc.mFrag.pFileName = "copyDepthQuads.frag";
 
         ShaderLoadDesc ASMFillIndirectionShaderDesc = {};
-        ASMFillIndirectionShaderDesc.mStages[0].pFileName = "fill_Indirection.vert";
-        ASMFillIndirectionShaderDesc.mStages[1].pFileName = "fill_Indirection.frag";
+        ASMFillIndirectionShaderDesc.mVert.pFileName = "fill_Indirection.vert";
+        ASMFillIndirectionShaderDesc.mFrag.pFileName = "fill_Indirection.frag";
 
         ShaderLoadDesc ASMCopyDEMQuadsShaderDesc = {};
-        ASMCopyDEMQuadsShaderDesc.mStages[0].pFileName = "copyDEMQuads.vert";
-        ASMCopyDEMQuadsShaderDesc.mStages[1].pFileName = "copyDEMQuads.frag";
+        ASMCopyDEMQuadsShaderDesc.mVert.pFileName = "copyDEMQuads.vert";
+        ASMCopyDEMQuadsShaderDesc.mFrag.pFileName = "copyDEMQuads.frag";
 
         addShader(pRenderer, &ASMCopyDEMQuadsShaderDesc, &pShaderASMCopyDEM);
 
         ShaderLoadDesc ASMGenerateDEMShaderDesc = {};
-        ASMGenerateDEMShaderDesc.mStages[0].pFileName = "generateAsmDEM.vert";
-        ASMGenerateDEMShaderDesc.mStages[1].pFileName = "generateAsmDEM.frag";
+        ASMGenerateDEMShaderDesc.mVert.pFileName = "generateAsmDEM.vert";
+        ASMGenerateDEMShaderDesc.mFrag.pFileName = "generateAsmDEM.frag";
         addShader(pRenderer, &ASMGenerateDEMShaderDesc, &pShaderASMGenerateDEM);
 
-#if defined(VULKAN)
-        // Some vulkan driver doesn't generate glPrimitiveID without a geometry pass (steam deck as 03/30/2023)
-        bool addGeometryPassThrough = gGpuSettings.mAddGeometryPassThrough && pRenderer->mRendererApi == RENDERER_API_VULKAN;
-#else
-        bool addGeometryPassThrough = false;
-#endif
-        // No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
-#if defined(ORBIS) || defined(PROSPERO)
-        addGeometryPassThrough = true;
-#endif
-
         ShaderLoadDesc visibilityBufferPassShaderDesc = {};
-        visibilityBufferPassShaderDesc.mStages[0].pFileName = "visibilityBufferPass.vert";
-        visibilityBufferPassShaderDesc.mStages[1].pFileName = "visibilityBufferPass.frag";
+        visibilityBufferPassShaderDesc.mVert.pFileName = "visibilityBufferPass.vert";
+        visibilityBufferPassShaderDesc.mFrag.pFileName = "visibilityBufferPass.frag";
+
+        // Some vulkan driver doesn't generate glPrimitiveID without a geometry pass (steam deck as 03/30/2023)
+        bool addGeometryPassThrough = gGpuSettings.mAddGeometryPassThrough;
         if (addGeometryPassThrough)
         {
             // a passthrough gs
-            visibilityBufferPassShaderDesc.mStages[2].pFileName = "visibilityBufferPass.geom";
+            visibilityBufferPassShaderDesc.mGeom.pFileName = "visibilityBufferPass.geom";
         }
+
         addShader(pRenderer, &visibilityBufferPassShaderDesc, &pShaderVBBufferPass[GEOMSET_OPAQUE]);
 
         ShaderLoadDesc visibilityBufferPassAlphaShaderDesc = {};
-        visibilityBufferPassAlphaShaderDesc.mStages[0].pFileName = "visibilityBufferPassAlpha.vert";
-        visibilityBufferPassAlphaShaderDesc.mStages[1].pFileName = "visibilityBufferPassAlpha.frag";
+        visibilityBufferPassAlphaShaderDesc.mVert.pFileName = "visibilityBufferPassAlpha.vert";
+        visibilityBufferPassAlphaShaderDesc.mFrag.pFileName = "visibilityBufferPassAlpha.frag";
+
         if (addGeometryPassThrough)
         {
             // a passthrough gs
-            visibilityBufferPassAlphaShaderDesc.mStages[2].pFileName = "visibilityBufferPassAlpha.geom";
+            visibilityBufferPassAlphaShaderDesc.mGeom.pFileName = "visibilityBufferPassAlpha.geom";
         }
+
         addShader(pRenderer, &visibilityBufferPassAlphaShaderDesc, &pShaderVBBufferPass[GEOMSET_ALPHA_CUTOUT]);
 
         ShaderLoadDesc clearBuffersShaderDesc = {};
-        clearBuffersShaderDesc.mStages[0].pFileName = "clearVisibilityBuffers.comp";
+        clearBuffersShaderDesc.mComp.pFileName = "clearVisibilityBuffers.comp";
         addShader(pRenderer, &clearBuffersShaderDesc, &pShaderClearBuffers);
 
         ShaderLoadDesc triangleFilteringShaderDesc = {};
-        triangleFilteringShaderDesc.mStages[0].pFileName = "triangleFiltering.comp";
+        triangleFilteringShaderDesc.mComp.pFileName = "triangleFiltering.comp";
         addShader(pRenderer, &triangleFilteringShaderDesc, &pShaderTriangleFiltering);
 
         ShaderLoadDesc BlurCompShaderDesc = {};
 
-        BlurCompShaderDesc.mStages[0].pFileName = "gaussianBlur.comp";
+        BlurCompShaderDesc.mComp.pFileName = "gaussianBlur.comp";
         addShader(pRenderer, &BlurCompShaderDesc, &pShaderBlurComp);
 
         ShaderLoadDesc updateSDFVolumeTextureAtlasShaderDesc = {};
-        updateSDFVolumeTextureAtlasShaderDesc.mStages[0].pFileName = "updateRegion3DTexture.comp";
+        updateSDFVolumeTextureAtlasShaderDesc.mComp.pFileName = "updateRegion3DTexture.comp";
 
         addShader(pRenderer, &updateSDFVolumeTextureAtlasShaderDesc, &pShaderUpdateSDFVolumeTextureAtlas);
 
@@ -8639,48 +8568,61 @@ public:
             "resolve_SAMPLE_COUNT_4.frag",
         };
 
-        const char* ScreenSpaceShadows[] = { "screenSpaceShadows_SAMPLE_COUNT_1.comp", "screenSpaceShadows_SAMPLE_COUNT_2.comp",
-                                             "screenSpaceShadows_SAMPLE_COUNT_4.comp" };
+        WaveOpsSupportFlags waveFlags = pRenderer->pGpu->mSettings.mWaveOpsSupportFlags;
+
+        const char* ScreenSpaceShadowsShaders[] = { "screenSpaceShadows_SAMPLE_COUNT_1.comp", "screenSpaceShadows_SAMPLE_COUNT_2.comp",
+                                                    "screenSpaceShadows_SAMPLE_COUNT_4.comp" };
+
+        const char* ScreenSpaceShadowsShadersWaveSupport[] = { "screenSpaceShadows_wave_SAMPLE_COUNT_1.comp",
+                                                               "screenSpaceShadows_wave_SAMPLE_COUNT_2.comp",
+                                                               "screenSpaceShadows_wave_SAMPLE_COUNT_4.comp" };
 
         for (uint32_t i = 0; i < MSAA_LEVELS_COUNT; ++i)
         {
             ShaderLoadDesc meshSDFVisualizationShaderDesc = {};
-            meshSDFVisualizationShaderDesc.mStages[0].pFileName = visualizeSDFMesh[i];
+            meshSDFVisualizationShaderDesc.mComp.pFileName = visualizeSDFMesh[i];
             addShader(pRenderer, &meshSDFVisualizationShaderDesc, &pShaderSDFMeshVisualization[i]);
 
             ShaderLoadDesc sdfShadowMeshShaderDesc = {};
-            sdfShadowMeshShaderDesc.mStages[0].pFileName = bakedSDFMeshShadow[i];
+            sdfShadowMeshShaderDesc.mComp.pFileName = bakedSDFMeshShadow[i];
             addShader(pRenderer, &sdfShadowMeshShaderDesc, &pShaderSDFMeshShadow[i]);
 
             ShaderLoadDesc upSampleSDFShadowShaderDesc = {};
-            upSampleSDFShadowShaderDesc.mStages[0].pFileName = "upsampleSDFShadow.vert";
-            upSampleSDFShadowShaderDesc.mStages[1].pFileName = upsampleSDFShadow[i];
+            upSampleSDFShadowShaderDesc.mVert.pFileName = "upsampleSDFShadow.vert";
+            upSampleSDFShadowShaderDesc.mFrag.pFileName = upsampleSDFShadow[i];
             addShader(pRenderer, &upSampleSDFShadowShaderDesc, &pShaderUpsampleSDFShadow[i]);
 
             ShaderLoadDesc visibilityBufferShadeShaderDesc = {};
-            visibilityBufferShadeShaderDesc.mStages[0].pFileName = "visibilityBufferShade.vert";
-            visibilityBufferShadeShaderDesc.mStages[1].pFileName =
+            visibilityBufferShadeShaderDesc.mVert.pFileName = "visibilityBufferShade.vert";
+            visibilityBufferShadeShaderDesc.mFrag.pFileName =
                 gFloat2RWTextureSupported ? visibilityBufferShade[i] : visibilityBufferShadeUseFloat4Vsm[i];
             addShader(pRenderer, &visibilityBufferShadeShaderDesc, &pShaderVBShade[i]);
 
             // Resolve shader
             ShaderLoadDesc resolvePass = {};
-            resolvePass.mStages[0].pFileName = "resolve.vert";
-            resolvePass.mStages[1].pFileName = resolve[i];
+            resolvePass.mVert.pFileName = "resolve.vert";
+            resolvePass.mFrag.pFileName = resolve[i];
             addShader(pRenderer, &resolvePass, &pShaderResolve[i]);
 
             ShaderLoadDesc screenSpaceShadowsShaderDesc = {};
-            screenSpaceShadowsShaderDesc.mStages[0].pFileName = ScreenSpaceShadows[i];
+            if ((waveFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) && (waveFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT))
+            {
+                screenSpaceShadowsShaderDesc.mComp.pFileName = ScreenSpaceShadowsShadersWaveSupport[i];
+            }
+            else
+            {
+                screenSpaceShadowsShaderDesc.mComp.pFileName = ScreenSpaceShadowsShaders[i];
+            }
             addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSS[i]);
         }
 
         ShaderLoadDesc screenSpaceShadowsShaderDesc = {};
-        screenSpaceShadowsShaderDesc.mStages[0].pFileName = "clearScreenSpaceShadows.comp";
+        screenSpaceShadowsShaderDesc.mComp.pFileName = "clearScreenSpaceShadows.comp";
         addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSSClear);
 
         ShaderLoadDesc presentShaderDesc = {};
-        presentShaderDesc.mStages[0].pFileName = "display.vert";
-        presentShaderDesc.mStages[1].pFileName = "display.frag";
+        presentShaderDesc.mVert.pFileName = "display.vert";
+        presentShaderDesc.mFrag.pFileName = "display.frag";
         addShader(pRenderer, &presentShaderDesc, &pShaderPresentPass);
 
         /************************************************************************/
@@ -8698,7 +8640,7 @@ public:
         addShader(pRenderer, &ASMCopyDepthQuadsShaderDesc, &pShaderASMCopyDepthQuadPass);
         addShader(pRenderer, &ASMFillIndirectionShaderDesc, &pShaderASMFillIndirection);
 #if defined(ORBIS) || defined(PROSPERO)
-        ASMFillIndirectionShaderDesc.mStages[1].pFileName = "fill_Indirection_fp16.frag";
+        ASMFillIndirectionShaderDesc.mFrag.pFileName = "fill_Indirection_fp16.frag";
         addShader(pRenderer, &ASMFillIndirectionShaderDesc, &pShaderASMFillIndirectionFP16);
 #endif
     }
@@ -8795,11 +8737,6 @@ public:
         depthStateEnabledDesc.mDepthFunc = CMP_GEQUAL;
         depthStateEnabledDesc.mDepthWrite = true;
         depthStateEnabledDesc.mDepthTest = true;
-
-        DepthStateDesc depthStateLEQUALEnabledDesc = {};
-        depthStateLEQUALEnabledDesc.mDepthFunc = CMP_LEQUAL;
-        depthStateLEQUALEnabledDesc.mDepthWrite = true;
-        depthStateLEQUALEnabledDesc.mDepthTest = true;
 
         RasterizerStateDesc rasterStateCullNoneDesc = { CULL_MODE_NONE };
         RasterizerStateDesc rasterStateCullNoneMsDesc = { CULL_MODE_NONE, 0, 0, FILL_MODE_SOLID };
@@ -9023,7 +8960,7 @@ public:
         GraphicsPipelineDesc& indirectESMDepthPassPipelineDesc = desc.mGraphicsDesc;
         indirectESMDepthPassPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         indirectESMDepthPassPipelineDesc.mRenderTargetCount = 0;
-        indirectESMDepthPassPipelineDesc.pDepthState = &depthStateLEQUALEnabledDesc;
+        indirectESMDepthPassPipelineDesc.pDepthState = &depthStateEnabledDesc;
         indirectESMDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
         indirectESMDepthPassPipelineDesc.mSampleCount = pRenderTargetShadowMap->mSampleCount;
         indirectESMDepthPassPipelineDesc.mSampleQuality = pRenderTargetShadowMap->mSampleQuality;
@@ -9040,7 +8977,7 @@ public:
         GraphicsPipelineDesc& indirectVSMDepthPassPipelineDesc = desc.mGraphicsDesc;
         indirectVSMDepthPassPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         indirectVSMDepthPassPipelineDesc.mRenderTargetCount = 1;
-        indirectVSMDepthPassPipelineDesc.pDepthState = &depthStateLEQUALEnabledDesc;
+        indirectVSMDepthPassPipelineDesc.pDepthState = &depthStateEnabledDesc;
         indirectVSMDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
         indirectVSMDepthPassPipelineDesc.pColorFormats = &pRenderTargetVSM[0]->mFormat;
         indirectVSMDepthPassPipelineDesc.mSampleCount = pRenderTargetVSM[0]->mSampleCount;
@@ -9058,7 +8995,7 @@ public:
         GraphicsPipelineDesc& indirectMSMDepthPassPipelineDesc = desc.mGraphicsDesc;
         indirectMSMDepthPassPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         indirectMSMDepthPassPipelineDesc.mRenderTargetCount = 1;
-        indirectMSMDepthPassPipelineDesc.pDepthState = &depthStateLEQUALEnabledDesc;
+        indirectMSMDepthPassPipelineDesc.pDepthState = &depthStateEnabledDesc;
         indirectMSMDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
         indirectMSMDepthPassPipelineDesc.pColorFormats = &pRenderTargetMSM[0]->mFormat;
         indirectMSMDepthPassPipelineDesc.mSampleCount = pRenderTargetMSM[0]->mSampleCount;
@@ -9276,7 +9213,7 @@ void GuiController::addGui()
     SliderFloatWidget esmControlUI;
     esmControlUI.pData = &gEsmCpuSettings.mEsmControl;
     esmControlUI.mMin = 1.f;
-    esmControlUI.mMax = 300.0f;
+    esmControlUI.mMax = 400.0f;
 
     SliderUintWidget BlurKernelSizeControlUI;
     BlurKernelSizeControlUI.pData = &gBlurConstantsData.mFilterRadius;
@@ -9316,13 +9253,13 @@ void GuiController::addGui()
 
     CheckboxWidget checkbox;
     checkbox.pData = &gAppSettings.mHoldFilteredTriangles;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Hold triangles", &checkbox, WIDGET_TYPE_CHECKBOX));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Hold triangles", &checkbox, WIDGET_TYPE_CHECKBOX));
 
     DropdownWidget ddShadowType;
     ddShadowType.pData = &gRenderSettings.mShadowType;
     ddShadowType.pNames = shadowTypeNames;
     ddShadowType.mCount = shadowTypeCount;
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Shadow Type", &ddShadowType, WIDGET_TYPE_DROPDOWN));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Shadow Type", &ddShadowType, WIDGET_TYPE_DROPDOWN));
 
     // MSAA Settings
     {
@@ -9333,7 +9270,7 @@ void GuiController::addGui()
         ddMSAA.pData = &gAppSettings.mMsaaIndexRequested;
         ddMSAA.pNames = msaaSampleNames;
         ddMSAA.mCount = msaaSampleCount;
-        UIWidget* msaaWidget = uiCreateComponentWidget(pGuiWindow, "MSAA", &ddMSAA, WIDGET_TYPE_DROPDOWN);
+        UIWidget* msaaWidget = uiAddComponentWidget(pGuiWindow, "MSAA", &ddMSAA, WIDGET_TYPE_DROPDOWN);
         uiSetWidgetOnEditedCallback(msaaWidget, nullptr,
                                     [](void* pUserData)
                                     {
@@ -9346,58 +9283,57 @@ void GuiController::addGui()
     }
 
     {
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::esmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::esmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::esmDynamicWidgets, "ESM Control", &esmControlUI, WIDGET_TYPE_SLIDER_FLOAT));
+    }
+
+    {
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::vsmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::esmDynamicWidgets, "ESM Control", &esmControlUI, WIDGET_TYPE_SLIDER_FLOAT));
+            uiAddDynamicWidgets(&GuiController::vsmDynamicWidgets, "Min Variance", &vsmMinVarianceControlUI, WIDGET_TYPE_SLIDER_FLOAT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::vsmDynamicWidgets, "VSM Bleeding Reduction", &vsmBleedingControlUI,
+                                              WIDGET_TYPE_SLIDER_FLOAT2));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::vsmDynamicWidgets, "Gaussian Blur Kernel Radius", &BlurKernelSizeControlUI,
+                                              WIDGET_TYPE_SLIDER_UINT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::vsmDynamicWidgets, "Gaussian Blur Sigma", &GaussianBlurSigmaControlUI,
+                                              WIDGET_TYPE_SLIDER_FLOAT));
     }
 
     {
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::vsmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
-        luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::vsmDynamicWidgets, "Min Variance", &vsmMinVarianceControlUI, WIDGET_TYPE_SLIDER_FLOAT));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::vsmDynamicWidgets, "VSM Bleeding Reduction", &vsmBleedingControlUI,
-                                                 WIDGET_TYPE_SLIDER_FLOAT2));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::vsmDynamicWidgets, "Gaussian Blur Kernel Radius", &BlurKernelSizeControlUI,
-                                                 WIDGET_TYPE_SLIDER_UINT));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::vsmDynamicWidgets, "Gaussian Blur Sigma", &GaussianBlurSigmaControlUI,
-                                                 WIDGET_TYPE_SLIDER_FLOAT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::msmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::msmDynamicWidgets, "Rounding Error Correction",
+                                              &msmRoundingErrorCorrectionControlUI, WIDGET_TYPE_SLIDER_FLOAT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::msmDynamicWidgets, "MSM Bleeding Reduction",
+                                              &msmBleedingReductionFactorControlUI, WIDGET_TYPE_SLIDER_FLOAT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::msmDynamicWidgets, "Gaussian Blur Kernel Radius", &BlurKernelSizeControlUI,
+                                              WIDGET_TYPE_SLIDER_UINT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::msmDynamicWidgets, "Gaussian Blur Sigma", &GaussianBlurSigmaControlUI,
+                                              WIDGET_TYPE_SLIDER_FLOAT));
     }
 
     {
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::msmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::msmDynamicWidgets, "Rounding Error Correction",
-                                                 &msmRoundingErrorCorrectionControlUI, WIDGET_TYPE_SLIDER_FLOAT));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::msmDynamicWidgets, "MSM Bleeding Reduction",
-                                                 &msmBleedingReductionFactorControlUI, WIDGET_TYPE_SLIDER_FLOAT));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::msmDynamicWidgets, "Gaussian Blur Kernel Radius", &BlurKernelSizeControlUI,
-                                                 WIDGET_TYPE_SLIDER_UINT));
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::msmDynamicWidgets, "Gaussian Blur Sigma", &GaussianBlurSigmaControlUI,
-                                                 WIDGET_TYPE_SLIDER_FLOAT));
-    }
-
-    {
-        UIWidget* pSunControl = uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2);
+        UIWidget* pSunControl = uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2);
         uiSetWidgetOnActiveCallback(pSunControl, nullptr, LightShadowPlayground::refreshASM);
         luaRegisterWidget(pSunControl);
 
         ButtonWidget button;
-        UIWidget* pRefreshCache = uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Refresh Cache", &button, WIDGET_TYPE_BUTTON);
+        UIWidget*    pRefreshCache = uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Refresh Cache", &button, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(pRefreshCache, nullptr, LightShadowPlayground::refreshASM);
         luaRegisterWidget(pRefreshCache);
 
         checkbox.pData = &gASMCpuSettings.mSunCanMove;
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Sun can move", &checkbox, WIDGET_TYPE_CHECKBOX));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Sun can move", &checkbox, WIDGET_TYPE_CHECKBOX));
 
         checkbox.pData = &gASMCpuSettings.mEnableParallax;
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax corrected", &checkbox, WIDGET_TYPE_CHECKBOX));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax corrected", &checkbox, WIDGET_TYPE_CHECKBOX));
 
         SliderUintWidget maxTilesPerPass;
         maxTilesPerPass.mMin = 1;
         maxTilesPerPass.mMax = ASM_MAX_TILES_PER_PASS;
         maxTilesPerPass.mStep = 1;
         maxTilesPerPass.pData = &gASMMaxTilesPerPass;
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Max tiles to render per frame", &maxTilesPerPass,
-                                                 WIDGET_TYPE_SLIDER_UINT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Max tiles to render per frame", &maxTilesPerPass,
+                                              WIDGET_TYPE_SLIDER_UINT));
 
         SliderFloatWidget lightUpdateAngle;
         lightUpdateAngle.mMin = 0.0f;
@@ -9405,11 +9341,11 @@ void GuiController::addGui()
         lightUpdateAngle.mStep = 0.01f;
         lightUpdateAngle.pData = &gLightDirUpdateAngle;
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Light Update Angle", &lightUpdateAngle, WIDGET_TYPE_SLIDER_FLOAT));
+            uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Light Update Angle", &lightUpdateAngle, WIDGET_TYPE_SLIDER_FLOAT));
 
         ButtonWidget button_reset;
         UIWidget*    pResetLightDir =
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Reset Light Dir", &button_reset, WIDGET_TYPE_BUTTON);
+            uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Reset Light Dir", &button_reset, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(pResetLightDir, nullptr, LightShadowPlayground::resetLightDir);
         luaRegisterWidget(pResetLightDir);
 
@@ -9417,62 +9353,61 @@ void GuiController::addGui()
         sliderFloat.pData = &gASMCpuSettings.mPenumbraSize;
         sliderFloat.mMin = 1.f;
         sliderFloat.mMax = 150.f;
-        luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Penumbra Size", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Penumbra Size", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
         sliderFloat.pData = &gASMCpuSettings.mParallaxStepDistance;
         sliderFloat.mMin = 1.f;
         sliderFloat.mMax = 100.f;
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax Step Distance", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+            uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax Step Distance", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
         sliderFloat.pData = &gASMCpuSettings.mParallaxStepBias;
         sliderFloat.mMin = 1.f;
         sliderFloat.mMax = 200.f;
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax Step Z Bias", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+            uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Parallax Step Z Bias", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
         checkbox.pData = &gASMCpuSettings.mShowDebugTextures;
         UIWidget* pDisplayASMDebug =
-            uiCreateDynamicWidgets(&GuiController::asmDynamicWidgets, "Display ASM Debug Textures", &checkbox, WIDGET_TYPE_CHECKBOX);
+            uiAddDynamicWidgets(&GuiController::asmDynamicWidgets, "Display ASM Debug Textures", &checkbox, WIDGET_TYPE_CHECKBOX);
         uiSetWidgetOnDeactivatedAfterEditCallback(pDisplayASMDebug, nullptr, SetupASMDebugTextures);
         luaRegisterWidget(pDisplayASMDebug);
     }
     {
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Sun Control", &sunX, WIDGET_TYPE_SLIDER_FLOAT2));
         SeparatorWidget separator;
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "", &separator, WIDGET_TYPE_SEPARATOR));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "", &separator, WIDGET_TYPE_SEPARATOR));
 
         ButtonWidget generateSDFButtonWidget;
-        UIWidget*    pGenerateSDF = uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Generate Missing SDF",
-                                                        &generateSDFButtonWidget, WIDGET_TYPE_BUTTON);
+        UIWidget*    pGenerateSDF = uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Generate Missing SDF",
+                                                     &generateSDFButtonWidget, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(pGenerateSDF, nullptr, LightShadowPlayground::checkForMissingSDFDataAsync);
         luaRegisterWidget(pGenerateSDF);
 
         checkbox.pData = &gLightCpuSettings.mAutomaticSunMovement;
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Automatic Sun Movement", &checkbox, WIDGET_TYPE_CHECKBOX));
+            uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Automatic Sun Movement", &checkbox, WIDGET_TYPE_CHECKBOX));
 
         SliderFloatWidget sliderFloat;
         sliderFloat.pData = &gLightCpuSettings.mSourceAngle;
         sliderFloat.mMin = 0.001f;
         sliderFloat.mMax = 4.f;
         luaRegisterWidget(
-            uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Light Source Angle", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+            uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Light Source Angle", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
         checkbox.pData = &gBakedSDFMeshSettings.mDrawSDFMeshVisualization;
-        luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Display baked SDF mesh data on the screen",
-                                                 &checkbox, WIDGET_TYPE_CHECKBOX));
+        luaRegisterWidget(uiAddDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Display baked SDF mesh data on the screen",
+                                              &checkbox, WIDGET_TYPE_CHECKBOX));
     }
 
     DropdownWidget ddTestScripts;
     ddTestScripts.pData = &gCurrentScriptIndex;
     ddTestScripts.pNames = gTestScripts;
     ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
-    luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+    luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
     ButtonWidget bRunScript;
-    UIWidget*    pRunScript = uiCreateComponentWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+    UIWidget*    pRunScript = uiAddComponentWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
     luaRegisterWidget(pRunScript);
 
@@ -9505,11 +9440,11 @@ void GuiController::addGui()
 
 void GuiController::removeGui()
 {
-    uiDestroyDynamicWidgets(&esmDynamicWidgets);
-    uiDestroyDynamicWidgets(&vsmDynamicWidgets);
-    uiDestroyDynamicWidgets(&msmDynamicWidgets);
-    uiDestroyDynamicWidgets(&sdfDynamicWidgets);
-    uiDestroyDynamicWidgets(&asmDynamicWidgets);
-    uiDestroyDynamicWidgets(&bakedSDFDynamicWidgets);
+    uiRemoveDynamicWidgets(&esmDynamicWidgets);
+    uiRemoveDynamicWidgets(&vsmDynamicWidgets);
+    uiRemoveDynamicWidgets(&msmDynamicWidgets);
+    uiRemoveDynamicWidgets(&sdfDynamicWidgets);
+    uiRemoveDynamicWidgets(&asmDynamicWidgets);
+    uiRemoveDynamicWidgets(&bakedSDFDynamicWidgets);
 }
 DEFINE_APPLICATION_MAIN(LightShadowPlayground)

@@ -560,7 +560,7 @@ void profileDrawDetailedModeGrid(float startHeightPixels, float startWidthPixels
         lineWidget.mPos2 = float2(x, lineHeight);
         lineWidget.mColor = color;
         lineWidget.mAddItem = false;
-        UIWidget* pLineWidget = uiCreateComponentWidget(pWidgetUIComponent, "", &lineWidget, WIDGET_TYPE_DRAW_LINE);
+        UIWidget* pLineWidget = uiAddComponentWidget(pWidgetUIComponent, "", &lineWidget, WIDGET_TYPE_DRAW_LINE);
         arrpush(gDetailedModeWidgets, pLineWidget);
         REGISTER_LUA_WIDGET(pLineWidget);
         x += interLineDistance;
@@ -774,14 +774,14 @@ void profileDrawDetailedMode(Profile& S)
     // Remove any tooltip widgets.
     for (ptrdiff_t i = 0; i < arrlen(gDetailedModeTooltips); ++i)
     {
-        uiDestroyComponentWidget(pWidgetUIComponent, gDetailedModeTooltips[i].mWidget);
+        uiRemoveComponentWidget(pWidgetUIComponent, gDetailedModeTooltips[i].mWidget);
     }
     arrsetlen(gDetailedModeTooltips, 0);
 
     // Remove all other widgets.
     for (ptrdiff_t i = 0; i < arrlen(gDetailedModeWidgets); ++i)
     {
-        uiDestroyComponentWidget(pWidgetUIComponent, gDetailedModeWidgets[i]);
+        uiRemoveComponentWidget(pWidgetUIComponent, gDetailedModeWidgets[i]);
     }
     arrsetlen(gDetailedModeWidgets, 0);
 
@@ -828,7 +828,7 @@ void profileDrawDetailedMode(Profile& S)
             rectWidget.mScale = scale;
             rectWidget.mColor = color;
 
-            UIWidget* pRectWidget = uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &rectWidget, WIDGET_TYPE_FILLED_RECT);
+            UIWidget* pRectWidget = uiAddComponentWidget(pWidgetUIComponent, timerInfo.pName, &rectWidget, WIDGET_TYPE_FILLED_RECT);
             arrpush(gDetailedModeWidgets, pRectWidget);
             REGISTER_LUA_WIDGET(pRectWidget);
 
@@ -837,7 +837,7 @@ void profileDrawDetailedMode(Profile& S)
             textWidget.mPos = pos + float2(scale.x, 0.f);
             textWidget.mColor = float4(1.f);
 
-            UIWidget* pTextWidget = uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT);
+            UIWidget* pTextWidget = uiAddComponentWidget(pWidgetUIComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT);
             arrpush(gDetailedModeTooltips, ProfileDetailedModeTooltip(timer, pTextWidget));
 
             REGISTER_LUA_WIDGET(pTextWidget);
@@ -857,7 +857,7 @@ void profileDrawDetailedMode(Profile& S)
         textWidget.mPos = float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f);
         textWidget.mColor = float4(1.f);
 
-        UIWidget* pTextWidget = uiCreateComponentWidget(pWidgetUIComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT);
+        UIWidget* pTextWidget = uiAddComponentWidget(pWidgetUIComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT);
         arrpush(gDetailedModeWidgets, pTextWidget);
         REGISTER_LUA_WIDGET(pTextWidget);
     }
@@ -872,7 +872,7 @@ void profileDrawDetailedMode(Profile& S)
     topLine.mColor = unpackA8B8G8R8(0x64646464);
     topLine.mAddItem = true;
 
-    UIWidget* pTopLine = uiCreateComponentWidget(pWidgetUIComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE);
+    UIWidget* pTopLine = uiAddComponentWidget(pWidgetUIComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE);
     arrpush(gDetailedModeWidgets, pTopLine);
     REGISTER_LUA_WIDGET(pTopLine);
 
@@ -882,7 +882,7 @@ void profileDrawDetailedMode(Profile& S)
     bottomLine.mColor = unpackA8B8G8R8(0x64646464);
     bottomLine.mAddItem = true;
 
-    UIWidget* pBottomLine = uiCreateComponentWidget(pWidgetUIComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE);
+    UIWidget* pBottomLine = uiAddComponentWidget(pWidgetUIComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE);
     arrpush(gDetailedModeWidgets, pBottomLine);
     REGISTER_LUA_WIDGET(pBottomLine);
     // Tooltip widget.
@@ -891,7 +891,7 @@ void profileDrawDetailedMode(Profile& S)
     tooltip.mShowTooltip = &gShowTooltip;
     tooltip.mText = gTooltipData;
 
-    UIWidget* pTooltip = uiCreateComponentWidget(pWidgetUIComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP);
+    UIWidget* pTooltip = uiAddComponentWidget(pWidgetUIComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP);
     arrpush(gDetailedModeWidgets, pTooltip);
     REGISTER_LUA_WIDGET(pTooltip);
 #endif
@@ -945,7 +945,7 @@ void profileDrawPlotMode(Profile& S)
     // Remove any previous widgets.
     for (ptrdiff_t i = 0; i < arrlen(gPlotModeWidgets); ++i)
     {
-        uiDestroyComponentWidget(pWidgetUIComponent, gPlotModeWidgets[i]);
+        uiRemoveComponentWidget(pWidgetUIComponent, gPlotModeWidgets[i]);
     }
     arrsetlen(gPlotModeWidgets, 0);
 
@@ -963,13 +963,13 @@ void profileDrawPlotMode(Profile& S)
     lineSeparator.mColor = unpackA8B8G8R8(0x64646464);
     lineSeparator.mAddItem = false;
 
-    UIWidget* pLineSeparator = uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE);
+    UIWidget* pLineSeparator = uiAddComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE);
     arrpush(gPlotModeWidgets, pLineSeparator);
     REGISTER_LUA_WIDGET(pLineSeparator);
 
     lineSeparator.mPos1 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightStart);
     lineSeparator.mPos2 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightEnd);
-    pLineSeparator = uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator2", &lineSeparator, WIDGET_TYPE_DRAW_LINE);
+    pLineSeparator = uiAddComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator2", &lineSeparator, WIDGET_TYPE_DRAW_LINE);
     arrpush(gPlotModeWidgets, pLineSeparator);
     REGISTER_LUA_WIDGET(pLineSeparator);
 
@@ -994,14 +994,14 @@ void profileDrawPlotMode(Profile& S)
         lineSeparator.mPos1 = float2(xStart, y);
         lineSeparator.mPos2 = float2(xEnd, y);
         lineSeparator.mColor = unpackA8B8G8R8(0x32323232);
-        pLineSeparator = uiCreateComponentWidget(pWidgetUIComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE);
+        pLineSeparator = uiAddComponentWidget(pWidgetUIComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE);
         arrpush(gPlotModeWidgets, pLineSeparator);
         REGISTER_LUA_WIDGET(pLineSeparator);
 
         DrawTextWidget text;
         text.mPos = float2(baseWidthOffset, y);
         text.mColor = float4(1.f);
-        UIWidget* pText = uiCreateComponentWidget(pWidgetUIComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT);
+        UIWidget* pText = uiAddComponentWidget(pWidgetUIComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT);
         arrpush(gPlotModeWidgets, pText);
         REGISTER_LUA_WIDGET(pText);
     }
@@ -1009,7 +1009,7 @@ void profileDrawPlotMode(Profile& S)
     // Add some space after the graph drawing.
     CursorLocationWidget cursor;
     cursor.mLocation = float2(baseWidthOffset, timeHeightEnd * 1.05f);
-    UIWidget* pCursor = uiCreateComponentWidget(pWidgetUIComponent, "", &cursor, WIDGET_TYPE_CURSOR_LOCATION);
+    UIWidget* pCursor = uiAddComponentWidget(pWidgetUIComponent, "", &cursor, WIDGET_TYPE_CURSOR_LOCATION);
     arrpush(gPlotModeWidgets, pCursor);
     REGISTER_LUA_WIDGET(pCursor);
 
@@ -1023,7 +1023,7 @@ void profileDrawPlotMode(Profile& S)
         oneLineCheckbox.pData = &gPlotModeData[i].mEnabled;
         oneLineCheckbox.mColor = color;
         UIWidget* pOneLineCheckbox =
-            uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &oneLineCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX);
+            uiAddComponentWidget(pWidgetUIComponent, timerInfo.pName, &oneLineCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX);
         arrpush(gPlotModeWidgets, pOneLineCheckbox);
         REGISTER_LUA_WIDGET(pOneLineCheckbox);
 
@@ -1031,7 +1031,7 @@ void profileDrawPlotMode(Profile& S)
         if ((i + 1) % 10 != 0)
         {
             HorizontalSpaceWidget space;
-            UIWidget*             pSpace = uiCreateComponentWidget(pWidgetUIComponent, "", &space, WIDGET_TYPE_HORIZONTAL_SPACE);
+            UIWidget*             pSpace = uiAddComponentWidget(pWidgetUIComponent, "", &space, WIDGET_TYPE_HORIZONTAL_SPACE);
             arrpush(gPlotModeWidgets, pSpace);
             REGISTER_LUA_WIDGET(pSpace);
         }
@@ -1070,19 +1070,18 @@ void profileDrawTimerMode(Profile& S)
     ColumnWidget headerRow;
     headerRow.pPerColumnWidgets = headerWidgets;
     headerRow.mWidgetsCount = gColumnsCount;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "Header", &headerRow, WIDGET_TYPE_COLUMN));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "Header", &headerRow, WIDGET_TYPE_COLUMN));
 
     SeparatorWidget separator;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
     // Add other coloumn data.
     for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
     {
         ColorLabelWidget colorLabel;
         colorLabel.mColor = gFernGreenColor;
-        REGISTER_LUA_WIDGET(
-            uiCreateComponentWidget(pWidgetUIComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
-        REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+        REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
+        REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
         // Timers are not 1-1 with the groups so search entire list(not very large) every time.
         for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
@@ -1135,11 +1134,11 @@ void profileDrawTimerMode(Profile& S)
                 timerColWidget.mWidgetsCount = gColumnsCount;
 
                 REGISTER_LUA_WIDGET(
-                    uiCreateComponentWidget(pWidgetUIComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
+                    uiAddComponentWidget(pWidgetUIComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
             }
         }
 
-        REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+        REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
     }
 #endif
 }
@@ -1235,7 +1234,7 @@ void resetProfilerUI()
 #ifdef ENABLE_FORGE_UI
     if (pWidgetUIComponent)
     {
-        uiDestroyAllComponentWidgets(pWidgetUIComponent);
+        uiRemoveAllComponentWidgets(pWidgetUIComponent);
     }
 
     // Free any allocated timer data mem.
@@ -1319,8 +1318,7 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfi
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(pDrawDesc);
 
-    GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
-    if (!pGpuProfiler || !gProfilerDrawingEnabled)
+    if (!gProfilerDrawingEnabled)
     {
         return float2(0.f, 0.f);
     }
@@ -1332,6 +1330,13 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfi
 
     float2 totalTextSizePx = fntMeasureFontText(gGpuProfileTitleText, pDrawDesc);
     gScreenPos.y += totalTextSizePx.y + gDefaultGpuProfileDrawDesc.mHeightOffset;
+
+    GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
+    if (!pGpuProfiler)
+    {
+        return totalTextSizePx;
+    }
+
     drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, gScreenPos, 0, totalTextSizePx);
 
     return totalTextSizePx;
@@ -1560,10 +1565,10 @@ void profileLoadWidgetUI(Profile& S)
     topMenuRow.pPerColumnWidgets = columnWidgets;
     topMenuRow.mWidgetsCount = WIDGETS_MAX;
 
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "topmenu", &topMenuRow, WIDGET_TYPE_COLUMN));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "topmenu", &topMenuRow, WIDGET_TYPE_COLUMN));
 
     SeparatorWidget separator;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
     if (gProfileMode == PROFILE_MODE_TIMER)
     {
@@ -1575,7 +1580,7 @@ void profileLoadWidgetUI(Profile& S)
         plotLines.mPlotScale = &gHistogramSize;
         plotLines.mTitle = gFrameTimerTitle;
 
-        REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+        REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
         for (uint32_t i = 0; i < S.nGroupCount; ++i)
         {
             if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
@@ -1587,7 +1592,7 @@ void profileLoadWidgetUI(Profile& S)
                 plotLines.mPlotScale = &gHistogramSize;
                 plotLines.mTitle = gGPUTimerTitle[i];
 
-                REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+                REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
             }
         }
 
@@ -1617,7 +1622,7 @@ void profileLoadWidgetUI(Profile& S)
                     curve.mNumPoints = FRAME_HISTORY_LEN;
                     curve.mThickness = 1.f;
                     curve.mColor = color;
-                    UIWidget* pCurve = uiCreateComponentWidget(pWidgetUIComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE);
+                    UIWidget* pCurve = uiAddComponentWidget(pWidgetUIComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE);
                     REGISTER_LUA_WIDGET(pCurve);
                     arrpush(gPlotModeData, graphTimer);
                 }
@@ -1918,7 +1923,6 @@ void ProfileInit()
 void initProfiler(ProfilerDesc* pDesc)
 {
     // PROFILER BASE
-
 #ifdef ENABLE_PROFILER
     ProfileInit();
     ProfileSetEnableAllGroups(true);
@@ -1932,13 +1936,13 @@ void initProfiler(ProfilerDesc* pDesc)
         ASSERT(pDesc->pRenderer != NULL && pDesc->ppQueues != NULL && pDesc->ppProfilerNames != NULL);
         for (uint32_t i = 0; i < pDesc->mGpuProfilerCount; ++i)
         {
-            pDesc->pProfileTokens[i] = addGpuProfiler(pDesc->pRenderer, pDesc->ppQueues[i], pDesc->ppProfilerNames[i]);
+            pDesc->pProfileTokens[i] = initGpuProfiler(pDesc->pRenderer, pDesc->ppQueues[i], pDesc->ppProfilerNames[i]);
         }
     }
 #endif
     // store active gpu settings
     ProfileGet()->pGpuSettings = &pDesc->pRenderer->pGpu->mSettings;
-
+#ifdef ENABLE_FORGE_FONTS
     // set gpu profiler title text
     if (pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion[0] != '\0')
     {
@@ -1951,22 +1955,20 @@ void initProfiler(ProfilerDesc* pDesc)
         snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s", pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName);
     }
 #endif
-
-    // PROFILER UI
+#endif
 
 #ifdef ENABLE_FORGE_UI
-    // Remove previous GUI component.
-    if (pWidgetUIComponent)
-    {
-        uiDestroyComponent(pWidgetUIComponent);
-    }
-
     pRendererRef = pDesc->pRenderer;
+#endif
+}
 
+void loadProfilerUI(uint32_t widthUI, uint32_t heightUI)
+{
+#ifdef ENABLE_FORGE_UI
     UIComponentDesc profilerComponentDesc = {};
-    profilerComponentDesc.mStartSize = profileUtilCalcWindowSize(pDesc->mWidthUI, pDesc->mHeightUI);
+    profilerComponentDesc.mStartSize = profileUtilCalcWindowSize(widthUI, heightUI);
     profilerComponentDesc.mStartPosition = vec2(PROFILER_WINDOW_X, PROFILER_WINDOW_Y);
-    uiCreateComponent(" Micro Profiler ", &profilerComponentDesc, &pWidgetUIComponent);
+    uiAddComponent(" Micro Profiler ", &profilerComponentDesc, &pWidgetUIComponent);
 
     // Disable auto resize and enable manual re-size for the profiler window with scrollbars.
     pWidgetUIComponent->mFlags |= GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR;
@@ -1989,13 +1991,13 @@ void initProfiler(ProfilerDesc* pDesc)
         dpiScale = dpiScaleArr[0];
     }
 
-    guiMenuDesc.mStartPosition = vec2(pDesc->mWidthUI - 300.0f * dpiScale, pDesc->mHeightUI * 0.8f);
+    guiMenuDesc.mStartPosition = vec2(widthUI - 300.0f * dpiScale, heightUI * 0.8f);
 
-    uiCreateComponent("Micro Profiler", &guiMenuDesc, &pMenuUIComponent);
+    uiAddComponent("Micro Profiler", &guiMenuDesc, &pMenuUIComponent);
 
     CheckboxWidget checkbox;
     checkbox.pData = &gProfilerWidgetUIEnabled;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING)
     extern uint64_t GetDriverMemoryAmount();
@@ -2004,18 +2006,18 @@ void initProfiler(ProfilerDesc* pDesc)
         CheckboxWidget driverMemoryCheckbox;
         driverMemoryCheckbox.pData = &gDriverMemoryWidgetUIEnabled;
         UIWidget* widget =
-            uiCreateComponentWidget(pMenuUIComponent, "Toggle Driver Memory tracker", &driverMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
+            uiAddComponentWidget(pMenuUIComponent, "Toggle Driver Memory tracker", &driverMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
         uiSetWidgetOnEditedCallback(widget, NULL,
                                     [](void*) { pDriverMemTrackerUIComponent->mActive = !pDriverMemTrackerUIComponent->mActive; });
 
         UIComponentDesc guiMenuDescMemTracking = {};
-        uiCreateComponent("Driver memory tracking", &guiMenuDescMemTracking, &pDriverMemTrackerUIComponent);
+        uiAddComponent("Driver memory tracking", &guiMenuDescMemTracking, &pDriverMemTrackerUIComponent);
         pDriverMemTrackerUIComponent->mActive = gDriverMemoryWidgetUIEnabled;
         pDriverMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
         extern void  DrawDriverMemoryTrackingUI(void*);
         CustomWidget trackerWidget = {};
         trackerWidget.pCallback = DrawDriverMemoryTrackingUI;
-        uiCreateComponentWidget(pDriverMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
+        uiAddComponentWidget(pDriverMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
     }
 #endif
 
@@ -2027,30 +2029,30 @@ void initProfiler(ProfilerDesc* pDesc)
         CheckboxWidget deviceMemoryCheckbox;
         deviceMemoryCheckbox.pData = &gDeviceMemoryWidgetUIEnabled;
         UIWidget* widget =
-            uiCreateComponentWidget(pMenuUIComponent, "Toggle Device Memory tracker", &deviceMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
+            uiAddComponentWidget(pMenuUIComponent, "Toggle Device Memory tracker", &deviceMemoryCheckbox, WIDGET_TYPE_CHECKBOX);
         uiSetWidgetOnEditedCallback(widget, NULL,
                                     [](void*) { pDeviceMemTrackerUIComponent->mActive = !pDeviceMemTrackerUIComponent->mActive; });
 
         UIComponentDesc guiMenuDescMemTracking = {};
-        uiCreateComponent("Device memory tracking", &guiMenuDescMemTracking, &pDeviceMemTrackerUIComponent);
+        uiAddComponent("Device memory tracking", &guiMenuDescMemTracking, &pDeviceMemTrackerUIComponent);
         pDeviceMemTrackerUIComponent->mActive = gDeviceMemoryWidgetUIEnabled;
         pDeviceMemTrackerUIComponent->mFlags &= ~GUI_COMPONENT_FLAGS_START_COLLAPSED;
         extern void  DrawDeviceMemoryReportUI(void*);
         CustomWidget trackerWidget = {};
         trackerWidget.pCallback = DrawDeviceMemoryReportUI;
-        uiCreateComponentWidget(pDeviceMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
+        uiAddComponentWidget(pDeviceMemTrackerUIComponent, "Custom", &trackerWidget, WIDGET_TYPE_CUSTOM);
     }
 #endif
 
     SeparatorWidget separator;
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
     ButtonWidget dumpButtonWidget;
-    UIWidget*    pDumpButton = uiCreateComponentWidget(pMenuUIComponent, "Dump Profile", &dumpButtonWidget, WIDGET_TYPE_BUTTON);
+    UIWidget*    pDumpButton = uiAddComponentWidget(pMenuUIComponent, "Dump Profile", &dumpButtonWidget, WIDGET_TYPE_BUTTON);
     pDumpButton->pOnEdited = profileCallbkDumpFramesToFile;
     REGISTER_LUA_WIDGET(pDumpButton);
 
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
     SliderFloatWidget sliderFloat;
     sliderFloat.pData = &gGuiTransparency;
@@ -2059,26 +2061,32 @@ void initProfiler(ProfilerDesc* pDesc)
     sliderFloat.mStep = 0.01f;
     memset(sliderFloat.mFormat, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(sliderFloat.mFormat, "%.2f");
-    REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 #endif
 }
 
-void exitCpuProfiler()
+void unloadProfilerUI()
 {
-    ProfileOnThreadExit();
-    ProfileWebServerStop();
-    ProfileContextSwitchTraceStop();
-
-    g_bOnce = true;
-    g_bUseLock = false;
-}
-
-void exitProfiler()
-{
-    // PROFILER UI
-
 #ifdef ENABLE_FORGE_UI
     resetProfilerUI();
+
+    // Remove previous GUI components.
+    uiRemoveComponent(pWidgetUIComponent);
+    uiRemoveComponent(pMenuUIComponent);
+
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+    if (pDriverMemTrackerUIComponent)
+    {
+        uiRemoveComponent(pDriverMemTrackerUIComponent);
+    }
+#endif
+
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+    if (pDeviceMemTrackerUIComponent)
+    {
+        uiRemoveComponent(pDeviceMemTrackerUIComponent);
+    }
+#endif
 
     arrfree(gTimerData);
     arrfree(gPlotModeData);
@@ -2097,9 +2105,21 @@ void exitProfiler()
     gTotalTimers = 0;
     gUnloaded = true;
 #endif
+}
 
+void exitCpuProfiler()
+{
+    ProfileOnThreadExit();
+    ProfileWebServerStop();
+    ProfileContextSwitchTraceStop();
+
+    g_bOnce = true;
+    g_bUseLock = false;
+}
+
+void exitProfiler()
+{
     // PROFILER BASE
-
 #ifdef ENABLE_PROFILER
     exitCpuProfiler();
 

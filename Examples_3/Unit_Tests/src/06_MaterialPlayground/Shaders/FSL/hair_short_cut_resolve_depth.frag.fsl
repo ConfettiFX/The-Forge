@@ -60,14 +60,14 @@ PSOutput PS_MAIN( VSOutputFullscreen In )
 	// TODO: samplerless texture fetch
 #if TEXTURE_ATOMIC_SUPPORTED
 #if VR_MULTIVIEW_ENABLED
-	Out.depth = asfloat( LoadTex3D(Get(DepthsTexture), NO_SAMPLER, int3(In.Position.x, In.Position.y, 2 + VR_VIEW_ID(In.ViewID) * 3), 0).r );
+	Out.depth = asfloat( LoadTex3D(DepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2 + VR_VIEW_ID(In.ViewID) * 3), 0).r );
 #else
-	Out.depth = asfloat( LoadTex3D(Get(DepthsTexture), NO_SAMPLER, int3(In.Position.x, In.Position.y, 2), 0).r );
+	Out.depth = asfloat( LoadTex3D(DepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2), 0).r );
 #endif
 #else
 	uint2 p = uint2(In.Position.xy);
-    uint2 viewport = uint2(Get(Viewport).zw);
-	Out.depth = asfloat(Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
+    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
+	Out.depth = asfloat(DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
 #endif
 	RETURN(Out);
 }

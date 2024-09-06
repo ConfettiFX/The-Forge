@@ -59,12 +59,12 @@ STRUCT(VsInVBOpaque)
 
 float4 LoadVertex(uint index)
 {
-    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1);
+    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
 }
 
 float2 LoadTexCoord(uint index)
 {
-	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
+	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
 }
 
 #endif /* vb_resources_h */

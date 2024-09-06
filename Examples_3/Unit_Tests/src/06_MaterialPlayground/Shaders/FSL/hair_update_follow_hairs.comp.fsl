@@ -52,18 +52,18 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	INIT_MAIN;
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
 
-	sharedPos[indices.indexSharedMem] = Get(HairVertexPositions)[indices.globalVertexIndex];
-	sharedTangent[indices.indexSharedMem] = Get(HairVertexTangents)[indices.globalVertexIndex];
+	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	sharedTangent[indices.indexSharedMem] = HairVertexTangents[indices.globalVertexIndex];
 	GroupMemoryBarrier();
 
-	for (uint i = 0; i < Get(NumFollowHairsPerGuideHair); ++i)
+	for (uint i = 0; i < cbSimulation.NumFollowHairsPerGuideHair; ++i)
 	{
-		uint globalFollowVertexIndex = indices.globalVertexIndex + Get(NumVerticesPerStrand) * (i + 1);
+		uint globalFollowVertexIndex = indices.globalVertexIndex + cbSimulation.NumVerticesPerStrand * (i + 1);
 		uint globalFollowStrandIndex = indices.globalStrandIndex + i + 1;
-		float factor = Get(TipSeperationFactor) * (float(indices.localVertexIndex) / float(Get(NumVerticesPerStrand))) + 1.0f;
-		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * Get(FollowHairRootOffsets)[globalFollowStrandIndex].xyz * Get(Scale);
-		Get(HairVertexPositions)[globalFollowVertexIndex].xyz = followPosition;
-		Get(HairVertexTangents)[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
+		float factor = cbSimulation.TipSeperationFactor * (float(indices.localVertexIndex) / float(cbSimulation.NumVerticesPerStrand)) + 1.0f;
+		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * FollowHairRootOffsets[globalFollowStrandIndex].xyz * cbSimulation.Scale;
+		HairVertexPositions[globalFollowVertexIndex].xyz = followPosition;
+		HairVertexTangents[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
 	}
 	RETURN();
 }

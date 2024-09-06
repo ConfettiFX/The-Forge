@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="Visibility_Buffer" Database="Visibility_Buffer.tags" Version="10.0.0">
+  <Project Name="Visibility_Buffer" Path="Visibility_Buffer/Visibility_Buffer.project" Active="Yes"/>
+  <Project Name="SpirVTools" Path="../../Unit_Tests/SteamOS_CodeLite/SpirVTools/SpirVTools.project" Active="No"/>
+  <Project Name="Renderer" Path="../../Unit_Tests/SteamOS_CodeLite/Renderer/Renderer.project" Active="No"/>
+  <Project Name="OSBase" Path="../../Unit_Tests/SteamOS_CodeLite/OSBase/OSBase.project" Active="No"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="no">
+      <Environment/>
+      <Project Name="Visibility_Buffer" ConfigName="Debug"/>
+      <Project Name="SpirVTools" ConfigName="Debug"/>
+      <Project Name="Renderer" ConfigName="Debug"/>
+      <Project Name="OS" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Environment/>
+      <Project Name="Visibility_Buffer" ConfigName="Release"/>
+      <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="Renderer" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

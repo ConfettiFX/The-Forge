@@ -45,14 +45,14 @@ VSOutput VS_MAIN( VSInput In )
 	INIT_MAIN;
 	VSOutput Out;
 #if FT_MULTIVIEW
-	float4x4 tempMat = mul(Get(projView)[VR_VIEW_ID], Get(worldMat));
+	float4x4 tempMat = mul(cbCamera.projView[VR_VIEW_ID], cbObject.worldMat);
 #else
-	float4x4 tempMat = mul(Get(projView), Get(worldMat));
+	float4x4 tempMat = mul(cbCamera.projView, cbObject.worldMat);
 #endif
 	Out.Position = mul(tempMat, float4(In.Position.xyz, 1.0f));
 
-	Out.pos = float3(mul(Get(worldMat), float4(In.Position.xyz, 1.0f)).rgb);
-	Out.normal = mul(Get(worldMat), float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f)).rgb;
+	Out.pos = float3(mul(cbObject.worldMat, float4(In.Position.xyz, 1.0f)).rgb);
+	Out.normal = mul(cbObject.worldMat, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f)).rgb;
 	Out.uv = unpack2Floats(In.Uv);
 	RETURN(Out);
 }

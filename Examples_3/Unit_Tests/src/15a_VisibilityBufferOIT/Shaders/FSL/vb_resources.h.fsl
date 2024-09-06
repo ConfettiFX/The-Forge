@@ -66,31 +66,31 @@ STRUCT(PsInAlphaTested)
 
 float4 LoadVertex(uint index)
 {
-    return float4(asfloat(LoadByte4(Get(vertexPositionBuffer), index * 12)).xyz, 1);
+    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
 }
 
 float2 LoadTexCoord(uint index)
 {
-	return unpack2Floats(LoadByte(Get(vertexTexCoordBuffer), index << 2));
+	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
 }
 
 float4x4 GetModelViewProj(uint geomSet, uint view, inout(uint) vertID)
 {
-    uint indirectData = Get(indirectDataBuffer)[vertID];
-    MeshData meshConstant = Get(MeshDataBuffer)[indirectData];
+    uint indirectData = indirectDataBuffer[vertID];
+    MeshData meshConstant = MeshDataBuffer[indirectData];
     vertID = vertID - meshConstant.indirectVertexOffset;
 
-    return mul(Get(transform)[view].mvp.mat, meshConstant.modelMtx);
+    return mul(PerFrameVBConstants.transform[view].mvp.mat, meshConstant.modelMtx);
 }
 
 float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, inout(uint) vertID, out(uint) materialID)
 {
-    uint indirectData =  Get(indirectDataBuffer)[vertID];
-    MeshData meshConstant = Get(MeshDataBuffer)[indirectData];
+    uint indirectData =  indirectDataBuffer[vertID];
+    MeshData meshConstant = MeshDataBuffer[indirectData];
     vertID = vertID - meshConstant.indirectVertexOffset;
 	materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
 
-    return mul(Get(transform)[view].mvp.mat, meshConstant.modelMtx);
+    return mul(PerFrameVBConstants.transform[view].mvp.mat, meshConstant.modelMtx);
 }
 
 

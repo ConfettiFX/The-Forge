@@ -13,6 +13,7 @@
 		261E72E12978630100A5A3AD /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B231A19923F2E1F8006D7450 /* Metal.framework */; };
 		261E72E32978631A00A5A3AD /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 261E72E22978631A00A5A3AD /* MetalPerformanceShaders.framework */; };
 		261E72F02978636200A5A3AD /* libBuny.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 261E72E92978632A00A5A3AD /* libBuny.a */; };
+		73CF400E2C138F6B000950F2 /* libispc_texcomp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7395239B2C13789500DA131F /* libispc_texcomp.a */; };
 		7F2CD95B2A392D4D00933652 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F2CD9512A392D4D00933652 /* GameController.framework */; };
 		AC2BCDF42B616CDC00DB94BE /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC2BCDE42B616CDC00DB94BE /* clusterizer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		AC2BCDF52B616CDC00DB94BE /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC2BCDE52B616CDC00DB94BE /* vcacheoptimizer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -37,7 +38,7 @@
 		B231A11E23F2DBE9006D7450 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A11B23F2DBE9006D7450 /* TressFXAsset.cpp */; };
 		B2B33C2E2980101700A5D377 /* CocoaToolsFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = B2B33C232980100800A5D377 /* CocoaToolsFileSystem.mm */; };
 		B2B33C302980101900A5D377 /* ToolFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = B2B33C2D2980101400A5D377 /* ToolFileSystem.c */; };
-		ED1CAEA228F4566E007987B9 /* libispc_texcomp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED1CAEA128F45666007987B9 /* libispc_texcomp.a */; };
+		E6E31A612C3C79F4001A8714 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6E31A582C3C79F4001A8714 /* CoreHaptics.framework */; };
 		ED8E564328F404EF00E83F1F /* AssetPipeline_Textures.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED8E563C28F404EF00E83F1F /* AssetPipeline_Textures.cpp */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +63,20 @@
 			proxyType = 2;
 			remoteGlobalIDString = 268344A929784AEE00F4F318;
 			remoteInfo = Buny;
+		};
+		7395239A2C13789500DA131F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ED8E566E28F41B9F00E83F1F;
+			remoteInfo = ispc_texcomp;
+		};
+		7395239C2C13798900DA131F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ED8E566D28F41B9F00E83F1F;
+			remoteInfo = ispc_texcomp;
 		};
 		B231A0FE23F2DB7E006D7450 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -97,20 +112,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
 			remoteInfo = "ozz_animation offline";
-		};
-		ED1CAEA028F45666007987B9 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = ED8E566E28F41B9F00E83F1F;
-			remoteInfo = ispc_texcomp;
-		};
-		ED1CAEA328F45CC6007987B9 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = ED8E566D28F41B9F00E83F1F;
-			remoteInfo = ispc_texcomp;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -162,7 +163,8 @@
 		B231A19923F2E1F8006D7450 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B2B33C232980100800A5D377 /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../../OS/Darwin/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
 		B2B33C2D2980101400A5D377 /* ToolFileSystem.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ToolFileSystem.c; path = ../../../Utilities/FileSystem/ToolFileSystem.c; sourceTree = "<group>"; };
-		ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ispc_texcomp.xcodeproj; path = ../../ThirdParty/OpenSource/ISPCTextureCompressor/ispc_texcomp.xcodeproj; sourceTree = "<group>"; };
+		E6E31A582C3C79F4001A8714 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
+		ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ispc_texcomp.xcodeproj; path = ../../../../Data/Tools/ISPCTextureCompressor/ispc_texcomp.xcodeproj; sourceTree = "<group>"; };
 		ED8E563C28F404EF00E83F1F /* AssetPipeline_Textures.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipeline_Textures.cpp; path = ../src/AssetPipeline_Textures.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -171,11 +173,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E6E31A612C3C79F4001A8714 /* CoreHaptics.framework in Frameworks */,
+				73CF400E2C138F6B000950F2 /* libispc_texcomp.a in Frameworks */,
 				261E72E32978631A00A5A3AD /* MetalPerformanceShaders.framework in Frameworks */,
 				261E72E12978630100A5A3AD /* Metal.framework in Frameworks */,
 				261E72E0297862F000A5A3AD /* AppKit.framework in Frameworks */,
 				261E72DE297862DC00A5A3AD /* QuartzCore.framework in Frameworks */,
-				ED1CAEA228F4566E007987B9 /* libispc_texcomp.a in Frameworks */,
 				B231A10A23F2DBA4006D7450 /* ozz_animation offline.a in Frameworks */,
 				7F2CD95B2A392D4D00933652 /* GameController.framework in Frameworks */,
 				B231A10B23F2DBA4006D7450 /* ozz_animation.a in Frameworks */,
@@ -201,6 +204,14 @@
 			isa = PBXGroup;
 			children = (
 				261E72E92978632A00A5A3AD /* libBuny.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		739523972C13789500DA131F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7395239B2C13789500DA131F /* libispc_texcomp.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -265,6 +276,7 @@
 		B231A10823F2DBA4006D7450 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E6E31A582C3C79F4001A8714 /* CoreHaptics.framework */,
 				7F2CD9512A392D4D00933652 /* GameController.framework */,
 				261E72E22978631A00A5A3AD /* MetalPerformanceShaders.framework */,
 				261E72DF297862F000A5A3AD /* AppKit.framework */,
@@ -292,14 +304,6 @@
 			name = Source;
 			sourceTree = "<group>";
 		};
-		ED1CAE9D28F45666007987B9 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				ED1CAEA128F45666007987B9 /* libispc_texcomp.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -314,7 +318,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				ED1CAEA428F45CC6007987B9 /* PBXTargetDependency */,
+				7395239D2C13798900DA131F /* PBXTargetDependency */,
 			);
 			name = AssetPipelineCmd;
 			productName = AssetPipelineCmd;
@@ -352,7 +356,7 @@
 					ProjectRef = 261E72E42978632A00A5A3AD /* Buny.xcodeproj */;
 				},
 				{
-					ProductGroup = ED1CAE9D28F45666007987B9 /* Products */;
+					ProductGroup = 739523972C13789500DA131F /* Products */;
 					ProjectRef = ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */;
 				},
 				{
@@ -393,6 +397,13 @@
 			remoteRef = 261E72E82978632A00A5A3AD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		7395239B2C13789500DA131F /* libispc_texcomp.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libispc_texcomp.a;
+			remoteRef = 7395239A2C13789500DA131F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		B231A0FF23F2DB7E006D7450 /* ozz_animation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -426,13 +437,6 @@
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
 			remoteRef = B231A10623F2DB7E006D7450 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		ED1CAEA128F45666007987B9 /* libispc_texcomp.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libispc_texcomp.a;
-			remoteRef = ED1CAEA028F45666007987B9 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -469,10 +473,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		ED1CAEA428F45CC6007987B9 /* PBXTargetDependency */ = {
+		7395239D2C13798900DA131F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = ispc_texcomp;
-			targetProxy = ED1CAEA328F45CC6007987B9 /* PBXContainerItemProxy */;
+			targetProxy = 7395239C2C13798900DA131F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -613,7 +617,7 @@
 				);
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include";
+				HEADER_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				OTHER_LDFLAGS = (
@@ -637,7 +641,7 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include";
+				HEADER_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				OTHER_LDFLAGS = (

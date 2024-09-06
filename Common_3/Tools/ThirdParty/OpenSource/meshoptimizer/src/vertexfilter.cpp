@@ -1,7 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include "../../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
 
 // The block below auto-detects SIMD ISA that can be used on the target platform
 #ifndef MESHOPTIMIZER_NO_SIMD

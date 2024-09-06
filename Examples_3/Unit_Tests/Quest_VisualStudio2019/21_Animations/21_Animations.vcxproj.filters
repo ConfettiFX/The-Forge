@@ -1,35 +1,55 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{5da3c498-e209-4bed-ac53-71f4d775e4a8}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src\21_Animations">
+      <UniqueIdentifier>{4da2e22c-8055-40bb-a56d-2b67f36e23f1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{90c4a4d0-1756-46c3-8f21-63dbbef95372}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests\src">
+      <UniqueIdentifier>{42fd7f1a-50fd-423e-9f2c-ef9cf435a766}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scripts">
-      <UniqueIdentifier>{0b2d2cd8-5088-40ae-b123-3b81e87a99a2}</UniqueIdentifier>
+    <Filter Include="Examples_3\Unit_Tests">
+      <UniqueIdentifier>{e8ebbe74-cf73-4ba7-b875-67c6e1ba00f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3">
+      <UniqueIdentifier>{061bdc0d-944e-42e4-b931-c201e6e93c81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL">
+      <UniqueIdentifier>{d852a59a-ce3e-4940-8be3-70ecdd474a7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples_3\Unit_Tests\src\21_Animations\Shaders">
+      <UniqueIdentifier>{38b31ac9-dcf0-4056-b13b-aecabafe8219}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts\21_Animations">
+      <UniqueIdentifier>{59e16d34-b17b-48d1-95db-5455eabfc954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art\Scripts">
+      <UniqueIdentifier>{f820b9ed-807c-43d9-9181-a41e473dd1a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Art">
+      <UniqueIdentifier>{d9fd81f5-539b-4d14-b7db-d414f7f9bc3b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\21_Animations\21_Animations.cpp" />
+    <ClCompile Include="..\..\src\21_Animations\21_Animations.cpp">
+      <Filter>Examples_3\Unit_Tests\src\21_Animations</Filter>
+    </ClCompile>
     <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\cube.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\cube.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\plane.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\plane.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Examples_3\Unit_Tests\src\21_Animations\Shaders\FSL</Filter>
     </FSLShader>
-    <None Include="..\..\src\21_Animations\Scripts\Test0.lua">
-      <Filter>Scripts</Filter>
+    <None Include="..\..\..\..\Art\Scripts\21_Animations\Test0.lua">
+      <Filter>Art\Scripts\21_Animations</Filter>
     </None>
   </ItemGroup>
 </Project>

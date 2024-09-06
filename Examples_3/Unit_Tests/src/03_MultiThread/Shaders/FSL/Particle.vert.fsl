@@ -42,8 +42,8 @@ VSOutput VS_MAIN( VSInput In )
     INIT_MAIN;
     VSOutput Out;
     uint rnd = In.seed;
-    uint rnd_mat = Get(data);
-    float tt  = Get(paletteFactor);
+    uint rnd_mat = particleRootConstant.data;
+    float tt  = particleRootConstant.paletteFactor;
     uint para2 = 907633515u;
     uint para1 = 196314165u;
     
@@ -155,9 +155,9 @@ VSOutput VS_MAIN( VSInput In )
     }
 
 #if FT_MULTIVIEW
-    Out.Position = mul(Get(mvp)[VR_VIEW_ID], p);
+    Out.Position = mul(uniformBlock.mvp[VR_VIEW_ID], p);
 #else
-    Out.Position = mul(Get(mvp), p);
+    Out.Position = mul(uniformBlock.mvp, p);
   #endif
     Out.TexCoord = c;
     Out.PointSize = 1.0f;

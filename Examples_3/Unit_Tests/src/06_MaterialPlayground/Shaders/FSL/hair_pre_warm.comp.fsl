@@ -52,10 +52,10 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	INIT_MAIN;
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
 
-	float4 restPosition = Get(HairRestPositions)[indices.globalVertexIndex];
-	restPosition.xyz = mul(Get(Transform), float4(restPosition.xyz, 1.0f)).xyz;
-	Get(HairVertexPositionsPrevPrev)[indices.globalVertexIndex] = restPosition;
-	Get(HairVertexPositionsPrev)[indices.globalVertexIndex] = restPosition;
-	Get(HairVertexPositions)[indices.globalVertexIndex] = restPosition;
+	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
+	restPosition.xyz = mul(cbSimulation.Transform, float4(restPosition.xyz, 1.0f)).xyz;
+	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = restPosition;
+	HairVertexPositionsPrev[indices.globalVertexIndex] = restPosition;
+	HairVertexPositions[indices.globalVertexIndex] = restPosition;
 	RETURN();
 }

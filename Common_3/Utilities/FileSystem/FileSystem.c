@@ -1767,7 +1767,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
 
     if (archive->archiveStreamLocking)
     {
-        destroyMutex(&archive->mutex);
+        exitMutex(&archive->mutex);
     }
 
     tf_free(archive->hashTable);

@@ -28,7 +28,7 @@
 RES(Tex2D(float4), g_texture, UPDATE_FREQ_NONE, t1, binding = 1);
 RES(SamplerState, g_sampler, UPDATE_FREQ_NONE, s2, binding = 2);
 
-CBUFFER(SceneConstantBuffer, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(SceneConstantData)
 {
 	DATA(float4x4, orthProjMatrix, None);
 	DATA(float2, mousePosition, None);
@@ -38,5 +38,6 @@ CBUFFER(SceneConstantBuffer, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(uint, laneSize, None);
 	DATA(uint, padding, None);
 };
+RES(CBUFFER(SceneConstantData), SceneConstantBuffer, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 #endif

@@ -45,11 +45,11 @@ void ClearIndirectDrawArgsBuffers(const uint dispatchThreadIdX)
                //    uint32_t mVertexOffset;
                //    uint32_t mStartInstance;
                //} IndirectDrawIndexArguments;
-               Get(indirectDrawArgs)[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,0)] = 0;
-               Get(indirectDrawArgs)[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,1)] = 1;
-               Get(indirectDrawArgs)[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,2)] = INDEXBUFFER_OFFSET(geom);
-               Get(indirectDrawArgs)[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,3)] = 0;
-               Get(indirectDrawArgs)[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,4)] = 0;
+               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,0)] = 0;
+               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,1)] = 1;
+               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,2)] = INDEXBUFFER_OFFSET(geom);
+               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,3)] = 0;
+               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,4)] = 0;
             }
          }
     }

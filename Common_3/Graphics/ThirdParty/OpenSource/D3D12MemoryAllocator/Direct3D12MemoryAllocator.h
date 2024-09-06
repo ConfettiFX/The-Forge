@@ -2302,7 +2302,7 @@ static void AddDetailedStatisticsUnusedRange(DetailedStatistics& inoutStats, UIN
     {
     public:
       D3D12MAMutex() { initMutex(&m_Mutex); }
-      ~D3D12MAMutex() { destroyMutex(&m_Mutex); }
+      ~D3D12MAMutex() { exitMutex(&m_Mutex); }
       void Lock() { acquireMutex(&m_Mutex); }
       void Unlock() { releaseMutex(&m_Mutex); }
     private:

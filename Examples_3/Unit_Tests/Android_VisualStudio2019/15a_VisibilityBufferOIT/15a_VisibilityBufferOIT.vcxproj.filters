@@ -45,9 +45,6 @@
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.comp.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\CurveConversion.frag.fsl">
-      <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.frag.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
@@ -88,9 +85,6 @@
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shader_defs.h.fsl">
-      <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shading.h.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass.vert.fsl">

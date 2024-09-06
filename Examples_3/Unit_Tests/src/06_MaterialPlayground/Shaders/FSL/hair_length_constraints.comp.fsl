@@ -148,9 +148,9 @@ bool ResolveCapsuleCollisions(groupshared(float4) currentPosition, float4 prevPo
 
 	float3 newPosition = currentPosition.xyz;
 
-	for (uint i = 0; i < Get(mCapsuleCount); ++i)
+	for (uint i = 0; i < cbSimulation.mCapsuleCount; ++i)
 	{
-		bool collided = CapsuleCollision(newPosition, prevPosition.xyz, Get(Capsules)[i]);
+		bool collided = CapsuleCollision(newPosition, prevPosition.xyz, cbSimulation.Capsules[i]);
 
 		if (collided)
 			currentPosition.xyz = newPosition;
@@ -168,54 +168,54 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	INIT_MAIN;
 	// Copy to shared memory
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
-	sharedPos[indices.indexSharedMem] = Get(HairVertexPositions)[indices.globalVertexIndex];
-	sharedLength[indices.indexSharedMem] = Get(HairRestLengths)[indices.globalVertexIndex] * Get(Scale);
+	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	sharedLength[indices.indexSharedMem] = HairRestLengths[indices.globalVertexIndex] * cbSimulation.Scale;
 
 	GroupMemoryBarrier();
 	
 	// Wind
-	if (indices.localVertexIndex >= 2 && indices.localVertexIndex < Get(NumVerticesPerStrand) - 1)
+	if (indices.localVertexIndex >= 2 && indices.localVertexIndex < cbSimulation.NumVerticesPerStrand - 1)
 	{
-		uint sharedIndex = indices.localVertexIndex * Get(NumStrandsPerThreadGroup) + indices.localStrandIndex;
+		uint sharedIndex = indices.localVertexIndex * cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
 
-		float3 v = sharedPos[sharedIndex].xyz - sharedPos[sharedIndex + Get(NumStrandsPerThreadGroup)].xyz;
-		float3 force = -cross(cross(v, Get(Wind).xyz), v);
-		sharedPos[sharedIndex].xyz += force * Get(TimeStep) * Get(TimeStep);
+		float3 v = sharedPos[sharedIndex].xyz - sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup].xyz;
+		float3 force = -cross(cross(v, cbHairGlobal.Wind.xyz), v);
+		sharedPos[sharedIndex].xyz += force * cbHairGlobal.TimeStep * cbHairGlobal.TimeStep;
 	}
 
 	GroupMemoryBarrier();
 
 	// Length constraint
-	uint a = uint(floor(Get(NumVerticesPerStrand) * 0.5f));
-	uint b = uint(floor((Get(NumVerticesPerStrand) - 1) * 0.5f));
+	uint a = uint(floor(cbSimulation.NumVerticesPerStrand * 0.5f));
+	uint b = uint(floor((cbSimulation.NumVerticesPerStrand - 1) * 0.5f));
 
-	for(uint i = 0; i < Get(LengthConstraintIterations); ++i)
+	for(uint i = 0; i < cbSimulation.LengthConstraintIterations; ++i)
 	{
-		uint sharedIndex = 2 * indices.localVertexIndex * Get(NumStrandsPerThreadGroup) + indices.localStrandIndex;
+		uint sharedIndex = 2 * indices.localVertexIndex * cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
 
 		if (indices.localVertexIndex < a)
-			ApplyDistanceConstraint(sharedPos[sharedIndex], sharedPos[sharedIndex + Get(NumStrandsPerThreadGroup)], sharedLength[sharedIndex]);
+			ApplyDistanceConstraint(sharedPos[sharedIndex], sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup], sharedLength[sharedIndex]);
 
 		GroupMemoryBarrier();
 
 		if (indices.localVertexIndex < b)
-			ApplyDistanceConstraint(sharedPos[sharedIndex + Get(NumStrandsPerThreadGroup)], sharedPos[sharedIndex + Get(NumStrandsPerThreadGroup) * 2], sharedLength[sharedIndex + Get(NumStrandsPerThreadGroup)]);
+			ApplyDistanceConstraint(sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup], sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup * 2], sharedLength[sharedIndex + cbSimulation.NumStrandsPerThreadGroup]);
 
 		GroupMemoryBarrier();
 	}
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 	// Capsule collisions
-	bool collided = ResolveCapsuleCollisions(sharedPos[indices.indexSharedMem], Get(HairVertexPositionsPrev)[indices.globalVertexIndex]);
+	bool collided = ResolveCapsuleCollisions(sharedPos[indices.indexSharedMem], HairVertexPositionsPrev[indices.globalVertexIndex]);
 	if(collided)
-		Get(HairVertexPositionsPrev)[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+		HairVertexPositionsPrev[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 	GroupMemoryBarrier();
 #endif
 
 	// Calculate tangents
-	float3 tangent = sharedPos[indices.indexSharedMem + Get(NumStrandsPerThreadGroup)].xyz - sharedPos[indices.indexSharedMem].xyz;
-	Get(HairVertexTangents)[indices.globalVertexIndex].xyz = normalize(tangent);
+	float3 tangent = sharedPos[indices.indexSharedMem + cbSimulation.NumStrandsPerThreadGroup].xyz - sharedPos[indices.indexSharedMem].xyz;
+	HairVertexTangents[indices.globalVertexIndex].xyz = normalize(tangent);
 
-	Get(HairVertexPositions)[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 	RETURN();
 }

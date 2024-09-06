@@ -46,7 +46,7 @@ struct Capsule
 };
 
 // cbuffer cbSimulation : register(b0, UPDATE_FREQ_PER_DRAW)
-CBUFFER(cbSimulation, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+STRUCT(Simulation)
 {
 	DATA(float4x4, Transform, None);
 	DATA(float4, QuatRotation, None);
@@ -68,14 +68,16 @@ CBUFFER(cbSimulation, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 	DATA(uint, LengthConstraintIterations, None);
 	DATA(float, TipSeperationFactor, None);
 };
+RES(CBUFFER(Simulation), cbSimulation, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 // cbuffer cbHairGlobal : register(b4, UPDATE_FREQ_PER_DRAW)
-CBUFFER(cbHairGlobal, UPDATE_FREQ_PER_DRAW, b4, binding = 1)
+STRUCT(HairGlobal)
 {
 	DATA(float4, Viewport, None);
 	DATA(float4, Gravity, None);
 	DATA(float4, Wind, None);
 	DATA(float, TimeStep, None);
 };
+RES(CBUFFER(HairGlobal), cbHairGlobal, UPDATE_FREQ_PER_DRAW, b4, binding = 1);
 
 RES(RWBuffer(float4),HairVertexPositions, UPDATE_FREQ_PER_DRAW, u0, binding = 2);
 RES(RWBuffer(float4),HairVertexPositionsPrev, UPDATE_FREQ_PER_DRAW, u1, binding = 3);
@@ -182,12 +184,12 @@ VertexIndices CalculateVertexIndices(uint localID, uint groupID)
 
 	result.indexSharedMem = localID;
 
-	result.localStrandIndex = localID % Get(NumStrandsPerThreadGroup);
-	result.globalStrandIndex = groupID * Get(NumStrandsPerThreadGroup) + result.localStrandIndex;
-	result.globalStrandIndex *= Get(NumFollowHairsPerGuideHair) + 1;
-	result.localVertexIndex = (localID - result.localStrandIndex) / Get(NumStrandsPerThreadGroup);
+	result.localStrandIndex = localID % cbSimulation.NumStrandsPerThreadGroup;
+	result.globalStrandIndex = groupID * cbSimulation.NumStrandsPerThreadGroup + result.localStrandIndex;
+	result.globalStrandIndex *= cbSimulation.NumFollowHairsPerGuideHair + 1;
+	result.localVertexIndex = (localID - result.localStrandIndex) / cbSimulation.NumStrandsPerThreadGroup;
 
-	result.globalVertexIndex = result.globalStrandIndex * Get(NumVerticesPerStrand) + result.localVertexIndex;
+	result.globalVertexIndex = result.globalStrandIndex * cbSimulation.NumVerticesPerStrand + result.localVertexIndex;
 
 	return result;
 }
@@ -196,8 +198,8 @@ StrandIndices CalculateStrandIndices(uint localID, uint groupID)
 {
 	StrandIndices result;
 	result.globalStrandIndex = THREAD_GROUP_SIZE * groupID + localID;
-	result.globalStrandIndex *= Get(NumFollowHairsPerGuideHair) + 1;
-	result.globalRootVertexIndex = result.globalStrandIndex * Get(NumVerticesPerStrand);
+	result.globalStrandIndex *= cbSimulation.NumFollowHairsPerGuideHair + 1;
+	result.globalRootVertexIndex = result.globalStrandIndex * cbSimulation.NumVerticesPerStrand;
 	return result;
 }
 
@@ -205,8 +207,8 @@ float4 Integrate(float4 currentPosition, float4 prevPosition, float4 force, Vert
 {
 	float4 result = currentPosition;
 
-	force.xyz += Get(Gravity).xyz;
-	result.xyz += (1.0f - Get(Damping)) * (currentPosition.xyz - prevPosition.xyz) + force.xyz * Get(TimeStep) * Get(TimeStep);
+	force.xyz += cbHairGlobal.Gravity.xyz;
+	result.xyz += (1.0f - cbSimulation.Damping) * (currentPosition.xyz - prevPosition.xyz) + force.xyz * cbHairGlobal.TimeStep * cbHairGlobal.TimeStep;
 
 	return result;
 }

@@ -2,7 +2,7 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:../../../Common_3/IDE/XCode Build Configs">
+      location = "group:../../../Examples_3/Build_Props/XCode">
    </FileRef>
    <Group
       location = "container:"
@@ -36,16 +36,10 @@
          location = "group:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:15_Transparency/15_Transparency.xcodeproj">
-      </FileRef>
-      <FileRef
          location = "group:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:16_Raytracing/16_Raytracing.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:19_CodeHotReload_Main/19_CodeHotReload_Main.xcodeproj">

@@ -1,0 +1,28 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererD3D11", "RendererD3D11.vcxproj", "{1BFACEC7-77FB-44D9-B2C4-30C587119A42}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererVulkan", "RendererVulkan.vcxproj", "{0D2A392A-A59C-425E-ACD8-2FE1682346A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1BFACEC7-77FB-44D9-B2C4-30C587119A42}.Debug|x64.ActiveCfg = Debug|x64
+		{1BFACEC7-77FB-44D9-B2C4-30C587119A42}.Debug|x64.Build.0 = Debug|x64
+		{1BFACEC7-77FB-44D9-B2C4-30C587119A42}.Release|x64.ActiveCfg = Release|x64
+		{1BFACEC7-77FB-44D9-B2C4-30C587119A42}.Release|x64.Build.0 = Release|x64
+		{0D2A392A-A59C-425E-ACD8-2FE1682346A8}.Debug|x64.ActiveCfg = Debug|x64
+		{0D2A392A-A59C-425E-ACD8-2FE1682346A8}.Debug|x64.Build.0 = Debug|x64
+		{0D2A392A-A59C-425E-ACD8-2FE1682346A8}.Release|x64.ActiveCfg = Release|x64
+		{0D2A392A-A59C-425E-ACD8-2FE1682346A8}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {47BA88BE-5054-4899-8436-D56C1E40B0D5}
+	EndGlobalSection
+EndGlobal

@@ -35,7 +35,7 @@ STRUCT(VSOutput)
     DATA(float2, texcoords, TEXCOORD);
 };
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+STRUCT(uniformBlockData)
 {
 #if FT_MULTIVIEW
 	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
@@ -46,6 +46,7 @@ CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
     DATA(float4x4, ModelMatrixCube, None);
     DATA(float4x4, ModelMatrixOcclusion, None);
 };
+RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 VSOutput VS_MAIN(VSInput In)
 {
@@ -53,9 +54,9 @@ VSOutput VS_MAIN(VSInput In)
 	VSOutput Out;
 	
 #if FT_MULTIVIEW
-	float4x4 mvp = mul(Get(ProjectionViewMat)[VR_VIEW_ID], Get(ModelMatrixCube));
+	float4x4 mvp = mul(uniformBlock.ProjectionViewMat[VR_VIEW_ID], uniformBlock.ModelMatrixCube);
 #else
-	float4x4 mvp = mul(Get(ProjectionViewMat), Get(ModelMatrixCube));
+	float4x4 mvp = mul(uniformBlock.ProjectionViewMat, uniformBlock.ModelMatrixCube);
 #endif
 	Out.Position = mul(mvp, float4(In.Position.xyz, 1.0f));
 	Out.texcoords = In.TexCoords;

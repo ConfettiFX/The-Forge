@@ -286,7 +286,7 @@ void initialize_texture_desc(Renderer* pRenderer, const TextureDesc* pDesc, cons
                              MTLTextureDescriptor* textureDesc);
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT);
 
-void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage shaderStage, ShaderReflection* pOutReflection);
+void mtl_addShaderReflection(Renderer* pRenderer, Shader* shader, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
@@ -300,20 +300,17 @@ MTLCounterResultTimestamp* util_resolve_counter_sample_buffer(uint32_t startSamp
 // GPU frame time accessor for macOS and iOS
 #define GPU_FREQUENCY 1000000000.0 // nanoseconds
 
-DECLARE_RENDERER_FUNCTION(void, getBufferSizeAlign, Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
-DECLARE_RENDERER_FUNCTION(void, getTextureSizeAlign, Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
-DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
-DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
-DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
-DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset,
-                          uint64_t size)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer,
-                          const struct SubresourceDataDesc* pSubresourceDesc)
-DECLARE_RENDERER_FUNCTION(void, cmdCopySubresource, Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture,
-                          const struct SubresourceDataDesc* pSubresourceDesc)
-DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
-DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
+void getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
+void getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc);
+void cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc);
+void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+void removeTexture(Renderer* pRenderer, Texture* pTexture);
 
 /************************************************************************/
 // Globals
@@ -404,7 +401,7 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void* pConstants);
 void util_bind_root_cbv(Cmd* pCmd, const RootDescriptorHandle* pHandle);
 
-void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
+void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
     ASSERT(pCmd);
     ASSERT(pDescriptorSet);
@@ -561,7 +558,7 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 //
 // Push Constants
 //
-void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
     ASSERT(pCmd);
     ASSERT(pRootSignature);
@@ -592,10 +589,10 @@ void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t
 #define VALIDATE_DESCRIPTOR(descriptor, ...)
 #endif
 
-void mtl_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count,
-                                          const DescriptorData* pParams)
+void cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count,
+                                      const DescriptorData* pParams)
 {
-    mtl_cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
+    cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
 
     const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
 
@@ -645,7 +642,7 @@ void mtl_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorS
 // DescriptorSet
 //
 
-void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
+void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -870,7 +867,7 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
     *ppDescriptorSet = pDescriptorSet;
 }
 
-void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 {
     pDescriptorSet->mArgumentEncoder = nil;
 
@@ -960,8 +957,7 @@ static void BindICBDescriptor(DescriptorSet* pDescriptorSet, uint32_t index, con
     }
 }
 
-void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count,
-                             const DescriptorData* pParams)
+void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
     ASSERT(pRenderer);
     ASSERT(pDescriptorSet);
@@ -1285,17 +1281,15 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 static void internal_log(LogLevel level, const char* msg, const char* component) { LOGF(level, "%s ( %s )", component, msg); }
 
 // Resource allocation statistics.
-void mtl_calculateMemoryStats(Renderer* pRenderer, char** ppStats) { vmaBuildStatsString(pRenderer->pVmaAllocator, ppStats, VK_TRUE); }
+void logMemoryStats(Renderer* pRenderer) { vmaBuildStatsString(pRenderer->pVmaAllocator, VK_TRUE); }
 
-void mtl_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
 {
     VmaTotalStatistics stats;
     vmaCalculateStatistics(pRenderer->pVmaAllocator, &stats);
     *usedBytes = stats.total.statistics.allocationBytes;
     *totalAllocatedBytes = stats.total.statistics.blockBytes;
 }
-
-void        mtl_freeMemoryStats(Renderer* pRenderer, char* pStats) { vmaFreeStatsString(pRenderer->pVmaAllocator, pStats); }
 /************************************************************************/
 // Shader utility functions
 /************************************************************************/
@@ -1576,7 +1570,7 @@ void remove_default_resources(Renderer* pRenderer)
 // API functions
 // -------------------------------------------------------------------------------------------------
 
-TinyImageFormat mtl_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
+TinyImageFormat getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
     if (COLOR_SPACE_SDR_SRGB == colorSpace)
         return TinyImageFormat_B8G8R8A8_SRGB;
@@ -1604,7 +1598,7 @@ TinyImageFormat mtl_getSupportedSwapchainFormat(Renderer* pRenderer, const SwapC
     return TinyImageFormat_UNDEFINED;
 }
 
-uint32_t mtl_getRecommendedSwapchainImageCount(Renderer*, const WindowHandle*) { return 3; }
+uint32_t getRecommendedSwapchainImageCount(Renderer*, const WindowHandle*) { return 3; }
 
 #if !defined(TARGET_IOS)
 static uint32_t GetEntryProperty(io_registry_entry_t entry, CFStringRef propertyName)
@@ -2065,13 +2059,17 @@ static void QueryGPUSettings(GpuInfo* gpuInfo, GPUSettings* pOutSettings)
     ASSERT(pOutSettings->mVRAM);
 
     pOutSettings->mUniformBufferAlignment = 256;
+    pOutSettings->mUploadBufferAlignment = 1;
     pOutSettings->mUploadBufferTextureAlignment = 16;
     pOutSettings->mUploadBufferTextureRowAlignment = 1;
     pOutSettings->mMaxVertexInputBindings =
-        MAX_VERTEX_BINDINGS;                  // there are no special vertex buffers for input in Metal, only regular buffers
-    pOutSettings->mMultiDrawIndirect = false; // multi draw indirect is not supported on Metal: only single draw indirect
+        MAX_VERTEX_BINDINGS;                       // there are no special vertex buffers for input in Metal, only regular buffers
+    pOutSettings->mMultiDrawIndirect = false;      // multi draw indirect is not supported on Metal: only single draw indirect
+    pOutSettings->mMultiDrawIndirectCount = false; // multi draw indirect is not supported on Metal: only single draw indirect
+    pOutSettings->mRootConstant = true;
     pOutSettings->mIndirectRootConstant = false;
     pOutSettings->mBuiltinDrawID = false;
+    pOutSettings->mPrimitiveIdPsSupported = true;
     if (MTL_HDR_SUPPORTED)
     {
         pOutSettings->mHDRSupported = true;
@@ -2253,7 +2251,6 @@ static bool SelectBestGpu(const RendererDesc* settings, Renderer* pRenderer)
     // bool driverValid = checkDriverRejectionSettings(&gpuSettings[gpuIndex]);
     // if (!driverValid)
     //{
-    //	setRendererInitializationError("Driver rejection return invalid result.\nPlease, update your driver to the latest version.");
     //	return false;
     //}
 
@@ -2275,7 +2272,7 @@ static bool SelectBestGpu(const RendererDesc* settings, Renderer* pRenderer)
     return true;
 }
 
-void mtl_initRendererContext(const char* appName, const RendererContextDesc* pDesc, RendererContext** ppContext)
+void initRendererContext(const char* appName, const RendererContextDesc* pDesc, RendererContext** ppContext)
 {
     ASSERT(appName);
     ASSERT(pDesc);
@@ -2320,13 +2317,13 @@ void mtl_initRendererContext(const char* appName, const RendererContextDesc* pDe
     *ppContext = pContext;
 }
 
-void mtl_exitRendererContext(RendererContext* pContext)
+void exitRendererContext(RendererContext* pContext)
 {
     ASSERT(pContext);
     SAFE_FREE(pContext);
 }
 
-void mtl_initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
+void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
 {
     Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(*pRenderer));
     ASSERT(pRenderer);
@@ -2345,7 +2342,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
     {
         RendererContextDesc contextDesc = {};
         contextDesc.mEnableGpuBasedValidation = settings->mEnableGpuBasedValidation;
-        mtl_initRendererContext(appName, &contextDesc, &pRenderer->pContext);
+        initRendererContext(appName, &contextDesc, &pRenderer->pContext);
         pRenderer->mOwnsContext = true;
     }
 
@@ -2440,7 +2437,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
     }
 }
 
-void mtl_exitRenderer(Renderer* pRenderer)
+void exitRenderer(Renderer* pRenderer)
 {
     ASSERT(pRenderer);
 
@@ -2455,7 +2452,7 @@ void mtl_exitRenderer(Renderer* pRenderer)
 
     if (pRenderer->pHeapMutex)
     {
-        destroyMutex(pRenderer->pHeapMutex);
+        exitMutex(pRenderer->pHeapMutex);
     }
 
     SAFE_FREE(pRenderer->pHeapMutex);
@@ -2463,13 +2460,13 @@ void mtl_exitRenderer(Renderer* pRenderer)
 
     if (pRenderer->mOwnsContext)
     {
-        mtl_exitRendererContext(pRenderer->pContext);
+        exitRendererContext(pRenderer->pContext);
     }
 
     SAFE_FREE(pRenderer);
 }
 
-void mtl_addFence(Renderer* pRenderer, Fence** ppFence)
+void initFence(Renderer* pRenderer, Fence** ppFence)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -2484,7 +2481,7 @@ void mtl_addFence(Renderer* pRenderer, Fence** ppFence)
     *ppFence = pFence;
 }
 
-void mtl_removeFence(Renderer* pRenderer, Fence* pFence)
+void exitFence(Renderer* pRenderer, Fence* pFence)
 {
     ASSERT(pFence);
     pFence->pSemaphore = nil;
@@ -2492,7 +2489,7 @@ void mtl_removeFence(Renderer* pRenderer, Fence* pFence)
     SAFE_FREE(pFence);
 }
 
-void mtl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
+void initSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 {
     ASSERT(pRenderer);
     ASSERT(ppSemaphore);
@@ -2507,7 +2504,7 @@ void mtl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
     *ppSemaphore = pSemaphore;
 }
 
-void mtl_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
+void exitSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
     ASSERT(pSemaphore);
 
@@ -2516,7 +2513,7 @@ void mtl_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
     SAFE_FREE(pSemaphore);
 }
 
-void mtl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
+void initQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
     ASSERT(pDesc);
     ASSERT(ppQueue);
@@ -2543,7 +2540,7 @@ void mtl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
     *ppQueue = pQueue;
 }
 
-void mtl_removeQueue(Renderer* pRenderer, Queue* pQueue)
+void exitQueue(Renderer* pRenderer, Queue* pQueue)
 {
     ASSERT(pQueue);
 
@@ -2553,7 +2550,7 @@ void mtl_removeQueue(Renderer* pRenderer, Queue* pQueue)
     SAFE_FREE(pQueue);
 }
 
-void mtl_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
+void initCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -2567,13 +2564,13 @@ void mtl_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppC
     *ppCmdPool = pCmdPool;
 }
 
-void mtl_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void exitCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
     ASSERT(pCmdPool);
     SAFE_FREE(pCmdPool);
 }
 
-void mtl_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
+void initCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -2588,7 +2585,7 @@ void mtl_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     *ppCmd = pCmd;
 }
 
-void mtl_removeCmd(Renderer* pRenderer, Cmd* pCmd)
+void exitCmd(Renderer* pRenderer, Cmd* pCmd)
 {
     ASSERT(pCmd);
     pCmd->pCommandBuffer = nil;
@@ -2596,7 +2593,7 @@ void mtl_removeCmd(Renderer* pRenderer, Cmd* pCmd)
     SAFE_FREE(pCmd);
 }
 
-void mtl_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
+void initCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
     // verify that ***cmd is valid
     ASSERT(pRenderer);
@@ -2610,13 +2607,13 @@ void mtl_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, 
     // add n new cmds to given pool
     for (uint32_t i = 0; i < cmdCount; ++i)
     {
-        ::addCmd(pRenderer, pDesc, &ppCmds[i]);
+        ::initCmd(pRenderer, pDesc, &ppCmds[i]);
     }
 
     *pppCmd = ppCmds;
 }
 
-void mtl_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
+void exitCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 {
     // verify that given command list is valid
     ASSERT(ppCmds);
@@ -2624,13 +2621,13 @@ void mtl_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
     // remove every given cmd in array
     for (uint32_t i = 0; i < cmdCount; ++i)
     {
-        removeCmd(pRenderer, ppCmds[i]);
+        exitCmd(pRenderer, ppCmds[i]);
     }
 
     SAFE_FREE(ppCmds);
 }
 
-void mtl_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
+void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
 {
 #if defined(ENABLE_DISPLAY_SYNC_TOGGLE)
     SwapChain* pSwapchain = *ppSwapchain;
@@ -2682,7 +2679,7 @@ static void util_set_colorspace(SwapChain* pSwapChain, ColorSpace colorSpace)
     }
 }
 
-void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
+void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -2769,7 +2766,7 @@ void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain
     *ppSwapChain = pSwapChain;
 }
 
-void mtl_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
+void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
     ASSERT(pRenderer);
     ASSERT(pSwapChain);
@@ -2782,7 +2779,7 @@ void mtl_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
     SAFE_FREE(pSwapChain);
 }
 
-void mtl_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, ResourceHeap** ppHeap)
+void addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, ResourceHeap** ppHeap)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -2823,7 +2820,7 @@ void mtl_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, Res
     *ppHeap = pHeap;
 }
 
-void mtl_removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap)
+void removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap)
 {
     if (!pRenderer->pGpu->mSettings.mPlacementHeaps)
     {
@@ -2840,7 +2837,7 @@ void mtl_removeResourceHeap(Renderer* pRenderer, ResourceHeap* pHeap)
     SAFE_FREE(pHeap);
 }
 
-void mtl_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut)
+void getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut)
 {
     UNREF_PARAM(pRenderer);
     ASSERT(pRenderer);
@@ -2862,7 +2859,7 @@ void mtl_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, Resour
     pOut->mAlignment = sizeAlign.align;
 }
 
-void mtl_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut)
+void getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut)
 {
     UNREF_PARAM(pRenderer);
     ASSERT(pRenderer);
@@ -2878,7 +2875,7 @@ void mtl_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, Reso
     pOut->mAlignment = sizeAlign.align;
 }
 
-void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 {
     ASSERT(pRenderer);
     ASSERT(ppBuffer);
@@ -3011,7 +3008,7 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
     *ppBuffer = pBuffer;
 }
 
-void mtl_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
     ASSERT(pBuffer);
 
@@ -3031,7 +3028,7 @@ void mtl_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
     SAFE_FREE(pBuffer);
 }
 
-void mtl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
@@ -3044,7 +3041,7 @@ void mtl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppT
     add_texture(pRenderer, pDesc, ppTexture, false);
 }
 
-void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
+void removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
     ASSERT(pTexture);
 
@@ -3079,7 +3076,7 @@ void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
     SAFE_FREE(pTexture);
 }
 
-void mtl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
+void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -3134,7 +3131,7 @@ void mtl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Ren
     *ppRenderTarget = pRenderTarget;
 }
 
-void mtl_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
+void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
     removeTexture(pRenderer, pRenderTarget->pTexture);
 
@@ -3148,7 +3145,7 @@ void mtl_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
     SAFE_FREE(pRenderTarget);
 }
 
-void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
+void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -3195,14 +3192,14 @@ void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppS
     *ppSampler = pSampler;
 }
 
-void mtl_removeSampler(Renderer* pRenderer, Sampler* pSampler)
+void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 {
     ASSERT(pSampler);
     pSampler->pSamplerState = nil;
     SAFE_FREE(pSampler);
 }
 
-void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc && pDesc->mStages);
@@ -3272,8 +3269,8 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
 
             *compiled_code = function;
 
-            mtl_createShaderReflection(pRenderer, pShaderProgram, stage_mask,
-                                       &pShaderProgram->pReflection->mStageReflections[reflectionCount++]);
+            mtl_addShaderReflection(pRenderer, pShaderProgram, stage_mask,
+                                    &pShaderProgram->pReflection->mStageReflections[reflectionCount++]);
 
             if (pShaderProgram->mStages & SHADER_STAGE_FRAG)
             {
@@ -3283,7 +3280,7 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
         }
     }
 
-    createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+    addPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
 
     if (pShaderProgram->mStages & SHADER_STAGE_COMP)
     {
@@ -3303,7 +3300,7 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
     *ppShaderProgram = pShaderProgram;
 }
 
-void mtl_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
+void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
     ASSERT(pShaderProgram);
 
@@ -3311,11 +3308,11 @@ void mtl_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
     pShaderProgram->pFragmentShader = nil;
     pShaderProgram->pComputeShader = nil;
 
-    destroyPipelineReflection(pShaderProgram->pReflection);
+    removePipelineReflection(pShaderProgram->pReflection);
     SAFE_FREE(pShaderProgram);
 }
 
-void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -3617,7 +3614,7 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
     shfree(staticSamplerMap);
 }
 
-void mtl_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
+void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
     ASSERT(pRenderer);
     ASSERT(pRootSignature);
@@ -3631,7 +3628,7 @@ void mtl_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
     SAFE_FREE(pRootSignature);
 }
 
-uint32_t mtl_getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
+uint32_t getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
 {
     for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
     {
@@ -3880,7 +3877,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const char* pName, const Comput
     *ppPipeline = pPipeline;
 }
 
-void mtl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -3903,7 +3900,7 @@ void mtl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** 
     }
 }
 
-void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
+void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
     ASSERT(pPipeline);
 
@@ -3914,66 +3911,20 @@ void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
     SAFE_FREE(pPipeline);
 }
 
-void mtl_addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**) {}
+void addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**) {}
 
-void mtl_removePipelineCache(Renderer*, PipelineCache*) {}
+void removePipelineCache(Renderer*, PipelineCache*) {}
 
-void mtl_getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*) {}
-
-void mtl_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
-{
-    ASSERT(pRenderer != nil);
-    ASSERT(pDesc != nil);
-    ASSERT(pDesc->mIndirectArgCount == 1);
-
-    CommandSignature* pCommandSignature =
-        (CommandSignature*)tf_calloc(1, sizeof(CommandSignature) + sizeof(IndirectArgument) * pDesc->mIndirectArgCount);
-    ASSERT(pCommandSignature);
-
-    pCommandSignature->mDrawType = pDesc->pArgDescs[0].mType;
-    switch (pDesc->pArgDescs[0].mType)
-    {
-    case INDIRECT_DRAW:
-        pCommandSignature->mStride += sizeof(IndirectDrawArguments);
-        break;
-    case INDIRECT_DRAW_INDEX:
-        pCommandSignature->mStride += sizeof(IndirectDrawIndexArguments);
-        break;
-    case INDIRECT_DISPATCH:
-        pCommandSignature->mStride += sizeof(IndirectDispatchArguments);
-        break;
-    case INDIRECT_COMMAND_BUFFER:
-    case INDIRECT_COMMAND_BUFFER_RESET:
-    case INDIRECT_COMMAND_BUFFER_OPTIMIZE:
-        pCommandSignature->mStride = 1;
-        break;
-    default:
-        ASSERT(false);
-        break;
-    }
-
-    if (!pDesc->mPacked)
-    {
-        pCommandSignature->mStride = round_up(pCommandSignature->mStride, 16);
-    }
-
-    *ppCommandSignature = pCommandSignature;
-}
-
-void mtl_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
-{
-    ASSERT(pCommandSignature);
-    SAFE_FREE(pCommandSignature);
-}
+void getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*) {}
 // -------------------------------------------------------------------------------------------------
 // Buffer functions
 // -------------------------------------------------------------------------------------------------
-void mtl_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
     ASSERT(pBuffer->pBuffer.storageMode != MTLStorageModePrivate && "Trying to map non-cpu accessible resource");
     pBuffer->pCpuMappedAddress = (uint8_t*)pBuffer->pBuffer.contents + pBuffer->mOffset;
 }
-void mtl_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
     ASSERT(pBuffer->pBuffer.storageMode != MTLStorageModePrivate && "Trying to unmap non-cpu accessible resource");
     pBuffer->pCpuMappedAddress = nil;
@@ -3983,13 +3934,13 @@ void mtl_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 // Command buffer functions
 // -------------------------------------------------------------------------------------------------
 
-void mtl_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pCmdPool);
 }
 
-void mtl_beginCmd(Cmd* pCmd)
+void beginCmd(Cmd* pCmd)
 {
     @autoreleasepool
     {
@@ -4034,7 +3985,7 @@ void mtl_beginCmd(Cmd* pCmd)
     pCmd->mPipelineType = PIPELINE_TYPE_UNDEFINED;
 }
 
-void mtl_endCmd(Cmd* pCmd)
+void endCmd(Cmd* pCmd)
 {
     @autoreleasepool
     {
@@ -4042,7 +3993,7 @@ void mtl_endCmd(Cmd* pCmd)
     }
 }
 
-void mtl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
+void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 {
     ASSERT(pCmd);
 
@@ -4266,7 +4217,7 @@ void mtl_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 }
 
 // Note: setSamplePositions in Metal is incosistent with other APIs: it cannot be called inside the renderpass
-void mtl_cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t grid_size_x, uint32_t grid_size_y, SampleLocations* locations)
+void cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t grid_size_x, uint32_t grid_size_y, SampleLocations* locations)
 {
     uint32_t sampleLocationsCount = samples_count * grid_size_x * grid_size_y;
     ASSERT(sampleLocationsCount <= MAX_SAMPLE_LOCATIONS);
@@ -4279,7 +4230,7 @@ void mtl_cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t gr
     pCmd->mSampleLocationsCount = sampleLocationsCount;
 }
 
-void mtl_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
+void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 {
     ASSERT(pCmd);
     if (pCmd->pRenderEncoder == nil)
@@ -4299,7 +4250,7 @@ void mtl_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, 
     [pCmd->pRenderEncoder setViewport:viewport];
 }
 
-void mtl_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
     ASSERT(pCmd);
     if (pCmd->pRenderEncoder == nil)
@@ -4322,14 +4273,14 @@ void mtl_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32
     [pCmd->pRenderEncoder setScissorRect:scissor];
 }
 
-void mtl_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
 {
     ASSERT(pCmd);
 
     [pCmd->pRenderEncoder setStencilReferenceValue:val];
 }
 
-void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
+void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
     ASSERT(pCmd);
     ASSERT(pPipeline);
@@ -4424,7 +4375,7 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
     }
 }
 
-void mtl_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
+void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
 {
     ASSERT(pCmd);
     ASSERT(pBuffer);
@@ -4435,7 +4386,7 @@ void mtl_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint
     pCmd->mIndexStride = (INDEX_TYPE_UINT16 == indexType ? sizeof(uint16_t) : sizeof(uint32_t));
 }
 
-void mtl_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
+void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
 {
     ASSERT(pCmd);
     ASSERT(0 != bufferCount);
@@ -4479,7 +4430,7 @@ void RebindState(Cmd* pCmd)
     pCmd->mShouldRebindPipeline = 0;
 }
 
-void mtl_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
+void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
     ASSERT(pCmd);
 
@@ -4503,7 +4454,7 @@ void mtl_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
     }
 }
 
-void mtl_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
+void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
     ASSERT(pCmd);
 
@@ -4539,7 +4490,7 @@ void mtl_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex,
     }
 }
 
-void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
+void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 {
     ASSERT(pCmd);
 
@@ -4624,8 +4575,8 @@ void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uin
     }
 }
 
-void mtl_cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex,
-                                 uint32_t firstInstance)
+void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex,
+                             uint32_t firstInstance)
 {
     ASSERT(pCmd);
 
@@ -4720,7 +4671,7 @@ void mtl_cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstI
     }
 }
 
-void mtl_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
     ASSERT(pCmd);
     ASSERT(pCmd->pComputeEncoder != nil);
@@ -4735,21 +4686,18 @@ void mtl_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint
     [pCmd->pComputeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:pCmd->pBoundPipeline->mNumThreadsPerGroup];
 }
 
-void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer,
-                            uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
+void cmdExecuteIndirect(Cmd* pCmd, IndirectArgumentType type, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
+                        Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
     ASSERT(pCmd);
 
     RebindState(pCmd);
 
-    const IndirectArgumentType drawType = pCommandSignature->mDrawType;
-
     if (pCmd->pRenderer->pGpu->mSettings.mIndirectCommandBuffer)
     {
-        ASSERT(pCommandSignature->mStride);
-        uint64_t rangeOffset = bufferOffset / pCommandSignature->mStride;
+        uint64_t rangeOffset = bufferOffset;
 
-        if (drawType == INDIRECT_COMMAND_BUFFER_OPTIMIZE && maxCommandCount)
+        if (type == INDIRECT_COMMAND_BUFFER_OPTIMIZE && maxCommandCount)
         {
             if (!pCmd->pBlitEncoder)
             {
@@ -4763,7 +4711,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
                                                     withRange:NSMakeRange(rangeOffset, maxCommandCount)];
             return;
         }
-        else if (drawType == INDIRECT_COMMAND_BUFFER_RESET && maxCommandCount)
+        else if (type == INDIRECT_COMMAND_BUFFER_RESET && maxCommandCount)
         {
             if (!pCmd->pBlitEncoder)
             {
@@ -4776,7 +4724,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
                                             withRange:NSMakeRange(rangeOffset, maxCommandCount)];
             return;
         }
-        else if ((pIndirectBuffer->pIndirectCommandBuffer || drawType == INDIRECT_COMMAND_BUFFER) && maxCommandCount)
+        else if ((pIndirectBuffer->pIndirectCommandBuffer || type == INDIRECT_COMMAND_BUFFER) && maxCommandCount)
         {
             [pCmd->pRenderEncoder executeCommandsInBuffer:pIndirectBuffer->pIndirectCommandBuffer
                                                 withRange:NSMakeRange(rangeOffset, maxCommandCount)];
@@ -4784,13 +4732,20 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
         }
     }
 
-    if (drawType == INDIRECT_DRAW)
+    static const uint32_t cmdStrides[3] = {
+        sizeof(IndirectDrawArguments),
+        sizeof(IndirectDrawIndexArguments),
+        sizeof(IndirectDispatchArguments),
+    };
+    const uint32_t stride = cmdStrides[type];
+
+    if (type == INDIRECT_DRAW)
     {
         if (!pCmd->pBoundPipeline->mTessellation)
         {
             for (uint32_t i = 0; i < maxCommandCount; i++)
             {
-                uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
+                uint64_t indirectBufferOffset = bufferOffset + stride * i;
                 [pCmd->pRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
                                       indirectBuffer:pIndirectBuffer->pBuffer
                                 indirectBufferOffset:indirectBufferOffset];
@@ -4801,7 +4756,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             ASSERT((bool)pCmd->pRenderer->pGpu->mSettings.mTessellationIndirectDrawSupported);
             for (uint32_t i = 0; i < maxCommandCount; i++)
             {
-                uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
+                uint64_t indirectBufferOffset = bufferOffset + stride * i;
                 [pCmd->pRenderEncoder drawPatches:pCmd->pBoundPipeline->mPatchControlPointCount
                                  patchIndexBuffer:nil
                            patchIndexBufferOffset:0
@@ -4810,7 +4765,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             }
         }
     }
-    else if (drawType == INDIRECT_DRAW_INDEX)
+    else if (type == INDIRECT_DRAW_INDEX)
     {
         if (!pCmd->pBoundPipeline->mTessellation)
         {
@@ -4818,7 +4773,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             {
                 id           indexBuffer = pCmd->mBoundIndexBuffer;
                 MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
-                uint64_t     indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
+                uint64_t     indirectBufferOffset = bufferOffset + stride * i;
 
                 [pCmd->pRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
                                                   indexType:indexType
@@ -4834,7 +4789,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             for (uint32_t i = 0; i < maxCommandCount; ++i)
             {
                 id       indexBuffer = pCmd->mBoundIndexBuffer;
-                uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
+                uint64_t indirectBufferOffset = bufferOffset + stride * i;
                 [pCmd->pRenderEncoder drawPatches:pCmd->pBoundPipeline->mPatchControlPointCount
                                  patchIndexBuffer:indexBuffer
                            patchIndexBufferOffset:0
@@ -4843,7 +4798,7 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
             }
         }
     }
-    else if (drawType == INDIRECT_DISPATCH)
+    else if (type == INDIRECT_DISPATCH)
     {
         // There might have been a barrier inserted since last dispatch call
         // This only applies to dispatch since you can issue barriers inside compute pass but this is not possible inside render pass
@@ -4853,14 +4808,14 @@ void mtl_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint
         for (uint32_t i = 0; i < maxCommandCount; ++i)
         {
             [pCmd->pComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->pBuffer
-                                                     indirectBufferOffset:bufferOffset + pCommandSignature->mStride * i
+                                                     indirectBufferOffset:bufferOffset + stride * i
                                                     threadsPerThreadgroup:pCmd->pBoundPipeline->mNumThreadsPerGroup];
         }
     }
 }
 
-void mtl_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers,
-                            TextureBarrier* pTextureBarriers, uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
+void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers,
+                        TextureBarrier* pTextureBarriers, uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
     if (numBufferBarriers)
     {
@@ -4879,7 +4834,7 @@ void mtl_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier
     }
 }
 
-void mtl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
     ASSERT(pCmd);
     ASSERT(pSrcBuffer);
@@ -4912,7 +4867,7 @@ typedef struct SubresourceDataDesc
     uint32_t mSlicePitch;
 } SubresourceDataDesc;
 
-void mtl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, const SubresourceDataDesc* pSubresourceDesc)
+void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, const SubresourceDataDesc* pSubresourceDesc)
 {
     MTLSize sourceSize =
         MTLSizeMake(max(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel), max(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel),
@@ -4955,7 +4910,7 @@ void mtl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediat
                                options:MTLBlitOptionNone];
 }
 
-void mtl_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc)
+void cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc)
 {
     MTLSize sourceSize =
         MTLSizeMake(max(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel), max(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel),
@@ -4981,7 +4936,7 @@ void mtl_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, co
                                 options:MTLBlitOptionNone];
 }
 
-void mtl_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
+void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -5000,7 +4955,7 @@ void mtl_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore*
     }
 }
 
-void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
+void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
     ASSERT(pQueue);
     ASSERT(pDesc);
@@ -5109,7 +5064,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
     }
 }
 
-void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
     ASSERT(pQueue);
     ASSERT(pDesc);
@@ -5138,7 +5093,7 @@ void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
     }
 }
 
-void mtl_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
     ASSERT(pRenderer);
     ASSERT(fenceCount);
@@ -5154,7 +5109,7 @@ void mtl_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFence
     }
 }
 
-void mtl_waitQueueIdle(Queue* pQueue)
+void waitQueueIdle(Queue* pQueue)
 {
     ASSERT(pQueue);
     id<MTLCommandBuffer> waitCmdBuf = [pQueue->pCommandQueue commandBufferWithUnretainedReferences];
@@ -5165,7 +5120,7 @@ void mtl_waitQueueIdle(Queue* pQueue)
     waitCmdBuf = nil;
 }
 
-void mtl_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
 {
     ASSERT(pFence);
     *pFenceStatus = FENCE_STATUS_COMPLETE;
@@ -5194,7 +5149,7 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
-void mtl_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #ifdef ENABLE_GRAPHICS_DEBUG
     snprintf(pCmd->mDebugMarker, MAX_DEBUG_NAME_LENGTH, "%s", pName);
@@ -5202,9 +5157,9 @@ void mtl_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 #endif
 }
 
-void mtl_cmdEndDebugMarker(Cmd* pCmd) { util_unset_debug_group(pCmd); }
+void cmdEndDebugMarker(Cmd* pCmd) { util_unset_debug_group(pCmd); }
 
-void mtl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
     if (pCmd->pRenderEncoder)
         [pCmd->pRenderEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
@@ -5214,7 +5169,7 @@ void mtl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pNa
         [pCmd->pBlitEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
 }
 
-void mtl_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
+void cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
 {
     ASSERT(pCmd);
     ASSERT(pDesc);
@@ -5245,9 +5200,9 @@ void mtl_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
     }
 }
 
-void mtl_getTimestampFrequency(Queue* pQueue, double* pFrequency) { *pFrequency = GPU_FREQUENCY; }
+void getTimestampFrequency(Queue* pQueue, double* pFrequency) { *pFrequency = GPU_FREQUENCY; }
 
-void mtl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
+void initQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
     if (QUERY_TYPE_TIMESTAMP != pDesc->mType)
     {
@@ -5305,14 +5260,14 @@ void mtl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool
     *ppQueryPool = pQueryPool;
 }
 
-void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
+void exitQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
     pQueryPool->pSampleBuffer = nil;
     SAFE_FREE(pQueryPool->pQueries);
     SAFE_FREE(pQueryPool);
 }
 
-void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
     if (pQueryPool->mType == QUERY_TYPE_TIMESTAMP)
     {
@@ -5336,7 +5291,7 @@ void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
     }
 }
 
-void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
     pCmd->pCurrentQueryPool = nil;
     pCmd->mCurrentQueryIndex = -1;
@@ -5356,11 +5311,11 @@ void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
     }
 }
 
-void mtl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
+void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
 
-void mtl_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
+void cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
 
-void mtl_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t queryIndex, QueryData* pOutData)
+void getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t queryIndex, QueryData* pOutData)
 {
     ASSERT(pRenderer);
     ASSERT(pQueryPool);
@@ -5448,7 +5403,7 @@ void mtl_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t query
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-void mtl_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
     ASSERT(pRenderer);
     ASSERT(pBuffer);
@@ -5473,7 +5428,7 @@ void mtl_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 #endif
 }
 
-void mtl_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
     ASSERT(pRenderer);
     ASSERT(pTexture);
@@ -5485,12 +5440,12 @@ void mtl_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pNam
 #endif
 }
 
-void mtl_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
+void setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
 {
     setTextureName(pRenderer, pRenderTarget->pTexture, pName);
 }
 
-void mtl_setPipelineName(Renderer*, Pipeline*, const char*) {}
+void setPipelineName(Renderer*, Pipeline*, const char*) {}
 // -------------------------------------------------------------------------------------------------
 // Utility functions
 // -------------------------------------------------------------------------------------------------
@@ -6248,162 +6203,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 /************************************************************************/
 /************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
-
-void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
-{
-    // API functions
-    addFence = mtl_addFence;
-    removeFence = mtl_removeFence;
-    addSemaphore = mtl_addSemaphore;
-    removeSemaphore = mtl_removeSemaphore;
-    addQueue = mtl_addQueue;
-    removeQueue = mtl_removeQueue;
-    addSwapChain = mtl_addSwapChain;
-    removeSwapChain = mtl_removeSwapChain;
-
-    // command pool functions
-    addCmdPool = mtl_addCmdPool;
-    removeCmdPool = mtl_removeCmdPool;
-    addCmd = mtl_addCmd;
-    removeCmd = mtl_removeCmd;
-    addCmd_n = mtl_addCmd_n;
-    removeCmd_n = mtl_removeCmd_n;
-
-    addRenderTarget = mtl_addRenderTarget;
-    removeRenderTarget = mtl_removeRenderTarget;
-    addSampler = mtl_addSampler;
-    removeSampler = mtl_removeSampler;
-
-    // Resource Load functions
-    addResourceHeap = mtl_addResourceHeap;
-    removeResourceHeap = mtl_removeResourceHeap;
-    getBufferSizeAlign = mtl_getBufferSizeAlign;
-    getTextureSizeAlign = mtl_getTextureSizeAlign;
-    addBuffer = mtl_addBuffer;
-    removeBuffer = mtl_removeBuffer;
-    mapBuffer = mtl_mapBuffer;
-    unmapBuffer = mtl_unmapBuffer;
-    cmdUpdateBuffer = mtl_cmdUpdateBuffer;
-    cmdUpdateSubresource = mtl_cmdUpdateSubresource;
-    cmdCopySubresource = mtl_cmdCopySubresource;
-    addTexture = mtl_addTexture;
-    removeTexture = mtl_removeTexture;
-
-    // shader functions
-    addShaderBinary = mtl_addShaderBinary;
-    removeShader = mtl_removeShader;
-
-    addRootSignature = mtl_addRootSignature;
-    removeRootSignature = mtl_removeRootSignature;
-    getDescriptorIndexFromName = mtl_getDescriptorIndexFromName;
-
-    // pipeline functions
-    addPipeline = mtl_addPipeline;
-    removePipeline = mtl_removePipeline;
-    addPipelineCache = mtl_addPipelineCache;
-    getPipelineCacheData = mtl_getPipelineCacheData;
-    removePipelineCache = mtl_removePipelineCache;
-
-    // Descriptor Set functions
-    addDescriptorSet = mtl_addDescriptorSet;
-    removeDescriptorSet = mtl_removeDescriptorSet;
-    updateDescriptorSet = mtl_updateDescriptorSet;
-
-    // command buffer functions
-    resetCmdPool = mtl_resetCmdPool;
-    beginCmd = mtl_beginCmd;
-    endCmd = mtl_endCmd;
-    cmdBindRenderTargets = mtl_cmdBindRenderTargets;
-    // Note: setSamplePositions in Metal is incosistent with other APIs: it cannot be called inside the renderpass
-    cmdSetSampleLocations = mtl_cmdSetSampleLocations;
-    cmdSetViewport = mtl_cmdSetViewport;
-    cmdSetScissor = mtl_cmdSetScissor;
-    cmdSetStencilReferenceValue = mtl_cmdSetStencilReferenceValue;
-    cmdBindPipeline = mtl_cmdBindPipeline;
-    cmdBindDescriptorSet = mtl_cmdBindDescriptorSet;
-    cmdBindPushConstants = mtl_cmdBindPushConstants;
-    cmdBindDescriptorSetWithRootCbvs = mtl_cmdBindDescriptorSetWithRootCbvs;
-    cmdBindIndexBuffer = mtl_cmdBindIndexBuffer;
-    cmdBindVertexBuffer = mtl_cmdBindVertexBuffer;
-    cmdDraw = mtl_cmdDraw;
-    cmdDrawInstanced = mtl_cmdDrawInstanced;
-    cmdDrawIndexed = mtl_cmdDrawIndexed;
-    cmdDrawIndexedInstanced = mtl_cmdDrawIndexedInstanced;
-    cmdDispatch = mtl_cmdDispatch;
-
-    // Transition Commands
-    cmdResourceBarrier = mtl_cmdResourceBarrier;
-
-    // queue/fence/swapchain functions
-    acquireNextImage = mtl_acquireNextImage;
-    queueSubmit = mtl_queueSubmit;
-    queuePresent = mtl_queuePresent;
-    waitQueueIdle = mtl_waitQueueIdle;
-    getFenceStatus = mtl_getFenceStatus;
-    waitForFences = mtl_waitForFences;
-    toggleVSync = mtl_toggleVSync;
-
-    getSupportedSwapchainFormat = mtl_getSupportedSwapchainFormat;
-    getRecommendedSwapchainImageCount = mtl_getRecommendedSwapchainImageCount;
-
-    // indirect Draw functions
-    addIndirectCommandSignature = mtl_addIndirectCommandSignature;
-    removeIndirectCommandSignature = mtl_removeIndirectCommandSignature;
-    cmdExecuteIndirect = mtl_cmdExecuteIndirect;
-
-    /************************************************************************/
-    // GPU Query Interface
-    /************************************************************************/
-    getTimestampFrequency = mtl_getTimestampFrequency;
-    addQueryPool = mtl_addQueryPool;
-    removeQueryPool = mtl_removeQueryPool;
-    cmdBeginQuery = mtl_cmdBeginQuery;
-    cmdEndQuery = mtl_cmdEndQuery;
-    cmdResolveQuery = mtl_cmdResolveQuery;
-    cmdResetQuery = mtl_cmdResetQuery;
-    getQueryData = mtl_getQueryData;
-    /************************************************************************/
-    // Stats Info Interface
-    /************************************************************************/
-    calculateMemoryStats = mtl_calculateMemoryStats;
-    calculateMemoryUse = mtl_calculateMemoryUse;
-    freeMemoryStats = mtl_freeMemoryStats;
-    /************************************************************************/
-    // Debug Marker Interface
-    /************************************************************************/
-    cmdBeginDebugMarker = mtl_cmdBeginDebugMarker;
-    cmdEndDebugMarker = mtl_cmdEndDebugMarker;
-    cmdAddDebugMarker = mtl_cmdAddDebugMarker;
-    cmdWriteMarker = mtl_cmdWriteMarker;
-    /************************************************************************/
-    // Resource Debug Naming Interface
-    /************************************************************************/
-    setBufferName = mtl_setBufferName;
-    setTextureName = mtl_setTextureName;
-    setRenderTargetName = mtl_setRenderTargetName;
-    setPipelineName = mtl_setPipelineName;
-
-    mtl_initRenderer(appName, pSettings, ppRenderer);
-}
-
-void exitMetalRenderer(Renderer* pRenderer)
-{
-    ASSERT(pRenderer);
-
-    mtl_exitRenderer(pRenderer);
-}
-
-void initMetalRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
-{
-    // No need to initialize API function pointers, initRenderer MUST be called before using anything else anyway.
-    mtl_initRendererContext(appName, pSettings, ppContext);
-}
-
-void exitMetalRendererContext(RendererContext* pContext)
-{
-    ASSERT(pContext);
-    mtl_exitRendererContext(pContext);
-}
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 } // namespace RENDERER_CPP_NAMESPACE

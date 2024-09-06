@@ -28,14 +28,16 @@
 #define MAX_BLUR_KERNEL_SIZE 16
 
 
-CBUFFER(BlurWeights, UPDATE_FREQ_NONE, b1, binding = 1)
+STRUCT(BlurWeightData)
 {
 	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE/4], None);
 };
+RES(CBUFFER(BlurWeightData), BlurWeights, UPDATE_FREQ_NONE, b1, binding = 1);
 
 // UPDATE_FREQ_FRAME
-PUSH_CONSTANT(BlurRootConstants, b0)
+STRUCT(BlurRootConstantData)
 {
 	DATA(uint, mBlurPassType, None);
 	DATA(uint, mFilterRadius, None);
 };
+RES(ROOT_CONSTANT(BlurRootConstantData), BlurRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
