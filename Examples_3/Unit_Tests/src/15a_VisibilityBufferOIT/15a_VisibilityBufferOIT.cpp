@@ -804,7 +804,7 @@ public:
             return false;
         }
 
-        if (!pRenderer->pGpu->mSettings.mPrimitiveIdSupported)
+        if (!pRenderer->pGpu->mPrimitiveIdSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer does not run on this device. PrimitiveID is not supported");
             return false;
@@ -826,7 +826,7 @@ public:
 #endif                                                                    // SCARLETT
 
         // turn off by default depending on gpu config rules
-        gAppSettings.mEnableVRS = pRenderer->pGpu->mSettings.mSoftwareVRSSupported && (gGpuSettings.mMSAASampleCount >= SAMPLE_COUNT_4);
+        gAppSettings.mEnableVRS = pRenderer->pGpu->mSoftwareVRSSupported && (gGpuSettings.mMSAASampleCount >= SAMPLE_COUNT_4);
         gAppSettings.mEnableGodray &= !gGpuSettings.mDisableGodRays;
         gAppSettings.mMsaaLevel = gAppSettings.mEnableVRS ? SAMPLE_COUNT_4 : (SampleCount)min(1u, gGpuSettings.mMSAASampleCount);
         gAppSettings.mMsaaIndex = (uint32_t)log2((uint32_t)gAppSettings.mMsaaLevel);
@@ -1655,7 +1655,7 @@ public:
                                         [](void* pUserData)
                                         {
                                             UNREF_PARAM(pUserData);
-                                            if (pRenderer->pGpu->mSettings.mSoftwareVRSSupported)
+                                            if (pRenderer->pGpu->mSoftwareVRSSupported)
                                             {
                                                 gAppSettings.mMsaaIndexRequested = gAppSettings.mEnableVRS ? 2 : 0;
                                                 ReloadDesc reloadDescriptor;
@@ -1684,7 +1684,7 @@ public:
 
             /************************************************************************/
             /************************************************************************/
-            if (pRenderer->pGpu->mSettings.mHDRSupported)
+            if (pRenderer->pGpu->mHDRSupported)
             {
                 LabelWidget labelWidget = {};
                 gAppSettings.pOutputSupportsHDRWidget =
@@ -2008,9 +2008,7 @@ public:
             gWasOutputMode = gAppSettings.mOutputMode;
         }
 
-#if !defined(TARGET_IOS)
         pCameraController->update(deltaTime);
-#endif
 
         // Camera Walking Update
         if (gAppSettings.cameraWalking)
@@ -2990,7 +2988,7 @@ public:
         TinyImageFormat hdrFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_P2020);
         const bool      wantsHDR = OUTPUT_MODE_HDR10 == gAppSettings.mOutputMode;
         const bool      supportsHDR = TinyImageFormat_UNDEFINED != hdrFormat;
-        if (pRenderer->pGpu->mSettings.mHDRSupported)
+        if (pRenderer->pGpu->mHDRSupported)
         {
             strcpy(gAppSettings.pOutputSupportsHDRWidget->mLabel,
                    supportsHDR ? "Current Output Supports HDR" : "Current Output Does Not Support HDR");

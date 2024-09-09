@@ -71,7 +71,7 @@ inline uint32_t getFamilyTier(id<MTLDevice> device)
     return familyTier;
 }
 
-inline void mtlCapsBuilder(id<MTLDevice> pDevice, GPUCapBits* pCapBits)
+inline void mtlCapsBuilder(id<MTLDevice> pDevice, GpuDesc* pGpuDesc)
 {
     // for metal this is a case of going through each family and looking up the info off apple documentation
     // we start low and go higher, add things as we go
@@ -88,21 +88,21 @@ inline void mtlCapsBuilder(id<MTLDevice> pDevice, GPUCapBits* pCapBits)
             // Metal Feature Set Tables:
             // All graphics and compute kernels can read or sample a texture with any pixel format.
 #ifndef TARGET_IOS
-            pCapBits->mFormatCaps[i] = TinyImageFormat_MTLPixelFormatOnMac(mtlFmt) ? FORMAT_CAP_READ : FORMAT_CAP_NONE;
+            pGpuDesc->mFormatCaps[i] = TinyImageFormat_MTLPixelFormatOnMac(mtlFmt) ? FORMAT_CAP_READ : FORMAT_CAP_NONE;
 #else
-            pCapBits->mFormatCaps[i] = TinyImageFormat_MTLPixelFormatOnIOS(mtlFmt) ? FORMAT_CAP_READ : FORMAT_CAP_NONE;
+            pGpuDesc->mFormatCaps[i] = TinyImageFormat_MTLPixelFormatOnIOS(mtlFmt) ? FORMAT_CAP_READ : FORMAT_CAP_NONE;
 #endif
         }
         else
         {
-            pCapBits->mFormatCaps[i] = FORMAT_CAP_NONE;
+            pGpuDesc->mFormatCaps[i] = FORMAT_CAP_NONE;
         }
     }
 
-#define CAN_SHADER_SAMPLE_LINEAR(x) pCapBits->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_LINEAR_FILTER;
-#define CAN_SHADER_WRITE(x)         pCapBits->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_WRITE;
-#define CAN_RENDER_TARGET_WRITE(x)  pCapBits->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_RENDER_TARGET;
-#define CAN_SHADER_READ_WRITE(x)    pCapBits->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_READ_WRITE;
+#define CAN_SHADER_SAMPLE_LINEAR(x) pGpuDesc->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_LINEAR_FILTER;
+#define CAN_SHADER_WRITE(x)         pGpuDesc->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_WRITE;
+#define CAN_RENDER_TARGET_WRITE(x)  pGpuDesc->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_RENDER_TARGET;
+#define CAN_SHADER_READ_WRITE(x)    pGpuDesc->mFormatCaps[TinyImageFormat_##x] |= FORMAT_CAP_READ_WRITE;
 // Read-write capability needs special treatment.
 #define CAN_SHADER_AND_RENDER_TARGET_WRITE(x) \
     CAN_SHADER_WRITE(x)                       \

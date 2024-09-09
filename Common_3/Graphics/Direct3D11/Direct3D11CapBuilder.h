@@ -31,7 +31,7 @@
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 
-inline void d3d11CapsBuilder(ID3D11Device* pDevice, GPUCapBits* pCapBits)
+inline void d3d11CapsBuilder(ID3D11Device* pDevice, GpuDesc* pGpuDesc)
 {
     D3D11_FORMAT_SUPPORT2 loadStore = (D3D11_FORMAT_SUPPORT2)(D3D11_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D11_FORMAT_SUPPORT2_UAV_TYPED_STORE);
     for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
@@ -47,19 +47,19 @@ inline void d3d11CapsBuilder(ID3D11Device* pDevice, GPUCapBits* pCapBits)
         pDevice->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT2, &formatSupport2, sizeof(formatSupport2));
         if (formatSupport.OutFormatSupport & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
         }
         if (formatSupport2.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_STORE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_WRITE;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_WRITE;
         }
         if (formatSupport2.OutFormatSupport2 & loadStore)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
         }
         if (formatSupport.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
         }
     }
 }

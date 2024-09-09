@@ -2698,11 +2698,6 @@ typedef enum FormatCapability
 } FormatCapability;
 MAKE_ENUM_FLAG(uint32_t, FormatCapability);
 
-typedef struct GPUCapBits
-{
-    FormatCapability mFormatCaps[TinyImageFormat_Count];
-} GPUCapBits;
-
 typedef enum WaveOpsSupportFlags
 {
     WAVE_OPS_SUPPORT_FLAG_NONE = 0x0,
@@ -2719,9 +2714,53 @@ typedef enum WaveOpsSupportFlags
 } WaveOpsSupportFlags;
 MAKE_ENUM_FLAG(uint32_t, WaveOpsSupportFlags);
 
-// update availableGpuProperties in GraphicsConfig.cpp if you made changes to this list
-typedef struct GPUSettings
+typedef struct GpuDesc
 {
+#if defined(USE_MULTIPLE_RENDER_APIS)
+    union
+    {
+#endif
+#if defined(DIRECT3D12)
+        struct
+        {
+#if defined(XBOX)
+            IDXGIAdapter* pGpu;
+            ID3D12Device* pDevice;
+#elif defined(DIRECT3D12)
+            IDXGIAdapter4*                           pGpu;
+#endif
+        } mDx;
+#endif
+#if defined(VULKAN)
+        struct
+        {
+            VkPhysicalDevice            pGpu;
+            VkPhysicalDeviceProperties2 mGpuProperties;
+        } mVk;
+#endif
+#if defined(DIRECT3D11)
+        struct
+        {
+            IDXGIAdapter1* pGpu;
+            uint32_t       mPartialUpdateConstantBufferSupported : 1;
+        } mDx11;
+#endif
+#if defined(USE_MULTIPLE_RENDER_APIS)
+    };
+#endif
+#if defined(METAL)
+    id<MTLDevice>     pGPU;
+    id<MTLCounterSet> pCounterSetTimestamp;
+    uint32_t          mCounterTimestampEnabled : 1;
+#endif
+
+    FormatCapability mFormatCaps[TinyImageFormat_Count];
+
+    /*************************************************************************************/
+    // GPU Properties
+    /*************************************************************************************/
+    // update availableGpuProperties, setDefaultGPUProperties in GraphicsConfig.cpp
+    // if you made changes to this list
     uint64_t mVRAM;
     uint32_t mUniformBufferAlignment;
     uint32_t mUploadBufferAlignment;
@@ -2827,7 +2866,7 @@ typedef struct GPUSettings
 #endif
 #endif
     uint32_t mAmdAsicFamily;
-} GPUSettings;
+} GpuDesc;
 
 typedef struct DEFINE_ALIGNED(Renderer, 64)
 {
@@ -2914,7 +2953,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 #endif
     struct NullDescriptors* pNullDescriptors;
     struct RendererContext* pContext;
-    const struct GpuInfo*   pGpu;
+    const struct GpuDesc*   pGpu;
     const char*             pName;
     RendererApi             mRendererApi;
     uint32_t                mLinkedNodeCount : 4;
@@ -2969,49 +3008,6 @@ typedef struct RendererContextDesc
 #endif
 } RendererContextDesc;
 
-typedef struct GpuInfo
-{
-#if defined(USE_MULTIPLE_RENDER_APIS)
-    union
-    {
-#endif
-#if defined(DIRECT3D12)
-        struct
-        {
-#if defined(XBOX)
-            IDXGIAdapter* pGpu;
-            ID3D12Device* pDevice;
-#elif defined(DIRECT3D12)
-            IDXGIAdapter4*                           pGpu;
-#endif
-        } mDx;
-#endif
-#if defined(VULKAN)
-        struct
-        {
-            VkPhysicalDevice            pGpu;
-            VkPhysicalDeviceProperties2 mGpuProperties;
-        } mVk;
-#endif
-#if defined(DIRECT3D11)
-        struct
-        {
-            IDXGIAdapter1* pGpu;
-            uint32_t       mPartialUpdateConstantBufferSupported : 1;
-        } mDx11;
-#endif
-#if defined(USE_MULTIPLE_RENDER_APIS)
-    };
-#endif
-#if defined(METAL)
-    id<MTLDevice>     pGPU;
-    id<MTLCounterSet> pCounterSetTimestamp;
-    uint32_t          mCounterTimestampEnabled : 1;
-#endif
-    GPUSettings mSettings;
-    GPUCapBits  mCapBits;
-} GpuInfo;
-
 typedef struct RendererContext
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
@@ -3058,7 +3054,7 @@ typedef struct RendererContext
         uint32_t mExtendedEncoderDebugReport : 1;
     } mMtl;
 #endif
-    GpuInfo  mGpus[MAX_MULTIPLE_GPUS];
+    GpuDesc  mGpus[MAX_MULTIPLE_GPUS];
     uint32_t mGpuCount;
 } RendererContext;
 

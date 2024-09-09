@@ -30,6 +30,8 @@
 #ifndef VECTORMATH_SSE_MATRIX_HPP
 #define VECTORMATH_SSE_MATRIX_HPP
 
+#include "../../../../Interfaces/ILog.h"
+
 namespace Vectormath
 {
 namespace SSE
@@ -515,7 +517,7 @@ inline void print(const Matrix3 & mat)
 
 inline void print(const Matrix3 & mat, const char * name)
 {
-    std::printf("%s:\n", name);
+    LOGF(eINFO, "%s:\n", name);
     print(mat);
 }
 
@@ -1004,7 +1006,7 @@ inline void print(const Matrix3d & mat)
 
 inline void print(const Matrix3d & mat, const char * name)
 {
-	std::printf("%s:\n", name);
+	LOGF(eINFO, "%s:\n", name);
 	print(mat);
 }
 
@@ -2079,7 +2081,7 @@ inline void print(const Matrix4 & mat)
 
 inline void print(const Matrix4 & mat, const char * name)
 {
-    std::printf("%s:\n", name);
+    LOGF(eINFO, "%s:\n", name);
     print(mat);
 }
 
@@ -3178,7 +3180,7 @@ inline void print(const Matrix4d & mat)
 
 inline void print(const Matrix4d & mat, const char * name)
 {
-	std::printf("%s:\n", name);
+	LOGF(eINFO, "%s:\n", name);
 	print(mat);
 }
 
@@ -3653,7 +3655,7 @@ inline void print(const Transform3 & tfrm)
 
 inline void print(const Transform3 & tfrm, const char * name)
 {
-    std::printf("%s:\n", name);
+    LOGF(eINFO, "%s:\n", name);
     print(tfrm);
 }
 
@@ -3684,7 +3686,7 @@ inline void print(const AffineTransform & tfrm)
 
 inline void print(const AffineTransform & tfrm, const char * name)
 {
-	std::printf("%s:\n", name);
+	LOGF(eINFO, "%s:\n", name);
 	print(tfrm);
 }
 

@@ -396,7 +396,7 @@ public:
             for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
             {
                 snprintf(gGpuNames[i], sizeof(gGpuNames), "GPU %u : %s", i, //-V512
-                         pContext->mGpus[i].mSettings.mGpuVendorPreset.mGpuName);
+                         pContext->mGpus[i].mGpuVendorPreset.mGpuName);
             }
         }
 
@@ -418,7 +418,7 @@ public:
 
             uint32_t rendererIndex = gMultiGPUCurrent ? i : 0;
             snprintf(gGpuProfilerNames[i], sizeof(gGpuProfilerNames[gViewCount]), "Graphics %d: GPU %u (%s)", i,
-                     gSelectedGpuIndices[rendererIndex], pRenderer[i]->pGpu->mSettings.mGpuVendorPreset.mGpuName);
+                     gSelectedGpuIndices[rendererIndex], pRenderer[i]->pGpu->mGpuVendorPreset.mGpuName);
         }
 
         snprintf(gGpuProfilerNames[gViewCount], sizeof(gGpuProfilerNames[gViewCount]), "Merge (GPU %u)", gSelectedGpuIndices[0]);
@@ -1595,10 +1595,10 @@ public:
                     TextureLoadDesc colorTexture = { &pRenderResult[frameIdx][i - 1], &colorResult };
                     addResource(&colorTexture, NULL);
 
-                    const uint32_t rowAlignment = max(1u, pRenderer[i]->pGpu->mSettings.mUploadBufferTextureRowAlignment);
+                    const uint32_t rowAlignment = max(1u, pRenderer[i]->pGpu->mUploadBufferTextureRowAlignment);
                     const uint32_t blockSize = max(1u, TinyImageFormat_BitSizeOfBlock(colorResult.mFormat));
                     const uint32_t sliceAlignment =
-                        round_up(round_up(pRenderer[i]->pGpu->mSettings.mUploadBufferTextureAlignment, blockSize), rowAlignment);
+                        round_up(round_up(pRenderer[i]->pGpu->mUploadBufferTextureAlignment, blockSize), rowAlignment);
                     BufferLoadDesc bufferDesc = {};
                     bufferDesc.mDesc.mSize = util_get_surface_size(colorResult.mFormat, colorResult.mWidth, colorResult.mHeight, 1,
                                                                    rowAlignment, sliceAlignment, 0, 1, 0, 1);

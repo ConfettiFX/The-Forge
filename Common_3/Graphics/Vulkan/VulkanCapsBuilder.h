@@ -28,7 +28,7 @@
 
 #include "../GraphicsConfig.h"
 
-inline void vkCapsBuilder(GpuInfo* pGpu)
+inline void vkCapsBuilder(GpuDesc* pGpuDesc)
 {
     for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
     {
@@ -44,23 +44,23 @@ inline void vkCapsBuilder(GpuInfo* pGpu)
             continue;
         }
 
-        vkGetPhysicalDeviceFormatProperties(pGpu->mVk.pGpu, fmt, &formatSupport);
+        vkGetPhysicalDeviceFormatProperties(pGpuDesc->mVk.pGpu, fmt, &formatSupport);
 
         if (formatSupport.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
         {
-            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER;
         }
         if (formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
         {
-            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_READ;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_READ;
         }
         if (formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
         {
-            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_WRITE | FORMAT_CAP_READ_WRITE;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_WRITE | FORMAT_CAP_READ_WRITE;
         }
         if (formatSupport.optimalTilingFeatures & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
         {
-            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
         }
     }
 }

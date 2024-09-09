@@ -182,7 +182,7 @@ public:
         // Raytracing setup
         /************************************************************************/
         initRaytracing(pRenderer, &pRaytracing);
-        gRaytracingTechniqueSupported[RAY_QUERY] = pRenderer->pGpu->mSettings.mRayQuerySupported;
+        gRaytracingTechniqueSupported[RAY_QUERY] = pRenderer->pGpu->mRayQuerySupported;
 
         if (!gRaytracingTechniqueSupported[RAY_QUERY])
         {
@@ -190,7 +190,7 @@ public:
             return false;
         }
 
-        gUseUavRwFallback = !(pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16G16B16A16_SFLOAT] & FORMAT_CAP_READ_WRITE);
+        gUseUavRwFallback = !(pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16B16A16_SFLOAT] & FORMAT_CAP_READ_WRITE);
 
         initResourceLoaderInterface(pRenderer);
 

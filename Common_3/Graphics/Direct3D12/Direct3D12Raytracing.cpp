@@ -134,7 +134,7 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
     ASSERT(pRenderer);
     ASSERT(ppRaytracing);
 
-    if (!pRenderer->pGpu->mSettings.mRaytracingSupported)
+    if (!pRenderer->pGpu->mRaytracingSupported)
     {
         return false;
     }

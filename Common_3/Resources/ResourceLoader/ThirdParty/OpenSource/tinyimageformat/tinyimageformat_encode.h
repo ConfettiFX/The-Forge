@@ -3,6 +3,8 @@
 #if !defined(TINYIMAGEFORMAT_ENCODE_H_) && !defined(TINYIMAGEFORMAT_IMAGEFORMAT_H)
 #define TINYIMAGEFORMAT_ENCODE_H_ 1
 
+#include "../../../../../Utilities/Math/MathTypes.h"
+
 #include "tinyimageformat_base.h"
 
 #if __cplusplus > 201402L
@@ -10,31 +12,9 @@
 #else
 #define TIF_CONSTEXPR
 #endif
-#ifndef  TinyImageFormat_HAVE_UINTXX_T
-#include <stdint.h> 	// for uint32_t and int64_t
-#endif
 #ifndef  TinyImageFormat_HAVE_BOOL
 #include <stdbool.h>	// for bool
 #endif
-#ifndef  TinyImageFormat_HAVE_POWF
-#include <math.h>	// for powf
-#endif
-//TinyImageFormat_ASSERT needs to be constexpr on some platforms
-#ifndef  TinyImageFormat_ASSERT
-#define  TinyImageFormat_ASSERT(x)
-#endif
-
-
-
-// from D3DX_DXGIFormatConvert.inl
-inline uint8_t TinyImageFormat_FloatToSRGB(float v) {
-	if (v < 0.0031308f) {
-		v *= 12.92f;
-	} else {
-		v = 1.055f * powf(v, 1.0f / 2.4f) - 0.055f;
-	}
-	return (uint8_t)v;
-}
 
 //Float2Half from Rygorous public domain code
 inline uint16_t TinyImageFormat_FloatToHalfAsUint(float f_) {
@@ -552,7 +532,7 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_R8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint8_t* op0 = (uint8_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 0;
+				*op0 |= ((uint8_t)linearToSrgbf((float)in[0])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				in+=4;
 			}
@@ -823,8 +803,8 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_R8G8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint16_t* op0 = (uint16_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint16_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 0;
-				*op0 |= ((uint16_t)TinyImageFormat_FloatToSRGB((float)in[1])) << 8;
+				*op0 |= ((uint16_t)linearToSrgbf((float)in[0])) << 0;
+				*op0 |= ((uint16_t)linearToSrgbf((float)in[1])) << 8;
 				out->pixel = (void*)(((uint16_t*)out->pixel) + 1);
 				in+=4;
 			}
@@ -936,13 +916,13 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_R8G8B8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint8_t* op0 = (uint8_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 0;
+				*op0 |= ((uint8_t)linearToSrgbf((float)in[0])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				uint8_t* op1 = (uint8_t*)out->pixel; *op1 = 0;
-				*op1 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[1])) << 0;
+				*op1 |= ((uint8_t)linearToSrgbf((float)in[1])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				uint8_t* op2 = (uint8_t*)out->pixel; *op2 = 0;
-				*op2 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[2])) << 0;
+				*op2 |= ((uint8_t)linearToSrgbf((float)in[2])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				in+=4;
 			}
@@ -1006,13 +986,13 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_B8G8R8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint8_t* op0 = (uint8_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[2])) << 0;
+				*op0 |= ((uint8_t)linearToSrgbf((float)in[2])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				uint8_t* op1 = (uint8_t*)out->pixel; *op1 = 0;
-				*op1 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[1])) << 0;
+				*op1 |= ((uint8_t)linearToSrgbf((float)in[1])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				uint8_t* op2 = (uint8_t*)out->pixel; *op2 = 0;
-				*op2 |= ((uint8_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 0;
+				*op2 |= ((uint8_t)linearToSrgbf((float)in[0])) << 0;
 				out->pixel = (void*)(((uint8_t*)out->pixel) + 1);
 				in+=4;
 			}
@@ -1064,9 +1044,9 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_R8G8B8A8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint32_t* op0 = (uint32_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 0;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[1])) << 8;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[2])) << 16;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[0])) << 0;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[1])) << 8;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[2])) << 16;
 				*op0 |= ((uint32_t)(in[3] * 255.00f) & 0xff) << 24;
 				out->pixel = (void*)(((uint32_t*)out->pixel) + 1);
 				in+=4;
@@ -1119,9 +1099,9 @@ TIF_CONSTEXPR inline bool TinyImageFormat_EncodeLogicalPixelsF(TinyImageFormat c
 		case TinyImageFormat_B8G8R8A8_SRGB:
 			for(uint32_t w = 0; w < width; ++w) {
 				uint32_t* op0 = (uint32_t*)out->pixel; *op0 = 0;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[2])) << 0;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[1])) << 8;
-				*op0 |= ((uint32_t)TinyImageFormat_FloatToSRGB((float)in[0])) << 16;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[2])) << 0;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[1])) << 8;
+				*op0 |= ((uint32_t)linearToSrgbf((float)in[0])) << 16;
 				*op0 |= ((uint32_t)(in[3] * 255.00f) & 0xff) << 24;
 				out->pixel = (void*)(((uint32_t*)out->pixel) + 1);
 				in+=4;

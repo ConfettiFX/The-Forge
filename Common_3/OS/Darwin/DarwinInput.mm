@@ -585,6 +585,7 @@ static inline FORGE_CONSTEXPR InputEnum GetKey(GCKeyCode key)
 }
 
 static const uint32_t             MAX_MICE = 8;
+static uint32_t                   activeMouseCount = 0;
 IOS14_API static GCMouseInput*    pMouseInputs[MAX_MICE] = {};
 IOS14_API static GCKeyboardInput* pKeyboardInput = {};
 #if !defined(ENABLE_FORGE_TOUCH_INPUT)
@@ -630,6 +631,7 @@ void platformInitInput(WindowDesc* winDesc)
                             {
                                 portIndex = c;
                                 pMouseInputs[c] = mouse.mouseInput;
+                                activeMouseCount++;
                                 break;
                             }
                         }
@@ -652,6 +654,7 @@ void platformInitInput(WindowDesc* winDesc)
                                                               if (pMouseInputs[c] == mouse.mouseInput)
                                                               {
                                                                   pMouseInputs[c] = nil;
+                                                                  activeMouseCount--;
                                                                   break;
                                                               }
                                                           }
@@ -806,35 +809,38 @@ void platformUpdateInput(uint32_t width, uint32_t height, float dt)
 
     if (IOS14_RUNTIME)
     {
-        float wheelDelta = 0.0f;
-        bool  leftButtonPressed = false;
-        bool  rightButtonPressed = false;
-        bool  middleButtonPressed = false;
-        for (InputPortIndex c = 0; c < MAX_MICE; c++)
+        if (activeMouseCount)
         {
-            GCMouseInput* pMouseInput = pMouseInputs[c];
-            if (pMouseInput != nil)
+            float wheelDelta = 0.0f;
+            bool  leftButtonPressed = false;
+            bool  rightButtonPressed = false;
+            bool  middleButtonPressed = false;
+            for (InputPortIndex c = 0; c < MAX_MICE; c++)
             {
-                leftButtonPressed = leftButtonPressed || pMouseInput.leftButton.pressed;
-                rightButtonPressed = rightButtonPressed || pMouseInput.rightButton.pressed;
-                middleButtonPressed = middleButtonPressed || pMouseInput.middleButton.pressed;
-                wheelDelta += pMouseInput.scroll.yAxis.value;
+                GCMouseInput* pMouseInput = pMouseInputs[c];
+                if (pMouseInput != nil)
+                {
+                    leftButtonPressed = leftButtonPressed || pMouseInput.leftButton.pressed;
+                    rightButtonPressed = rightButtonPressed || pMouseInput.rightButton.pressed;
+                    middleButtonPressed = middleButtonPressed || pMouseInput.middleButton.pressed;
+                    wheelDelta += pMouseInput.scroll.yAxis.value;
+                }
             }
-        }
-        // Ignore click on window title bar, ...
-        gInputValues[MOUSE_1] = isCursorInsideTrackingArea() && leftButtonPressed;
-        gInputValues[MOUSE_2] = rightButtonPressed;
-        gInputValues[MOUSE_3] = middleButtonPressed;
+            // Ignore click on window title bar, ...
+            gInputValues[MOUSE_1] = isCursorInsideTrackingArea() && leftButtonPressed;
+            gInputValues[MOUSE_2] = rightButtonPressed;
+            gInputValues[MOUSE_3] = middleButtonPressed;
 
-        gInputValues[MOUSE_WHEEL_UP] = false;
-        gInputValues[MOUSE_WHEEL_DOWN] = false;
-        if (wheelDelta > 0.0f)
-        {
-            gInputValues[MOUSE_WHEEL_UP] = true;
-        }
-        else if (wheelDelta < 0.0f)
-        {
-            gInputValues[MOUSE_WHEEL_DOWN] = true;
+            gInputValues[MOUSE_WHEEL_UP] = false;
+            gInputValues[MOUSE_WHEEL_DOWN] = false;
+            if (wheelDelta > 0.0f)
+            {
+                gInputValues[MOUSE_WHEEL_UP] = true;
+            }
+            else if (wheelDelta < 0.0f)
+            {
+                gInputValues[MOUSE_WHEEL_DOWN] = true;
+            }
         }
     }
 

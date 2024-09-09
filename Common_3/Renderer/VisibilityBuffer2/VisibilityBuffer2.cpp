@@ -603,7 +603,7 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
     ASSERT(pDesc->mFilterBatchCount > 0);
 
     VisibilityBuffer* pVisibilityBuffer = (VisibilityBuffer*)tf_malloc(sizeof(VisibilityBuffer));
-    gVBSettings.mUniformBufferAlignment = pRenderer->pGpu->mSettings.mUniformBufferAlignment;
+    gVBSettings.mUniformBufferAlignment = pRenderer->pGpu->mUniformBufferAlignment;
     gVBSettings.mNumGeomSets = pDesc->mNumGeometrySets;
     gVBSettings.mNumViews = pDesc->mNumViews;
     gVBSettings.mFilterBatchCount = pDesc->mFilterBatchCount;

@@ -2894,8 +2894,8 @@ static void cmdDrawUICommand(Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float
         prevSetIndexInOut = setIndex;
     }
 
-    const uint32_t vtxSize = round_up(vertexCount * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
-    const uint32_t idxSize = round_up(indexCount * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+    const uint32_t vtxSize = round_up(vertexCount * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mUploadBufferAlignment);
+    const uint32_t idxSize = round_up(indexCount * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mUploadBufferAlignment);
     cmdDrawIndexed(pCmd, pImDrawCmd->ElemCount, pImDrawCmd->IdxOffset + globalIdxOffsetInOut, pImDrawCmd->VtxOffset + globalVtxOffsetInOut);
     globalIdxOffsetInOut += idxSize / sizeof(ImDrawIdx);
     globalVtxOffsetInOut += round_up(vtxSize, sizeof(ImDrawVert)) / sizeof(ImDrawVert);
@@ -3414,9 +3414,8 @@ void cmdDrawUserInterface(Cmd* pCmd)
     {
         const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
         const uint64_t    vtxSize =
-            round_up_64(pCmdList->VtxBuffer.size() * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
-        const uint64_t idxSize =
-            round_up_64(pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+            round_up_64(pCmdList->VtxBuffer.size() * sizeof(ImDrawVert), pCmd->pRenderer->pGpu->mUploadBufferAlignment);
+        const uint64_t idxSize = round_up_64(pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx), pCmd->pRenderer->pGpu->mUploadBufferAlignment);
         BufferUpdateDesc update = { pUserInterface->pVertexBuffer, vtxDst, vtxSize };
         beginUpdateResource(&update);
         memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
