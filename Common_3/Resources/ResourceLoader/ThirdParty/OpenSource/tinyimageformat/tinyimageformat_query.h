@@ -3,6 +3,8 @@
 #if !defined(TINYIMAGEFORMAT_QUERY_H_) && !defined(TINYIMAGEFORMAT_IMAGEFORMAT_H)
 #define TINYIMAGEFORMAT_QUERY_H_ 1
 
+#include "../../../../../Utilities/Interfaces/ILog.h"
+
 #include "tinyimageformat_base.h"
 
 #if __cplusplus > 201402L
@@ -10,18 +12,8 @@
 #else
 #define TIF_CONSTEXPR
 #endif
-#ifndef  TinyImageFormat_HAVE_UINTXX_T
-#include <stdint.h> 	// for uint32_t and int64_t
-#endif
 #ifndef  TinyImageFormat_HAVE_BOOL
 #include <stdbool.h>	// for bool
-#endif
-#ifndef  TinyImageFormat_HAVE_POWF
-#include <math.h>	// for powf
-#endif
-//TinyImageFormat_ASSERT needs to be constexpr on some platforms
-#ifndef  TinyImageFormat_ASSERT
-#define  TinyImageFormat_ASSERT(x)
 #endif
 
 TIF_CONSTEXPR inline uint64_t TinyImageFormat_Code(TinyImageFormat const fmt) 
@@ -1988,7 +1980,7 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImag
 			default: return 8;
 		}
 	}
-	 TinyImageFormat_ASSERT(false);
+	 ASSERT(false);
 	return 0;
 }
 
@@ -2184,7 +2176,7 @@ TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const 
 			default: return 0.000000;
 		}
 	}
-	 TinyImageFormat_ASSERT(false);
+	 ASSERT(false);
 	return 0.0;
 }
 
@@ -2560,14 +2552,14 @@ TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const 
 			default: return 1.000000;
 		}
 	}
-	 TinyImageFormat_ASSERT(false);
+	 ASSERT(false);
 	return 0.0;
 }
 
 TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChannelToLogical(TinyImageFormat const fmt, int8_t const channel) 
 {
-	 TinyImageFormat_ASSERT(channel != TinyImageFormat_PC_CONST_0);
-	 TinyImageFormat_ASSERT(channel != TinyImageFormat_PC_CONST_1);
+	 ASSERT(channel != TinyImageFormat_PC_CONST_0);
+	 ASSERT(channel != TinyImageFormat_PC_CONST_1);
 	if(channel == TinyImageFormat_PC_0) 
 	{
 		switch(fmt) 
@@ -2924,14 +2916,14 @@ TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChan
 			default: return TinyImageFormat_LC_Alpha;
 		}
 	}
-	 TinyImageFormat_ASSERT(false);
+	 ASSERT(false);
 	return TinyImageFormat_LC_0;
 }
 
 TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) 
 {
-	 TinyImageFormat_ASSERT(channel != TinyImageFormat_LC_0);
-	 TinyImageFormat_ASSERT(channel != TinyImageFormat_LC_1);
+	 ASSERT(channel != TinyImageFormat_LC_0);
+	 ASSERT(channel != TinyImageFormat_LC_1);
 	if(channel == TinyImageFormat_LC_Red) 
 	{
 		switch(fmt) 
@@ -3288,7 +3280,7 @@ TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFo
 			default: return TinyImageFormat_PC_3;
 		}
 	}
-	 TinyImageFormat_ASSERT(false);
+	 ASSERT(false);
 	return TinyImageFormat_PC_CONST_0;
 }
 

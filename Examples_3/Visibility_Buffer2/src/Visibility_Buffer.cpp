@@ -643,7 +643,7 @@ public:
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
-        if (!pRenderer->pGpu->mSettings.m64BitAtomicsSupported)
+        if (!pRenderer->pGpu->m64BitAtomicsSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer 2 does not run on this device. GPU does not support 64 bit atomics");
             return false;
@@ -655,7 +655,7 @@ public:
             return false;
         }
 
-        if (!pRenderer->pGpu->mSettings.mPrimitiveIdSupported)
+        if (!pRenderer->pGpu->mPrimitiveIdSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer 2 does not run on this device. PrimitiveID is not supported");
             return false;
@@ -1117,7 +1117,7 @@ public:
             luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Draw Debug Targets", &checkbox, WIDGET_TYPE_CHECKBOX));
             /************************************************************************/
             /************************************************************************/
-            if (pRenderer->pGpu->mSettings.mHDRSupported)
+            if (pRenderer->pGpu->mHDRSupported)
             {
                 LabelWidget labelWidget = {};
                 pOutputSupportsHDRWidget = uiAddComponentWidget(pGuiWindow, "Output Supports HDR", &labelWidget, WIDGET_TYPE_LABEL);
@@ -2124,7 +2124,7 @@ public:
         TinyImageFormat hdrFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_P2020);
         const bool      wantsHDR = OUTPUT_MODE_P2020 == gAppSettings.mOutputMode;
         const bool      supportsHDR = TinyImageFormat_UNDEFINED != hdrFormat;
-        if (pRenderer->pGpu->mSettings.mHDRSupported)
+        if (pRenderer->pGpu->mHDRSupported)
         {
             strcpy(pOutputSupportsHDRWidget->mLabel, supportsHDR ? "Current Output Supports HDR" : "Current Output Does Not Support HDR");
         }

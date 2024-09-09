@@ -44,29 +44,29 @@
 GPUSelection   gGpuSelection;
 GPUPresetLevel gDefaultPresetLevel;
 
-typedef uint64_t (*PropertyGetter)(const GPUSettings* pSetting);
-typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
+typedef uint64_t (*PropertyGetter)(const GpuDesc* pSetting);
+typedef void (*PropertySetter)(GpuDesc* pSetting, uint64_t value);
 
-#define GPU_CONFIG_PROPERTY(name, prop)                                             \
-    {                                                                               \
-        name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
-            [](GPUSettings* pSetting, uint64_t value)                               \
-        {                                                                           \
-            COMPILE_ASSERT(sizeof(decltype(pSetting->prop)) <= sizeof(value));      \
-            pSetting->prop = (decltype(pSetting->prop))value;                       \
-        }                                                                           \
+#define GPU_CONFIG_PROPERTY(name, prop)                                         \
+    {                                                                           \
+        name, [](const GpuDesc* pSetting) { return (uint64_t)pSetting->prop; }, \
+            [](GpuDesc* pSetting, uint64_t value)                               \
+        {                                                                       \
+            COMPILE_ASSERT(sizeof(decltype(pSetting->prop)) <= sizeof(value));  \
+            pSetting->prop = (decltype(pSetting->prop))value;                   \
+        }                                                                       \
     }
 
-#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                   \
-    {                                                                               \
-        name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
-            [](GPUSettings* pSetting, uint64_t value)                               \
-        {                                                                           \
-            UNREF_PARAM(value);                                                     \
-            UNREF_PARAM(pSetting);                                                  \
-            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s from gpu.cfg", name);   \
-            ASSERT(false);                                                          \
-        }                                                                           \
+#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                 \
+    {                                                                             \
+        name, [](const GpuDesc* pSetting) { return (uint64_t)pSetting->prop; },   \
+            [](GpuDesc* pSetting, uint64_t value)                                 \
+        {                                                                         \
+            UNREF_PARAM(value);                                                   \
+            UNREF_PARAM(pSetting);                                                \
+            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s from gpu.cfg", name); \
+            ASSERT(false);                                                        \
+        }                                                                         \
     }
 
 struct GPUProperty
@@ -175,13 +175,117 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY("waveopssupport", mWaveOpsSupportFlags),
 };
 
-void setDefaultGPUSettings(GPUSettings* pGpuSettings)
+void setDefaultGPUProperties(GpuDesc* pGpuDesc)
 {
-    memset(pGpuSettings, 0, sizeof(GPUSettings));
+    pGpuDesc->mVRAM = 0;
+    pGpuDesc->mUniformBufferAlignment = 0;
+    pGpuDesc->mUploadBufferAlignment = 0;
+    pGpuDesc->mUploadBufferTextureAlignment = 0;
+    pGpuDesc->mUploadBufferTextureRowAlignment = 0;
+    pGpuDesc->mMaxVertexInputBindings = 0;
+#if defined(DIRECT3D12)
+    pGpuDesc->mMaxRootSignatureDWORDS = 0;
+#endif
+    pGpuDesc->mWaveLaneCount = 0;
+    pGpuDesc->mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
+    memset(&pGpuDesc->mGpuVendorPreset, 0, sizeof(GPUVendorPreset));
+    pGpuDesc->mWaveOpsSupportedStageFlags = SHADER_STAGE_NONE;
 
-    pGpuSettings->mSamplerAnisotropySupported = 1;
-    pGpuSettings->mGraphicsQueueSupported = 1;
-    pGpuSettings->mPrimitiveIdSupported = 1;
+    pGpuDesc->mMaxTotalComputeThreads = 0;
+    memset(pGpuDesc->mMaxComputeThreads, 0, sizeof(pGpuDesc->mMaxComputeThreads));
+    pGpuDesc->mMultiDrawIndirect = 0;
+    pGpuDesc->mMultiDrawIndirectCount = 0;
+    pGpuDesc->mRootConstant = 0;
+    pGpuDesc->mIndirectRootConstant = 0;
+    pGpuDesc->mBuiltinDrawID = 0;
+    pGpuDesc->mIndirectCommandBuffer = 0;
+    pGpuDesc->mROVsSupported = 0;
+    pGpuDesc->mTessellationSupported = 0;
+    pGpuDesc->mGeometryShaderSupported = 0;
+    pGpuDesc->mGpuMarkers = 0;
+    pGpuDesc->mHDRSupported = 0;
+    pGpuDesc->mTimestampQueries = 0;
+    pGpuDesc->mOcclusionQueries = 0;
+    pGpuDesc->mPipelineStatsQueries = 0;
+    pGpuDesc->mAllowBufferTextureInSameHeap = 0;
+    pGpuDesc->mRaytracingSupported = 0;
+    pGpuDesc->mUnifiedMemorySupported = 0;
+    pGpuDesc->mRayPipelineSupported = 0;
+    pGpuDesc->mRayQuerySupported = 0;
+    pGpuDesc->mSoftwareVRSSupported = 0;
+    pGpuDesc->mPrimitiveIdSupported = 1;
+    pGpuDesc->mPrimitiveIdPsSupported = 0;
+    pGpuDesc->m64BitAtomicsSupported = 0;
+#if defined(DIRECT3D11) || defined(DIRECT3D12)
+#if defined(XBOX) || defined(DIRECT3D11)
+    pGpuDesc->mFeatureLevel = D3D_FEATURE_LEVEL_9_1; // minimum possible
+#else
+    pGpuDesc->mFeatureLevel = D3D_FEATURE_LEVEL_1_0_GENERIC; // minimum possible
+#endif
+    pGpuDesc->mSuppressInvalidSubresourceStateAfterExit = 0;
+#endif
+#if defined(VULKAN)
+    pGpuDesc->mDynamicRenderingSupported = 0;
+    pGpuDesc->mXclipseTransferQueueWorkaround = 0;
+    pGpuDesc->mYCbCrExtension = 0;
+    pGpuDesc->mFillModeNonSolid = 0;
+    pGpuDesc->mKHRRayQueryExtension = 0;
+    pGpuDesc->mAMDGCNShaderExtension = 0;
+    pGpuDesc->mAMDDrawIndirectCountExtension = 0;
+    pGpuDesc->mAMDShaderInfoExtension = 0;
+    pGpuDesc->mDescriptorIndexingExtension = 0;
+    pGpuDesc->mDynamicRenderingExtension = 0;
+    pGpuDesc->mShaderSampledImageArrayDynamicIndexingSupported = 0;
+    pGpuDesc->mBufferDeviceAddressSupported = 0;
+    pGpuDesc->mDrawIndirectCountExtension = 0;
+    pGpuDesc->mDedicatedAllocationExtension = 0;
+    pGpuDesc->mDebugMarkerExtension = 0;
+    pGpuDesc->mMemoryReq2Extension = 0;
+    pGpuDesc->mFragmentShaderInterlockExtension = 0;
+    pGpuDesc->mBufferDeviceAddressExtension = 0;
+    pGpuDesc->mAccelerationStructureExtension = 0;
+    pGpuDesc->mRayTracingPipelineExtension = 0;
+    pGpuDesc->mRayQueryExtension = 0;
+    pGpuDesc->mShaderAtomicInt64Extension = 0;
+    pGpuDesc->mBufferDeviceAddressFeature = 0;
+    pGpuDesc->mShaderFloatControlsExtension = 0;
+    pGpuDesc->mSpirv14Extension = 0;
+    pGpuDesc->mDeferredHostOperationsExtension = 0;
+    pGpuDesc->mDeviceFaultExtension = 0;
+    pGpuDesc->mDeviceFaultSupported = 0;
+    pGpuDesc->mASTCDecodeModeExtension = 0;
+    pGpuDesc->mDeviceMemoryReportExtension = 0;
+    pGpuDesc->mAMDBufferMarkerExtension = 0;
+    pGpuDesc->mAMDDeviceCoherentMemoryExtension = 0;
+    pGpuDesc->mAMDDeviceCoherentMemorySupported = 0;
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+    pGpuDesc->mExternalMemoryExtension = 0;
+    pGpuDesc->mExternalMemoryWin32Extension = 0;
+#endif
+#if defined(QUEST_VR)
+    pGpuDesc->mMultiviewExtension = 0;
+#endif
+#if defined(ENABLE_NSIGHT_AFTERMATH)
+    pGpuDesc->mNVDeviceDiagnosticsCheckpointExtension = 0;
+    pGpuDesc->mNVDeviceDiagnosticsConfigExtension = 0;
+    pGpuDesc->mAftermathSupport = 0;
+#endif
+
+#endif
+    pGpuDesc->mMaxBoundTextures = 0;
+    pGpuDesc->mSamplerAnisotropySupported = 1;
+    pGpuDesc->mGraphicsQueueSupported = 1;
+#if defined(METAL)
+    pGpuDesc->mHeaps = 0;
+    pGpuDesc->mPlacementHeaps = 0;
+    pGpuDesc->mTessellationIndirectDrawSupported = 0;
+    pGpuDesc->mDrawIndexVertexOffsetSupported = 0;
+    pGpuDesc->mCubeMapTextureArraySupported = 0;
+#if !defined(TARGET_IOS)
+    pGpuDesc->mIsHeadLess = 0; // indicates whether a GPU device does not have a connection to a display.
+#endif
+#endif
+    pGpuDesc->mAmdAsicFamily = 0;
 }
 
 /* ------------------------ gpu.data ------------------------ */
@@ -1015,13 +1119,12 @@ void printConfigureRules(ConfigurationRule* pRules, uint32_t rulesCount, char* r
     }
 }
 
-uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
+uint32_t util_select_best_gpu(GpuDesc* availableSettings, uint32_t gpuCount)
 {
     uint32_t gpuIndex = gpuCount > 0 ? 0 : UINT32_MAX;
 
-    typedef bool (*DeviceBetterFn)(GPUSettings * testSettings, GPUSettings * refSettings, GPUComparisonChoice * choices,
-                                   uint32_t choicesCount);
-    DeviceBetterFn isDeviceBetterThan = [](GPUSettings* testSettings, GPUSettings* refSettings, GPUComparisonChoice* choices,
+    typedef bool (*DeviceBetterFn)(GpuDesc * testSettings, GpuDesc * refSettings, GPUComparisonChoice * choices, uint32_t choicesCount);
+    DeviceBetterFn isDeviceBetterThan = [](GpuDesc* testSettings, GpuDesc* refSettings, GPUComparisonChoice* choices,
                                            uint32_t choicesCount) -> bool
     {
         for (uint32_t choiceIndex = 0; choiceIndex < choicesCount; choiceIndex++)
@@ -1053,10 +1156,10 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
                     if (testPass != refPass)
                     {
                         // log rule selection
-                        GPUSettings* chosenSettings = testPass ? testSettings : refSettings;
-                        GPUSettings* nonChosenSettings = testPass ? refSettings : testSettings;
-                        uint64_t     chosenValue = testPass ? testValue : refValue;
-                        uint64_t     nonChosenValue = testPass ? refValue : testValue;
+                        GpuDesc* chosenSettings = testPass ? testSettings : refSettings;
+                        GpuDesc* nonChosenSettings = testPass ? refSettings : testSettings;
+                        uint64_t chosenValue = testPass ? testValue : refValue;
+                        uint64_t nonChosenValue = testPass ? refValue : testValue;
                         LOGF(eINFO, "Choosing GPU: %s", chosenSettings->mGpuVendorPreset.mGpuName);
                         if (currentRule->comparatorValue != INVALID_OPTION)
                         {
@@ -1113,9 +1216,8 @@ uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount)
     return gpuIndex;
 }
 
-void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
+void applyGPUConfigurationRules(GpuDesc* pGpuDesc)
 {
-    UNREF_PARAM(pCapBits);
     for (uint32_t i = 0; i < gGraphicsConfigRules.mConfigurationSettingsCount; i++)
     {
         ConfigurationSetting* currentSetting = &gGraphicsConfigRules.mConfigurationSettings[i];
@@ -1123,7 +1225,7 @@ void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
         for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
         {
             ConfigurationRule* currentRule = currentSetting->pConfigurationRules;
-            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
+            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuDesc);
             if (currentRule->comparatorValue != INVALID_OPTION)
             {
                 hasValidatedComparisonRules &= tokenCompare(currentRule->comparator, refValue, currentRule->comparatorValue);
@@ -1136,14 +1238,14 @@ void applyGPUConfigurationRules(GPUSettings* pGpuSettings, GPUCapBits* pCapBits)
 
         if (hasValidatedComparisonRules)
         {
-            LOGF(eINFO, "GPU: %s, setting %s to %llu", pGpuSettings->mGpuVendorPreset.mGpuName, currentSetting->pUpdateProperty->name,
+            LOGF(eINFO, "GPU: %s, setting %s to %llu", pGpuDesc->mGpuVendorPreset.mGpuName, currentSetting->pUpdateProperty->name,
                  currentSetting->assignmentValue);
-            currentSetting->pUpdateProperty->setter(pGpuSettings, currentSetting->assignmentValue);
+            currentSetting->pUpdateProperty->setter(pGpuDesc, currentSetting->assignmentValue);
         }
     }
 }
 
-void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSettings* pGpuSettings)
+void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const GpuDesc* pGpuDesc)
 {
     ASSERT(pExtendedSettings && pExtendedSettings->pSettings);
 
@@ -1155,7 +1257,7 @@ void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, 
         for (uint32_t j = 0; j < currentSetting->comparisonRulesCount; j++)
         {
             ConfigurationRule* currentRule = currentSetting->pConfigurationRules;
-            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuSettings);
+            uint64_t           refValue = currentRule->pGpuProperty->getter(pGpuDesc);
             if (currentRule->comparatorValue != INVALID_OPTION)
             {
                 hasValidatedComparisonRules &= tokenCompare(currentRule->comparator, refValue, currentRule->comparatorValue);
@@ -1174,15 +1276,15 @@ void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, 
     }
 }
 
-FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
+FORGE_API bool checkDriverRejectionSettings(const GpuDesc* pGpuDesc)
 {
     DriverVersion driverVersion = {};
-    bool          hasValidDriverStr = parseDriverVersion(pGpuSettings->mGpuVendorPreset.mGpuDriverVersion, &driverVersion);
+    bool          hasValidDriverStr = parseDriverVersion(pGpuDesc->mGpuVendorPreset.mGpuDriverVersion, &driverVersion);
     if (hasValidDriverStr)
     {
         for (uint32_t i = 0; i < gGraphicsConfigRules.mDriverRejectionRulesCount; i++)
         {
-            if (pGpuSettings->mGpuVendorPreset.mVendorId == gGraphicsConfigRules.mDriverRejectionRules[i].vendorId)
+            if (pGpuDesc->mGpuVendorPreset.mVendorId == gGraphicsConfigRules.mDriverRejectionRules[i].vendorId)
             {
                 DriverVersion* comparisonVersion = &gGraphicsConfigRules.mDriverRejectionRules[i].driverComparisonValue;
                 uint32_t       tokenLength = TF_MAX(comparisonVersion->versionNumbersCount, driverVersion.versionNumbersCount);
@@ -1200,7 +1302,7 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
 
                     if (isEqual)
                     {
-                        LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
+                        LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuDesc->mGpuVendorPreset.mGpuDriverVersion,
                              gGraphicsConfigRules.mDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
                              comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
                              comparisonVersion->versionNumbers[3]);
@@ -1218,7 +1320,7 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings)
                                                              driverVersion.versionNumbers[j], comparisonVersion->versionNumbers[j]);
                         if (shouldBeRejected)
                         {
-                            LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuSettings->mGpuVendorPreset.mGpuDriverVersion,
+                            LOGF(eINFO, "Driver rejection: %s %s %u.%u.%u.%u", pGpuDesc->mGpuVendorPreset.mGpuDriverVersion,
                                  gGraphicsConfigRules.mDriverRejectionRules[i].comparator, comparisonVersion->versionNumbers[0],
                                  comparisonVersion->versionNumbers[1], comparisonVersion->versionNumbers[2],
                                  comparisonVersion->versionNumbers[3]);
@@ -1462,15 +1564,15 @@ void setupGPUConfigurationPlatformParameters(Renderer* pRenderer, ExtendedSettin
         gGpuSelection.mSelectedGpuIndex = (uint32_t)(pRenderer->pGpu - pRenderer->pContext->mGpus);
         for (uint32_t i = 0; i < gpuCount; ++i)
         {
-            GPUSettings& gpuSettings = pRenderer->pContext->mGpus[i].mSettings;
-            strncpy(gGpuSelection.ppAvailableGpuNames[i], gpuSettings.mGpuVendorPreset.mGpuName, MAX_GPU_VENDOR_STRING_LENGTH);
-            gGpuSelection.pAvailableGpuIds[i] = gpuSettings.mGpuVendorPreset.mModelId;
+            GpuDesc& gpuDesc = pRenderer->pContext->mGpus[i];
+            strncpy(gGpuSelection.ppAvailableGpuNames[i], gpuDesc.mGpuVendorPreset.mGpuName, MAX_GPU_VENDOR_STRING_LENGTH);
+            gGpuSelection.pAvailableGpuIds[i] = gpuDesc.mGpuVendorPreset.mModelId;
         }
 
         // configure the user's settings using the newly created device
         if (pExtendedSettings)
         {
-            setupGPUConfigurationExtendedSettings(pExtendedSettings, &pRenderer->pGpu->mSettings);
+            setupGPUConfigurationExtendedSettings(pExtendedSettings, pRenderer->pGpu);
         }
     }
 }

@@ -691,15 +691,12 @@ struct ResourceLoader
 
 static ResourceLoader* pResourceLoader = NULL;
 
-static uint32_t util_get_texture_row_alignment(Renderer* pRenderer)
-{
-    return max(1u, pRenderer->pGpu->mSettings.mUploadBufferTextureRowAlignment);
-}
+static uint32_t util_get_texture_row_alignment(Renderer* pRenderer) { return max(1u, pRenderer->pGpu->mUploadBufferTextureRowAlignment); }
 
 static uint32_t util_get_texture_subresource_alignment(Renderer* pRenderer, TinyImageFormat fmt = TinyImageFormat_UNDEFINED)
 {
     uint32_t blockSize = max(1u, TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
-    uint32_t alignment = round_up(pRenderer->pGpu->mSettings.mUploadBufferTextureAlignment, blockSize);
+    uint32_t alignment = round_up(pRenderer->pGpu->mUploadBufferTextureAlignment, blockSize);
     return round_up(alignment, util_get_texture_row_alignment(pRenderer));
 }
 
@@ -1006,7 +1003,7 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
     CopyResourceSet* pResourceSet = &pCopyEngine->resourceSets[pCopyEngine->activeSet];
     Renderer*        pRenderer = pResourceLoader->ppRenderers[nodeIndex];
     uint64_t         size = (uint64_t)pResourceSet->mBuffer->mSize;
-    alignment = max((uint32_t)pRenderer->pGpu->mSettings.mUploadBufferAlignment, alignment);
+    alignment = max((uint32_t)pRenderer->pGpu->mUploadBufferAlignment, alignment);
     memoryRequirement = round_up_64(memoryRequirement, alignment);
 
     if (memoryRequirement > size)
@@ -1061,7 +1058,7 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
     MappedMemoryRange range = bufUpdateDesc.mInternal.mMappedRange;
     uint64_t          size = bufUpdateDesc.mSize ? bufUpdateDesc.mSize : range.mSize;
     size = min(range.pBuffer->mSize, size);
-    size = round_up_64(size, pRenderer->pGpu->mSettings.mUploadBufferAlignment);
+    size = round_up_64(size, pRenderer->pGpu->mUploadBufferAlignment);
     cmdUpdateBuffer(pCmd, pBuffer, bufUpdateDesc.mDstOffset, range.pBuffer, range.mOffset, size);
 
     if (IssueBufferCopyBarriers() && bufUpdateDesc.mCurrentState != RESOURCE_STATE_COPY_DEST)
@@ -2173,7 +2170,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
         ASSERT(rendererCount == 1 || ppRenderers[i]->mGpuMode == GPU_MODE_UNLINKED);
         // Replicate single renderer in linked mode, for uniform handling of linked and unlinked multi gpu.
         pLoader->ppRenderers[i] = (rendererCount > 1) ? ppRenderers[i] : ppRenderers[0];
-        gUma = ppRenderers[i]->pGpu->mSettings.mUnifiedMemorySupported;
+        gUma = ppRenderers[i]->pGpu->mUnifiedMemorySupported;
     }
 
     pLoader->mRun = true; //-V601
@@ -3944,8 +3941,8 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
 #if defined(VULKAN)
         // Needs to match with the way we set the derivatives in FSL scripts (vulkan.py, compilers.py)
-        derivativeHash = (uint64_t)pRenderer->pGpu->mSettings.mShaderSampledImageArrayDynamicIndexingSupported |
-                         (uint64_t)pRenderer->pGpu->mSettings.mDescriptorIndexingExtension << 1;
+        derivativeHash = (uint64_t)pRenderer->pGpu->mShaderSampledImageArrayDynamicIndexingSupported |
+                         (uint64_t)pRenderer->pGpu->mDescriptorIndexingExtension << 1;
 #endif
 
         for (uint32_t i = 0; i < header.mDerivativeCount; ++i)

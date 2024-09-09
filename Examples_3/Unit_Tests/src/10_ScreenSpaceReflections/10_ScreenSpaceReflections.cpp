@@ -590,7 +590,7 @@ public:
             return false;
         }
 
-        if (!pRenderer->pGpu->mSettings.mPrimitiveIdSupported)
+        if (!pRenderer->pGpu->mPrimitiveIdSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer does not run on this device. PrimitiveID is not supported");
             return false;
@@ -601,10 +601,10 @@ public:
 #if defined(ANDROID)
         gSSSRSupported = false;
 #else
-        gSSSRSupported = (pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) &&
-                         (pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
-                         (pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT) &&
-                         (pRenderer->pGpu->mSettings.mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
+        gSSSRSupported = (pRenderer->pGpu->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) &&
+                         (pRenderer->pGpu->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
+                         (pRenderer->pGpu->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT) &&
+                         (pRenderer->pGpu->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
 #endif
         gLastReflectionType = gReflectionType = gSSSRSupported ? SSS_REFLECTION : PP_REFLECTION;
 
@@ -658,9 +658,8 @@ public:
 
         // Some texture format are not well covered on android devices (R32G32_SFLOAT, R32G32B32A32_SFLOAT)
         // albedo texture use TinyImageFormat_DXBC1_RGBA_UNORM, might need an other sampler
-        bool supportLinearFiltering =
-            (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER) &&
-            (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER);
+        bool supportLinearFiltering = (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER) &&
+                                      (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER);
 
         SamplerDesc samplerDesc = {};
         samplerDesc.mMinFilter = supportLinearFiltering ? FILTER_LINEAR : FILTER_NEAREST;
@@ -671,7 +670,7 @@ public:
         samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
         addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
 
-        supportLinearFiltering = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_DXBC1_RGBA_UNORM] & FORMAT_CAP_LINEAR_FILTER;
+        supportLinearFiltering = pRenderer->pGpu->mFormatCaps[TinyImageFormat_DXBC1_RGBA_UNORM] & FORMAT_CAP_LINEAR_FILTER;
 
         samplerDesc = {};
         samplerDesc.mMinFilter = supportLinearFiltering ? FILTER_LINEAR : FILTER_NEAREST;
@@ -1275,7 +1274,7 @@ public:
         static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
 
         // Some texture format are not well covered on android devices (R32G32_SFLOAT, D32_SFLOAT, R32G32B32A32_SFLOAT)
-        bool supportLinearFiltering = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER;
+        bool supportLinearFiltering = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER;
 
         SamplerDesc samplerDesc = {};
         samplerDesc.mMinFilter = supportLinearFiltering ? FILTER_LINEAR : FILTER_NEAREST;
@@ -1349,7 +1348,7 @@ public:
         brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
         addResource(&brdfIntegrationLoadDesc, NULL);
 
-        GPUPresetLevel presetLevel = pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel;
+        GPUPresetLevel presetLevel = pRenderer->pGpu->mGpuVendorPreset.mPresetLevel;
 
         const char* brdfIntegrationShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_NONE
@@ -3819,7 +3818,7 @@ public:
         }
 
         const uint32_t capMask = FORMAT_CAP_READ | FORMAT_CAP_WRITE;
-        const bool     isR16SFSupported = (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16_SFLOAT] & capMask) == capMask;
+        const bool     isR16SFSupported = (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16_SFLOAT] & capMask) == capMask;
 
         TextureDesc temporalVarianceDesc = {};
         temporalVarianceDesc.mArraySize = 1;

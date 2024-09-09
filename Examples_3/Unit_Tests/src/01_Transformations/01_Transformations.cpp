@@ -456,7 +456,7 @@ public:
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+        if (pRenderer->pGpu->mPipelineStatsQueries)
         {
             QueryPoolDesc poolDesc = {};
             poolDesc.mQueryCount = 3; // The count is 3 due to quest & multi-view use otherwise 2 is enough as we use 2 queries.
@@ -703,7 +703,7 @@ public:
         {
             removeResource(pProjViewUniformBuffer[i]);
             removeResource(pSkyboxUniformBuffer[i]);
-            if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+            if (pRenderer->pGpu->mPipelineStatsQueries)
             {
                 exitQueryPool(pRenderer, pPipelineStatsQueryPool[i]);
             }
@@ -754,7 +754,7 @@ public:
             UIWidget* pVLw = uiAddComponentWidget(pGuiWindow, "Vertex Layout", &vertexLayoutWidget, WIDGET_TYPE_SLIDER_UINT);
             uiSetWidgetOnEditedCallback(pVLw, nullptr, reloadRequest);
 
-            if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+            if (pRenderer->pGpu->mPipelineStatsQueries)
             {
                 static float4     color = { 1.0f, 1.0f, 1.0f, 1.0f };
                 DynamicTextWidget statsWidget;
@@ -947,7 +947,7 @@ public:
         // Reset cmd pool for this frame
         resetCmdPool(pRenderer, elem.pCmdPool);
 
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+        if (pRenderer->pGpu->mPipelineStatsQueries)
         {
             QueryData data3D = {};
             QueryData data2D = {};
@@ -978,7 +978,7 @@ public:
         beginCmd(cmd);
 
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+        if (pRenderer->pGpu->mPipelineStatsQueries)
         {
             cmdResetQuery(cmd, pPipelineStatsQueryPool[gFrameIndex], 0, 2);
             QueryDesc queryDesc = { 0 };
@@ -1025,7 +1025,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken); // Draw Skybox/Planets
         cmdBindRenderTargets(cmd, NULL);
 
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+        if (pRenderer->pGpu->mPipelineStatsQueries)
         {
             QueryDesc queryDesc = { 0 };
             cmdEndQuery(cmd, pPipelineStatsQueryPool[gFrameIndex], &queryDesc);
@@ -1058,7 +1058,7 @@ public:
 
         cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
-        if (pRenderer->pGpu->mSettings.mPipelineStatsQueries)
+        if (pRenderer->pGpu->mPipelineStatsQueries)
         {
             QueryDesc queryDesc = { 1 };
             cmdEndQuery(cmd, pPipelineStatsQueryPool[gFrameIndex], &queryDesc);

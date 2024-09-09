@@ -858,12 +858,11 @@ public:
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
-        gGPUPresetLevel = pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel;
+        gGPUPresetLevel = pRenderer->pGpu->mGpuVendorPreset.mPresetLevel;
 
         // Some texture format are not well covered on android devices (R32G32_SFLOAT, R32G32B32A32_SFLOAT)
-        gSupportLinearSamplingBRDFTextures =
-            (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER) &&
-            (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER);
+        gSupportLinearSamplingBRDFTextures = (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER) &&
+                                             (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER);
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -3263,7 +3262,7 @@ public:
         brdfIntegrationLoadDesc.ppTexture = &pTextureBRDFIntegrationMap;
         addResource(&brdfIntegrationLoadDesc, &token);
 
-        GPUPresetLevel presetLevel = pRenderer->pGpu->mSettings.mGpuVendorPreset.mPresetLevel;
+        GPUPresetLevel presetLevel = pRenderer->pGpu->mGpuVendorPreset.mPresetLevel;
 
         const char* brdfIntegrationShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
             "BRDFIntegration_SAMPLES_0.comp",   // GPU_PRESET_NONE

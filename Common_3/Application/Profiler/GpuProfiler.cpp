@@ -323,7 +323,7 @@ void exitGpuProfilers()
 
 ProfileToken initGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName)
 {
-    if (!pRenderer->pGpu->mSettings.mTimestampQueries)
+    if (!pRenderer->pGpu->mTimestampQueries)
     {
         LOGF(LogLevel::eWARNING, "GPU timestamp queries not supported");
         return PROFILE_INVALID_TOKEN;

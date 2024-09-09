@@ -10,6 +10,8 @@
 #ifndef VECTORMATH_VEC2D_HPP
 #define VECTORMATH_VEC2D_HPP
 
+#include "../../../Interfaces/ILog.h"
+
 #include <cmath>
 #include <cstdio>
 
@@ -559,12 +561,12 @@ inline const Vector2 lerp(float t, const Vector2 & vec0, const Vector2 & vec1)
 
 inline void print(const Vector2 & vec)
 {
-    std::printf("( %f %f )\n", vec.getX(), vec.getY());
+    LOGF(eINFO, "( %f %f )\n", vec.getX(), vec.getY());
 }
 
 inline void print(const Vector2 & vec, const char * name)
 {
-    std::printf("%s: ( %f %f )\n", name, vec.getX(), vec.getY());
+    LOGF(eINFO, "%s: ( %f %f )\n", name, vec.getX(), vec.getY());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -726,12 +728,12 @@ inline const Point2 lerp(float t, const Point2 & pnt0, const Point2 & pnt1)
 
 inline void print(const Point2 & pnt)
 {
-    std::printf("( %f %f )\n", pnt.getX(), pnt.getY());
+    LOGF(eINFO, "( %f %f )\n", pnt.getX(), pnt.getY());
 }
 
 inline void print(const Point2 & pnt, const char * name)
 {
-    std::printf("%s: ( %f %f )\n", name, pnt.getX(), pnt.getY());
+    LOGF(eINFO, "%s: ( %f %f )\n", name, pnt.getX(), pnt.getY());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1044,12 +1046,12 @@ inline int minElem(const IVector2 & vec)
 
 inline void print(const IVector2 & vec)
 {
-	std::printf("( %i %i )\n", vec.getX(), vec.getY());
+	LOGF(eINFO, "( %i %i )\n", vec.getX(), vec.getY());
 }
 
 inline void print(const IVector2 & vec, const char * name)
 {
-	std::printf("%s: ( %i %i )\n", name, vec.getX(), vec.getY());
+	LOGF(eINFO, "%s: ( %i %i )\n", name, vec.getX(), vec.getY());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1335,12 +1337,12 @@ inline uint minElem(const UVector2 & vec)
 
 inline void print(const UVector2 & vec)
 {
-	std::printf("( %u %u )\n", vec.getX(), vec.getY());
+	LOGF(eINFO, "( %u %u )\n", vec.getX(), vec.getY());
 }
 
 inline void print(const UVector2 & vec, const char * name)
 {
-	std::printf("%s: ( %u %u )\n", name, vec.getX(), vec.getY());
+	LOGF(eINFO, "%s: ( %u %u )\n", name, vec.getX(), vec.getY());
 }
 
 #endif // VECTORMATH_DEBUG

@@ -31,7 +31,7 @@
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 
-inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
+inline void d3d12CapsBuilder(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
 {
     // While DirectX-Specs state that any format that reports load support must also report store support
     // I think it's just better to double check for both.
@@ -47,19 +47,19 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
         pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
         if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
         }
         if (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_WRITE;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_WRITE;
         }
         if (formatSupport.Support2 & loadStore)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
         }
         if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET)
         {
-            pCapBits->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
         }
     }
 }

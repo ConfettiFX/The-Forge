@@ -3,6 +3,9 @@
 #if !defined(TINYIMAGEFORMAT_DECODE_H_) && !defined(TINYIMAGEFORMAT_IMAGEFORMAT_H)
 #define TINYIMAGEFORMAT_DECODE_H_ 1
 
+
+#include "../../../../../Utilities/Math/MathTypes.h"
+
 #include "tinyimageformat_base.h"
 
 #if __cplusplus > 201402L
@@ -10,22 +13,9 @@
 #else
 #define TIF_CONSTEXPR
 #endif
-#ifndef  TinyImageFormat_HAVE_UINTXX_T
-#include <stdint.h> 	// for uint32_t and int64_t
-#endif
 #ifndef  TinyImageFormat_HAVE_BOOL
 #include <stdbool.h>	// for bool
 #endif
-#ifndef  TinyImageFormat_HAVE_POWF
-#include <math.h>	// for powf
-#endif
-//TinyImageFormat_ASSERT needs to be constexpr on some platforms
-#ifndef  TinyImageFormat_ASSERT
-#define  TinyImageFormat_ASSERT(x)
-#endif
-
-
-
 
 inline void TinyImageFormat_SharedE5B9G9R9UFloatToFloats(uint32_t v, float out[4]) {
 	// https://github.com/microsoft/DirectXMath/blob/ecfb4754400dac581c2eeb6e849617cf5d210426/Inc/DirectXPackedVector.h

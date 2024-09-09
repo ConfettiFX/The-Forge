@@ -505,7 +505,7 @@ enum ProfileDumpType
 #endif
 
 struct Profile;
-struct GPUSettings;
+struct GpuDesc;
 
 PROFILE_API ProfileToken ProfileFindToken(const char* sGroup, const char* sName, ThreadID* pThread = NULL);
 PROFILE_API ProfileToken ProfileGetToken(const char* sGroup, const char* sName, uint32_t nColor,
@@ -860,17 +860,17 @@ struct Profile
 
     uint32_t nOverflow;
 
-    uint64_t           nGroupMask;
-    uint64_t           nGroupMaskGpu;
-    uint32_t           nRunning;
-    uint32_t           nToggleRunning;
-    uint32_t           nMaxGroupSize;
-    uint32_t           nDumpFileNextFrame;
-    uint32_t           nAutoClearFrames;
-    ProfileDumpType    eDumpType;
-    uint32_t           nDumpFrames;
-    const char*        DumpFile;
-    const GPUSettings* pGpuSettings;
+    uint64_t        nGroupMask;
+    uint64_t        nGroupMaskGpu;
+    uint32_t        nRunning;
+    uint32_t        nToggleRunning;
+    uint32_t        nMaxGroupSize;
+    uint32_t        nDumpFileNextFrame;
+    uint32_t        nAutoClearFrames;
+    ProfileDumpType eDumpType;
+    uint32_t        nDumpFrames;
+    const char*     DumpFile;
+    const GpuDesc*  pGpuDesc;
 
     int64_t nPauseTicks;
 

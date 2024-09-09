@@ -182,52 +182,12 @@ static bool               cleanupLogOnFirstRun = true;
 static const unsigned int paddingSize = 4;
 #endif
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// We define our own assert, because we don't want to bring up an assertion dialog, since that allocates RAM. Our new assert
-// simply declares a forced breakpoint.
-//
-// The BEOS assert added by Arvid Norberg <arvid@iname.com>.
-// ---------------------------------------------------------------------------------------------------------------------------------
-
-#ifdef WIN32
-#ifdef MEMORY_DEBUG
-#define m_assert(x)   \
-    if ((x) == false) \
-    __debugbreak()
-#else
-#define m_assert(x)   \
-    x ? (void)0 : __debugbreak();
-#endif
-#elif defined(__BEOS__)
-#ifdef DEBUG
-extern void               debugger(const char* message);
-#define m_assert(x)   \
-    if ((x) == false) \
-    debugger("mmgr: assert failed")
-#else
-#define m_assert(x) \
-    {               \
-    }
-#endif
-#else // Linux uses assert, which we can use safely, since it doesn't bring up a dialog within the program.
-#if defined(ORBIS) || defined(PROSPERO)
-#ifdef MEMORY_DEBUG
-#define m_assert(x) \
-    if (!(x))       \
-    __debugbreak()
-#else
-#define m_assert(x) \
-    if (!(x))       \
-    __debugbreak()
-#endif
-#else
-#define m_assert(cond) assert(cond)
-#endif
+#if !defined(WIN32)
 #define _unlink unlink
+#define fopen_s(file, filename, mode) ((*file) = fopen(filename, mode))
 #if !defined(ORBIS) && !defined(PROSPERO)
 #define localtime_s localtime_r
 #endif
-#define fopen_s(file, filename, mode) ((*file) = fopen(filename, mode))
 #endif
 
 #ifndef __has_feature
@@ -534,7 +494,7 @@ static const char* memorySizeString(uint32_t size)
 static sAllocUnit* findAllocUnit(const void* reportedAddress)
 {
     // Just in case...
-    m_assert(reportedAddress != NULL);
+    ASSERT(reportedAddress != NULL);
 
     // Use the address to locate the hash index. Note that we shift off the lower four bits. This is because most allocated
     // addresses will be on four-, eight- or even sixteen-byte boundaries. If we didn't do this, the hash index would not have
@@ -894,7 +854,7 @@ static void dumpLeakReport(void)
 
     fsCloseStream(&fh);
 
-    m_assert(stats.totalAllocUnitCount == 0 && "Memory leaks found");
+    ASSERT(stats.totalAllocUnitCount == 0 && "Memory leaks found");
 }
 // ---------------------------------------------------------------------------------------------------------------------------------
 // We use a static class to let us know when we're in the midst of static deinitialization
@@ -991,11 +951,11 @@ bool* mmgrBreakOnRealloc(void* reportedAddress)
 
     // If you hit this assert, you tried to set a breakpoint on reallocation for an address that doesn't exist. Interrogate the
     // stack frame or the variable 'au' to see which allocation this is.
-    m_assert(au != NULL);
+    ASSERT(au != NULL);
 
     // If you hit this assert, you tried to set a breakpoint on reallocation for an address that wasn't allocated in a way that
     // is compatible with reallocation.
-    m_assert(au->allocationType == m_alloc_malloc || au->allocationType == m_alloc_calloc || au->allocationType == m_alloc_realloc);
+    ASSERT(au->allocationType == m_alloc_malloc || au->allocationType == m_alloc_calloc || au->allocationType == m_alloc_realloc);
 
     return &au->breakOnRealloc;
 }
@@ -1013,7 +973,7 @@ bool* mmgrBreakOnDealloc(void* reportedAddress)
 
     // If you hit this assert, you tried to set a breakpoint on deallocation for an address that doesn't exist. Interrogate the
     // stack frame or the variable 'au' to see which allocation this is.
-    m_assert(au != NULL);
+    ASSERT(au != NULL);
 
     return &au->breakOnDealloc;
 }
@@ -1117,7 +1077,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
 {
     if (cleanupLogOnFirstRun)
     {
-        m_assert(false && "Memory tracker not initialized");
+        ASSERT(false && "Memory tracker not initialized");
         return NULL;
     }
 
@@ -1145,7 +1105,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
                 reportedSize, ownerString(sourceFile, sourceLine, sourceFunc));
 
         // If you hit this assert, you requested a breakpoint on a specific allocation count
-        m_assert(currentAllocationCount != breakOnAllocationCount);
+        ASSERT(currentAllocationCount != breakOnAllocationCount);
 
         // If necessary, grow the reservoir of unused allocation units
 
@@ -1157,7 +1117,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
 
             // If you hit this assert, then the memory manager failed to allocate internal memory for tracking the
             // allocations
-            m_assert(reservoir != NULL);
+            ASSERT(reservoir != NULL);
 
             // Danger Will Robinson!
 
@@ -1166,7 +1126,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
                 printf("Unable to allocate RAM for internal memory tracking data");
                 fflush(stdout);
                 MUTEX_UNLOCK(allocMutex);
-                m_assert(false && "Unable to allocate RAM for internal memory tracking data");
+                ASSERT(false && "Unable to allocate RAM for internal memory tracking data");
             }
             // Build a linked-list of the elements in our reservoir
 
@@ -1179,7 +1139,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
             // Add this address to our reservoirBuffer so we can free it later
 
             sAllocUnit** temp = (sAllocUnit**)realloc(reservoirBuffer, (reservoirBufferSize + 1) * sizeof(sAllocUnit*));
-            m_assert(temp);
+            ASSERT(temp);
             if (temp)
             {
                 reservoirBuffer = temp;
@@ -1188,7 +1148,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
         }
 
         // Logical flow says this should never happen...
-        m_assert(reservoir != NULL);
+        ASSERT(reservoir != NULL);
 
         // Grab a new allocaton unit from the front of the reservoir
 
@@ -1269,7 +1229,7 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
 #ifndef RANDOM_FAILURE
         // If you hit this assert, then the requested allocation simply failed (you're out of memory.) Interrogate the
         // variable 'au' or the stack frame to see what you were trying to do.
-        m_assert(au->actualAddress != NULL);
+        ASSERT(au->actualAddress != NULL);
 #endif
 
         if (au->actualAddress == NULL)
@@ -1277,12 +1237,12 @@ void* mmgrAllocator(const char* sourceFile, const unsigned int sourceLine, const
             printf("Request for allocation failed. Out of memory.");
             fflush(stdout);
             MUTEX_UNLOCK(allocMutex);
-            m_assert(false && "Request for allocation failed. Out of memory.");
+            ASSERT(false && "Request for allocation failed. Out of memory.");
         }
 
         // If you hit this assert, then this allocation was made from a source that isn't setup to use this memory tracking
         // software, use the stack frame to locate the source and include our H file.
-        m_assert(allocationType != m_alloc_unknown);
+        ASSERT(allocationType != m_alloc_unknown);
 
         // Insert the new allocation into the hash table
 
@@ -1379,7 +1339,7 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
         currentAllocationCount++;
 
         // If you hit this assert, you requested a breakpoint on a specific allocation count
-        m_assert(currentAllocationCount != breakOnAllocationCount);
+        ASSERT(currentAllocationCount != breakOnAllocationCount);
 
         // Log the request
 
@@ -1394,30 +1354,30 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
         const size_t oldReportedSize = au->reportedSize;
 
         // If you hit this assert, you tried to reallocate RAM that wasn't allocated by this memory manager.
-        m_assert(au != NULL);
+        ASSERT(au != NULL);
         if (au == NULL)
         {
             printf("Request to reallocate RAM that was never allocated");
             fflush(stdout);
             MUTEX_UNLOCK(allocMutex);
-            m_assert(false && "Request to reallocate RAM that was never allocated");
+            ASSERT(false && "Request to reallocate RAM that was never allocated");
         }
         // If you hit this assert, then the allocation unit that is about to be reallocated is damaged. But you probably
         // already know that from a previous assert you should have seen in validateAllocUnit() :)
-        m_assert(mmgrValidateAllocUnit(au));
+        ASSERT(mmgrValidateAllocUnit(au));
 
         // If you hit this assert, then this reallocation was made from a source that isn't setup to use this memory
         // tracking software, use the stack frame to locate the source and include our H file.
-        m_assert(reallocationType != m_alloc_unknown);
+        ASSERT(reallocationType != m_alloc_unknown);
 
         // If you hit this assert, you were trying to reallocate RAM that was not allocated in a way that is compatible with
         // realloc. In other words, you have a allocation/reallocation mismatch.
-        m_assert(au->allocationType == m_alloc_malloc || au->allocationType == m_alloc_calloc || au->allocationType == m_alloc_realloc);
+        ASSERT(au->allocationType == m_alloc_malloc || au->allocationType == m_alloc_calloc || au->allocationType == m_alloc_realloc);
 
         // If you hit this assert, then the "break on realloc" flag for this allocation unit is set (and will continue to be
         // set until you specifically shut it off. Interrogate the 'au' variable to determine information about this
         // allocation unit.
-        m_assert(au->breakOnRealloc == false);
+        ASSERT(au->breakOnRealloc == false);
 
         // Keep track of the original size
 
@@ -1463,7 +1423,7 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
         // If you hit this assert, then the requested allocation simply failed (you're out of memory) Interrogate the
         // variable 'au' to see the original allocation. You can also query 'newActualSize' to see the amount of memory
         // trying to be allocated. Finally, you can query 'reportedSize' to see how much memory was requested by the caller.
-        m_assert(newActualAddress);
+        ASSERT(newActualAddress);
 #endif
 
         if (!newActualAddress)
@@ -1471,7 +1431,7 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
             printf("Request for reallocation failed. Out of memory.");
             fflush(stdout);
             MUTEX_UNLOCK(allocMutex);
-            m_assert(false && "Request for reallocation failed. Out of memory.");
+            ASSERT(false && "Request for reallocation failed. Out of memory.");
         }
         // Remove this allocation from our stats (we'll add the new reallocation again later)
 
@@ -1589,7 +1549,7 @@ void* mmgrReallocator(const char* sourceFile, const unsigned int sourceLine, con
 
         // If you hit this assert, then something went wrong, because the allocation unit was properly validated PRIOR to
         // the reallocation. This should not happen.
-        m_assert(mmgrValidateAllocUnit(au));
+        ASSERT(mmgrValidateAllocUnit(au));
 
         // Validate every single allocated unit in memory
 
@@ -1650,13 +1610,13 @@ void mmgrDeallocator(const char* sourceFile, const unsigned int sourceLine, cons
         sAllocUnit* au = findAllocUnit(reportedAddress);
 
         // If you hit this assert, you tried to deallocate RAM that wasn't allocated by this memory manager.
-        m_assert(au != NULL);
+        ASSERT(au != NULL);
         if (au == NULL)
         {
             printf("Request to deallocate RAM that was naver allocated");
             fflush(stdout);
             MUTEX_UNLOCK(allocMutex);
-            m_assert(false && "Request to deallocate RAM that was never allocated");
+            ASSERT(false && "Request to deallocate RAM that was never allocated");
         }
 
         // If asan is active then unpoision the memory that may have been poisoned by another
@@ -1665,15 +1625,15 @@ void mmgrDeallocator(const char* sourceFile, const unsigned int sourceLine, cons
 
         // If you hit this assert, then the allocation unit that is about to be deallocated is damaged. But you probably
         // already know that from a previous assert you should have seen in validateAllocUnit() :)
-        m_assert(mmgrValidateAllocUnit(au));
+        ASSERT(mmgrValidateAllocUnit(au));
 
         // If you hit this assert, then this deallocation was made from a source that isn't setup to use this memory
         // tracking software, use the stack frame to locate the source and include our H file.
-        m_assert(deallocationType != m_alloc_unknown);
+        ASSERT(deallocationType != m_alloc_unknown);
 
         // If you hit this assert, you were trying to deallocate RAM that was not allocated in a way that is compatible with
         // the deallocation method requested. In other words, you have a allocation/deallocation mismatch.
-        m_assert((deallocationType == m_alloc_delete && au->allocationType == m_alloc_new) ||
+        ASSERT((deallocationType == m_alloc_delete && au->allocationType == m_alloc_new) ||
                  (deallocationType == m_alloc_delete_array && au->allocationType == m_alloc_new_array) ||
                  (deallocationType == m_alloc_free && au->allocationType == m_alloc_malloc) ||
                  (deallocationType == m_alloc_free && au->allocationType == m_alloc_calloc) ||
@@ -1681,7 +1641,7 @@ void mmgrDeallocator(const char* sourceFile, const unsigned int sourceLine, cons
 
         // If you hit this assert, then the "break on dealloc" flag for this allocation unit is set. Interrogate the 'au'
         // variable to determine information about this allocation unit.
-        m_assert(au->breakOnDealloc == false);
+        ASSERT(au->breakOnDealloc == false);
 
         // Wipe the deallocated RAM with a new pattern. This doen't actually do us much good in debug mode under WIN32,
         // because Microsoft's memory debugging & tracking utilities will wipe it right after we do. Oh well.
@@ -1775,7 +1735,7 @@ bool mmgrValidateAllocUnit(const sAllocUnit* allocUnit)
         // If you hit this assert, then you should know that this allocation unit has been damaged. Something (possibly the
         // owner?) has underrun the allocation unit (modified a few bytes prior to the start). You can interrogate the
         // variable 'allocUnit' to see statistics and information about this damaged allocation unit.
-        m_assert(*pre == expectedPrefixByte);
+        ASSERT(*pre == expectedPrefixByte);
 
         const uint8_t expectedPostfixByte = (postfixPattern >> ((i % sizeof(uint32_t)) * 8)) & 0xFF;
         if (*post != expectedPostfixByte)
@@ -1788,7 +1748,7 @@ bool mmgrValidateAllocUnit(const sAllocUnit* allocUnit)
         // If you hit this assert, then you should know that this allocation unit has been damaged. Something (possibly the
         // owner?) has overrun the allocation unit (modified a few bytes after the end). You can interrogate the variable
         // 'allocUnit' to see statistics and information about this damaged allocation unit.
-        m_assert(*post == expectedPostfixByte);
+        ASSERT(*post == expectedPostfixByte);
     }
 
     // Return the error status (we invert it, because a return of 'false' means error)
@@ -1829,11 +1789,11 @@ bool mmgrValidateAllAllocUnits(void)
     // offending code. After running the application with these settings (and hitting this assert again), interrogate the
     // memory.log file to find the previous successful operation. The corruption will have occurred between that point and this
     // assertion.
-    m_assert(allocCount == stats.totalAllocUnitCount);
+    ASSERT(allocCount == stats.totalAllocUnitCount);
 
     // If you hit this assert, then you've probably already been notified that there was a problem with a allocation unit in a
     // prior call to validateAllocUnit(), but this assert is here just to make sure you know about it. :)
-    m_assert(errors == 0);
+    ASSERT(errors == 0);
 
     // Log any errors
 

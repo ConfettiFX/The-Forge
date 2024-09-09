@@ -30,6 +30,8 @@
 #ifndef VECTORMATH_SSE_QUATERNION_HPP
 #define VECTORMATH_SSE_QUATERNION_HPP
 
+#include "../../../../Interfaces/ILog.h"
+
 namespace Vectormath
 {
 namespace SSE
@@ -576,14 +578,14 @@ inline void print(const Quat & quat)
 {
     SSEFloat tmp;
     tmp.m128 = quat.get128();
-    std::printf("( %f %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
+    LOGF(eINFO, "( %f %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
 }
 
 inline void print(const Quat & quat, const char * name)
 {
     SSEFloat tmp;
     tmp.m128 = quat.get128();
-    std::printf("%s: ( %f %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
+    LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
 }
 
 #endif // VECTORMATH_DEBUG

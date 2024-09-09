@@ -802,7 +802,7 @@ public:
 
         initSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             QueryPoolDesc queryPoolDesc = {};
             queryPoolDesc.mType = QUERY_TYPE_OCCLUSION;
@@ -1044,7 +1044,7 @@ public:
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
         exitResourceLoaderInterface(pRenderer);
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
@@ -1134,7 +1134,7 @@ public:
             guiOcclusionDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * .3f);
             uiAddComponent("Occlusion Test", &guiOcclusionDesc, &pGui_OcclusionData);
 
-            if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+            if (pRenderer->pGpu->mOcclusionQueries)
             {
                 DynamicTextWidget occlusionRedWidget;
                 occlusionRedWidget.pText = &gOcclusionbstr;
@@ -1289,7 +1289,7 @@ public:
         if (fenceStatus == FENCE_STATUS_INCOMPLETE)
             waitForFences(pRenderer, 1, &elem.pFence);
 
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             QueryData occlusionData = {};
             getQueryData(pRenderer, pOcclusionQueryPool[gFrameIndex], gOccTestOccuionSphereMaxIndex, &occlusionData);
@@ -1314,7 +1314,7 @@ public:
 
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             cmdResetQuery(cmd, pOcclusionQueryPool[gFrameIndex], 0, gMaxOcclusionQueries);
         }
@@ -1336,7 +1336,7 @@ public:
         QueryDesc occlusionQueryDesc = {};
 
         const uint32_t sphereStride = sizeof(float) * 6;
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw occlsuion Max");
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
@@ -1386,7 +1386,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         //// draw occlusion test
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Occlusion Test");
             cmdBindPipeline(cmd, pOcclusionTest);
@@ -1424,7 +1424,7 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
         cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
-        if (pRenderer->pGpu->mSettings.mOcclusionQueries)
+        if (pRenderer->pGpu->mOcclusionQueries)
         {
             cmdResolveQuery(cmd, pOcclusionQueryPool[gFrameIndex], 0, gMaxOcclusionQueries);
         }

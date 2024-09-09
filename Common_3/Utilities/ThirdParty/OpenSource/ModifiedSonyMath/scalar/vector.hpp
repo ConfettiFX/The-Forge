@@ -30,6 +30,8 @@
 #ifndef VECTORMATH_SCALAR_VECTOR_HPP
 #define VECTORMATH_SCALAR_VECTOR_HPP
 
+#include "../../../../Interfaces/ILog.h"
+
 namespace Vectormath
 {
 namespace Scalar
@@ -457,12 +459,12 @@ inline bool isNormalizedEst(const Vector3& v)
 
 inline void print(const Vector3 & vec)
 {
-	printf("( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const Vector3 & vec, const char * name)
 {
-	printf("%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1260,12 +1262,12 @@ inline void store3PtrU(const Vector4& v, float* f) {
 
 inline void print(const Vector4 & vec)
 {
-	printf("( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const Vector4 & vec, const char * name)
 {
-	printf("%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1638,12 +1640,12 @@ inline bool isNormalizedEst(const Vector3d& v)
 
 inline void print(const Vector3d & vec)
 {
-	printf("( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const Vector3d & vec, const char * name)
 {
-	printf("%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2472,12 +2474,12 @@ inline void store3PtrU(const Vector4d& v, double* f) {
 
 inline void print(const Vector4d & vec)
 {
-	printf("( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const Vector4d & vec, const char * name)
 {
-	printf("%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2764,12 +2766,12 @@ inline const Point3 select(const Point3 & pnt0, const Point3 & pnt1, bool select
 
 inline void print(const Point3 & pnt)
 {
-	printf("( %f %f %f )\n", pnt.getX(), pnt.getY(), pnt.getZ());
+	LOGF(eINFO, "( %f %f %f )\n", pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
 inline void print(const Point3 & pnt, const char * name)
 {
-	printf("%s: ( %f %f %f )\n", name, pnt.getX(), pnt.getY(), pnt.getZ());
+	LOGF(eINFO, "%s: ( %f %f %f )\n", name, pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3509,12 +3511,12 @@ inline const int sum(const IVector3 & vec)
 
 inline void print(const IVector3 & vec)
 {
-	printf("( %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "( %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const IVector3 & vec, const char * name)
 {
-	printf("%s: ( %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "%s: ( %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3726,12 +3728,12 @@ inline const uint sum(const UVector3 & vec)
 
 inline void print(const UVector3 & vec)
 {
-	printf("( %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "( %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const UVector3 & vec, const char * name)
 {
-	printf("%s: ( %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(eINFO, "%s: ( %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3973,12 +3975,12 @@ inline const int sum(const IVector4 & vec)
 
 inline void print(const IVector4 & vec)
 {
-	printf("( %i %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "( %i %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const IVector4 & vec, const char * name)
 {
-	printf("%s: ( %i %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "%s: ( %i %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -4196,12 +4198,12 @@ inline const uint sum(const UVector4 & vec)
 
 inline void print(const UVector4 & vec)
 {
-	printf("( %u %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "( %u %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const UVector4 & vec, const char * name)
 {
-	printf("%s: ( %u %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(eINFO, "%s: ( %u %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG

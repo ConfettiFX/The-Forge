@@ -4869,16 +4869,16 @@ public:
             return false;
         }
 
-        if (!pRenderer->pGpu->mSettings.mPrimitiveIdSupported)
+        if (!pRenderer->pGpu->mPrimitiveIdSupported)
         {
             ShowUnsupportedMessage("Visibility Buffer does not run on this device. PrimitiveID is not supported");
             return false;
         }
 
         // On Mac with AMD Gpu, doesn't allow ReadWrite on texture formats with 2 component then use float4 format
-        gFloat2RWTextureSupported = (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16G16_UNORM] & FORMAT_CAP_READ_WRITE) &&
-                                    (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16G16_SNORM] & FORMAT_CAP_READ_WRITE) &&
-                                    (pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_READ_WRITE);
+        gFloat2RWTextureSupported = (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16_UNORM] & FORMAT_CAP_READ_WRITE) &&
+                                    (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16_SNORM] & FORMAT_CAP_READ_WRITE) &&
+                                    (pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_READ_WRITE);
 
         gAppSettings.mMsaaLevel = (SampleCount)min(1u, gGpuSettings.mMSAASampleCount);
         gAppSettings.mMsaaIndex = (uint32_t)log2((uint32_t)gAppSettings.mMsaaLevel);
@@ -7381,7 +7381,7 @@ public:
         shadowRTDesc.mClearValue.depth = depthStencilClear.depth;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        shadowRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_D32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
+        shadowRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_D32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
                                    ? TinyImageFormat_D32_SFLOAT
                                    : TinyImageFormat_D24_UNORM_S8_UINT;
         shadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -7395,10 +7395,9 @@ public:
         /************************************************************************/
         // VSM Render Target
         /************************************************************************/
-        TinyImageFormat vsmFloat4RTFormat =
-            pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16G16B16A16_UNORM] & FORMAT_CAP_READ_WRITE
-                ? TinyImageFormat_R16G16B16A16_UNORM
-                : TinyImageFormat_R32G32B32A32_SFLOAT;
+        TinyImageFormat vsmFloat4RTFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16B16A16_UNORM] & FORMAT_CAP_READ_WRITE
+                                                ? TinyImageFormat_R16G16B16A16_UNORM
+                                                : TinyImageFormat_R32G32B32A32_SFLOAT;
 
         RenderTargetDesc VSMRTDesc = {};
         VSMRTDesc.mArraySize = 1;
@@ -7423,7 +7422,7 @@ public:
         MSMRTDesc.mArraySize = 1;
         MSMRTDesc.mClearValue.depth = lessEqualDepthStencilClear.depth;
         MSMRTDesc.mDepth = 1;
-        MSMRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R16G16B16A16_UNORM] & FORMAT_CAP_READ_WRITE
+        MSMRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16B16A16_UNORM] & FORMAT_CAP_READ_WRITE
                                 ? TinyImageFormat_R16G16B16A16_UNORM
                                 : TinyImageFormat_R32G32B32A32_SFLOAT;
         MSMRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -7486,10 +7485,9 @@ public:
         sdfMeshVisualizationRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
         sdfMeshVisualizationRTDesc.mClearValue = colorClearBlack;
         sdfMeshVisualizationRTDesc.mDepth = 1;
-        sdfMeshVisualizationRTDesc.mFormat =
-            pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
-                ? TinyImageFormat_R32G32B32A32_SFLOAT
-                : TinyImageFormat_R16G16B16A16_SFLOAT;
+        sdfMeshVisualizationRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32B32A32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
+                                                 ? TinyImageFormat_R32G32B32A32_SFLOAT
+                                                 : TinyImageFormat_R16G16B16A16_SFLOAT;
         sdfMeshVisualizationRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         sdfMeshVisualizationRTDesc.mWidth = mSettings.mWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
         sdfMeshVisualizationRTDesc.mHeight = mSettings.mHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
@@ -7504,7 +7502,7 @@ public:
         sdfMeshShadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
         sdfMeshShadowRTDesc.mClearValue = colorClearBlack;
         sdfMeshShadowRTDesc.mDepth = 1;
-        sdfMeshShadowRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
+        sdfMeshShadowRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32G32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
                                           ? TinyImageFormat_R32G32_SFLOAT
                                           : TinyImageFormat_R16G16_SFLOAT;
         sdfMeshShadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -7564,7 +7562,7 @@ public:
         ASMColorPassRT.mArraySize = 1;
         ASMColorPassRT.mClearValue = colorClearWhite;
         ASMColorPassRT.mDepth = 1;
-        ASMColorPassRT.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
+        ASMColorPassRT.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
                                      ? TinyImageFormat_R32_SFLOAT
                                      : TinyImageFormat_R16_SFLOAT;
         ASMColorPassRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -7637,7 +7635,7 @@ public:
         DEMAtlasRTDesc.mArraySize = 1;
         DEMAtlasRTDesc.mClearValue = colorClearBlack;
         DEMAtlasRTDesc.mDepth = 1;
-        DEMAtlasRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
+        DEMAtlasRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_R32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
                                      ? TinyImageFormat_R32_SFLOAT
                                      : TinyImageFormat_R16_SFLOAT;
         DEMAtlasRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -8568,7 +8566,7 @@ public:
             "resolve_SAMPLE_COUNT_4.frag",
         };
 
-        WaveOpsSupportFlags waveFlags = pRenderer->pGpu->mSettings.mWaveOpsSupportFlags;
+        WaveOpsSupportFlags waveFlags = pRenderer->pGpu->mWaveOpsSupportFlags;
 
         const char* ScreenSpaceShadowsShaders[] = { "screenSpaceShadows_SAMPLE_COUNT_1.comp", "screenSpaceShadows_SAMPLE_COUNT_2.comp",
                                                     "screenSpaceShadows_SAMPLE_COUNT_4.comp" };

@@ -109,7 +109,7 @@ static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t require
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
 
-    const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pGpu->mSettings.mUniformBufferAlignment;
+    const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pGpu->mUniformBufferAlignment;
     const uint32_t maxUniformBufferSize = requiredUniformBufferSize;
     pRingBuffer->mBufferAlignment = uniformBufferAlignment;
     pRingBuffer->mMaxBufferSize = maxUniformBufferSize;

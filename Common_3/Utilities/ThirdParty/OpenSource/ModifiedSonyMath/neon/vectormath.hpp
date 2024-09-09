@@ -32,7 +32,6 @@
 
 #include <cmath>
 #include <arm_neon.h>
-#include <assert.h>
 #include "sse2neon.h"
 
 #ifdef VECTORMATH_DEBUG

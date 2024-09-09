@@ -1941,18 +1941,17 @@ void initProfiler(ProfilerDesc* pDesc)
     }
 #endif
     // store active gpu settings
-    ProfileGet()->pGpuSettings = &pDesc->pRenderer->pGpu->mSettings;
+    ProfileGet()->pGpuDesc = pDesc->pRenderer->pGpu;
 #ifdef ENABLE_FORGE_FONTS
     // set gpu profiler title text
-    if (pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion[0] != '\0')
+    if (pDesc->pRenderer->pGpu->mGpuVendorPreset.mGpuDriverVersion[0] != '\0')
     {
         snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s \t\t\t\t Driver: %s",
-                 pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName,
-                 pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuDriverVersion);
+                 pDesc->pRenderer->pGpu->mGpuVendorPreset.mGpuName, pDesc->pRenderer->pGpu->mGpuVendorPreset.mGpuDriverVersion);
     }
     else
     {
-        snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s", pDesc->pRenderer->pGpu->mSettings.mGpuVendorPreset.mGpuName);
+        snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s", pDesc->pRenderer->pGpu->mGpuVendorPreset.mGpuName);
     }
 #endif
 #endif
@@ -3832,11 +3831,11 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
     }
 
     // dump info
-    if (g_Profile.pGpuSettings != NULL)
+    if (g_Profile.pGpuDesc != NULL)
     {
-        ProfilePrintf(CB, Handle, "var GpuName = '%s';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mGpuName);
-        ProfilePrintf(CB, Handle, "var VendorID = '%#x';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mVendorId);
-        ProfilePrintf(CB, Handle, "var ModelID = '%#x';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mModelId);
+        ProfilePrintf(CB, Handle, "var GpuName = '%s';\n", g_Profile.pGpuDesc->mGpuVendorPreset.mGpuName);
+        ProfilePrintf(CB, Handle, "var VendorID = '%#x';\n", g_Profile.pGpuDesc->mGpuVendorPreset.mVendorId);
+        ProfilePrintf(CB, Handle, "var ModelID = '%#x';\n", g_Profile.pGpuDesc->mGpuVendorPreset.mModelId);
     }
 
     uint64_t nTicks = P_TICK();
@@ -4434,9 +4433,9 @@ void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const
         bformata(&output, "\"Application\": \"%s\", \n", appName);
         bformata(&output, "\"Width\": %d, \n", pSettings->mWidth);
         bformata(&output, "\"Height\": %d, \n\n", pSettings->mHeight);
-        bformata(&output, "\"GpuName\": \"%s\", \n", g_Profile.pGpuSettings->mGpuVendorPreset.mGpuName);
-        bformata(&output, "\"VendorID\": \"%#x\", \n", g_Profile.pGpuSettings->mGpuVendorPreset.mVendorId);
-        bformata(&output, "\"ModelID\": \"%#x\", \n\n", g_Profile.pGpuSettings->mGpuVendorPreset.mModelId);
+        bformata(&output, "\"GpuName\": \"%s\", \n", g_Profile.pGpuDesc->mGpuVendorPreset.mGpuName);
+        bformata(&output, "\"VendorID\": \"%#x\", \n", g_Profile.pGpuDesc->mGpuVendorPreset.mVendorId);
+        bformata(&output, "\"ModelID\": \"%#x\", \n\n", g_Profile.pGpuDesc->mGpuVendorPreset.mModelId);
 
         const Profile& S = *ProfileGet();
         for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)

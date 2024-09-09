@@ -30,6 +30,8 @@
 #ifndef VECTORMATH_NEON_VECTOR_HPP
 #define VECTORMATH_NEON_VECTOR_HPP
 
+#include "../../../../Interfaces/ILog.h"
+
 namespace Vectormath
 {
 namespace Neon
@@ -622,14 +624,14 @@ inline void print(const Vector3 & vec)
 {
     SSEFloat tmp;
     tmp.m128 = vec.get128();
-    std::printf("( %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2]);
+    LOGF(eINFO, "( %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2]);
 }
 
 inline void print(const Vector3 & vec, const char * name)
 {
     SSEFloat tmp;
     tmp.m128 = vec.get128();
-    std::printf("%s: ( %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2]);
+    LOGF(eINFO, "%s: ( %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1055,12 +1057,12 @@ inline bool isNormalizedEst(const Vector3d& v) {
 
 inline void print(const Vector3d & vec)
 {
-	std::printf("( %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
+	LOGF(eINFO, "( %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
 }
 
 inline void print(const Vector3d & vec, const char * name)
 {
-	std::printf("%s: ( %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
+	LOGF(eINFO, "%s: ( %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1690,14 +1692,14 @@ inline void print(const Vector4 & vec)
 {
     SSEFloat tmp;
     tmp.m128 = vec.get128();
-    std::printf("( %f %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
+    LOGF(eINFO, "( %f %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
 }
 
 inline void print(const Vector4 & vec, const char * name)
 {
     SSEFloat tmp;
     tmp.m128 = vec.get128();
-    std::printf("%s: ( %f %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
+    LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2], tmp.f[3]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2328,12 +2330,12 @@ inline void store3PtrU(const Vector4d& v, double* d) {
 
 inline void print(const Vector4d & vec)
 {
-	std::printf("( %f %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
+	LOGF(eINFO, "( %f %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
 }
 
 inline void print(const Vector4d & vec, const char * name)
 {
-	std::printf("%s: ( %f %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
+	LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
 }
 
 #endif // VECTORMATH_DEBUG*/
@@ -2657,14 +2659,14 @@ inline void print(const Point3 & pnt)
 {
     SSEFloat tmp;
     tmp.m128 = pnt.get128();
-    std::printf("( %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2]);
+    LOGF(eINFO, "( %f %f %f )\n", tmp.f[0], tmp.f[1], tmp.f[2]);
 }
 
 inline void print(const Point3 & pnt, const char * name)
 {
     SSEFloat tmp;
     tmp.m128 = pnt.get128();
-    std::printf("%s: ( %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2]);
+    LOGF(eINFO, "%s: ( %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3389,14 +3391,14 @@ inline void print(const IVector3 & vec)
 {
 	SSEInt tmp;
 	tmp.m128 = vec.get128();
-	std::printf("( %i %i %i )\n", tmp.i[0], tmp.i[1], tmp.i[2]);
+	LOGF(eINFO, "( %i %i %i )\n", tmp.i[0], tmp.i[1], tmp.i[2]);
 }
 
 inline void print(const IVector3 & vec, const char * name)
 {
 	SSEInt tmp;
 	tmp.m128 = vec.get128();
-	std::printf("%s: ( %i %i %i )\n", name, tmp.i[0], tmp.i[1], tmp.i[2]);
+	LOGF(eINFO, "%s: ( %i %i %i )\n", name, tmp.i[0], tmp.i[1], tmp.i[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3622,14 +3624,14 @@ inline void print(const UVector3 & vec)
 {
 	SSEUint tmp;
 	tmp.m128 = vec.get128();
-	std::printf("( %u %u %u )\n", tmp.u[0], tmp.u[1], tmp.u[2]);
+	LOGF(eINFO, "( %u %u %u )\n", tmp.u[0], tmp.u[1], tmp.u[2]);
 }
 
 inline void print(const UVector3 & vec, const char * name)
 {
 	SSEUint tmp;
 	tmp.m128 = vec.get128();
-	std::printf("%s: ( %u %u %u )\n", name, tmp.u[0], tmp.u[1], tmp.u[2]);
+	LOGF(eINFO, "%s: ( %u %u %u )\n", name, tmp.u[0], tmp.u[1], tmp.u[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3881,14 +3883,14 @@ inline void print(const IVector4 & vec)
 {
 	SSEInt tmp;
 	tmp.m128 = vec.get128();
-	std::printf("( %i %i %i %i )\n", tmp.i[0], tmp.i[1], tmp.i[2], tmp.i[3]);
+	LOGF(eINFO, "( %i %i %i %i )\n", tmp.i[0], tmp.i[1], tmp.i[2], tmp.i[3]);
 }
 
 inline void print(const IVector4 & vec, const char * name)
 {
 	SSEInt tmp;
 	tmp.m128 = vec.get128();
-	std::printf("%s: ( %i %i %i %i )\n", name, tmp.i[0], tmp.i[1], tmp.i[2], tmp.i[3]);
+	LOGF(eINFO, "%s: ( %i %i %i %i )\n", name, tmp.i[0], tmp.i[1], tmp.i[2], tmp.i[3]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -4120,14 +4122,14 @@ inline void print(const UVector4 & vec)
 {
 	SSEUint tmp;
 	tmp.m128 = vec.get128();
-	std::printf("( %u %u %u %u )\n", tmp.u[0], tmp.u[1], tmp.u[2], tmp.u[3]);
+	LOGF(eINFO, "( %u %u %u %u )\n", tmp.u[0], tmp.u[1], tmp.u[2], tmp.u[3]);
 }
 
 inline void print(const UVector4 & vec, const char * name)
 {
 	SSEUint tmp;
 	tmp.m128 = vec.get128();
-	std::printf("%s: ( %u %u %u %u )\n", name, tmp.u[0], tmp.u[1], tmp.u[2], tmp.u[3]);
+	LOGF(eINFO, "%s: ( %u %u %u %u )\n", name, tmp.u[0], tmp.u[1], tmp.u[2], tmp.u[3]);
 }
 
 #endif // VECTORMATH_DEBUG

@@ -21,6 +21,8 @@
 #	define ALIGN_STRUCT(x)    __declspec(align(x))
 #endif
 
+#include "../../../../Interfaces/ILog.h"
+
 #include <stdint.h>
 #include "arm_neon.h"
 
@@ -2140,7 +2142,7 @@ FORCE_INLINE __m128i foo ## _dynamic(__m128i _v, int bits) { \
 		case 30: return foo(_v, 30); \
 		case 31: return foo(_v, 31); \
 	} \
-	assert(0 && "Out of constant range"); \
+	ASSERT(0 && "Out of constant range"); \
 	return _v; \
 }
 
