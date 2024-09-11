@@ -102,7 +102,7 @@ For Android we utilized the switching functionality to switch between OpenGL ES 
 We decided to remove our commercial middleware from GitHub. Development will now happen in our internal repositories only.
 
 ### Commercial Console licenses
-For the last seven years we offered TF for free to anyone asking. We are going to change this now for the console platforms Steamdeck, XBOX, Playstation and Switch. You will require a commercial license to use those from here on.
+For the last seven years we offered TF for free to anyone asking. We are going to change this now for the console platforms XBOX, Playstation and Switch. You will require a commercial license to use those from here on.
 
 ### Removed unit tests
 - 09a_HybridRaytracing
