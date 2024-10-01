@@ -1,6 +1,6 @@
 <img src="Screenshots/The Forge - Colour Black Landscape.png" width="108" height="46" />
 
-The Forge framework is a cross-platform programming framework supporting the following platforms:
+The Forge Framework (TM) is a cross-platform programming framework supporting the following platforms:
 - Windows 10/11 
     * with DirectX 12 
     * with DXR 
@@ -22,7 +22,7 @@ The Forge framework is a cross-platform programming framework supporting the fol
 
 *(the console platforms are only available for accredited developers on request. Please note that you need a license from us to use the console platforms.)
 
-The Forge framework (TF) provides building blocks to 
+The Forge Framework (TM) (TF) provides building blocks to 
 - extend 
    * Existing game engines so that they support more platforms (Starfield ...)
    * Old games (e.g. 20+ years) can be brought back to modern gaming platforms
@@ -85,7 +85,7 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 ## Release 1.59 - September 6th, 2024 - STAR WARS™: Bounty Hunter™ | Replaced Gainput with our own Input library | Removed Vulkan from Windows Run-Time | Removed API Switch | Third-Party Integration
 
 STAR WARS™: Bounty Hunter™
-Bounty Hunter was ported with the help of The Forge framework to all the platforms mentioned in the screenshot:
+Bounty Hunter was ported with the help of The Forge Framework to all the platforms mentioned in the screenshot:
 [![STAR WARS™: Bounty Hunter™](Screenshots/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
 
 ### Replaced Gainput with our own Input library
@@ -166,7 +166,7 @@ http://www.conffx.com/I3D-VisibilityBuffer2.pptx
 
 We are giving a talk about our latest Visibility Buffer research on I3D. Here is a short primer what it is about:
 
-The original idea of the Triangle Visibility Buffer is based on an article by [[burns2013]. [schied15] and [schied16] extended what was described in the original article. Christoph Schied implemented a modern version with an early version of OpenGL (supporting MultiDrawIndirect) into The Forge rendering framework in September 2015. 
+The original idea of the Triangle Visibility Buffer is based on an article by [[burns2013]. [schied15] and [schied16] extended what was described in the original article. Christoph Schied implemented a modern version with an early version of OpenGL (supporting MultiDrawIndirect) into The Forge Framework in September 2015. 
 We ported this code to all platforms and simplified and extended it in the following years by adding a triangle filtering stage following [chajdas] and [wihlidal17] and a new way of shading.
 Our on-going improvements simplified the approach incrementally and the architecture started to resemble what was described in the original article by [burns2013] again, leveraging the modern tools of the newer graphics APIs. 
 In contrast to [burns2013], the actual storage of triangles in our implementation of a Visibility Buffer happens due to the triangle removal and draw compaction step with an optimal “massaged” data set.
@@ -1158,16 +1158,6 @@ It works as follows:
 ![Remote UI Control](Screenshots/Remote%20UI.jpg)
 
 
-## MTuner
-MTuner
-MTuner was integrated into the Windows 10 runtime of The Forge following a request for more in-depth memory profiling capabilities by one of the developers we support. It has been adapted to work closely with our framework and its existing memory tracking capabilities to provide a complete picture of a given application’s memory usage. 
-
-To use The Forge’s MTuner functionality, simply drag and drop the .MTuner file generated alongside your application’s executable into the MTuner host app, and you can immediately begin analyzing your program’s memory usage. The intuitive interface and exhaustive supply of allocation info contained in a single capture file makes it easy to identify usage patterns and hotspots, as well as tracking memory leaks down to the file and line number. The full documentation of MTuner can be found [here](link: https://milostosic.github.io/MTuner/).
-
-Currently, this feature is only available on Windows 10, but support for additional platforms provided by The Forge is forthcoming.
-Here is a screenshot of an example capture done on our first Unit Test, 01_Transformations:
-![MTuner](Screenshots/MTuner.png) 
-
 ## Ray Tracing Benchmark
 Based on request we are providing a Ray Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
   * Windows with DirectX 12 DXR
@@ -1470,6 +1460,10 @@ The Forge Interactive Inc. will prepare releases when all the platforms are stab
 # Products
 We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far or we contributed to:
 
+## STAR WARS™: Bounty Hunter™
+Bounty Hunter was ported with the help of The Forge Framework to all the platforms mentioned in the screenshot:
+[![STAR WARS™: Bounty Hunter™](Screenshots/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
+
 ## BuildBox
 The game engine BuildBox is now using The Forge (click on image to go to the Steam Store): 
 
@@ -1528,7 +1522,7 @@ alt="StarVR" width="300" height="159" border="0" /></a>
 
 
 ## Torque 3D
-The Forge will be used as the rendering framework in Torque 3D:
+The Forge Framework will be used as the rendering framework in Torque 3D:
 
 <a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
 alt="Torque 3D" width="417" height="106" border="0" /></a>
