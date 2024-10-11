@@ -829,19 +829,6 @@ public:
 
     bool Init() override
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         // Vulkan can be debugged in RenderDoc
         //	extern RendererApi gSelectedRendererApi;
         //	gSelectedRendererApi = RENDERER_API_VULKAN;
@@ -914,6 +901,19 @@ public:
                                     float y = (float)state->GetNumberArg(2);
                                     float z = (float)state->GetNumberArg(3);
                                     cameraLocalPtr->moveTo(vec3(x, y, z));
+                                    return 0; // return amount of arguments
+                                });
+        gLuaManager.SetFunction("CameraLookAtFromEye",
+                                [cameraLocalPtr](ILuaStateWrap* state) -> int
+                                {
+                                    float px = (float)state->GetNumberArg(1); // in Lua indexing starts from 1!
+                                    float py = (float)state->GetNumberArg(2);
+                                    float pz = (float)state->GetNumberArg(3);
+                                    float lx = (float)state->GetNumberArg(4); // in Lua indexing starts from 1!
+                                    float ly = (float)state->GetNumberArg(5);
+                                    float lz = (float)state->GetNumberArg(6);
+                                    cameraLocalPtr->moveTo(vec3(px, py, pz));
+                                    cameraLocalPtr->lookAt(vec3(lx, ly, lz));
                                     return 0; // return amount of arguments
                                 });
         gLuaManager.SetFunction("LookAtWorldOrigin",
@@ -3061,7 +3061,16 @@ public:
             hairParams[0].ppBuffers = &pUniformBufferPointLights;
             hairParams[1].pName = "cbHairGlobal";
             hairParams[1].ppBuffers = &pUniformBufferHairGlobal;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetHairFillColors[0], 2, hairParams);
+            hairParams[2].pName = "DepthsTexture";
+            hairParams[2].ppBuffers = &pBufferHairDepth;
+            if (gSupportTextureAtomics)
+            {
+                updateDescriptorSet(pRenderer, 0, pDescriptorSetHairFillColors[0], 2, hairParams);
+            }
+            else
+            {
+                updateDescriptorSet(pRenderer, 0, pDescriptorSetHairFillColors[0], 3, hairParams);
+            }
 
             hairParams[0].pName = "ColorsTexture";
             hairParams[0].ppTextures = &pRenderTargetFillColors->pTexture;
@@ -3361,7 +3370,7 @@ public:
         params[0].ppTextures = &pTextureBRDFIntegrationMap;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF, 1, params);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetBRDF);
-        const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+        const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
         TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
@@ -3380,7 +3389,7 @@ public:
         params[1].ppTextures = &pTextureIrradianceMap;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetIrradiance, 2, params);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetIrradiance);
-        pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+        pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
         /************************************************************************/
         // Compute specular sky
@@ -3410,7 +3419,7 @@ public:
             params[0].mUAVMipSlice = (uint16_t)i;
             updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
             cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
-            pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+            pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
             cmdDispatch(pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
         }
         /************************************************************************/
@@ -4345,7 +4354,14 @@ public:
         pipelineSettings = {};
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 1;
-        pipelineSettings.pDepthState = &depthStateNoWriteDesc;
+        if (gSupportTextureAtomics)
+        {
+            pipelineSettings.pDepthState = &depthStateNoWriteDesc;
+        }
+        else
+        {
+            pipelineSettings.pDepthState = &depthStateDisableDesc;
+        }
         pipelineSettings.pColorFormats = &fillColorsFormat;
         pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
         pipelineSettings.mSampleQuality = 0;

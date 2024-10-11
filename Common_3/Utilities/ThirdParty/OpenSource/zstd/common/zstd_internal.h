@@ -28,7 +28,6 @@
 #include "../zstd.h"
 #define FSE_STATIC_LINKING_ONLY
 #include "fse.h"
-#define HUF_STATIC_LINKING_ONLY
 #include "huf.h"
 #ifndef XXH_STATIC_LINKING_ONLY
 #  define XXH_STATIC_LINKING_ONLY  /* XXH64_state_t */
@@ -114,6 +113,8 @@ typedef enum { set_basic, set_rle, set_compressed, set_repeat } symbolEncodingTy
 #define LLFSELog    9
 #define OffFSELog   8
 #define MaxFSELog  MAX(MAX(MLFSELog, LLFSELog), OffFSELog)
+#define MaxMLBits 16
+#define MaxLLBits 16
 
 #define ZSTD_MAX_HUF_HEADER_SIZE 128 /* header + <= 127 byte tree description */
 /* Each table cannot take more than #symbols * FSELog bits */
@@ -177,7 +178,7 @@ static void ZSTD_copy8(void* dst, const void* src) {
     ZSTD_memcpy(dst, src, 8);
 #endif
 }
-#define COPY8(d,s) { ZSTD_copy8(d,s); d+=8; s+=8; }
+#define COPY8(d,s) do { ZSTD_copy8(d,s); d+=8; s+=8; } while (0)
 
 /* Need to use memmove here since the literal buffer can now be located within
    the dst buffer. In circumstances where the op "catches up" to where the
@@ -197,7 +198,7 @@ static void ZSTD_copy16(void* dst, const void* src) {
     ZSTD_memcpy(dst, copy16_buf, 16);
 #endif
 }
-#define COPY16(d,s) { ZSTD_copy16(d,s); d+=16; s+=16; }
+#define COPY16(d,s) do { ZSTD_copy16(d,s); d+=16; s+=16; } while (0)
 
 #define WILDCOPY_OVERLENGTH 32
 #define WILDCOPY_VECLEN 16
@@ -226,7 +227,7 @@ void ZSTD_wildcopy(void* dst, const void* src, ptrdiff_t length, ZSTD_overlap_e 
     if (ovtype == ZSTD_overlap_src_before_dst && diff < WILDCOPY_VECLEN) {
         /* Handle short offset copies. */
         do {
-            COPY8(op, ip)
+            COPY8(op, ip);
         } while (op < oend);
     } else {
         assert(diff >= WILDCOPY_VECLEN || diff <= -WILDCOPY_VECLEN);
@@ -341,17 +342,13 @@ MEM_STATIC ZSTD_sequenceLength ZSTD_getSequenceLength(seqStore_t const* seqStore
  *          `decompressedBound != ZSTD_CONTENTSIZE_ERROR`
  */
 typedef struct {
+    size_t nbBlocks;
     size_t compressedSize;
     unsigned long long decompressedBound;
 } ZSTD_frameSizeInfo;   /* decompress & legacy */
 
 const seqStore_t* ZSTD_getSeqStore(const ZSTD_CCtx* ctx);   /* compress & dictBuilder */
-void ZSTD_seqToCodes(const seqStore_t* seqStorePtr);   /* compress, dictBuilder, decodeCorpus (shouldn't get its definition from here) */
-
-/* custom memory allocation functions */
-void* ZSTD_customMalloc(size_t size, ZSTD_customMem customMem);
-void* ZSTD_customCalloc(size_t size, ZSTD_customMem customMem);
-void ZSTD_customFree(void* ptr, ZSTD_customMem customMem);
+int ZSTD_seqToCodes(const seqStore_t* seqStorePtr);   /* compress, dictBuilder, decodeCorpus (shouldn't get its definition from here) */
 
 
 /* ZSTD_invalidateRepCodes() :
@@ -369,13 +366,13 @@ typedef struct {
 
 /*! ZSTD_getcBlockSize() :
  *  Provides the size of compressed block from block header `src` */
-/* Used by: decompress, fullbench (does not get its definition from here) */
+/*  Used by: decompress, fullbench */
 size_t ZSTD_getcBlockSize(const void* src, size_t srcSize,
                           blockProperties_t* bpPtr);
 
 /*! ZSTD_decodeSeqHeaders() :
  *  decode sequence header from src */
-/* Used by: decompress, fullbench (does not get its definition from here) */
+/*  Used by: zstd_decompress_block, fullbench */
 size_t ZSTD_decodeSeqHeaders(ZSTD_DCtx* dctx, int* nbSeqPtr,
                        const void* src, size_t srcSize);
 

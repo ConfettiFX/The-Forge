@@ -31,8 +31,8 @@
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
-#include "../../../Data/Libraries/Direct3d12Agility/include/d3d12shader.h"
-#include "../../../Data/Libraries/DirectXShaderCompiler/inc/dxcapi.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/Direct3d12Agility/include/d3d12shader.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
 #endif
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -72,7 +72,7 @@ template<typename ID3D12ReflectionT, typename D3D12_SHADER_DESC_T>
 void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADER_DESC_T& shaderDesc, ShaderReflection& reflection)
 {
     // Get the number of bound resources
-    reflection.mShaderResourceCount = shaderDesc.BoundResources;
+    reflection.mShaderResourceCount += shaderDesc.BoundResources;
 
     // Count string sizes of the bound resources for the name pool
     for (UINT i = 0; i < shaderDesc.BoundResources; ++i)
@@ -113,51 +113,48 @@ void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3
 
 template<typename ID3D12ReflectionT, typename D3D12_SHADER_DESC_T>
 void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADER_DESC_T& shaderDesc, ShaderStage shaderStage,
-                           char* pCurrentName, ShaderReflection& reflection)
+                           char* pCurrentName, ShaderResource* outResources, ShaderVariable* outVariables, char** pNameIt,
+                           ShaderResource** outResourceIt, ShaderVariable** outVarIt)
 {
-    reflection.pShaderResources = NULL;
-    if (reflection.mShaderResourceCount > 0)
+    if (shaderDesc.BoundResources > 0)
     {
-        reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
-
-        for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
+        for (uint32_t i = 0; i < shaderDesc.BoundResources; ++i)
         {
             D3D12_SHADER_INPUT_BIND_DESC bindDesc;
             d3d12reflection->GetResourceBindingDesc(i, &bindDesc);
 
             uint32_t len = (uint32_t)strlen(bindDesc.Name);
 
-            reflection.pShaderResources[i].type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
-            reflection.pShaderResources[i].set = bindDesc.Space;
-            reflection.pShaderResources[i].reg = bindDesc.BindPoint;
-            reflection.pShaderResources[i].size = bindDesc.BindCount;
-            reflection.pShaderResources[i].used_stages = shaderStage;
-            reflection.pShaderResources[i].name = pCurrentName;
-            reflection.pShaderResources[i].name_size = len;
-            reflection.pShaderResources[i].dim = sD3D12_TO_RESOURCE_DIM[bindDesc.Dimension];
+            outResources->type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
+            outResources->set = bindDesc.Space;
+            outResources->reg = bindDesc.BindPoint;
+            outResources->size = bindDesc.BindCount;
+            outResources->used_stages = shaderStage;
+            outResources->name = pCurrentName;
+            outResources->name_size = len;
+            outResources->dim = sD3D12_TO_RESOURCE_DIM[bindDesc.Dimension];
 
             // RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for RWBuffer here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_RW_BUFFER;
+                outResources->type = DESCRIPTOR_TYPE_RW_BUFFER;
             }
             // Buffer<> is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for Buffer<> here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_BUFFER;
+                outResources->type = DESCRIPTOR_TYPE_BUFFER;
             }
 
             // Copy over the name
             memcpy(pCurrentName, bindDesc.Name, len);
             pCurrentName[len] = '\0';
             pCurrentName += len + 1;
+            outResources += 1;
         }
     }
 
-    if (reflection.mVariableCount > 0)
+    // Cbuffer Variables
     {
-        reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
-
         UINT v = 0;
         for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
         {
@@ -202,11 +199,11 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
                 {
                     uint32_t len = (uint32_t)strlen(varDesc.Name);
 
-                    reflection.pVariables[v].parent_index = resourceIndex;
-                    reflection.pVariables[v].offset = varDesc.StartOffset;
-                    reflection.pVariables[v].size = varDesc.Size;
-                    reflection.pVariables[v].name = pCurrentName;
-                    reflection.pVariables[v].name_size = len;
+                    outVariables->parent_index = resourceIndex;
+                    outVariables->offset = varDesc.StartOffset;
+                    outVariables->size = varDesc.Size;
+                    outVariables->name = pCurrentName;
+                    outVariables->name_size = len;
 
                     // Copy over the name
                     memcpy(pCurrentName, varDesc.Name, len);
@@ -214,9 +211,23 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
                     pCurrentName += len + 1;
 
                     ++v;
+                    ++outVariables;
                 }
             }
         }
+    }
+
+    if (pNameIt)
+    {
+        *pNameIt = pCurrentName;
+    }
+    if (outResourceIt)
+    {
+        *outResourceIt = outResources;
+    }
+    if (outVarIt)
+    {
+        *outVarIt = outVariables;
     }
 }
 
@@ -260,7 +271,18 @@ void d3d12_addShaderReflection(ID3D12ShaderReflection* d3d12reflection, ShaderSt
 
     // Allocate memory for the name pool
     if (reflection.mNamePoolSize)
+    {
         reflection.pNamePool = (char*)tf_calloc(reflection.mNamePoolSize, 1);
+    }
+    if (reflection.mShaderResourceCount)
+    {
+        reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
+    }
+    if (reflection.mVariableCount)
+    {
+        reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
+    }
+
     char* pCurrentName = reflection.pNamePool;
 
     reflection.pVertexInputs = NULL;
@@ -295,32 +317,78 @@ void d3d12_addShaderReflection(ID3D12ShaderReflection* d3d12reflection, ShaderSt
         }
     }
 
-    fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
+    ShaderResource* resources = reflection.pShaderResources;
+    ShaderVariable* variables = reflection.pVariables;
+    fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, resources, variables, NULL, NULL, NULL);
 
-    reflection.mCbvHeapIndexing = d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING;
-    reflection.mSamplerHeapIndexing = d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING;
+    reflection.mResourceHeapIndexing |=
+        (d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING) ? true : false;
+    reflection.mSamplerHeapIndexing |=
+        (d3d12reflection->GetRequiresFlags() & D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING) ? true : false;
 }
 
+#if defined(ENABLE_WORKGRAPH)
 // template<typename RefInterface = ID3D12LibraryReflection>
-void d3d12_addShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, ShaderStage shaderStage, ShaderReflection& reflection)
+static void d3d12_addShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, ShaderStage shaderStage, ShaderReflection& reflection)
 {
     ASSERT(d3d12LibReflection);
 
-    ID3D12FunctionReflection* d3d12reflection = d3d12LibReflection->GetFunctionByIndex(0);
+    D3D12_LIBRARY_DESC libDesc = {};
+    CHECK_HRESULT(d3d12LibReflection->GetDesc(&libDesc));
 
-    // Get a description of this shader
-    D3D12_FUNCTION_DESC shaderDesc;
-    d3d12reflection->GetDesc(&shaderDesc);
+    for (uint32_t f = 0; f < libDesc.FunctionCount; ++f)
+    {
+        ID3D12FunctionReflection* d3d12reflection = d3d12LibReflection->GetFunctionByIndex(f);
 
-    calculate_bound_resource_count(d3d12reflection, shaderDesc, reflection);
+        // Get a description of this shader
+        D3D12_FUNCTION_DESC shaderDesc;
+        d3d12reflection->GetDesc(&shaderDesc);
+
+        calculate_bound_resource_count(d3d12reflection, shaderDesc, reflection);
+    }
 
     // Allocate memory for the name pool
     if (reflection.mNamePoolSize)
+    {
         reflection.pNamePool = (char*)tf_calloc(reflection.mNamePoolSize, 1);
-    char* pCurrentName = reflection.pNamePool;
+    }
+    if (reflection.mShaderResourceCount)
+    {
+        reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
+    }
+    if (reflection.mVariableCount)
+    {
+        reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
+    }
 
-    fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
+    char*           pCurrentName = reflection.pNamePool;
+    ShaderResource* resources = reflection.pShaderResources;
+    ShaderVariable* variables = reflection.pVariables;
+    char*           nameIt = NULL;
+    ShaderResource* resourcesIt = NULL;
+    ShaderVariable* variablesIt = NULL;
+
+    for (uint32_t f = 0; f < libDesc.FunctionCount; ++f)
+    {
+        ID3D12FunctionReflection* d3d12reflection = d3d12LibReflection->GetFunctionByIndex(f);
+
+        // Get a description of this shader
+        D3D12_FUNCTION_DESC shaderDesc;
+        d3d12reflection->GetDesc(&shaderDesc);
+
+        fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, resources, variables, &nameIt, &resourcesIt,
+                              &variablesIt);
+        pCurrentName = nameIt;
+        resources = resourcesIt;
+        variables = variablesIt;
+
+        reflection.mResourceHeapIndexing |=
+            (shaderDesc.RequiredFeatureFlags & D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING) ? true : false;
+        reflection.mSamplerHeapIndexing |=
+            (shaderDesc.RequiredFeatureFlags & D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING) ? true : false;
+    }
 }
+#endif
 
 void d3d12_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
@@ -331,8 +399,6 @@ void d3d12_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
     }
 
     // Run the D3D12 shader reflection on the compiled shader
-    ID3D12ShaderReflection* d3d12reflection = NULL;
-
     IDxcLibrary* pLibrary = NULL;
     DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary));
     IDxcBlobEncoding* pBlob = NULL;
@@ -346,23 +412,29 @@ void d3d12_addShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
     pReflection->Load(pBlob);
     (pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
 
-    CHECK_HRESULT(pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection)));
+#if defined(ENABLE_WORKGRAPH)
+    if (SHADER_STAGE_WORKGRAPH == shaderStage)
+    {
+        ID3D12LibraryReflection* libReflection = NULL;
+        CHECK_HRESULT(pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&libReflection)));
+        d3d12_addShaderReflection(libReflection, shaderStage, *pOutReflection);
+        libReflection->Release();
+    }
+    else
+#endif
+    {
+        ID3D12ShaderReflection* d3d12reflection = NULL;
+        CHECK_HRESULT(pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection)));
+        ASSERT(d3d12reflection);
+        d3d12_addShaderReflection(d3d12reflection, shaderStage, *pOutReflection);
+        d3d12reflection->Release();
+    }
 
     pBlob->Release();
     pLibrary->Release();
     pReflection->Release();
 
-    // Allocate our internal shader reflection structure on the stack
-    ShaderReflection reflection = {}; // initialize the struct to 0
-
-    ASSERT(d3d12reflection);
-    d3d12_addShaderReflection(d3d12reflection, shaderStage, reflection);
-    d3d12reflection->Release();
-
-    reflection.mShaderStage = shaderStage;
-
-    // Copy the shader reflection data to the output variable
-    *pOutReflection = reflection;
+    pOutReflection->mShaderStage = shaderStage;
 }
 
 #endif

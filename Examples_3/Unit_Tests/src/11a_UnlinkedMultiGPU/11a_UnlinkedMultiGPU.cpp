@@ -49,7 +49,6 @@
 // Math
 #include "../../../../Common_3/Resources/ResourceLoader/TextureContainers.h"
 #include "../../../../Common_3/Utilities/Math/MathTypes.h"
-#include "../../../../Middleware_3/PaniniProjection/Panini.h"
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
@@ -115,6 +114,13 @@ SwapChain* pSwapChain = NULL;
 Shader*   pSphereShader[gViewCount] = { NULL };
 Pipeline* pSpherePipeline[gViewCount] = { NULL };
 
+RootSignature* pCopyQuadRootSignature = NULL;
+Shader*        pCopyQuadShader = NULL;
+Pipeline*      pCopyQuadPipeline = NULL;
+Sampler*       pCopyQuadSampler = NULL;
+Buffer*        pQuadVertexBuffer = NULL;
+DescriptorSet* pDescriptorSetCopyQuad = NULL;
+
 Shader*        pSkyBoxDrawShader[gViewCount] = { NULL };
 Pipeline*      pSkyBoxDrawPipeline[gViewCount] = { NULL };
 RootSignature* pRootSignature[gViewCount] = { NULL };
@@ -155,20 +161,21 @@ ProfileToken gReadBackCpuToken;
 ProfileToken gUploadCpuToken;
 ProfileToken gGpuExecCpuToken;
 
-FontDrawDesc     gFrameTimeDraw;
-uint32_t         gFontID = 0;
-ClearValue       gClearColor; // initialization in Init
-ClearValue       gClearDepth;
-Panini           gPanini = {};
-PaniniParameters gPaniniParams = {};
-bool             gMultiGPU = true;
-bool             gMultiGPURestart = false;
-bool             gMultiGPUCurrent = true;
-uint32_t         gSelectedGpuIndices[gViewCount] = { 0, 1 };
-float*           pSpherePoints;
+FontDrawDesc gFrameTimeDraw;
+uint32_t     gFontID = 0;
+ClearValue   gClearColor; // initialization in Init
+ClearValue   gClearDepth;
+bool         gMultiGPU = true;
+bool         gMultiGPURestart = false;
+bool         gMultiGPUCurrent = true;
+uint32_t     gSelectedGpuIndices[gViewCount] = { 0, 1 };
+float*       pSpherePoints;
 
 uint32_t    gCurrentScriptIndex = 0;
 const char* gTestScripts[] = { "11a_UnlinkedMultiGPU/Test0.lua" };
+
+float gFoVH = 90.0f;
+
 #ifdef AUTOMATED_TESTING
 // For this UT the test ordering is done manually..
 // It is done based of the number of times we reset the APP..
@@ -203,19 +210,7 @@ class UnlinkedMultiGPU: public IApp
 public:
     bool Init()
     {
-        gPaniniParams = {}; // always reset panini parameters to default at start
-
         gMultiGPUCurrent = gMultiGPU;
-
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         gClearColor.r = 0.0f;
         gClearColor.g = 0.0f;
@@ -506,8 +501,19 @@ public:
                                             ADDRESS_MODE_CLAMP_TO_EDGE,
                                             ADDRESS_MODE_CLAMP_TO_EDGE };
                 addSampler(pRenderer[i], &samplerDesc, &pSamplerSkyBox[i]);
+
+                samplerDesc.mMagFilter = FILTER_NEAREST;
+                samplerDesc.mMinFilter = FILTER_NEAREST;
             }
         }
+        SamplerDesc samplerDesc = { FILTER_NEAREST,
+                                    FILTER_NEAREST,
+                                    MIPMAP_MODE_NEAREST,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE };
+
+        addSampler(pRenderer[0], &samplerDesc, &pCopyQuadSampler);
 
         uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
         BufferLoadDesc sphereVbDesc = {};
@@ -575,6 +581,19 @@ public:
             addResource(&sphereVbDesc, NULL);
             addResource(&skyboxVbDesc, NULL);
         }
+        const float quadVertices[6 * 6] = {
+            1.f, 1.f, 0.f, 1.f, 1.f, 0.f, -1.f, 1.f,  0.f, 1.f, 0.f, 0.f, -1.f, -1.f, 0.f, 1.f, 0.f, 1.f,
+            1.f, 1.f, 0.f, 1.f, 1.f, 0.f, -1.f, -1.f, 0.f, 1.f, 0.f, 1.f, 1.f,  -1.f, 0.f, 1.f, 1.f, 1.f,
+        };
+
+        BufferLoadDesc quadDesc = {};
+        quadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+        quadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        quadDesc.mDesc.mSize = sizeof(quadVertices);
+        quadDesc.pData = quadVertices;
+        quadDesc.ppBuffer = &pQuadVertexBuffer;
+        quadDesc.mDesc.mNodeIndex = 0;
+        addResource(&quadDesc, NULL);
 
         BufferLoadDesc ubDesc = {};
         ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -618,12 +637,6 @@ public:
                 gReadbackSyncTokens[i][j] = 0;
         }
 
-        // Multi gpu controls
-        if (!gPanini.Init(pRenderer[0]))
-            return false;
-
-        gPanini.SetMaxDraws(gDataBufferCount * 2);
-
         CameraMotionParameters cmp{ 160.0f, 600.0f, 600.0f };
         vec3                   camPos{ 48.0f, 48.0f, 20.0f };
         vec3                   lookAt{ 0 };
@@ -654,11 +667,11 @@ public:
 
         exitProfiler();
 
-        gPanini.Exit();
-
         exitUserInterface();
 
         exitFontSystem();
+
+        removeResource(pQuadVertexBuffer);
 
         for (uint32_t view = 0; view < rendererCount; ++view)
         {
@@ -676,6 +689,7 @@ public:
 
             removeSampler(pRenderer[view], pSamplerSkyBox[view]);
         }
+        removeSampler(pRenderer[0], pCopyQuadSampler);
 
         for (uint32_t j = 0; j < gViewCount; ++j)
         {
@@ -781,32 +795,11 @@ public:
             luaRegisterWidget(uiAddComponentWidget(pGui, "Frame Latency", &frameLatencyWidget, WIDGET_TYPE_SLIDER_UINT));
 
             SliderFloatWidget camHorFovSlider;
-            camHorFovSlider.pData = &gPaniniParams.FoVH;
+            camHorFovSlider.pData = &gFoVH;
             camHorFovSlider.mMin = 30.0f;
             camHorFovSlider.mMax = 179.0f;
             camHorFovSlider.mStep = 1.0f;
             luaRegisterWidget(uiAddComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
-
-            SliderFloatWidget paniniSliderD;
-            paniniSliderD.pData = &gPaniniParams.D;
-            paniniSliderD.mMin = 0.0f;
-            paniniSliderD.mMax = 1.0f;
-            paniniSliderD.mStep = 0.001f;
-            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
-
-            SliderFloatWidget paniniSliderS;
-            paniniSliderS.pData = &gPaniniParams.S;
-            paniniSliderS.mMin = 0.0f;
-            paniniSliderS.mMax = 1.0f;
-            paniniSliderS.mStep = 0.001f;
-            luaRegisterWidget(uiAddComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
-
-            SliderFloatWidget screenScaleSlider;
-            screenScaleSlider.pData = &gPaniniParams.scale;
-            screenScaleSlider.mMin = 1.0f;
-            screenScaleSlider.mMax = 10.0f;
-            screenScaleSlider.mStep = 0.01f;
-            luaRegisterWidget(uiAddComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
             DropdownWidget ddTestScripts;
             ddTestScripts.pData = &gCurrentScriptIndex;
@@ -824,17 +817,6 @@ public:
 
             if (!addDepthBuffer())
                 return false;
-
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                for (uint32_t view = 0; view < gViewCount; ++view)
-                {
-                    if (view == 0 || !gMultiGPUCurrent)
-                        gPanini.SetSourceTexture(pRenderTargets[i][view]->pTexture, i * gViewCount + view);
-                    else
-                        gPanini.SetSourceTexture(pRenderResult[i][view - 1], i * gViewCount + view);
-                }
-            }
         }
 
         if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
@@ -961,7 +943,7 @@ public:
         // update camera with time
         mat4        viewMat = pCameraController->getViewMatrix();
         const float aspectInverse = (float)mSettings.mHeight / ((float)mSettings.mWidth * 0.5f);
-        const float horizontal_fov = gPaniniParams.FoVH * PI / 180.0f;
+        const float horizontal_fov = gFoVH * PI / 180.0f;
         mat4        projMat = mat4::perspectiveLH_ReverseZ(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
         gUniformData.mProjectView = projMat * viewMat;
 
@@ -994,9 +976,6 @@ public:
         gUniformDataSky = gUniformData;
         viewMat.setTranslation(vec3(0));
         gUniformDataSky.mProjectView = projMat * viewMat;
-
-        gPanini.SetParams(gPaniniParams);
-        gPanini.Update(deltaTime);
     }
 
     void Draw()
@@ -1201,15 +1180,21 @@ public:
             bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
             cmdBindRenderTargets(cmd, &bindRenderTargets);
 
-            cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[gViewCount], "Panini Projection");
+            cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[gViewCount], "Copy Results");
 
+            const uint32_t quadStride = sizeof(float) * 6;
+            cmdBindPipeline(cmd, pCopyQuadPipeline);
+            cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetCopyQuad);
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth * 0.5f, (float)mSettings.mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
-            gPanini.Draw(cmd);
+            cmdBindVertexBuffer(cmd, 1, &pQuadVertexBuffer, &quadStride, NULL);
+            cmdDraw(cmd, 6, 0);
 
+            cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetCopyQuad);
             cmdSetViewport(cmd, (float)mSettings.mWidth * 0.5f, 0.0f, (float)mSettings.mWidth * 0.5f, (float)mSettings.mHeight, 0.0f, 1.0f);
             cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
-            gPanini.Draw(cmd);
+            cmdBindVertexBuffer(cmd, 1, &pQuadVertexBuffer, &quadStride, NULL);
+            cmdDraw(cmd, 6, 0);
 
             cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[gViewCount]);
 
@@ -1339,6 +1324,8 @@ public:
                 addDescriptorSet(pRenderer[i], &setDesc, &pDescriptorSetUniforms[i]);
             }
         }
+        DescriptorSetDesc setDesc = { pCopyQuadRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount * gViewCount, 0 };
+        addDescriptorSet(pRenderer[0], &setDesc, &pDescriptorSetCopyQuad);
     }
 
     void removeDescriptorSets()
@@ -1350,6 +1337,7 @@ public:
             removeDescriptorSet(pRenderer[view], pDescriptorSetTexture[view]);
             removeDescriptorSet(pRenderer[view], pDescriptorSetUniforms[view]);
         }
+        removeDescriptorSet(pRenderer[0], pDescriptorSetCopyQuad);
     }
 
     void addRootSignatures()
@@ -1363,16 +1351,25 @@ public:
             else
             {
                 Shader*           shaders[] = { pSphereShader[i], pSkyBoxDrawShader[i] };
-                const char*       pStaticSamplers[] = { "uSampler0" };
+                const char*       staticSamplerNames[] = { "uSampler0" };
+                Sampler*          staticSamplers[] = { pSamplerSkyBox[i] };
                 RootSignatureDesc rootDesc = {};
                 rootDesc.mStaticSamplerCount = 1;
-                rootDesc.ppStaticSamplerNames = pStaticSamplers;
-                rootDesc.ppStaticSamplers = &pSamplerSkyBox[i];
+                rootDesc.ppStaticSamplerNames = staticSamplerNames;
+                rootDesc.ppStaticSamplers = staticSamplers;
                 rootDesc.mShaderCount = 2;
                 rootDesc.ppShaders = shaders;
                 addRootSignature(pRenderer[i], &rootDesc, &pRootSignature[i]);
             }
         }
+        const char*       staticSamplerNames[] = { "uCopyQuadSampler" };
+        RootSignatureDesc rootDesc = {};
+        rootDesc.mStaticSamplerCount = 1;
+        rootDesc.ppStaticSamplerNames = staticSamplerNames;
+        rootDesc.ppStaticSamplers = &pCopyQuadSampler;
+        rootDesc.mShaderCount = 1;
+        rootDesc.ppShaders = &pCopyQuadShader;
+        addRootSignature(pRenderer[0], &rootDesc, &pCopyQuadRootSignature);
     }
 
     void removeRootSignatures()
@@ -1382,6 +1379,7 @@ public:
         {
             removeRootSignature(pRenderer[view], pRootSignature[view]);
         }
+        removeRootSignature(pRenderer[0], pCopyQuadRootSignature);
     }
 
     void addShaders()
@@ -1406,6 +1404,10 @@ public:
                 addShader(pRenderer[i], &basicShader, &pSphereShader[i]);
             }
         }
+        ShaderLoadDesc copyQuadShader = {};
+        copyQuadShader.mVert.pFileName = "copyQuad.vert";
+        copyQuadShader.mFrag.pFileName = "copyQuad.frag";
+        addShader(pRenderer[0], &copyQuadShader, &pCopyQuadShader);
     }
 
     void removeShaders()
@@ -1417,12 +1419,11 @@ public:
             removeShader(pRenderer[view], pSphereShader[view]);
             removeShader(pRenderer[view], pSkyBoxDrawShader[view]);
         }
+        removeShader(pRenderer[0], pCopyQuadShader);
     }
 
     void addPipelines()
     {
-        gPanini.Load(pSwapChain->ppRenderTargets);
-
         for (uint32_t i = 0; i < gViewCount; ++i)
         {
             if (!gMultiGPUCurrent && i > 0)
@@ -1486,18 +1487,55 @@ public:
             pipelineSettings.pShaderProgram = pSkyBoxDrawShader[i];
             addPipeline(pRenderer[i], &desc, &pSkyBoxDrawPipeline[i]);
         }
+
+        VertexLayout quadVertexLayout = {};
+        quadVertexLayout.mBindingCount = 1;
+        quadVertexLayout.mAttribCount = 2;
+        quadVertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+        quadVertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+        quadVertexLayout.mAttribs[0].mBinding = 0;
+        quadVertexLayout.mAttribs[0].mLocation = 0;
+        quadVertexLayout.mAttribs[0].mOffset = 0;
+        quadVertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+        quadVertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
+        quadVertexLayout.mAttribs[1].mBinding = 0;
+        quadVertexLayout.mAttribs[1].mLocation = 1;
+        quadVertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
+
+        PipelineDesc        desc = {};
+        DepthStateDesc      depthStateDesc = {};
+        RasterizerStateDesc rasterizerStateDesc = {};
+        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+        desc.mType = PIPELINE_TYPE_GRAPHICS;
+        GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+        pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+        pipelineSettings.mRenderTargetCount = 1;
+        pipelineSettings.pDepthState = &depthStateDesc;
+        pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+        pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+        pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+        pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mFormat;
+        pipelineSettings.pVertexLayout = &quadVertexLayout;
+        pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+        pipelineSettings.pRootSignature = pCopyQuadRootSignature;
+
+        desc.mGraphicsDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+        desc.mGraphicsDesc.pDepthState = &depthStateDesc;
+        desc.mGraphicsDesc.pVertexLayout = &quadVertexLayout;
+        desc.mGraphicsDesc.pShaderProgram = pCopyQuadShader;
+        addPipeline(pRenderer[0], &desc, &pCopyQuadPipeline);
     }
 
     void removePipelines()
     {
-        gPanini.Unload();
-
         const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
         for (uint32_t i = 0; i < rendererCount; ++i)
         {
             removePipeline(pRenderer[i], pSkyBoxDrawPipeline[i]);
             removePipeline(pRenderer[i], pSpherePipeline[i]);
         }
+        removePipeline(pRenderer[0], pCopyQuadPipeline);
     }
 
     void prepareDescriptorSets()
@@ -1530,6 +1568,18 @@ public:
                 updateDescriptorSet(pRenderer[i], f * 2 + 0, pDescriptorSetUniforms[i], 1, uParams);
                 uParams[0].ppBuffers = &pProjViewUniformBuffer[f][i];
                 updateDescriptorSet(pRenderer[i], f * 2 + 1, pDescriptorSetUniforms[i], 1, uParams);
+            }
+        }
+
+        for (uint32_t f = 0; f < gDataBufferCount; ++f)
+        {
+            for (uint32_t view = 0; view < gViewCount; ++view)
+            {
+                DescriptorData copyQuadParams[1] = {};
+                copyQuadParams[0].pName = "uTex";
+                copyQuadParams[0].ppTextures =
+                    (view == 0 || !gMultiGPUCurrent) ? &pRenderTargets[f][view]->pTexture : &pRenderResult[f][view - 1];
+                updateDescriptorSet(pRenderer[0], f * gViewCount + view, pDescriptorSetCopyQuad, 1, copyQuadParams);
             }
         }
     }

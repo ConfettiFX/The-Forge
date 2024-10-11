@@ -50,6 +50,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\19_CodeHotReload_Main\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -57,6 +58,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\19_CodeHotReload_Main\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -90,8 +92,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
@@ -132,8 +134,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>

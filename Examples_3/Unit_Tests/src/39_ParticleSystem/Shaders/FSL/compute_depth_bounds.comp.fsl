@@ -25,6 +25,7 @@
 #include "shader_defs.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "light_cull_resources.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
 NUM_THREADS(DEPTH_BOUNDS_GROUP_AMOUNT_X, DEPTH_BOUNDS_GROUP_AMOUNT_Y, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )

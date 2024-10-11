@@ -12,26 +12,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		5CABF36D2141540E00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC7E2223CE11003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
-		650CCC802223CE2F003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		7F6E00642A93DA6300981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00652A93DA6300981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00662A93DA6300981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6E00672A93DA6300981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00682A93DA6300981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E00692A93DA6300981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6E006A2A93DA6300981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E00642A93DA6300981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00652A93DA6300981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00662A93DA6300981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/TF_Lib_Shared.xcconfig; sourceTree = "<group>"; };
+		7F6E00672A93DA6300981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00682A93DA6300981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00692A93DA6300981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig; sourceTree = "<group>"; };
+		7F6E006A2A93DA6300981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig; sourceTree = "<group>"; };
 		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
-		B21F76BC21420E7000DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		B21F76BD21420E7000DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B23AF92628098AD800B70BDA /* 19_CodeHotReload_Game.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 19_CodeHotReload_Game.cpp; path = ../../src/19_CodeHotReload/19_CodeHotReload_Game.cpp; sourceTree = "<group>"; };
 		B23AF93428098B9500B70BDA /* lib19a_CodeHotReload_Game_IOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = lib19a_CodeHotReload_Game_IOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B24B6F1427F30FBF00085495 /* lib19a_CodeHotReload_Game.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = lib19a_CodeHotReload_Game.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		E9A438D8233DC29C005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
-		E9A438DA233DC2A7005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,15 +50,9 @@
 			isa = PBXGroup;
 			children = (
 				E9A438D8233DC29C005BF1C7 /* libbz2.tbd */,
-				E9A438DA233DC2A7005BF1C7 /* libbz2.tbd */,
 				650CCC7E2223CE11003533D9 /* MetalPerformanceShaders.framework */,
-				650CCC802223CE2F003533D9 /* MetalPerformanceShaders.framework */,
-				B21F76BD21420E7000DF2297 /* Metal.framework */,
 				B2087DD221421A13006F372D /* Metal.framework */,
-				B21F76BC21420E7000DF2297 /* MetalKit.framework */,
 				B2087DD121421A13006F372D /* MetalKit.framework */,
-				B21F76BB21420E7000DF2297 /* UIKit.framework */,
-				5CABF36D2141540E00EFD76A /* GameController.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -88,7 +76,6 @@
 			children = (
 				7F6E000F2A93D9E800981E7B /* BuildConfigs */,
 				B23AF92628098AD800B70BDA /* 19_CodeHotReload_Game.cpp */,
-				EA463C941EF81E8F005AC8C7 /* 19a_CodeHotReload_Game */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
 			);
@@ -102,13 +89,6 @@
 			);
 			name = Products;
 			sourceTree = "<group>";
-		};
-		EA463C941EF81E8F005AC8C7 /* 19a_CodeHotReload_Game */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = 19a_CodeHotReload_Game;
-			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 

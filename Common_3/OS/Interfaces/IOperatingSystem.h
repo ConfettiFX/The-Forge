@@ -163,6 +163,7 @@ typedef struct WindowHandle
         {
             Display* display;
             Window   window;
+            RectDesc windowDecorations;
             Atom     xlib_wm_delete_window;
             Colormap colormap;
         };
@@ -181,9 +182,10 @@ typedef struct WindowHandle
 typedef struct WindowDesc
 {
     WindowHandle handle;
-    RectDesc     windowedRect;
-    RectDesc     fullscreenRect;
-    RectDesc     clientRect;
+    // Note: all rectangles use top-left corner as origin
+    RectDesc     windowedRect;   // Window rectangle with title bar and border when in windowed mode
+    RectDesc     fullscreenRect; // Window rectangle when in fullscreen mode
+    RectDesc     clientRect;     // Rectangle that can be rendered to inside a window. Excludes border and title bar.
     uint32_t     windowsFlags;
     bool         fullScreen;
     bool         cursorCaptured;
@@ -194,14 +196,11 @@ typedef struct WindowDesc
     bool         noresizeFrame;
     bool         borderlessWindow;
     bool         overrideDefaultPosition;
-    bool         centered;
     bool         forceLowDPI;
 
     int32_t mWindowMode;
 
-    int32_t pCurRes[MAX_MONITOR_COUNT];
-    int32_t pLastRes[MAX_MONITOR_COUNT];
-
+    // Client area x,y positions, width and height
     int32_t mWndX;
     int32_t mWndY;
     int32_t mWndW;
@@ -226,7 +225,6 @@ typedef struct WindowDesc
     bstring pNoResizeFrameLabel;
     bstring pBorderlessWindowLabel;
     bstring pOverrideDefaultPositionLabel;
-    bstring pCenteredLabel;
     bstring pForceLowDPILabel;
     bstring pWindowModeLabel;
 #endif
@@ -275,8 +273,12 @@ typedef struct
     // stb_ds array of Resolutions
     Resolution* resolutions;
     Resolution  defaultResolution;
+    uint32_t    currentResolution;
     bool        modesPruned;
     bool        modeChanged;
+#if defined(PROSPERO)
+    bool supportsHDR;
+#endif
 } MonitorDesc;
 
 typedef enum ThermalStatus
@@ -304,12 +306,23 @@ inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top
 // Window handling
 FORGE_API void openWindow(const char* app_name, WindowDesc* winDesc);
 FORGE_API void closeWindow(WindowDesc* winDesc);
+// Note: All window rectangle and window size functions are not meant to be used in fullscreen mode
+// Sets window rectangle. The dimensions of rectangle include window border and title bar.
 FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
+// Sets window size. The size of the window includes window border and title bar
 FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void toggleFullscreen(WindowDesc* winDesc);
+// Sets window client rectangle. The dimensions of rectangle don't include window border or title bar.
+FORGE_API void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect);
+// Sets window client rectangle. The size of the client doesn't include window border or title bar.
+FORGE_API void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height);
+
+// Set Window mode
+// Restores to previously saved client size
+FORGE_API void setWindowed(WindowDesc* winDesc);
+FORGE_API void setBorderless(WindowDesc* winDesc);
 FORGE_API void setFullscreen(WindowDesc* winDesc);
+FORGE_API void toggleFullscreen(WindowDesc* winDesc);
+
 FORGE_API void showWindow(WindowDesc* winDesc);
 FORGE_API void hideWindow(WindowDesc* winDesc);
 FORGE_API void maximizeWindow(WindowDesc* winDesc);
@@ -326,6 +339,7 @@ FORGE_API bool  isCursorInsideTrackingArea(void);
 FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
 FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
 
+// Returns recommended windowed client rectangle for active monitor
 FORGE_API void getRecommendedResolution(RectDesc* rect);
 FORGE_API void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
 // Sets video mode for specified display
@@ -458,18 +472,3 @@ FORGE_API void errorMessagePopup(const char* title, const char* msg, WindowHandl
 // Custom processing of OS pipe messages
 typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
 FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
-
-// Shell commands
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-    /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-    FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
-#ifdef __cplusplus
-}
-#endif
-//
-// failure research ...
-//

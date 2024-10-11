@@ -31,10 +31,8 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
-	// First 16 bits: age over max age, last 16 bits: speed over max speed
-	DATA(FLAT(uint), Modulator, TEXCOORD1);
-	// First bit: modulation type, remaining 31 bits: particle set index
-	DATA(FLAT(uint), ParticleSetIndexModulationType, TEXCOORD2);
+	DATA(FLAT(uint), Color, TEXCOORD1);
+	DATA(FLAT(uint), TexIndex, TEXCOORD2);
 };
 
 EARLY_FRAGMENT_TESTS
@@ -45,27 +43,34 @@ void PS_MAIN( VSOutput In )
 	uint bufferIdx = ParticleConstantBuffer.ScreenSize.x * uint(In.Position.y) + uint(In.Position.x);
 	if (TransparencyListHeads[bufferIdx] >= MAX_TRANSPARENCY_LAYERS)
 	{
+#if defined(METAL)
 		clip(-1);
+#endif
+		RETURN();
 	}
 
 	float4 texColor;
 
-	uint texIndex = In.ParticleSetIndexModulationType & ((1 << 31)-1);
+	uint texIndex = In.TexIndex;
 
-	BeginNonUniformResourceIndex(texIndex, MAX_PARTICLE_SET_COUNT);
+	BeginNonUniformResourceIndex(texIndex, MAX_PARTICLE_TEXTURES_COUNT);
 		texColor = SampleTex2D(ParticleTextures[texIndex], LinearClampSampler, In.TexCoord);
 	EndNonUniformResourceIndex();
+	texColor = texColor * unpackUnorm4x8(In.Color); 
 
 	if (texColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
 	{
+#if defined(METAL)
 		clip(-1);
+#endif
+		RETURN();
 	}
 
-	texColor = texColor * ((In.ParticleSetIndexModulationType >> 31) > 0 ? 
-		UnpackParticleColorLifetime(GetParticleSet(texIndex).StartColor, GetParticleSet(texIndex).EndColor, unpack2Floats(In.Modulator).x) : 
-		UnpackParticleColorSpeed(GetParticleSet(texIndex).StartColor, GetParticleSet(texIndex).EndColor, unpack2Floats(In.Modulator).x, pow(unpack2Floats(In.Modulator).y, PARTICLE_COLOR_OVER_SPEED_STRENGTH))); 
-
 	SaveTransparencyEntry(ParticleConstantBuffer.ScreenSize, uint2(In.Position.xy), texColor, In.Position.z);
+	
+	// This saves a considerable amount of time on non-Metal platforms
+#if defined(METAL)
 	clip(-1);
+#endif
 	RETURN();
 }

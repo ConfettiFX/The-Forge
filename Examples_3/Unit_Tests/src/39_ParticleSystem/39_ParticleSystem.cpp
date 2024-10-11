@@ -46,21 +46,35 @@
 #include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/Utilities/Interfaces/ILog.h"
 #include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Tools/Network/Network.h"
 
 #include "../../../../Common_3/Utilities/Math/MathTypes.h"
 #include "../../../../Common_3/Utilities/RingBuffer.h"
-#include "../../../../Common_3/Utilities/Threading/ThreadSystem.h"
 #include "../../../Visibility_Buffer/src/SanMiguel.h"
 
 #include "Shaders/FSL/shader_defs.h.fsl"
-
+#include "../../../../Common_3/Utilities/Math/ShaderUtilities.h"
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h" // Must be the last include in a cpp file
 
-#define SCENE_SCALE    1.0f
+#define SCENE_SCALE 1.0f
+#if defined(ANDROID)
+#define RESOLUTION_FACTOR 0.5f
+#else
+#define RESOLUTION_FACTOR 1.0f
+#endif
 
-#define SHADOWMAP_SIZE 1024
+#define DEFAULT_PARTICLE_SETS_COUNT 8
+#define PARTICLE_TEXTURES_COUNT     2
+
+#define pack2Floats(x, y)           (half(x).sh | (half(y).sh << 16))
+
+#if defined(ENABLE_REMOTE_STREAMING)
+#include "../../../../../Remote-Editor/RemoteServer/IStream.h"
+#endif
+
+#define SHADOWMAP_SIZE 2048
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS 16
+#define MAX_TRANSPARENCY_LAYERS 20
 #elif (defined(PROSPERO) || defined(WINDOWS)) && defined(AUTOMATED_TESTING)
 #define MAX_TRANSPARENCY_LAYERS 64
 #else
@@ -99,6 +113,7 @@ struct ConfigSettings
 
 // #NOTE: Two sets of resources (one in flight and one being used on CPU)
 const uint32_t gDataBufferCount = 2;
+uint2          gAppResolution;
 
 /*****************************************************/
 /****************Particle System data*****************/
@@ -109,13 +124,19 @@ ParticleConstantBufferData pParticleSystemConstantData[gDataBufferCount];
 Buffer*                    pParticleConstantBuffer[gDataBufferCount];
 
 // Particle system buffers
-Buffer* pParticlesBuffer;
-Buffer* pParticleBitfields;
-Buffer* pTransparencyListBuffer;
-Buffer* pTransparencyListHeadBuffer;
+Buffer* pParticlesBuffer = NULL;
+Buffer* pParticleBitfields = NULL;
+Buffer* pParticleSetsBuffer = NULL;
+Buffer* pTransparencyListBuffer = NULL;
+Buffer* pTransparencyListHeadBuffer = NULL;
+
+// Default ParticleSets that are uploaded once to start the simulation and never touched again
+#if !defined(ENABLE_REMOTE_STREAMING)
+ParticleSet* pParticleSets = NULL;
+#endif
 
 // Particle textures
-Texture* ppParticleTextures[MAX_PARTICLE_SET_COUNT];
+Texture* ppParticleTextures[PARTICLE_TEXTURES_COUNT] = { NULL };
 
 // Depth cubemap for shadows
 RenderTarget* pDepthCube = NULL;
@@ -130,8 +151,8 @@ float gFirefliesFlockRadius = 4.0f;
 float gFirefliesMinHeight = 1.5f;
 float gFirefliesMaxHeight = 6.0f;
 
-float gFirefliesElevationSpeed = 0.15f;
-float gFirefliesWhirlSpeed = 0.2f;
+float gFirefliesElevationSpeed = 0.3f;
+float gFirefliesWhirlSpeed = 0.3f;
 
 float gFirefliesWhirlAngle = 0.5f;
 float gFirefliesElevationT = 0.5f;
@@ -144,12 +165,8 @@ Shader*        pShaderFilterShadows = NULL;
 RootSignature* pRootSignatureFilterShadows = NULL;
 DescriptorSet* pDescriptorSetFilterShadows = NULL;
 
-float3 gLightPosition = { 2.0f, 8.1f, -2.4f };
-
-uint32_t gCurrParticlesAmount = 0;
-uint32_t gCurrLightAmount = 0;
-uint32_t gCurrShadowsAmount = 0;
-float    gESMControl = 120.0f;
+float2 gSunControl = { -1.556f, -0.58f };
+float  gESMControl = 50.0f;
 
 uint32_t gShadowPushConstsIndex = 0;
 uint32_t gShadowFilteringPushConstsIndex = 0;
@@ -162,6 +179,10 @@ bool gJustLoaded = true;
 bool gAsyncComputeEnabled = DEFAULT_ASYNC_COMPUTE;
 // True after 10 seconds since the start of the app
 bool gParticlesLoaded = false;
+
+#if defined(FORGE_DEBUG)
+bstring gParticleStatsText = bempty();
+#endif
 
 /************************************************************************/
 // Per frame staging data
@@ -325,7 +346,6 @@ Buffer* pMeshConstantsBuffer = NULL;
 /************************************************************************/
 // Other buffers for lighting, point lights,...
 /************************************************************************/
-Buffer**     gPerBatchUniformBuffers = NULL;
 Buffer*      pLightClustersCount = NULL;
 Buffer*      pLightClusters = NULL;
 uint64_t     gFrameCount = 0;
@@ -341,8 +361,6 @@ ICameraController* pCameraController = NULL;
 // CPU staging data
 /************************************************************************/
 PerFrameData       gPerFrame[gDataBufferCount] = {};
-DynamicTextWidget  gParticlesCountsWidget = {};
-bstring            gParticlesCountText = bempty();
 
 /************************************************************************/
 // Camera walking
@@ -361,18 +379,6 @@ public:
 
     bool Init()
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_PIPELINE_CACHE, "PipelineCaches");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         // Camera Walking
         loadCameraPath("cameraPath.txt", gCameraPoints, &gCameraPathData);
         gCameraPoints = (uint)29084 / 2;
@@ -469,6 +475,11 @@ public:
         profiler.pRenderer = pRenderer;
         initProfiler(&profiler);
 
+        // Init Stream Server
+#ifdef REMOTE_SERVER
+        initStreamServer(pRenderer, pGraphicsQueue, REMOTE_CONNECTION_PORT);
+#endif
+
         gGraphicsProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
         gComputeProfileToken = initGpuProfiler(pRenderer, pComputeQueue, "Compute");
         /************************************************************************/
@@ -556,7 +567,7 @@ public:
         bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         bufferLoadDesc.mDesc.mFirstElement = 0;
         bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleData);
-        bufferLoadDesc.mDesc.mElementCount = PARTICLE_COUNT;
+        bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLES_COUNT;
         bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
         bufferLoadDesc.pData = NULL;
         bufferLoadDesc.mForceReset = false;
@@ -575,6 +586,20 @@ public:
         bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         addResource(&bufferLoadDesc, NULL);
 
+#if !defined(ENABLE_REMOTE_STREAMING)
+        pParticleSets = (ParticleSet*)tf_malloc(sizeof(ParticleSet) * MAX_PARTICLE_SET_COUNT);
+        initDefaultParticleSets(pParticleSets);
+        bufferLoadDesc.pData = pParticleSets;
+#endif
+        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+        bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleSet);
+        bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLE_SET_COUNT;
+        bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
+        bufferLoadDesc.mDesc.pName = "ParticleSetsBuffer";
+        bufferLoadDesc.ppBuffer = &pParticleSetsBuffer;
+        bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        addResource(&bufferLoadDesc, NULL);
         /************************************************************************/
         // Load textures
         /************************************************************************/
@@ -585,18 +610,9 @@ public:
         particleTexLoad.ppTexture = &ppParticleTextures[0];
         addResource(&particleTexLoad, NULL);
         particleTexLoad.pFileName = "Particles/smoke_01.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3];
+        particleTexLoad.ppTexture = &ppParticleTextures[1];
         addResource(&particleTexLoad, NULL);
         waitForAllResourceLoads();
-
-        // Lights, swarms, shadows
-        for (uint32_t i = 1; i < MAX_PARTICLE_SET_COUNT - 3; i++)
-            ppParticleTextures[i] = ppParticleTextures[0];
-        ppParticleTextures[MAX_PARTICLE_SET_COUNT - 1] = ppParticleTextures[0];
-
-        // Smoke
-        for (uint32_t i = MAX_PARTICLE_SET_COUNT - 3; i < MAX_PARTICLE_SET_COUNT - 1; i++)
-            ppParticleTextures[i] = ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3];
 
         // Depth bounds buffer
         BufferLoadDesc bufferBoundsLoad = {};
@@ -615,7 +631,11 @@ public:
         /************************************************************************/
         // Setup the fps camera for navigating through the scene
         /************************************************************************/
-        vec3                   startPosition(8.765f, 4.544f, 12.593f);
+#if !defined(ENABLE_REMOTE_STREAMING)
+        vec3 startPosition(8.765f, 4.544f, 12.593f);
+#else
+        vec3 startPosition(9.722f, 9.111f, 5.097f);
+#endif
         vec3                   startLookAt = vec3(0.0f, 4.0f, 1.0f);
         CameraMotionParameters camParams;
         camParams.acceleration = 100;
@@ -630,6 +650,130 @@ public:
         return true;
     }
 
+#if !defined(ENABLE_REMOTE_STREAMING)
+    void initDefaultParticleSets(ParticleSet* particleSets)
+    {
+        const float gSteeringStrength = 3.1f;
+        const float gBoidsSeek = 2.0f;
+        const float gBoidsAvoid = 1.0;
+        const float gBoidsFlee = 0.0f;
+        const float gBoidsSeparation = 0.05f;
+        const float gBoidsCohesion = 4.5f;
+        const float gBoidsAlignment = 0.25f;
+
+        ParticleSet swarmBase = {};
+        swarmBase.Position = float4(8, 6, 11, 0);
+        swarmBase.ParticleSetBitfield =
+            PARTICLE_BITFIELD_TYPE_BOIDS | PARTICLE_BITFIELD_LIGHTING_MODE_NONE | PARTICLE_BITFIELD_MODULATION_TYPE_SPEED;
+#if defined(AUTOMATED_TESTING)
+        swarmBase.ParticlesPerSecond = 400000;
+        swarmBase.InitialAge = 2.5;
+#else
+        swarmBase.ParticlesPerSecond = 100000;
+        swarmBase.InitialAge = 10.0;
+#endif
+        swarmBase.BoidsAvoidSeekStrength = pack2Floats(gBoidsAvoid, gBoidsSeek);
+        swarmBase.BoidsCohesionAlignmentStrength = pack2Floats(gBoidsCohesion, gBoidsAlignment);
+        swarmBase.BoidsSeparationFleeStrength = pack2Floats(gBoidsSeparation, gBoidsFlee);
+        swarmBase.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.5f);
+        swarmBase.SpawnVolume = uint2(pack2Floats(1.0f, 1.0f), pack2Floats(1.0f, 0.001f));
+        swarmBase.MaxSizeAndSpeed = pack2Floats(0.014f, 1.5f);
+        swarmBase.LightRadiusAndVelocityNoise = 0;
+        swarmBase.StartSizeAndTime = pack2Floats(0.0f, 0.3f);
+        swarmBase.EndSizeAndTime = pack2Floats(0.0f, 0.7f);
+        swarmBase.TextureIndices = 0;
+        swarmBase.Allocated = 1;
+        swarmBase.AttractorIndex = (uint32_t)-1;
+        swarmBase.MinAndMaxAlpha = pack2Floats(1.0f, 1.0f);
+
+        ParticleSet lightSet = {};
+        lightSet.ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT | PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
+        lightSet.StartColor = packUnorm4x8(float4(1.0f, 1.0f, 0.2f, 0.1f));
+        lightSet.EndColor = packUnorm4x8(float4(1.0f, 0.2f, 0.0f, 0.9f));
+        lightSet.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 0.05f);
+        lightSet.InitialAge = 10.0;
+        lightSet.LightRadiusAndVelocityNoise = pack2Floats(0.5f, 0.01f);
+        lightSet.LightPulseSpeedAndOffset = pack2Floats(1.0f, 0.5f);
+        lightSet.SpawnVolume = uint2(pack2Floats(10, 6), pack2Floats(8.0f, 0.002f));
+        lightSet.Position = float4(2.0f, 8.0f, 5.0f, 0.0f);
+        lightSet.MaxSizeAndSpeed = pack2Floats(0.15f, 0.25f);
+        lightSet.ParticlesPerSecond = 1500;
+        lightSet.StartSizeAndTime = pack2Floats(0.0f, 0.1f);
+        lightSet.EndSizeAndTime = pack2Floats(0.0f, 0.9f);
+        lightSet.TextureIndices = 0;
+        lightSet.MinAndMaxAlpha = pack2Floats(1.0f, 1.0f);
+
+        for (uint32_t i = 0; i < DEFAULT_PARTICLE_SETS_COUNT; i++)
+            particleSets[i] = swarmBase;
+
+        uint32_t particleSetIdx = 0;
+        // Red particles
+        particleSets[particleSetIdx].Position = float4(6.0f, 6.0f, 10.0f, 0.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 0.1f, 0.0f, 0.2f));
+        particleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 0.1f, 0.0f, 0.8f));
+        particleSets[particleSetIdx].AttractorIndex = 0;
+        particleSets[particleSetIdx++].SpawnVolume = uint2(pack2Floats(4.0f, 4.0f), pack2Floats(4.0f, 0.001f));
+
+        // Green particles
+        particleSets[particleSetIdx].Position = float4(-6.0f, 6.0f, 10.0f, 0.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.5f, 1.0f, 0.0f, 0.1f));
+        particleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.5f, 1.0f, 0.0f, 0.9f));
+        particleSets[particleSetIdx++].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
+
+        // White particles
+        particleSets[particleSetIdx].Position = float4(6.0f, 6.0f, -2.0f, 0.0f);
+        particleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 1.0f, 1.0f, 0.1f));
+        particleSets[particleSetIdx++].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 1.0f, 0.9f));
+
+        // Yellow particles
+        particleSets[particleSetIdx].Position = float4(-6.0f, 6.0f, -2.0f, 0.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 1.0f, 0.5f, 0.1f));
+        particleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 0.5f, 0.9f));
+        particleSets[particleSetIdx++].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
+
+        // Fireflies
+        particleSets[particleSetIdx++] = lightSet;
+
+        // Smoke 1
+        particleSets[particleSetIdx].Position = float4(4.0f, 3.0f, 4.0f, 0.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 0.5f, 0.8f, 0.3f));
+        particleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.6f, 0.1f, 0.1f, 0.8f));
+        particleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
+        particleSets[particleSetIdx].ParticlesPerSecond = 2;
+        particleSets[particleSetIdx].InitialAge = 20.0f;
+        particleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 0.05f);
+        particleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(4, 1), pack2Floats(4.0f, 1.5f));
+        particleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(2.0f, 0.1f);
+        particleSets[particleSetIdx].StartSizeAndTime = pack2Floats(0.75f, 0.2f);
+        particleSets[particleSetIdx].TextureIndices = 1 << 16;
+        particleSets[particleSetIdx++].EndSizeAndTime = pack2Floats(0.75f, 0.8f);
+
+        // Smoke 2
+        particleSets[particleSetIdx] = particleSets[particleSetIdx - 1];
+        particleSets[particleSetIdx].Position = float4(8.0f, 3.0f, 4.0f, 0.0f);
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.0f, 0.0f, 1.0f, 0.3f));
+        particleSets[particleSetIdx++].EndColor = packUnorm4x8(float4(0.0f, 1.0f, 0.5f, 0.8f));
+
+        // Shadow casting
+        particleSets[particleSetIdx] = lightSet;
+        particleSets[particleSetIdx].Position = float4(5.0f, 7.0f, 5.0f, 0.0f);
+        particleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW;
+        particleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.2f));
+        particleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.8f));
+        particleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(3.0f, 0.0f);
+        particleSets[particleSetIdx].ParticlesPerSecond = float(8) / 10.0f;
+        particleSets[particleSetIdx].InitialAge = 10.0f;
+        particleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(10.0f, 6.0f), pack2Floats(8.0f, 0.1f));
+        particleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.0f);
+        particleSets[particleSetIdx].LightPulseSpeedAndOffset = pack2Floats(0.0f, 1.0f);
+
+        for (uint32_t i = 0; i < DEFAULT_PARTICLE_SETS_COUNT; i++)
+            particleSets[i].Allocated = 1;
+        for (uint32_t i = DEFAULT_PARTICLE_SETS_COUNT; i < MAX_PARTICLE_SET_COUNT; i++)
+            particleSets[i].Allocated = 0;
+    }
+#endif
     Scene* LoadGeometry()
     {
         HiresTimer sceneLoadTimer;
@@ -682,6 +826,10 @@ public:
 
     void Exit()
     {
+#ifdef REMOTE_SERVER
+        exitStreamServer();
+#endif
+
         exitScreenshotInterface();
         exitCameraController(pCameraController);
 
@@ -696,8 +844,11 @@ public:
 
         removeResource(pParticlesBuffer);
         removeResource(pParticleBitfields);
-        removeResource(ppParticleTextures[0]);
-        removeResource(ppParticleTextures[MAX_PARTICLE_SET_COUNT - 3]);
+        removeResource(pParticleSetsBuffer);
+        for (uint32_t i = 0; i < PARTICLE_TEXTURES_COUNT; i++)
+        {
+            removeResource(ppParticleTextures[i]);
+        }
         removeResource(pDepthBoundsBuffer);
 
         exitGpuProfiler(gGraphicsProfileToken);
@@ -719,12 +870,18 @@ public:
         }
 
         // Destroy scene buffers
+#if defined(FORGE_DEBUG)
+        bdestroy(&gParticleStatsText);
+#endif
         removeResource(pGeom);
         tf_free(pVBMeshInstances);
 
         tf_free(gDiffuseMapsStorage);
         tf_free(gNormalMapsStorage);
         tf_free(gSpecularMapsStorage);
+#if !defined(ENABLE_REMOTE_STREAMING)
+        tf_free(pParticleSets);
+#endif
 
         /************************************************************************/
         /************************************************************************/
@@ -747,8 +904,9 @@ public:
         exitResourceLoaderInterface(pRenderer);
         exitRenderer(pRenderer);
         exitGPUConfiguration();
+
         pRenderer = NULL;
-        bdestroy(&gParticlesCountText);
+
         gFrameCount = 0;
     }
 
@@ -758,24 +916,27 @@ public:
     // loaded later by the shade step to reconstruct interpolated triangle data per pixel.
     bool Load(ReloadDesc* pReloadDesc)
     {
+        gAppResolution = uint2((uint32_t)(mSettings.mWidth * RESOLUTION_FACTOR), (uint32_t)(mSettings.mHeight * RESOLUTION_FACTOR));
+
         gFrameCount = 0;
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
-            loadProfilerUI(mSettings.mWidth, mSettings.mHeight);
+            loadProfilerUI(gAppResolution.x, gAppResolution.y);
 
             // Setup the UI components
             UIComponentDesc guiDesc = {};
-            guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+            guiDesc.mStartPosition = vec2((float)(gAppResolution.x - 500.0f), 0.0f);
+            guiDesc.mStartSize = vec2(500, 150);
             uiAddComponent(GetName(), &guiDesc, &pGuiWindow);
+            uiSetComponentFlags(pGuiWindow, GUI_COMPONENT_FLAGS_NO_COLLAPSE | GUI_COMPONENT_FLAGS_NO_RESIZE);
 
-            // Particles amounts
-            bformat(&gParticlesCountText, "Light particles: %d\nShadow particles: %d\nStandard particles: %d\nTotal: %d", LIGHT_COUNT,
-                    SHADOW_COUNT, STANDARD_COUNT, LIGHT_COUNT + STANDARD_COUNT);
-            gParticlesCountsWidget.pText = &gParticlesCountText;
-            gParticlesCountsWidget.pColor = &gTextColor;
-            uiAddComponentWidget(pGuiWindow, "Particles count", &gParticlesCountsWidget, WIDGET_TYPE_DYNAMIC_TEXT);
-
+#if defined(FORGE_DEBUG)
+            DynamicTextWidget textWidget;
+            textWidget.pText = &gParticleStatsText;
+            textWidget.pColor = &gTextColor;
+            uiAddComponentWidget(pGuiWindow, "Particle System stats", &textWidget, WIDGET_TYPE_DYNAMIC_TEXT);
+#endif
             CheckboxWidget asyncCompute;
             asyncCompute.pData = &gAsyncComputeEnabled;
             UIWidget* pAsyncCompute = uiAddComponentWidget(pGuiWindow, "Enable async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX);
@@ -792,28 +953,6 @@ public:
             luaRegisterWidget(
                 uiAddComponentWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraWalkingSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-            SliderFloat3Widget lightPosSlider;
-            lightPosSlider.pData = &gLightPosition;
-            lightPosSlider.mMin = float3(-20.0f);
-            lightPosSlider.mMax = float3(20.0f);
-            lightPosSlider.mStep = float3(0.1f);
-            UIWidget* pLightDirWidget = uiAddComponentWidget(pGuiWindow, "Light direction", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3);
-            REGISTER_LUA_WIDGET(pLightDirWidget);
-
-            SliderFloatWidget whirlSpeedSlider;
-            whirlSpeedSlider.pData = &gFirefliesWhirlSpeed;
-            whirlSpeedSlider.mMin = 0.0f;
-            whirlSpeedSlider.mMax = 1.0f;
-            whirlSpeedSlider.mStep = 0.01f;
-            uiAddComponentWidget(pGuiWindow, "Fireflies whirl speed", &whirlSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
-
-            SliderFloatWidget elevationSpeedSlider;
-            elevationSpeedSlider.pData = &gFirefliesElevationSpeed;
-            elevationSpeedSlider.mMin = 0.0f;
-            elevationSpeedSlider.mMax = 1.0f;
-            elevationSpeedSlider.mStep = 0.01f;
-            uiAddComponentWidget(pGuiWindow, "Fireflies elevation speed", &elevationSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT);
-
             if (!addSwapChain())
                 return false;
             addRenderTargets();
@@ -828,8 +967,8 @@ public:
             shadowCollectorDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
             // R: shadow data, G: distance from occluder, B: distance from camera, A: shadow mask
             shadowCollectorDesc.mFormat = TinyImageFormat_R16_SFLOAT; // TinyImageFormat_R16G16B16A16_SFLOAT;
-            shadowCollectorDesc.mHeight = mSettings.mHeight;
-            shadowCollectorDesc.mWidth = mSettings.mWidth;
+            shadowCollectorDesc.mHeight = gAppResolution.y;
+            shadowCollectorDesc.mWidth = gAppResolution.x;
             shadowCollectorDesc.mSampleCount = SAMPLE_COUNT_1;
             shadowCollectorDesc.mSampleQuality = 0;
             shadowCollectorDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -878,7 +1017,7 @@ public:
 
             // Per pixel linked lists for OIT
             BufferLoadDesc transparencyListDesc = {};
-            transparencyListDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight * MAX_TRANSPARENCY_LAYERS;
+            transparencyListDesc.mDesc.mElementCount = gAppResolution.x * gAppResolution.y * MAX_TRANSPARENCY_LAYERS;
             transparencyListDesc.mDesc.mStructStride = sizeof(PackedParticleTransparencyNode);
             transparencyListDesc.mDesc.mSize = transparencyListDesc.mDesc.mElementCount * transparencyListDesc.mDesc.mStructStride;
             transparencyListDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
@@ -892,7 +1031,7 @@ public:
 
             BufferLoadDesc transparencyListHeadDesc = transparencyListDesc;
             transparencyListHeadDesc.mDesc.mStructStride = sizeof(uint32_t);
-            transparencyListHeadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
+            transparencyListHeadDesc.mDesc.mElementCount = gAppResolution.x * gAppResolution.y;
             transparencyListHeadDesc.mDesc.mSize =
                 transparencyListHeadDesc.mDesc.mStructStride * transparencyListHeadDesc.mDesc.mElementCount;
             transparencyListHeadDesc.mDesc.pName = "Transparency List Heads";
@@ -905,6 +1044,7 @@ public:
             particleDesc.mSwapHeight = pScreenRenderTarget->mHeight;
             particleDesc.mSwapWidth = pScreenRenderTarget->mWidth;
             particleDesc.mFramesInFlight = gDataBufferCount;
+            particleDesc.mDefaultParticleSetsCount = DEFAULT_PARTICLE_SETS_COUNT;
             particleDesc.mDepthFormat = pDepthBuffer->mFormat;
             particleDesc.mColorSampleQuality = pScreenRenderTarget->mSampleQuality;
             particleDesc.pColorBuffer = pScreenRenderTarget->pTexture;
@@ -913,8 +1053,10 @@ public:
             particleDesc.pTransparencyListHeadsBuffer = pTransparencyListHeadBuffer;
             particleDesc.ppParticleConstantBuffer = pParticleConstantBuffer;
             particleDesc.pParticlesBuffer = pParticlesBuffer;
+            particleDesc.pParticleSetsBuffer = pParticleSetsBuffer;
             particleDesc.pBitfieldBuffer = pParticleBitfields;
             particleDesc.ppParticleTextures = ppParticleTextures;
+            particleDesc.mParticleTextureCount = PARTICLE_TEXTURES_COUNT;
             particleSystemInit(&particleDesc);
         }
 
@@ -934,8 +1076,10 @@ public:
 
         UserInterfaceLoadDesc uiLoad = {};
         uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
-        uiLoad.mHeight = mSettings.mHeight;
-        uiLoad.mWidth = mSettings.mWidth;
+        uiLoad.mWidth = gAppResolution.x;
+        uiLoad.mHeight = gAppResolution.y;
+        uiLoad.mDisplayWidth = mSettings.mWidth;
+        uiLoad.mDisplayHeight = mSettings.mHeight;
         uiLoad.mLoadType = pReloadDesc->mType;
         loadUserInterface(&uiLoad);
 
@@ -945,6 +1089,16 @@ public:
         fontLoad.mWidth = mSettings.mWidth;
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
+
+#ifdef REMOTE_SERVER
+        StreamServerLoadDesc loadDesc{};
+        loadDesc.mLoadType = pReloadDesc->mType;
+        loadDesc.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+        loadDesc.mHeight = gAppResolution.y;
+        loadDesc.mWidth = gAppResolution.x;
+        loadDesc.mBitrate = DECODER_DEFAULT_BITRATE;
+        addStreamServer(&loadDesc);
+#endif
 
         gJustLoaded = true;
         gParticlesLoaded = false;
@@ -968,6 +1122,13 @@ public:
 
         unloadFontSystem(pReloadDesc->mType);
         unloadUserInterface(pReloadDesc->mType);
+
+#ifdef REMOTE_SERVER
+        if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+        {
+            removeStreamServer();
+        }
+#endif
 
         if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
         {
@@ -1019,11 +1180,22 @@ public:
             gParticlesLoaded = true;
         }
 
+#ifdef REMOTE_SERVER
+        bool userInput = false;
+#endif
         if (!uiIsFocused())
         {
-            pCameraController->onMove({ inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) });
-            pCameraController->onRotate({ inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) });
-            pCameraController->onMoveY(inputGetValue(0, CUSTOM_MOVE_UP));
+            float2 moveInput = { inputGetValue(0, CUSTOM_MOVE_X), inputGetValue(0, CUSTOM_MOVE_Y) };
+            float2 rotateInput = { inputGetValue(0, CUSTOM_LOOK_X), inputGetValue(0, CUSTOM_LOOK_Y) };
+            float  mouseYInput = inputGetValue(0, CUSTOM_MOVE_UP);
+#ifdef REMOTE_SERVER
+            if (moveInput != float2(0, 0) || rotateInput != float2(0, 0) || mouseYInput != 0)
+                userInput = true;
+#endif
+            pCameraController->onMove(moveInput);
+            pCameraController->onRotate(rotateInput);
+            pCameraController->onMoveY(mouseYInput);
+
             if (inputGetValue(0, CUSTOM_RESET_VIEW))
             {
                 pCameraController->resetView();
@@ -1045,6 +1217,34 @@ public:
                 requestShutdown();
             }
         }
+
+#ifdef REMOTE_SERVER
+        if (streamServerIsConnected())
+        {
+            // streamServerGetLastReceiveInputData(pCameraController);
+            //
+            // RemoteStreamBufferType bufferType;
+            // uint32_t               bufferSize;
+            // uint32_t               bufferOffset;
+            // void*                  bufferData = streamServerGetLastReceiveBufferData(&bufferType, &bufferSize, &bufferOffset);
+            // if (bufferData && bufferType == REMOTE_STREAM_BUFFER_TYPE_PARTICLE_SETS)
+            //{
+            //    // update the GPU buffer using resource manager
+            //    BufferUpdateDesc bufferUpdateDesc = {};
+            //    bufferUpdateDesc.mDstOffset = bufferOffset;
+            //    bufferUpdateDesc.mSize = bufferSize;
+            //    bufferUpdateDesc.pBuffer = pParticleSetsBuffer;
+            //
+            //    beginUpdateResource(&bufferUpdateDesc);
+            //    if (bufferUpdateDesc.pMappedData)
+            //        memcpy(bufferUpdateDesc.pMappedData, bufferData, bufferSize);
+            //    endUpdateResource(&bufferUpdateDesc);
+            //}
+            if (!userInput)
+                streamServerReceiveInputData(pCameraController);
+            streamServerReceiveParticleSetsData(pParticleSetsBuffer);
+        }
+#endif
 
         if (gCameraWalking)
         {
@@ -1145,6 +1345,17 @@ public:
             }
             resetCmdPool(pRenderer, graphicsElem.pCmdPool);
 
+#if defined(FORGE_DEBUG)
+            ParticleSystemStats particleSystemStats = particleSystemGetStats();
+            bassignliteral(&gParticleStatsText, "");
+            bformat(&gParticleStatsText,
+                    "Allocated particles\nShadow + light: %d, Light: %d, Standard: %d\nAlive particles\nShadow + light: %d, Light: %d, "
+                    "Standard: %d\nVisible lights: %d\nVisible particles: %d\n",
+                    particleSystemStats.AllocatedCount[0], particleSystemStats.AllocatedCount[1], particleSystemStats.AllocatedCount[2],
+                    particleSystemStats.AliveCount[0], particleSystemStats.AliveCount[1], particleSystemStats.AliveCount[2],
+                    particleSystemStats.VisibleLightsCount, particleSystemStats.VisibleParticlesCount);
+#endif
+
             BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][frameIdx] };
             beginUpdateResource(&update);
             memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
@@ -1187,8 +1398,8 @@ public:
             // Clear shadow collector
             cmdBindPipeline(graphicsCmd, pPipelineCleanTexture);
             cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetCleanTexture);
-            cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / TEXTURE_CLEAR_THREAD_COUNT),
-                        (uint32_t)ceil((float)mSettings.mHeight / TEXTURE_CLEAR_THREAD_COUNT), 1);
+            cmdDispatch(graphicsCmd, (uint32_t)ceil((float)gAppResolution.x / TEXTURE_CLEAR_THREAD_COUNT),
+                        (uint32_t)ceil((float)gAppResolution.y / TEXTURE_CLEAR_THREAD_COUNT), 1);
 
             /************************/
             // Draw Pass
@@ -1256,9 +1467,14 @@ public:
                 };
                 cmdResourceBarrier(graphicsCmd, 2, particlesBarriers, 0, NULL, 0, NULL);
 
-                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemSimulate");
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemBegin");
                 {
                     particleSystemCmdBegin(graphicsCmd, frameIdx);
+                }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "ParticleSystemSimulate");
+                {
                     particleSystemCmdSimulate(graphicsCmd, frameIdx);
 
                     RenderTargetBarrier depthBarrier = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
@@ -1338,42 +1554,39 @@ public:
                 /***********************************/
                 // Shadow filtering
                 /***********************************/
-                if (SHADOW_COUNT > 0)
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Point shadows filtering pass");
                 {
-                    cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Point shadows filtering pass");
+                    struct FilterConsts
                     {
-                        struct FilterConsts
-                        {
-                            uint2    ScreenSize;
-                            uint32_t Horizontal;
-                            uint32_t Pad;
-                        };
+                        uint2    ScreenSize;
+                        uint32_t Horizontal;
+                        uint32_t Pad;
+                    };
 
-                        FilterConsts   constants = { { pShadowCollector->mWidth, pShadowCollector->mHeight }, 1, 0 };
-                        TextureBarrier texBarrier = { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
+                    FilterConsts   constants = { { pShadowCollector->mWidth, pShadowCollector->mHeight }, 1, 0 };
+                    TextureBarrier texBarrier = { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+                    cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
 
-                        cmdBindPipeline(graphicsCmd, pPipelineFilterShadows);
-                        cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
-                        cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
-                        // Horizontal pass
-                        cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / SHADOWMAP_BLUR_THREAD_COUNT),
-                                    (uint32_t)ceil((float)mSettings.mHeight / SHADOWMAP_BLUR_THREAD_COUNT), 1);
+                    cmdBindPipeline(graphicsCmd, pPipelineFilterShadows);
+                    cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
+                    cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
+                    // Horizontal pass
+                    cmdDispatch(graphicsCmd, (uint32_t)ceil((float)gAppResolution.x / SHADOWMAP_BLUR_THREAD_COUNT),
+                                (uint32_t)ceil((float)gAppResolution.y / SHADOWMAP_BLUR_THREAD_COUNT), 1);
 
-                        texBarrier = { pFilteredShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
+                    texBarrier = { pFilteredShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+                    cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
 
-                        // Vertical pass, write on the shadow collector
-                        constants.Horizontal = 0;
+                    // Vertical pass, write on the shadow collector
+                    constants.Horizontal = 0;
 
-                        cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
-                        cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
-                        cmdDispatch(graphicsCmd, (uint32_t)ceil((float)mSettings.mWidth / SHADOWMAP_BLUR_THREAD_COUNT),
-                                    (uint32_t)ceil((float)mSettings.mHeight / SHADOWMAP_BLUR_THREAD_COUNT), 1);
-                        cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
-                    }
-                    cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+                    cmdBindPushConstants(graphicsCmd, pRootSignatureFilterShadows, gShadowFilteringPushConstsIndex, &constants);
+                    cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetFilterShadows);
+                    cmdDispatch(graphicsCmd, (uint32_t)ceil((float)gAppResolution.x / SHADOWMAP_BLUR_THREAD_COUNT),
+                                (uint32_t)ceil((float)gAppResolution.y / SHADOWMAP_BLUR_THREAD_COUNT), 1);
+                    cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
                 }
+                cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
                 cmdBindRenderTargets(graphicsCmd, NULL);
 
                 /***********************************/
@@ -1445,17 +1658,15 @@ public:
                 // Draw UI
                 /***********************************/
                 cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Draw UI");
-                {
-                    BindRenderTargetsDesc bindDesc = {};
-                    bindDesc.mRenderTargetCount = 1;
-                    bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
-                    bindDesc.mRenderTargets[0].pRenderTarget = finalTarget;
+                BindRenderTargetsDesc bindDesc = {};
+                bindDesc.mRenderTargetCount = 1;
+                bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
+                bindDesc.mRenderTargets[0].pRenderTarget = finalTarget;
 
-                    cmdBindRenderTargets(graphicsCmd, &bindDesc);
-                    cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)finalTarget->mWidth, (float)finalTarget->mHeight, 0.0f, 1.0f);
-                    cmdSetScissor(graphicsCmd, 0, 0, finalTarget->mWidth, finalTarget->mHeight);
-                    drawGUI(graphicsCmd);
-                }
+                cmdBindRenderTargets(graphicsCmd, &bindDesc);
+                cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)finalTarget->mWidth, (float)finalTarget->mHeight, 0.0f, 1.0f);
+                cmdSetScissor(graphicsCmd, 0, 0, finalTarget->mWidth, finalTarget->mHeight);
+                drawGUI(graphicsCmd);
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
                 RenderTargetBarrier rtBarrier = { finalTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -1489,6 +1700,12 @@ public:
                 presentDesc.ppWaitSemaphores = &pPresentSemaphore;
                 presentDesc.pSwapChain = pSwapChain;
                 presentDesc.mSubmitDone = true;
+
+#ifdef REMOTE_SERVER
+                // streamServerEncodeAndPackFrame(pSwapChain, presentIndex);
+                streamFrame(pSwapChain, presentIndex);
+#endif
+
                 queuePresent(pGraphicsQueue, &presentDesc);
                 flipProfiler();
 
@@ -1499,7 +1716,7 @@ public:
         ++gFrameCount;
     }
 
-    const char* GetName() { return "Particle_System"; }
+    const char* GetName() { return "39_ParticleSystem"; }
 
     bool addDescriptorSets()
     {
@@ -1563,11 +1780,11 @@ public:
     void prepareDescriptorSets()
     {
         // Particle ranges
-        DescriptorDataRange bitfieldLightRange = { 0, sizeof(uint) * LIGHT_COUNT, sizeof(uint) };
-        DescriptorDataRange particleLightRange = { 0, sizeof(ParticleData) * LIGHT_COUNT, sizeof(ParticleData) };
+        DescriptorDataRange bitfieldLightRange = { 0, sizeof(uint) * MAX_LIGHT_COUNT, sizeof(uint) };
+        DescriptorDataRange particleLightRange = { 0, sizeof(ParticleData) * MAX_LIGHT_COUNT, sizeof(ParticleData) };
 
-        DescriptorDataRange bitfieldShadowRange = { 0, sizeof(uint) * SHADOW_COUNT, sizeof(uint) };
-        DescriptorDataRange particleShadowRange = { 0, sizeof(ParticleData) * SHADOW_COUNT, sizeof(ParticleData) };
+        DescriptorDataRange bitfieldShadowRange = { 0, sizeof(uint) * MAX_SHADOW_COUNT, sizeof(uint) };
+        DescriptorDataRange particleShadowRange = { 0, sizeof(ParticleData) * MAX_SHADOW_COUNT, sizeof(ParticleData) };
 
         // Clear Buffers
         {
@@ -1584,7 +1801,7 @@ public:
         }
         // Triangle Filtering
         {
-            DescriptorData filterParams[6] = {};
+            DescriptorData filterParams[7] = {};
             uint32_t       paramsCount = 0;
             filterParams[paramsCount].pName = "vertexPositionBuffer";
             filterParams[paramsCount++].ppBuffers = &pGeom->pVertexBuffers[0];
@@ -1597,11 +1814,12 @@ public:
             filterParams[paramsCount].pName = "ParticlesDataBuffer";
             filterParams[paramsCount].ppBuffers = &pParticlesBuffer;
             filterParams[paramsCount++].pRanges = &particleShadowRange;
-
             filterParams[paramsCount].pName = "BitfieldBuffer";
             filterParams[paramsCount].ppBuffers = &pParticleBitfields;
             filterParams[paramsCount++].pRanges = &bitfieldShadowRange;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount - (SHADOW_COUNT > 0 ? 0 : 2), filterParams);
+            filterParams[paramsCount].pName = "ParticleSetsBuffer";
+            filterParams[paramsCount++].ppBuffers = &pParticleSetsBuffer;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount, filterParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
@@ -1640,7 +1858,9 @@ public:
             params[5].ppTextures = &pDepthBuffer->pTexture;
             params[6].pName = "DepthBoundsBuffer";
             params[6].ppBuffers = &pDepthBoundsBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetLightClusters[0], 7, params);
+            params[7].pName = "ParticleSetsBuffer";
+            params[7].ppBuffers = &pParticleSetsBuffer;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetLightClusters[0], 8, params);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
@@ -1663,7 +1883,7 @@ public:
         }
         // VB, Shadow
         {
-            DescriptorData params[5] = {};
+            DescriptorData params[6] = {};
             params[0].pName = "diffuseMaps";
             params[0].mCount = gMaterialCount;
             params[0].ppTextures = gDiffuseMapsStorage;
@@ -1677,7 +1897,9 @@ public:
             params[4].pName = "ParticlesDataBuffer";
             params[4].ppBuffers = &pParticlesBuffer;
             params[4].pRanges = &particleShadowRange;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], SHADOW_COUNT > 0 ? 5 : 3, params);
+            params[5].pName = "ParticleSetsBuffer";
+            params[5].ppBuffers = &pParticleSetsBuffer;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 6, params);
 
             params[0] = {};
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
@@ -1729,7 +1951,9 @@ public:
             vbShadeParams[13].ppBuffers = &pLightClustersCount;
             vbShadeParams[14].pName = "lightClusters";
             vbShadeParams[14].ppBuffers = &pLightClusters;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 15, vbShadeParams);
+            vbShadeParams[15].pName = "ParticleSetsBuffer";
+            vbShadeParams[15].ppBuffers = &pParticleSetsBuffer;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], 16, vbShadeParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
@@ -1745,7 +1969,7 @@ public:
                 vbShadeParamsPerFrame[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
                 vbShadeParamsPerFrame[5].pName = "ParticleConstantBuffer";
                 vbShadeParamsPerFrame[5].ppBuffers = &pParticleConstantBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], SHADOW_COUNT > 0 ? 6 : 5, vbShadeParamsPerFrame);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], 6, vbShadeParamsPerFrame);
             }
         }
 
@@ -1795,8 +2019,8 @@ public:
         swapChainDesc.mWindowHandle = pWindow->handle;
         swapChainDesc.mPresentQueueCount = 1;
         swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-        swapChainDesc.mWidth = mSettings.mWidth;
-        swapChainDesc.mHeight = mSettings.mHeight;
+        swapChainDesc.mWidth = gAppResolution.x;
+        swapChainDesc.mHeight = gAppResolution.y;
         swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRenderer, &pWindow->handle);
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
@@ -1809,8 +2033,8 @@ public:
 
     void addRenderTargets()
     {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t width = gAppResolution.x;
+        const uint32_t height = gAppResolution.y;
         /************************************************************************/
         /************************************************************************/
         ClearValue     optimizedDepthClear = { { 0.0f, 0 } };
@@ -1853,7 +2077,7 @@ public:
 
         // Cube depth faces
         RenderTargetDesc faceDesc = {};
-        faceDesc.mArraySize = 6 * max(1, SHADOW_COUNT);
+        faceDesc.mArraySize = 6 * MAX_SHADOW_COUNT;
         faceDesc.mClearValue = optimizedDepthClear;
         faceDesc.mDepth = 1;
         faceDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES;
@@ -2455,8 +2679,8 @@ public:
     // Updates uniform data for the given frame index.
     void updateUniformData(uint currentFrameIdx, float deltaTime)
     {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t width = gAppResolution.x;
+        const uint32_t height = gAppResolution.y;
         const float    aspectRatioInv = (float)height / width;
         const uint32_t frameIdx = currentFrameIdx;
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
@@ -2472,7 +2696,7 @@ public:
         pParticleSystemConstantData[currentFrameIdx].ProjTransform = cameraProj.mCamera;
         pParticleSystemConstantData[currentFrameIdx].ViewProjTransform = cameraProj.mCamera * cameraView;
         pParticleSystemConstantData[currentFrameIdx].CameraPosition = float4(v3ToF3(pCameraController->getViewPosition()), 1.0f);
-        pParticleSystemConstantData[currentFrameIdx].ScreenSize = uint2(mSettings.mWidth, mSettings.mHeight);
+        pParticleSystemConstantData[currentFrameIdx].ScreenSize = uint2(gAppResolution.x, gAppResolution.y);
 
         float firefliesX = cos(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
         float firefliesZ = 6.0f + sin(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
@@ -2487,8 +2711,8 @@ public:
 
         pParticleSystemConstantData[currentFrameIdx].ResetParticles = gJustLoaded ? 1 : 0;
         pParticleSystemConstantData[currentFrameIdx].Time = gCurrTime;
-        pParticleSystemConstantData[currentFrameIdx].ParticleSetCount = MAX_PARTICLE_SET_COUNT;
         pParticleSystemConstantData[currentFrameIdx].SeekPosition = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
+        pParticleSystemConstantData[currentFrameIdx].CameraPlanes = float2(CAMERA_NEAR, CAMERA_FAR);
 #if defined(AUTOMATED_TESTING)
         pParticleSystemConstantData[currentFrameIdx].Seed = INT_MAX / 2;
         pParticleSystemConstantData[currentFrameIdx].TimeDelta = 1.0f / 60.0f;
@@ -2503,15 +2727,14 @@ public:
         mat4 vbCameraModel = mat4::identity();
         mat4 vbCameraView = pCameraController->getViewMatrix();
 
-        // Compute light matrices
-        vec3 lightSourcePos = f3Tov3(gLightPosition);
+        Point3 lightSourcePos(10.f, 000.0f, 10.f);
+        lightSourcePos[0] += (20.f);
+        mat4 rotation = mat4::rotationXY(gSunControl.x, gSunControl.y);
+        mat4 translation = mat4::translation(-vec3(lightSourcePos));
 
-        // directional light rotation & translation
-        vec4 lightDir = vec4((float)-lightSourcePos.getX(), (float)-lightSourcePos.getY(), (float)-lightSourcePos.getZ(), 0.0f);
-
-        mat4         lightModel = mat4::identity();
-        mat4         lightView = mat4::lookAtLH(Point3(lightSourcePos), Point3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-        CameraMatrix lightProj = CameraMatrix::orthographicReverseZ(-30, 30, -55, 55, 0.1f, 200.0f);
+        vec3         lightDir = vec4(inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ();
+        CameraMatrix lightProj = CameraMatrix::orthographicReverseZ(-50, 30, -90, 30, -15, 1);
+        mat4         lightView = rotation * translation;
 
         float2 twoOverRes = { 2.0f / float(width), 2.0f / float(height) };
         /************************************************************************/
@@ -2538,49 +2761,46 @@ public:
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
             CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
-            currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp = currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp;
 
         // Point light cubemaps view
-        if (SHADOW_COUNT > 0)
+
+        CameraMatrix cubeProj = CameraMatrix::perspectiveReverseZ(degToRad(90), 1.0f, CAMERA_NEAR, CAMERA_FAR);
+        for (uint32_t i = 0; i < 6; i++)
         {
-            CameraMatrix cubeProj = CameraMatrix::perspectiveReverseZ(degToRad(90), 1.0f, CAMERA_NEAR, SHADOW_PARTICLE_RADIUS);
-            for (uint32_t i = 0; i < 6; i++)
+            mat4     cubeView = mat4::identity();
+            uint32_t viewportIdx = 2 + i;
+
+            switch (i)
             {
-                mat4     cubeView = mat4::identity();
-                uint32_t viewportIdx = 2 + i;
-
-                switch (i)
-                {
-                case 0: // POSITIVE_X
-                    cubeView = mat4::rotation(degToRad(90.0f), vec3(0.0f, 1.0f, 0.0f));
-                    break;
-                case 1: // NEGATIVE_X
-                    cubeView = mat4::rotation(degToRad(-90.0f), vec3(0.0f, 1.0f, 0.0f));
-                    break;
-                case 2: // POSITIVE_Y
-                    cubeView = mat4::rotation(degToRad(90.0f), vec3(-1.0f, 0.0f, 0.0f));
-                    break;
-                case 3: // NEGATIVE_Y
-                    cubeView = mat4::rotation(degToRad(-90.0f), vec3(-1.0f, 0.0f, 0.0f));
-                    break;
-                case 4: // POSITIVE_Z
-                    cubeView = mat4::identity();
-                    break;
-                case 5: // NEGATIVE_Z
-                    cubeView = mat4::rotation(degToRad(180.0f), vec3(0.0f, 1.0f, 0.0f));
-                    break;
-                }
-
-                cubeView = inverse(cubeView);
-
-                currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp = cubeProj * cubeView;
-                currentFrame->gPerFrameVBUniformData.transform[viewportIdx].invVP =
-                    CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp);
-                currentFrame->gPerFrameVBUniformData.transform[viewportIdx].projection = cubeProj;
-                currentFrame->gPerFrameVBUniformData.transform[viewportIdx].mvp =
-                    currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp * lightModel;
+            case 0: // POSITIVE_X
+                cubeView = mat4::rotation(degToRad(90.0f), vec3(0.0f, 1.0f, 0.0f));
+                break;
+            case 1: // NEGATIVE_X
+                cubeView = mat4::rotation(degToRad(-90.0f), vec3(0.0f, 1.0f, 0.0f));
+                break;
+            case 2: // POSITIVE_Y
+                cubeView = mat4::rotation(degToRad(90.0f), vec3(-1.0f, 0.0f, 0.0f));
+                break;
+            case 3: // NEGATIVE_Y
+                cubeView = mat4::rotation(degToRad(-90.0f), vec3(-1.0f, 0.0f, 0.0f));
+                break;
+            case 4: // POSITIVE_Z
+                cubeView = mat4::identity();
+                break;
+            case 5: // NEGATIVE_Z
+                cubeView = mat4::rotation(degToRad(180.0f), vec3(0.0f, 1.0f, 0.0f));
+                break;
             }
+
+            cubeView = inverse(cubeView);
+
+            currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp = cubeProj * cubeView;
+            currentFrame->gPerFrameVBUniformData.transform[viewportIdx].invVP =
+                CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp);
+            currentFrame->gPerFrameVBUniformData.transform[viewportIdx].projection = cubeProj;
+            currentFrame->gPerFrameVBUniformData.transform[viewportIdx].mvp =
+                currentFrame->gPerFrameVBUniformData.transform[viewportIdx].vp;
         }
 
         /************************************************************************/
@@ -2599,7 +2819,7 @@ public:
         }
 
         // Cache eye position in object space for cluster culling on the CPU
-        currentFrame->gEyeObjectSpace[VIEW_SHADOW] = (inverse(lightView * lightModel) * vec4(0, 0, 0, 1)).getXYZ();
+        currentFrame->gEyeObjectSpace[VIEW_SHADOW] = (inverse(lightView) * vec4(0, 0, 0, 1)).getXYZ();
         currentFrame->gEyeObjectSpace[VIEW_CAMERA] =
             (inverse(vbCameraView * vbCameraModel) * vec4(0, 0, 0, 1)).getXYZ(); // vec4(0,0,0,1) is the camera position in eye space
         /************************************************************************/
@@ -2687,7 +2907,7 @@ public:
         bindDesc.mDepthStencil.mClearValue = pDepthCube->mClearValue;
         bindDesc.mDepthStencil.mUseArraySlice = true;
 
-        for (uint32_t s = 0; s < SHADOW_COUNT; s++)
+        for (uint32_t s = 0; s < MAX_SHADOW_COUNT; s++)
         {
             // Bind cubemap face
             for (uint32_t c = 0; c < 6; c++)
@@ -2833,7 +3053,7 @@ public:
     // Executes a compute shader that computes the light clusters on the GPU
     void computeLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
-        uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)LIGHT_COUNT));
+        uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)MAX_LIGHT_COUNT));
 
         cmdBindPipeline(cmd, pPipelineClusterLights);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetLightClusters[0]);
@@ -2846,7 +3066,7 @@ public:
     {
         gFrameTimeDraw.mFontColor = 0xff00ffff;
 #if defined(ANDROID) || defined(IOS)
-        gFrameTimeDraw.mFontSize = 4.0f;
+        gFrameTimeDraw.mFontSize = 10.0f;
         gFrameTimeDraw.mFontID = gFontID;
 #else
         gFrameTimeDraw.mFontSize = 14.0f;
@@ -2855,7 +3075,7 @@ public:
 
         cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
         cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
-        cmdDrawGpuProfile(cmd, float2(8.0f, 500.0f), gComputeProfileToken, &gFrameTimeDraw);
+        cmdDrawGpuProfile(cmd, float2(8.0f, 700.0f), gComputeProfileToken, &gFrameTimeDraw);
         cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, NULL);

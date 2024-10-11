@@ -32,7 +32,7 @@
 #define RENDERER_IMPLEMENTATION
 #define IID_ARGS IID_PPV_ARGS
 
-#include "../../../Data/Libraries/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
@@ -353,7 +353,7 @@ DXGI_FORMAT util_to_dx11_uav_format(DXGI_FORMAT defaultFormat)
     case DXGI_FORMAT_R32_FLOAT:
         return DXGI_FORMAT_R32_FLOAT;
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
     case DXGI_FORMAT_R32G8X24_TYPELESS:
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
     case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -862,17 +862,8 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
     // Create the actual device
     DWORD deviceFlags = 0;
 
-    // The D3D debug layer (as well as Microsoft PIX and other graphics debugger
-    // tools using an injection library) is not compatible with Nsight Aftermath.
-    // If Aftermath detects that any of these tools are present it will fail initialization.
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    // Enable Nsight Aftermath GPU crash dump creation.
-    // This needs to be done before the Vulkan device is created.
-    CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
 #endif
 
     D3D_FEATURE_LEVEL featureLevel;
@@ -908,11 +899,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
         LOGF(LogLevel::eINFO, "Device supports ID3D11DeviceContext1.");
     }
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    SetAftermathDevice(pRenderer->mDx11.pDevice);
-#endif
-
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     hr = pRenderer->mDx11.pContext->QueryInterface(__uuidof(pRenderer->mDx11.pUserDefinedAnnotation),
                                                    (void**)(&pRenderer->mDx11.pUserDefinedAnnotation));
     if (FAILED(hr))
@@ -926,10 +913,12 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     SAFE_RELEASE(pRenderer->mDx11.pUserDefinedAnnotation);
+#endif
     SAFE_RELEASE(pRenderer->mDx11.pContext1);
     SAFE_RELEASE(pRenderer->mDx11.pContext);
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     ID3D11Debug* pDebugDevice = NULL;
     pRenderer->mDx11.pDevice->QueryInterface(&pDebugDevice);
     SAFE_RELEASE(pRenderer->mDx11.pDevice);
@@ -946,10 +935,6 @@ static void RemoveDevice(Renderer* pRenderer)
     }
 #else
     SAFE_RELEASE(pRenderer->mDx11.pDevice);
-#endif
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    DestroyAftermathTracker(&pRenderer->mAftermathTracker);
 #endif
 }
 /************************************************************************/
@@ -983,7 +968,7 @@ static ID3D11BlendState* util_to_blend_state(Renderer* pRenderer, const BlendSta
     UNREF_PARAM(pRenderer);
 
     int blendDescIndex = 0;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
 
     for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
     {
@@ -1838,7 +1823,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
     // Set this by default to be able to sample the rendertarget in shader
     textureDesc.mWidth = pDesc->mWidth;
     textureDesc.pNativeHandle = pDesc->pNativeHandle;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     textureDesc.pName = pDesc->pName;
 #endif
     textureDesc.mNodeIndex = pDesc->mNodeIndex;
@@ -2020,6 +2005,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
     uint32_t reflectionCount = 0;
 
+    ShaderReflection stageReflections[SHADER_STAGE_COUNT] = {};
+
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         ShaderStage                  stage_mask = (ShaderStage)(1 << i);
@@ -2086,13 +2073,18 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
             }
 
             d3d11_addShaderReflection((uint8_t*)(pStage->pByteCode), (uint32_t)pStage->mByteCodeSize, stage_mask, //-V522
-                                      &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
+                                      &stageReflections[reflectionCount]);
 
             reflectionCount++;
         }
     }
 
-    addPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+    addPipelineReflection(stageReflections, reflectionCount, pShaderProgram->pReflection);
+
+    for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
+    {
+        removeShaderReflection(&stageReflections[i]);
+    }
 
     *ppShaderProgram = pShaderProgram;
 }
@@ -2787,7 +2779,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
         if (pReflection->mShaderStages & SHADER_STAGE_VERT)
         {
-            if (pReflection->mStageReflections[pReflection->mVertexStageIndex].mVertexInputsCount)
+            if (pReflection->mVertexInputsCount)
             {
                 useInputLayout = true;
             }
@@ -3223,7 +3215,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc,
     case PRIMITIVE_TOPO_PATCH_LIST:
     {
         const PipelineReflection* pReflection = pDesc->pShaderProgram->pReflection;
-        uint32_t                  controlPoint = pReflection->mStageReflections[pReflection->mHullStageIndex].mNumControlPoint;
+        uint32_t                  controlPoint = pReflection->mNumControlPoint;
         topology = (D3D_PRIMITIVE_TOPOLOGY)(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (controlPoint - 1));
     }
     break;
@@ -3380,7 +3372,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
     SAFE_FREE(pDescriptorSet);
 }
 
-#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK) || defined(PVS_STUDIO)
 #define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
     if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__)) \
     {                                                                          \
@@ -4156,13 +4148,6 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
             }
 #endif
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-            // DXGI_ERROR error notification is asynchronous to the NVIDIA display
-            // driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
-            // thread some time to do its work before terminating the process.
-            threadSleep(3000);
-#endif
-
             ASSERT(false);
         }
     }
@@ -4483,6 +4468,7 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
     UNREF_PARAM(r);
     UNREF_PARAM(g);
     UNREF_PARAM(b);
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (!pCmd->pRenderer->mDx11.pUserDefinedAnnotation)
     {
         return;
@@ -4491,15 +4477,18 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
     int     nameLen = int(strlen(pName));
     MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
     pCmd->pRenderer->mDx11.pUserDefinedAnnotation->BeginEvent(markerName);
+#endif
 }
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (!pCmd->pRenderer->mDx11.pUserDefinedAnnotation)
     {
         return;
     }
     pCmd->pRenderer->mDx11.pUserDefinedAnnotation->EndEvent();
+#endif
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -4507,6 +4496,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
     UNREF_PARAM(r);
     UNREF_PARAM(g);
     UNREF_PARAM(b);
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->pRenderer->mDx11.pUserDefinedAnnotation)
     {
         wchar_t markerName[256] = { 0 };
@@ -4514,10 +4504,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
         MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
         pCmd->pRenderer->mDx11.pUserDefinedAnnotation->SetMarker(markerName);
     }
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->mDx11.pContext, pName);
-#endif
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -4526,7 +4513,7 @@ void SetResourceName(ID3D11DeviceChild* pResource, const char* pName)
 {
     UNREF_PARAM(pResource);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (!pName)
     {
         return;
@@ -4540,7 +4527,7 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pBuffer);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     ASSERT(pRenderer);
     ASSERT(pBuffer);
     ASSERT(pName);
@@ -4555,7 +4542,7 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pTexture);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     ASSERT(pRenderer);
     ASSERT(pTexture);
     ASSERT(pName);

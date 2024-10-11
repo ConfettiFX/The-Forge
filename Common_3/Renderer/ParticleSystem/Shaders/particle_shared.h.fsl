@@ -29,12 +29,7 @@
 RES(RWBuffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, u53, binding = 10);
 RES(RWBuffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, u52, binding = 11);
 
-// Amount of particles for each section: LightNShadow - Light - Standard
-RES(RWBuffer(uint4), ParticleCountsBuffer, UPDATE_FREQ_NONE, u55, binding = 12);
-
-// Start indices of the various sections: Alive - Dead - Inactive. We only need the Dead start index and the Inactive start index
-// The first element contains the value of the previous frame, the second one contains the value of the current frame
-RES(RWBuffer(uint), ParticleSectionsIndices, UPDATE_FREQ_NONE, u56, binding = 13);
+RES(RWBuffer(ParticleBufferStateData), ParticleBufferState, UPDATE_FREQ_NONE, u55, binding = 12);
 
 // For each particle set, y tells whether it is visible, x if it was visible in the last frame
 RES(RWBuffer(uint), ParticleSetVisibility, UPDATE_FREQ_NONE, u57, binding = 14);
@@ -49,21 +44,25 @@ RES(RWBuffer(uint), ParticleSetVisibility, UPDATE_FREQ_NONE, u57, binding = 14);
         uint32_t mStartInstance;
     } IndirectDrawArguments;
 */
-RES(RWBuffer(uint), ParticleRenderIndirectData, UPDATE_FREQ_PER_FRAME, u60, binding = 25);
+RES(RWBuffer(uint), ParticleRenderIndirectData, UPDATE_FREQ_NONE, u60, binding = 25);
+
 // Indices of the particles to be rasterized by the hardware rasterizer
 RES(RWBuffer(uint), ParticlesToRasterize, UPDATE_FREQ_NONE, u68, binding = 16);
 
 // Array of textures for each particle set
-RES(Tex2D(float4), ParticleTextures[MAX_PARTICLE_SET_COUNT], UPDATE_FREQ_NONE, t59, binding = 27);
+RES(Tex2D(float4), ParticleTextures[MAX_PARTICLE_TEXTURES_COUNT], UPDATE_FREQ_NONE, t59, binding = 27);
 
 RES(Tex2D(float), DepthBuffer, UPDATE_FREQ_NONE, t69, binding = 20);
 RES(SamplerState, NearestClampSampler, UPDATE_FREQ_NONE, s0, binding = 21);
 RES(SamplerState, LinearClampSampler, UPDATE_FREQ_NONE, s1, binding = 22);
 
-
 // Per pixel linked list for sorting transparent pixels
 RES(RWBuffer(PackedParticleTransparencyNode), TransparencyList, UPDATE_FREQ_NONE, u66, binding = 23);
 RES(RWBuffer(uint), TransparencyListHeads, UPDATE_FREQ_NONE, u67, binding = 26);
+
+#if defined(_DEBUG)
+RES(RWBuffer(ParticleSystemStats), StatsBuffer, UPDATE_FREQ_NONE, u69, binding = 24);
+#endif
 
 
 #endif

@@ -55,7 +55,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     fsl = binary.preprocessed_srcs[platform]
 
-    shader = getShader(platform, binary.fsl_filepath, fsl, dst)
+    shader = getShader(platform, binary, fsl, dst)
     msl_target = targetToMslEntry[shader.stage]
     binary.waveops_flags = shader.waveops_flags
 

@@ -32,7 +32,3 @@
 
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
-
-#if defined(_WINDOWS)
-#define NSIGHT_AFTERMATH_AVAILABLE
-#endif

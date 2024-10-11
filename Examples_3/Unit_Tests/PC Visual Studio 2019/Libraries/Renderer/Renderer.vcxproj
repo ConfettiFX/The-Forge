@@ -31,8 +31,8 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
-    <ClInclude Include="..\..\..\..\..\Data\Libraries\ags\AgsHelper.h" />
-    <ClInclude Include="..\..\..\..\..\Data\Libraries\nvapi\NvApiHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IParticleSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer.h" />
@@ -137,10 +137,14 @@
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>
-        $(TheForgeRoot)Data\Libraries\ags\ags_lib\lib;
-        $(TheForgeRoot)Data\Libraries\nvapi\amd64;
-        $(TheForgeRoot)Data\Libraries\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;
         $(TheForgeRoot)Data\Libraries\winpixeventruntime\bin\;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\winpixeventruntime\bin;
         %(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
     </Lib>
@@ -183,10 +187,14 @@
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>
-        $(TheForgeRoot)Data\Libraries\ags\ags_lib\lib;
-        $(TheForgeRoot)Data\Libraries\nvapi\amd64;
-        $(TheForgeRoot)Data\Libraries\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;
         $(TheForgeRoot)Data\Libraries\winpixeventruntime\bin\;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;
+        $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\winpixeventruntime\bin;
         %(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
     </Lib>

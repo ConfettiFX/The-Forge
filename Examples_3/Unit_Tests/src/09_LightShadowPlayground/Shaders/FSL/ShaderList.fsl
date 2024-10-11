@@ -156,6 +156,11 @@
 #include "visibilityBufferPass.vert.fsl"
 #end
 
+#vert FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassCrash.vert
+#define GPU_CRASH
+#include "visibilityBufferPass.vert.fsl"
+#end
+
 #frag FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.frag
 #include "visibilityBufferPass.frag.fsl"
 #end
@@ -182,6 +187,12 @@
 #end
 #frag FT_MULTIVIEW visibilityBufferShade_SAMPLE_COUNT_4.frag
 #define SAMPLE_COUNT 4
+#include "visibilityBufferShade.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW visibilityBufferShadeCrash.frag
+#define GPU_CRASH
+#define SAMPLE_COUNT 1
 #include "visibilityBufferShade.frag.fsl"
 #end
 
@@ -224,6 +235,11 @@
 #end
 #comp screenSpaceShadows_SAMPLE_COUNT_4.comp
 #define SAMPLE_COUNT 4
+#include "screenSpaceShadows.comp.fsl"
+#end
+#comp screenSpaceShadowsCrash.comp
+#define GPU_CRASH
+#define SAMPLE_COUNT 1
 #include "screenSpaceShadows.comp.fsl"
 #end
 

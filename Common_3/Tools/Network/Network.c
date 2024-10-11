@@ -53,6 +53,9 @@ typedef int socklen_t;
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#if defined(ANDROID) || defined(__APPLE__)
+#include <netdb.h>
+#endif
 
 #define INVALID_SOCKET_HANDLE -1
 
@@ -204,13 +207,15 @@ bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port)
     return true;
 }
 
-#ifdef FORGE_TOOLS
 bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port)
 {
+    UNREF_PARAM(port);
+    UNREF_PARAM(hostname);
     ASSERT(addr);
     memset(addr, 0, sizeof(SocketAddr));
+    bool success = true;
+#if defined(_WINDOWS) || defined(__APPLE__)
 
-    bool             success = true;
     struct addrinfo* result;
 
     int family = AF_INET;
@@ -224,7 +229,7 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
     }
 
     struct addrinfo hints;
-    ZeroMemory(&hints, sizeof(hints));
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
@@ -253,10 +258,10 @@ bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t
 
         memcpy(addrPSinAddr(addr), &((struct sockaddr_in*)result->ai_addr)->sin_addr, result->ai_addrlen);
     }
+#endif
 
     return success;
 }
-#endif // FORGE_TOOLS
 
 void socketAddrToHostPort(const SocketAddr* addr, char* host, size_t hostSize, uint16_t* port)
 {

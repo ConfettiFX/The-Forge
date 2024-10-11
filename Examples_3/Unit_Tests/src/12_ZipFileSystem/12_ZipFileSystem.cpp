@@ -411,108 +411,6 @@ static bool testReadFileByIndex(const char* testName, ReadError expectedError, I
     return noerr;
 }
 
-extern "C"
-{
-    FORGE_API bool fsIsNormalizedPath(const char* path, char separator);
-
-    FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, const char* beg, char* cur, const char* end);
-
-    static inline size_t fsNormalizePath(const char* path, char separator, char* output)
-    {
-        return fsNormalizePathContinue(path, separator, output, output, (char*)UINTPTR_MAX);
-    }
-
-    FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, char separator, size_t outputSize, char* output);
-}
-
-#define TEST_CHECK(x) \
-    ASSERT(x);        \
-    if (!(x))         \
-    return false
-
-static bool runFsRoutinesTests()
-{
-    struct Test0
-    {
-        const char* path;
-        char        separator;
-        bool        isNormalized;
-    };
-
-    Test0 tests0[] = {
-        { ".\\", '\\', false },
-        { ".", '/', true },
-        { "1/..", '/', false },
-        { "1/../", '/', false },
-        { "", '/', true },
-        { "\\", '/', false },
-        { "/", '\\', false },
-        { "C:/", '/', true },
-        { "C:/..", '/', true },
-        { "/..", '/', true },
-        { "gg", '/', true },
-        { "\\\\", '\\', false },
-        { "../../../1", '/', true },
-        { "./", '/', false },
-        { "./.", '/', false },
-        { "/..1/2", '/', true },
-        { ".1./.../3/4../g/_/+/$/%/ /~~12..", '/', true },
-    };
-
-    for (size_t i = 0; i < TF_ARRAY_COUNT(tests0); ++i)
-    {
-        Test0 test = tests0[i];
-        TEST_CHECK(fsIsNormalizedPath(test.path, test.separator) == test.isNormalized);
-    }
-
-    struct Test1
-    {
-        const char* src;
-        const char* result;
-    };
-
-    Test1 tests1[] = {
-        { ".", "." }, { "./", "." }, { "1/..", "." }, { "1/../", "." }, { "", "" },
-    };
-
-    char p[FS_MAX_PATH];
-    for (size_t i = 0; i < TF_ARRAY_COUNT(tests1); ++i)
-    {
-        Test1 test = tests1[i];
-        fsNormalizePath(test.src, '/', p);
-        TEST_CHECK(fsIsNormalizedPath(p, '/'));
-        TEST_CHECK(strcmp(p, test.result) == 0);
-    }
-
-    struct Test2
-    {
-        const char* src1;
-        const char* src2;
-        const char* result;
-        const char  separator;
-    };
-
-    Test2 tests2[] = {
-        { "1/23sdf//.///4234", "../../43///55", "1/43/55", '/' },
-        { "/1/2", "../../../../", "/../..", '/' },
-        { "/1/2/", "/../../..", "\\..", '\\' },
-        { "C:/1/2", "../../../../..", "C:\\..\\..\\..", '\\' },
-        { "C:/1/2", "/../../../../../", "C:/../../..", '/' },
-    };
-
-    for (size_t i = 0; i < TF_ARRAY_COUNT(tests2); ++i)
-    {
-        Test2 test = tests2[i];
-        TEST_CHECK(fsMergeDirAndFileName(test.src1, test.src2, test.separator, sizeof p, p));
-        TEST_CHECK(fsIsNormalizedPath(p, test.separator));
-        TEST_CHECK(strcmp(p, test.result) == 0);
-    }
-
-    return true;
-};
-
-#undef TEST_CHECK
-
 static bool runArchiveReadTests()
 {
     ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pReadErrors));
@@ -583,7 +481,7 @@ static bool runArchiveBenchmark()
         int64_t startTime = getUSec(true);
 
         FileStream fs;
-        if (!fsIoOpenStreamFromPath(&gArchiveFileSystem, RD_ARCHIVE_TEST, gNumbersFileNames[i], FM_READ, &fs))
+        if (!fsOpenStreamFromPath(RD_ARCHIVE_TEST, gNumbersFileNames[i], FM_READ, &fs))
             return false;
 
         ssize_t expected_size = fsGetStreamFileSize(&fs);
@@ -630,7 +528,7 @@ static bool runArchiveSeekTests()
         int64_t startTime = getUSec(true);
 
         FileStream fs;
-        if (!fsIoOpenStreamFromPath(&gArchiveFileSystem, RD_ARCHIVE_TEST, gNumbersFileNames[i], FM_READ, &fs))
+        if (!fsOpenStreamFromPath(RD_ARCHIVE_TEST, gNumbersFileNames[i], FM_READ, &fs))
             return false;
 
         ssize_t size = fsGetStreamFileSize(&fs);
@@ -680,8 +578,6 @@ static bool runTests()
         return false;
     LOGF(eINFO, "Backward find succeded.");
 
-    if (!runFsRoutinesTests())
-        return false;
     if (!runArchiveReadTests())
         return false;
     if (!runArchiveBenchmark())
@@ -699,21 +595,13 @@ class FileSystemUnitTest: public IApp
 public:
     bool Init()
     {
-        // testFindReverseStream();
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-
         // Generate sphere vertex buffer
         if (!pSpherePoints)
         {
             generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
         }
 
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         struct ArchiveOpenDesc openDesc = { 0 };
-
         openDesc.mmap = true;
 
         if (!fsArchiveOpen(RD_OTHER_FILES, pZipReadFile, &openDesc, &gArchiveFileSystem))
@@ -722,15 +610,11 @@ public:
             return false;
         }
 
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-
         // Load files processed by asset pipeline and zipped
-        fsSetPathForResourceDir(&gArchiveFileSystem, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(&gArchiveFileSystem, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(&gArchiveFileSystem, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(&gArchiveFileSystem, RM_CONTENT, RD_ARCHIVE_TEST, "");
+        fsSetPathForResourceDir(&gArchiveFileSystem, RD_MESHES, "Meshes/");
+        fsSetPathForResourceDir(&gArchiveFileSystem, RD_TEXTURES, "Textures/");
+        fsSetPathForResourceDir(&gArchiveFileSystem, RD_FONTS, "Fonts/");
+        fsSetPathForResourceDir(&gArchiveFileSystem, RD_ARCHIVE_TEST, "");
 
         gVertexLayoutDefault.mBindingCount = 1;
         gVertexLayoutDefault.mAttribCount = 3;
@@ -989,8 +873,6 @@ public:
 
         pCameraController = initFpsCameraController(camPos, lookAt);
 
-        extern bool gVirtualJoystickEnable;
-        gVirtualJoystickEnable = false;
         AddCustomInputBindings();
 
         gFrameIndex = 0;
@@ -1130,12 +1012,12 @@ public:
 
             //--------------------------------
 
-            UIComponentDesc guiOcclusionDesc = {};
-            guiOcclusionDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * .3f);
-            uiAddComponent("Occlusion Test", &guiOcclusionDesc, &pGui_OcclusionData);
-
             if (pRenderer->pGpu->mOcclusionQueries)
             {
+                UIComponentDesc guiOcclusionDesc = {};
+                guiOcclusionDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * .3f);
+                uiAddComponent("Occlusion Test", &guiOcclusionDesc, &pGui_OcclusionData);
+
                 DynamicTextWidget occlusionRedWidget;
                 occlusionRedWidget.pText = &gOcclusionbstr;
                 occlusionRedWidget.pColor = &gOccluion1Color;
@@ -1193,7 +1075,10 @@ public:
             removeSwapChain(pRenderer, pSwapChain);
             removeRenderTarget(pRenderer, pDepthBuffer);
             uiRemoveComponent(pGui_TextData);
-            uiRemoveComponent(pGui_OcclusionData);
+            if (pGui_OcclusionData)
+            {
+                uiRemoveComponent(pGui_OcclusionData);
+            }
             unloadProfilerUI();
         }
 

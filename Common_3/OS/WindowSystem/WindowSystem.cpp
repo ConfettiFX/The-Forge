@@ -31,11 +31,37 @@
 #include "../../OS/Interfaces/IOperatingSystem.h"
 #include "../../Utilities/Interfaces/ITime.h"
 
+#define MAX_WINDOW_RES_COUNT                         64
+#define MAX_WINDOW_RES_STR_LENGTH                    64
+
+#define RECOMMENDED_WINDOW_SIZE_FACTOR               8
+#define RECOMMENDED_WINDOW_SIZE_MIN_DESIRED_FRACTION 0.75
+#define RECOMMENDED_WINDOW_SIZE_DISPLAY_FRACTION     0.75
+
 static WindowDesc*  pWindowRef = NULL;
 static UIComponent* pWindowControlsComponent = NULL;
 
 static char    gPlatformNameBuffer[64];
 static bstring gPlatformName = bemptyfromarr(gPlatformNameBuffer);
+
+#if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
+#define WINDOW_UI_ENABLED
+#endif
+
+#if defined(WINDOW_UI_ENABLED)
+
+// UI Window globals
+
+static uint32_t gWindowSize = 0;
+static uint32_t gWindowPrevSize = 0;
+static uint32_t gPrevActiveMonitor;
+
+// UI Monitor globals
+
+static int32_t gMonitorResolution[MAX_MONITOR_COUNT] = {};
+static int32_t gMonitorLastResolution[MAX_MONITOR_COUNT] = {};
+
+#endif
 
 #if defined(AUTOMATED_TESTING)
 char           gAppName[64];
@@ -43,32 +69,141 @@ static char    gScriptNameBuffer[64];
 static bstring gScriptName = bemptyfromarr(gScriptNameBuffer);
 #endif
 
+#if !defined(TARGET_IOS) && !defined(TARGET_IOS_SIMULATOR)
+void getRecommendedResolution(RectDesc* rect)
+{
+    float          dpiScale[2];
+    const uint32_t monitorIdx = getActiveMonitorIdx();
+    getMonitorDpiScale(monitorIdx, dpiScale);
+
+    MonitorDesc* pMonitor = getMonitor(monitorIdx);
+
+    // Early exit
+    if (arrlenu(pMonitor->resolutions) == 1)
+    {
+        rect->left = 0;
+        rect->top = 0;
+        rect->right = (int32_t)pMonitor->resolutions[0].mWidth;
+        rect->bottom = (int32_t)pMonitor->resolutions[0].mHeight;
+        return;
+    }
+
+    rect->left = 0;
+    rect->top = 0;
+
+    ASSERT(pMonitor->resolutions && pMonitor->currentResolution < arrlen(pMonitor->resolutions));
+
+    const uint32_t monitorWidth = (uint32_t)pMonitor->resolutions[pMonitor->currentResolution].mWidth;
+    const uint32_t monitorHeight = (uint32_t)pMonitor->resolutions[pMonitor->currentResolution].mHeight;
+
+    const uint32_t desiredWidth = (uint32_t)(monitorWidth * RECOMMENDED_WINDOW_SIZE_DISPLAY_FRACTION);
+    const uint32_t desiredHeight = (uint32_t)(monitorHeight * RECOMMENDED_WINDOW_SIZE_DISPLAY_FRACTION);
+
+    const uint32_t minWidth = (uint32_t)(desiredWidth * RECOMMENDED_WINDOW_SIZE_MIN_DESIRED_FRACTION);
+    const uint32_t minHeight = (uint32_t)(desiredHeight * RECOMMENDED_WINDOW_SIZE_MIN_DESIRED_FRACTION);
+
+    uint32_t resultIndex = UINT32_MAX;
+    uint32_t resultWidth = 0;
+    uint32_t resultHeight = 0;
+
+    // The search is based on the constraints below, which are relaxed one by one
+    // until we find some valid resolution.
+    // 1. Resolution should be divisible by the factor.
+    //      Ensures that odd resolutions are not selected.
+    // 2. Resolution should be bigger than min desired
+    //      Ensures that resolution is not too far off from the desired
+    // 3. Resolution should be less or equal to desired resolution
+    //      Ensures that resolution can fit onto screen.
+    // 4. Resolution should be less than display resolution
+    //
+    // Also we always take bigger resolution of the two that satisfy the constraints
+
+    for (uint32_t factor = RECOMMENDED_WINDOW_SIZE_FACTOR; factor > 0 && resultIndex == UINT32_MAX; factor = factor >> 1)
+    {
+        for (uint32_t i = 0; i < arrlenu(pMonitor->resolutions); ++i)
+        {
+            const Resolution resolution = pMonitor->resolutions[i];
+
+            if (resolution.mWidth % factor == 0 && resolution.mHeight % factor == 0 && resolution.mWidth >= minWidth &&
+                resolution.mHeight >= minHeight && resolution.mWidth <= desiredWidth && resolution.mHeight <= desiredHeight &&
+                resolution.mWidth >= resultWidth && resolution.mHeight >= resultHeight)
+            {
+                resultIndex = i;
+                resultWidth = resolution.mWidth;
+                resultHeight = resolution.mHeight;
+            }
+        }
+    }
+
+    // If search failed - remove 2nd constraint (Resolution should be bigger than min desired)
+    for (uint32_t factor = RECOMMENDED_WINDOW_SIZE_FACTOR; factor > 0 && resultIndex == UINT32_MAX; factor = factor >> 1)
+    {
+        for (uint32_t i = 0; i < arrlenu(pMonitor->resolutions); ++i)
+        {
+            const Resolution resolution = pMonitor->resolutions[i];
+
+            if (resolution.mWidth % factor == 0 && resolution.mHeight % factor == 0 && resolution.mWidth <= desiredWidth &&
+                resolution.mHeight <= desiredHeight && resolution.mWidth >= resultWidth && resolution.mHeight >= resultHeight)
+            {
+                resultIndex = i;
+                resultWidth = resolution.mWidth;
+                resultHeight = resolution.mHeight;
+            }
+        }
+    }
+
+    // If search failed - keep only 4th constraint (Resolution should be less than display resolution)
+    if (resultIndex == UINT32_MAX)
+    {
+        for (uint32_t i = 0; i < arrlenu(pMonitor->resolutions); ++i)
+        {
+            const Resolution resolution = pMonitor->resolutions[i];
+
+            if (resolution.mWidth < monitorWidth && resolution.mHeight < monitorHeight && resolution.mWidth >= resultWidth &&
+                resolution.mHeight >= resultHeight)
+            {
+                resultIndex = i;
+                resultWidth = resolution.mWidth;
+                resultHeight = resolution.mHeight;
+            }
+        }
+    }
+
+    // If search failed again - it's better to have window size
+    // that it is same as display in width but smaller in height compared to display resolution
+    if (resultIndex == UINT32_MAX)
+    {
+        for (uint32_t i = 0; i < arrlenu(pMonitor->resolutions); ++i)
+        {
+            const Resolution resolution = pMonitor->resolutions[i];
+
+            if (resolution.mWidth <= monitorWidth && resolution.mHeight < monitorHeight && resolution.mWidth >= resultWidth &&
+                resolution.mHeight >= resultHeight)
+            {
+                resultIndex = i;
+                resultWidth = resolution.mWidth;
+                resultHeight = resolution.mHeight;
+            }
+        }
+    }
+
+    // If all searches failed - return current display resolution
+    resultIndex = resultIndex == UINT32_MAX ? pMonitor->currentResolution : resultIndex;
+
+    *rect = { 0, 0, (int)pMonitor->resolutions[resultIndex].mWidth, (int)pMonitor->resolutions[resultIndex].mHeight };
+}
+#endif
+
+#if defined(WINDOW_UI_ENABLED)
+
 static bool wndValidateWindowPos(int32_t x, int32_t y)
 {
     WindowDesc* winDesc = pWindowRef;
     int         clientWidthStart = (getRectWidth(&winDesc->windowedRect) - getRectWidth(&winDesc->clientRect)) >> 1;
     int         clientHeightStart = getRectHeight(&winDesc->windowedRect) - getRectHeight(&winDesc->clientRect) - clientWidthStart;
 
-    if (winDesc->centered)
-    {
-        uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
-        uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
-        uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
-        uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
-        uint32_t windowHalfWidth = windowWidth >> 1;
-        uint32_t windowHalfHeight = windowHeight >> 1;
-
-        int32_t X = fsHalfWidth - windowHalfWidth;
-        int32_t Y = fsHalfHeight - windowHalfHeight;
-
-        if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
-            return false;
-    }
-    else
-    {
-        if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
-            return false;
-    }
+    if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
+        return false;
 
     return true;
 }
@@ -81,22 +216,123 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
     return true;
 }
 
+static void wndUpdateResolutionsList(void* pWindowResWidget)
+{
+    ASSERT(pWindowResWidget);
+    UIWidget* pWidget = (UIWidget*)pWindowResWidget;
+    ASSERT(pWidget->mType == WIDGET_TYPE_DROPDOWN);
+    DropdownWidget* pDropdown = (DropdownWidget*)pWidget->pWidget;
+
+    if (!pWindowRef)
+    {
+        pDropdown->mCount = 0;
+        return;
+    }
+
+    char**       pNames = (char**)pDropdown->pNames;
+    uint32_t     monitorIdx = getActiveMonitorIdx();
+    MonitorDesc* pMonitor = getMonitor(monitorIdx);
+    uint32_t     monitorResolutionIdx = gMonitorResolution[monitorIdx];
+    ASSERT(pMonitor->resolutions && monitorResolutionIdx < arrlen(pMonitor->resolutions));
+    Resolution monitorResolution = pMonitor->resolutions[monitorResolutionIdx];
+
+    if (pWindowRef->fullScreen)
+    {
+        sprintf(pNames[0], "%ux%u##window_res", monitorResolution.mWidth, monitorResolution.mHeight);
+        pDropdown->mCount = 1;
+        *pDropdown->pData = 0;
+        return;
+    }
+
+    uint32_t activeResIdx = MAX_WINDOW_RES_COUNT;
+
+    pDropdown->mCount = (uint32_t)arrlen(pMonitor->resolutions) - 1;
+
+    for (uint32_t i = 0; i < pDropdown->mCount; ++i)
+    {
+        monitorResolution = pMonitor->resolutions[i];
+        sprintf(pNames[i], "%ux%u##window_res", monitorResolution.mWidth, monitorResolution.mHeight);
+
+        if (pWindowRef->mWndW == (int32_t)monitorResolution.mWidth && pWindowRef->mWndH == (int32_t)monitorResolution.mHeight)
+        {
+            activeResIdx = i;
+        }
+    }
+
+    *pDropdown->pData = activeResIdx;
+}
+
+static void wndUpdateResolution(void* pUserData)
+{
+    ASSERT(pUserData);
+    UIWidget* pWidget = (UIWidget*)pUserData;
+
+    uint32_t activeMonitorIdx = getActiveMonitorIdx();
+
+    if (gWindowSize == gWindowPrevSize && activeMonitorIdx == gPrevActiveMonitor)
+    {
+        return;
+    }
+
+    if (activeMonitorIdx != gPrevActiveMonitor)
+    {
+        wndUpdateResolutionsList(pWidget);
+    }
+    gPrevActiveMonitor = activeMonitorIdx;
+
+    MonitorDesc* pMonitor = getMonitor(activeMonitorIdx);
+
+    gWindowPrevSize = gWindowSize;
+    setWindowClientSize(pWindowRef, pMonitor->resolutions[gWindowSize].mWidth, pMonitor->resolutions[gWindowSize].mHeight);
+}
+
+static void wndSelectRecommendedWindowResolution(void* pUserData, const MonitorDesc* pMonitor)
+{
+    ASSERT(pUserData);
+    ASSERT(pMonitor);
+    UIWidget* pWidget = (UIWidget*)pUserData;
+    ASSERT(pWidget->mType == WIDGET_TYPE_DROPDOWN);
+    DropdownWidget* pDropdown = (DropdownWidget*)pWidget->pWidget;
+    RectDesc        recommendedRect = {};
+    getRecommendedResolution(&recommendedRect);
+    const uint32_t recommendedWidth = recommendedRect.right - recommendedRect.left;
+    const uint32_t recommendedHeight = recommendedRect.bottom - recommendedRect.top;
+
+    uint32_t resolutionIndex = 0;
+    for (; resolutionIndex < arrlen(pMonitor->resolutions) && resolutionIndex < pMonitor->currentResolution; ++resolutionIndex)
+    {
+        if (pMonitor->resolutions[resolutionIndex].mWidth == recommendedWidth &&
+            pMonitor->resolutions[resolutionIndex].mHeight == recommendedHeight)
+        {
+            break;
+        }
+    }
+
+    if (resolutionIndex >= arrlen(pMonitor->resolutions))
+    {
+        resolutionIndex = pMonitor->currentResolution > 0 ? pMonitor->currentResolution - 1 : pMonitor->currentResolution;
+    }
+
+    *pDropdown->pData = resolutionIndex;
+    wndUpdateResolution(pWidget);
+}
+
 void wndSetWindowed(void* pUserData)
 {
-    UNREF_PARAM(pUserData);
-    setWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    setWindowed(pWindowRef);
+    wndUpdateResolutionsList(pUserData);
 }
 
 void wndSetFullscreen(void* pUserData)
 {
-    UNREF_PARAM(pUserData);
     setFullscreen(pWindowRef);
+    wndUpdateResolutionsList(pUserData);
 }
 
 void wndSetBorderless(void* pUserData)
 {
-    UNREF_PARAM(pUserData);
-    setBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    setBorderless(pWindowRef);
+    wndUpdateResolutionsList(pUserData);
 }
 
 void wndMaximizeWindow(void* pUserData)
@@ -111,6 +347,11 @@ void wndMinimizeWindow(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     pWindowRef->mMinimizeRequested = true;
+}
+void wndCenterWindow(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    centerWindow(pWindowRef);
 }
 
 void wndHideWindow()
@@ -127,20 +368,23 @@ void wndShowWindow()
     showWindow(pWindow);
 }
 
-void wndUpdateResolution(void* pUserData)
+static void monitorUpdateResolution(void* pUserData)
 {
     UNREF_PARAM(pUserData);
     uint32_t monitorCount = getMonitorCount();
     for (uint32_t i = 0; i < monitorCount; ++i)
     {
-        if (pWindowRef->pCurRes[i] != pWindowRef->pLastRes[i])
+        if (gMonitorResolution[i] != gMonitorLastResolution[i])
         {
-            MonitorDesc* monitor = getMonitor(i);
+            MonitorDesc* pMonitor = getMonitor(i);
+            setResolution(pMonitor, &pMonitor->resolutions[gMonitorResolution[i]]);
 
-            int32_t resIndex = pWindowRef->pCurRes[i];
-            setResolution(monitor, &monitor->resolutions[resIndex]);
-
-            pWindowRef->pLastRes[i] = pWindowRef->pCurRes[i];
+            gMonitorLastResolution[i] = gMonitorResolution[i];
+            if (i == getActiveMonitorIdx() && !pWindowRef->fullScreen)
+            {
+                wndUpdateResolutionsList(pUserData);
+                wndSelectRecommendedWindowResolution(pUserData, getMonitor(i));
+            }
         }
     }
 }
@@ -169,11 +413,6 @@ void wndSetRecommendedWindowSize(void* pUserData)
     getRecommendedWindowRect(pWindowRef, &rect);
 
     setWindowRect(pWindow, &rect);
-
-    pWindowRef->mWndX = rect.left;
-    pWindowRef->mWndY = rect.top;
-    pWindowRef->mWndW = rect.right - rect.left;
-    pWindowRef->mWndH = rect.bottom - rect.top;
 }
 
 void wndHideCursor()
@@ -196,6 +435,8 @@ void wndUpdateCaptureCursor(void* pUserData)
 #endif
 }
 
+#endif
+
 #if defined(AUTOMATED_TESTING)
 void wndTakeScreenshot(void* pUserData)
 {
@@ -210,12 +451,6 @@ void wndTakeScreenshot(void* pUserData)
 void platformInitWindowSystem(WindowDesc* pData)
 {
     ASSERT(pWindowRef == NULL);
-
-    RectDesc currentRes = pData->fullScreen ? pData->fullscreenRect : pData->windowedRect;
-    pData->mWndX = currentRes.left;
-    pData->mWndY = currentRes.top;
-    pData->mWndW = currentRes.right - currentRes.left;
-    pData->mWndH = currentRes.bottom - currentRes.top;
 
     pWindowRef = pData;
 
@@ -232,7 +467,6 @@ void platformInitWindowSystem(WindowDesc* pData)
     pWindowRef->pNoResizeFrameLabel = bempty();
     pWindowRef->pBorderlessWindowLabel = bempty();
     pWindowRef->pOverrideDefaultPositionLabel = bempty();
-    pWindowRef->pCenteredLabel = bempty();
     pWindowRef->pForceLowDPILabel = bempty();
     pWindowRef->pWindowModeLabel = bempty();
 #endif
@@ -253,7 +487,6 @@ void platformExitWindowSystem()
     bdestroy(&pWindowRef->pNoResizeFrameLabel);
     bdestroy(&pWindowRef->pBorderlessWindowLabel);
     bdestroy(&pWindowRef->pOverrideDefaultPositionLabel);
-    bdestroy(&pWindowRef->pCenteredLabel);
     bdestroy(&pWindowRef->pForceLowDPILabel);
     bdestroy(&pWindowRef->pWindowModeLabel);
 #endif
@@ -300,8 +533,6 @@ void platformUpdateWindowSystem()
     bdestroy(&pWindowRef->pOverrideDefaultPositionLabel);
     bformat(&pWindowRef->pOverrideDefaultPositionLabel, "OverrideDefaultPosition: %s",
             pWindowRef->overrideDefaultPosition ? "True" : "False");
-    bdestroy(&pWindowRef->pCenteredLabel);
-    bformat(&pWindowRef->pCenteredLabel, "Centered: %s", pWindowRef->centered ? "True" : "False");
     bdestroy(&pWindowRef->pForceLowDPILabel);
     bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->forceLowDPI ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
@@ -346,30 +577,30 @@ void platformSetupWindowSystemUI(IApp* pApp)
     Textbox.pText = &gPlatformName;
     REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Platform Name", &Textbox, WIDGET_TYPE_TEXTBOX));
 
-#if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
+#if defined(WINDOW_UI_ENABLED)
     RadioButtonWidget rbWindowed;
     rbWindowed.pData = &pWindowRef->mWindowMode;
     rbWindowed.mRadioId = WM_WINDOWED;
     UIWidget* pWindowed = uiAddComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
+    // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pWindowed, nullptr, wndSetWindowed);
     uiSetWidgetDeferred(pWindowed, true);
-    REGISTER_LUA_WIDGET(pWindowed);
 
     RadioButtonWidget rbFullscreen;
     rbFullscreen.pData = &pWindowRef->mWindowMode;
     rbFullscreen.mRadioId = WM_FULLSCREEN;
     UIWidget* pFullscreen = uiAddComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
+    // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pFullscreen, nullptr, wndSetFullscreen);
     uiSetWidgetDeferred(pFullscreen, true);
-    REGISTER_LUA_WIDGET(pFullscreen);
 
     RadioButtonWidget rbBorderless;
     rbBorderless.pData = &pWindowRef->mWindowMode;
     rbBorderless.mRadioId = WM_BORDERLESS;
     UIWidget* pBorderless = uiAddComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
+    // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pBorderless, nullptr, wndSetBorderless);
     uiSetWidgetDeferred(pBorderless, true);
-    REGISTER_LUA_WIDGET(pBorderless);
 
     ButtonWidget bMaximize;
     UIWidget*    pMaximize = uiAddComponentWidget(pWindowControlsComponent, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
@@ -383,9 +614,11 @@ void platformSetupWindowSystemUI(IApp* pApp)
     uiSetWidgetDeferred(pMinimize, true);
     REGISTER_LUA_WIDGET(pMinimize);
 
-    CheckboxWidget rbCentered;
-    rbCentered.pData = &(pWindowRef->centered);
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Toggle Window Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
+    ButtonWidget bCenter = {};
+    UIWidget*    pCenter = uiAddComponentWidget(pWindowControlsComponent, "Center", &bCenter, WIDGET_TYPE_BUTTON);
+    uiSetWidgetOnEditedCallback(pCenter, nullptr, wndCenterWindow);
+    uiSetWidgetDeferred(pCenter, true);
+    REGISTER_LUA_WIDGET(pCenter);
 
     RectDesc recRes;
     getRecommendedResolution(&recRes);
@@ -419,15 +652,51 @@ void platformSetupWindowSystemUI(IApp* pApp)
 
     ButtonWidget bSetRect;
     UIWidget*    pSetRect = uiAddComponentWidget(pWindowControlsComponent, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
+    // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pSetRect, nullptr, wndMoveWindow);
     uiSetWidgetDeferred(pSetRect, true);
-    REGISTER_LUA_WIDGET(pSetRect);
 
     ButtonWidget bRecWndSize;
     UIWidget*    pRecWndSize =
         uiAddComponentWidget(pWindowControlsComponent, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
+    // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pRecWndSize, nullptr, wndSetRecommendedWindowSize);
     uiSetWidgetDeferred(pRecWndSize, true);
+
+    DropdownWidget windowResDropDown = {};
+
+    static char  windowResNames[MAX_WINDOW_RES_COUNT + 1][MAX_WINDOW_RES_STR_LENGTH];
+    static char* pWindowResNamePtrs[MAX_WINDOW_RES_COUNT + 1];
+    memset(windowResNames, 0, sizeof(windowResNames));
+    sprintf(windowResNames[MAX_WINDOW_RES_COUNT], "##invalid_window_res");
+
+    for (int32_t i = 0; i < MAX_WINDOW_RES_COUNT + 1; ++i)
+    {
+        pWindowResNamePtrs[i] = &windowResNames[i][0];
+    }
+
+    gWindowSize = 0;
+    gWindowPrevSize = 0;
+
+    windowResDropDown.mCount = 0;
+    windowResDropDown.pNames = pWindowResNamePtrs;
+    windowResDropDown.pData = &gWindowSize;
+
+    UIWidget* pWindowResDropdown =
+        uiAddComponentWidget(pWindowControlsComponent, "Window resolution", &windowResDropDown, WIDGET_TYPE_DROPDOWN);
+    uiSetWidgetOnEditedCallback(pWindowResDropdown, pWindowResDropdown, wndUpdateResolution);
+    uiSetWidgetDeferred(pWindowResDropdown, false);
+
+    pWindowed->pOnEditedUserData = pWindowResDropdown;
+    pFullscreen->pOnEditedUserData = pWindowResDropdown;
+    pBorderless->pOnEditedUserData = pWindowResDropdown;
+    pSetRect->pOnEditedUserData = pWindowResDropdown;
+    pRecWndSize->pOnEditedUserData = pWindowResDropdown;
+
+    REGISTER_LUA_WIDGET(pWindowed);
+    REGISTER_LUA_WIDGET(pFullscreen);
+    REGISTER_LUA_WIDGET(pBorderless);
+    REGISTER_LUA_WIDGET(pSetRect);
     REGISTER_LUA_WIDGET(pRecWndSize);
 
 #if WINDOW_DETAILS
@@ -531,14 +800,6 @@ void platformSetupWindowSystemUI(IApp* pApp)
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
     ++windowDetailsWidgetCount;
 
-    TextboxWidget CenteredWidget = {};
-    CenteredWidget.pText = &pWindowRef->pCenteredLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].mType = WIDGET_TYPE_TEXTBOX;
-    strcpy(windowDetailsWidgets[windowDetailsWidgetCount].mLabel, "Centered");
-    windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &CenteredWidget;
-    windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
-    ++windowDetailsWidgetCount;
-
     TextboxWidget ForceLowDPIWidget = {};
     ForceLowDPIWidget.pText = &pWindowRef->pForceLowDPILabel;
     windowDetailsWidgets[windowDetailsWidgetCount].mType = WIDGET_TYPE_TEXTBOX;
@@ -617,7 +878,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
         {
             Resolution res = monitor->resolutions[j];
 
-            radioWidgets[j].pData = &pWindowRef->pCurRes[i];
+            radioWidgets[j].pData = &gMonitorResolution[i];
             radioWidgets[j].mRadioId = (int32_t)j;
 
             monitorWidgets[j] = &monitorWidgetsBases[j];
@@ -635,11 +896,11 @@ void platformSetupWindowSystemUI(IApp* pApp)
             if (monitor->defaultResolution.mWidth == res.mWidth && monitor->defaultResolution.mHeight == res.mHeight)
             {
                 strcat(monitorWidgetsBases[j].mLabel, " (native)");
-                pWindowRef->pCurRes[i] = (int32_t)j;
-                pWindowRef->pLastRes[i] = (int32_t)j;
+                gMonitorResolution[i] = (int32_t)j;
+                gMonitorLastResolution[i] = (int32_t)j;
             }
 
-            uiSetWidgetOnEditedCallback(monitorWidgets[j], nullptr, wndUpdateResolution);
+            uiSetWidgetOnEditedCallback(monitorWidgets[j], pWindowResDropdown, monitorUpdateResolution);
             uiSetWidgetDeferred(monitorWidgets[j], false);
         }
 
@@ -647,6 +908,11 @@ void platformSetupWindowSystemUI(IApp* pApp)
         tf_free(radioWidgets);
         tf_free(monitorWidgetsBases);
         tf_free(monitorWidgets);
+        if (i == getActiveMonitorIdx())
+        {
+            // Update window resolutions list after display resolutions are populated
+            wndUpdateResolutionsList(pWindowResDropdown);
+        }
     }
 
     enum

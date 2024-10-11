@@ -444,12 +444,15 @@ typedef struct ShaderStageLoadDesc
 
 typedef struct ShaderLoadDesc
 {
-    ShaderStageLoadDesc   mVert;
-    ShaderStageLoadDesc   mFrag;
-    ShaderStageLoadDesc   mGeom;
-    ShaderStageLoadDesc   mHull;
-    ShaderStageLoadDesc   mDomain;
-    ShaderStageLoadDesc   mComp;
+    ShaderStageLoadDesc mVert;
+    ShaderStageLoadDesc mFrag;
+    ShaderStageLoadDesc mGeom;
+    ShaderStageLoadDesc mHull;
+    ShaderStageLoadDesc mDomain;
+    ShaderStageLoadDesc mComp;
+#if defined(ENABLE_WORKGRAPH)
+    ShaderStageLoadDesc mGraph;
+#endif
     const ShaderConstant* pConstants;
     uint32_t              mConstantCount;
 } ShaderLoadDesc;

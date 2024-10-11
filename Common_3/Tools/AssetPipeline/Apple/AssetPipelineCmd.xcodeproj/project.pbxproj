@@ -164,7 +164,7 @@
 		B2B33C232980100800A5D377 /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../../OS/Darwin/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
 		B2B33C2D2980101400A5D377 /* ToolFileSystem.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ToolFileSystem.c; path = ../../../Utilities/FileSystem/ToolFileSystem.c; sourceTree = "<group>"; };
 		E6E31A582C3C79F4001A8714 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
-		ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ispc_texcomp.xcodeproj; path = ../../../../Data/Tools/ISPCTextureCompressor/ispc_texcomp.xcodeproj; sourceTree = "<group>"; };
+		ED1CAE9C28F45666007987B9 /* ispc_texcomp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ispc_texcomp.xcodeproj; path = ../../../../Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/ispc_texcomp.xcodeproj; sourceTree = "<group>"; };
 		ED8E563C28F404EF00E83F1F /* AssetPipeline_Textures.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipeline_Textures.cpp; path = ../src/AssetPipeline_Textures.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 

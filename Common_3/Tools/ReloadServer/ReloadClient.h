@@ -33,4 +33,4 @@ FORGE_API void platformExitReloadClient();
 FORGE_API void platformReloadClientRequestShaderRecompile();
 FORGE_API bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize);
 FORGE_API bool platformReloadClientShouldQuit(void);
-FORGE_API void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderComponent);
+FORGE_API void platformReloadClientAddReloadShadersWidgets(UIComponent* pReloadShaderComponent);

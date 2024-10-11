@@ -75,7 +75,7 @@ static OSInfo  gOsInfo = {};
 
 extern MonitorDesc* gMonitors;
 extern uint32_t     gMonitorCount;
-extern float2*      gDPIScales;
+extern float (*gDPIScales)[2];
 
 /// VSync Toggle
 static UIComponent* pToggleVSyncWindow = NULL;
@@ -342,7 +342,7 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -560,7 +560,6 @@ char     benchmarkOutput[1024] = { "\0" };
             exit(1);
         }
 
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
         initLog(pApp->GetName(), DEFAULT_LOG_LEVEL);
 
         NSString* version = [[NSProcessInfo processInfo] operatingSystemVersionString];
@@ -584,7 +583,6 @@ char     benchmarkOutput[1024] = { "\0" };
         gCurrentWindow.borderlessWindow = pSettings->mBorderlessWindow;
         gCurrentWindow.noresizeFrame = !pSettings->mDragToResize;
         gCurrentWindow.maximized = false;
-        gCurrentWindow.centered = pSettings->mCentered;
         gCurrentWindow.forceLowDPI = pSettings->mForceLowDPI;
         gCurrentWindow.cursorCaptured = false;
 
@@ -598,21 +596,17 @@ char     benchmarkOutput[1024] = { "\0" };
         MonitorDesc* pMonitor = getMonitor(pSettings->mMonitorIndex);
         ASSERT(pMonitor);
 
-        // use dpi scale of selected monitor
-        float dpiScale[2];
-        getMonitorDpiScale(pSettings->mMonitorIndex, dpiScale);
-
-        gCurrentWindow.clientRect = { (int32_t)(pSettings->mWindowX + pMonitor->monitorRect.left * dpiScale[0]),
-                                      (int32_t)(pSettings->mWindowY + pMonitor->monitorRect.top * dpiScale[0]),
-                                      (int32_t)(pSettings->mWindowX + pMonitor->monitorRect.left * dpiScale[0]) + pSettings->mWidth,
-                                      (int32_t)(pSettings->mWindowY + pMonitor->monitorRect.top * dpiScale[0]) + pSettings->mHeight };
+        gCurrentWindow.clientRect = { (int32_t)(pSettings->mWindowX + pMonitor->monitorRect.left),
+                                      (int32_t)(pSettings->mWindowY + pMonitor->monitorRect.top),
+                                      (int32_t)(pSettings->mWindowX + pMonitor->monitorRect.left) + pSettings->mWidth,
+                                      (int32_t)(pSettings->mWindowY + pMonitor->monitorRect.top) + pSettings->mHeight };
         gCurrentWindow.windowedRect = gCurrentWindow.clientRect;
 
         gCurrentWindow.fullscreenRect = {
-            (int32_t)(pMonitor->monitorRect.left * dpiScale[0]),
-            (int32_t)(pMonitor->monitorRect.top * dpiScale[1]),
-            (int32_t)(pMonitor->monitorRect.right * dpiScale[0]),
-            (int32_t)(pMonitor->monitorRect.bottom * dpiScale[1]),
+            (int32_t)(pMonitor->monitorRect.left),
+            (int32_t)(pMonitor->monitorRect.top),
+            (int32_t)(pMonitor->monitorRect.right),
+            (int32_t)(pMonitor->monitorRect.bottom),
         };
 
         openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider, pSettings->mMonitorIndex);

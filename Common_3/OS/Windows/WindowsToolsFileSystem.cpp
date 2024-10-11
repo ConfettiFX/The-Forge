@@ -395,6 +395,17 @@ bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDi
     return true;
 }
 
+time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
+{
+    char filePath[FS_MAX_PATH] = { 0 };
+    if (!fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
+        return 0;
+
+    struct stat fileInfo = { 0 };
+    stat(filePath, &fileInfo);
+    return fileInfo.st_mtime;
+}
+
 struct WindowsFsDirectoryIterator
 {
     bool             finished;

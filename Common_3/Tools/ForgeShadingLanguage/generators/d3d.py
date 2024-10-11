@@ -50,7 +50,7 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
 
     fsl = binary.preprocessed_srcs[platform]
 
-    shader = getShader(platform, binary.fsl_filepath, fsl, dst)
+    shader = getShader(platform, binary, fsl, dst)
     binary.waveops_flags = shader.waveops_flags
     # check for function overloading.
     get_fn_table(shader.lines)

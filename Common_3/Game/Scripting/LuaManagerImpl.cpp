@@ -29,6 +29,7 @@
 
 #include "../../Application/Interfaces/ICameraController.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/IThread.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
 

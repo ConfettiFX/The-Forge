@@ -180,21 +180,23 @@ public class ForgeBaseActivity extends NativeActivity
         WindowManager wm = (WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
         Display       display = wm.getDefaultDisplay();
         Display.Mode[] modes = display.getSupportedModes();
+        Log.i(LOGTAG, "Supported Refresh rates (" + modes.length + ")");
 
         Set<Float> refreshRatesSet = new HashSet<Float>();
         for (int i = 0; i < modes.length; i += 1)
         {
+            Log.i(LOGTAG, "  [" + i + "] = " + modes[i].getRefreshRate());
             refreshRatesSet.add(modes[i].getRefreshRate());
         }
-
-        // Unique rates
-        int i = 0;
-        float[] refreshRates = new float[refreshRatesSet.size()];
-        refreshRates[i++] = display.getRefreshRate();
         refreshRatesSet.remove(display.getRefreshRate());
+
+        // Unique refresh rates
+        int refreshRateIt = 0;
+        float[] refreshRates = new float[refreshRatesSet.size() + 1];
+        refreshRates[refreshRateIt++] = display.getRefreshRate();
         for (Float x : refreshRatesSet)
         {
-            refreshRates[i++] = x;
+            refreshRates[refreshRateIt++] = x;
         }
         return refreshRates;
     }

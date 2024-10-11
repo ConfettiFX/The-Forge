@@ -59,9 +59,6 @@ RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t13, binding = 4);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t4, binding = 5);
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
 
-GroupShared(uint, ShadowBitfields[SHADOW_COUNT]);
-GroupShared(float3, ShadowParticlePos[SHADOW_COUNT]);
-
 bool TriangleIntersectsSphere(float3 A, float3 B, float3 C, float3 P, float r, bool twoSided)
 {
 	// We have to test 3 cases:
@@ -127,20 +124,6 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 		filterDispatchGroupData = filterDispatchGroupDataBuffer[groupId.x];
 	}
 
-	if (threadId.x < SHADOW_COUNT)
-	{
-		uint currShadow = BitfieldBuffer[threadId.x];
-		if ((currShadow & PARTICLE_BITFIELD_IS_ALIVE) > 0 && (currShadow & PARTICLE_BITFIELD_LIGHT_CULLED) < 1)
-		{
-			ShadowBitfields[threadId.x] = currShadow;
-			ShadowParticlePos[threadId.x] = UnpackParticlePosition(GetParticleSet(currShadow & PARTICLE_BITFIELD_SET_INDEX_MASK), ParticlesDataBuffer[threadId.x]);
-		}
-		else
-		{
-			ShadowBitfields[threadId.x] = 0;
-		}
-	}
-
     GroupMemoryBarrier();
 
 	bool cull[NUM_UNIQUE_GEOMETRIES];
@@ -194,17 +177,17 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 		}
 
 		// Filter for point light shadows
-		
-		UNROLL_N(SHADOW_COUNT)
-		for (uint j=0; j<SHADOW_COUNT; j++)
+		for (uint j=0; j<MAX_SHADOW_COUNT; j++)
 		{
-			uint Bitfield = ShadowBitfields[j];
-			if (Bitfield == 0)
+			uint Bitfield = BitfieldBuffer[j];
+			if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
 				continue;
 
+			float3 particlePos = UnpackParticlePosition(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], ParticlesDataBuffer[j]);
+
 			// Skip triangle if it is outside of the area of influence of the light
-			float lightRadius = unpack2Floats(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK).LightRadiusAndVelocityNoise).x;
-			if (!TriangleIntersectsSphere(vert[0].xyz, vert[1].xyz, vert[2].xyz, ShadowParticlePos[j], lightRadius, twoSided))
+			float lightRadius = unpack2Floats(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK].LightRadiusAndVelocityNoise).x;
+			if (!TriangleIntersectsSphere(vert[0].xyz, vert[1].xyz, vert[2].xyz, particlePos, lightRadius, twoSided))
 				continue;
 
 			// For each face that is visible, filter its triangles
@@ -214,9 +197,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 				uint faceIdx = VIEW_POINT_SHADOW + i;
 				float4 vertices[3] =
 				{
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[0] - float4(ShadowParticlePos[j], 0.0)),
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[1] - float4(ShadowParticlePos[j], 0.0)),
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[2] - float4(ShadowParticlePos[j], 0.0))
+					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[0] - float4(particlePos, 0.0)),
+					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[1] - float4(particlePos, 0.0)),
+					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[2] - float4(particlePos, 0.0))
 				};
 
 				cull[VIEW_POINT_SHADOW+j] = cull[VIEW_POINT_SHADOW+j] && FilterTriangle(indices, vertices, !twoSided, PerFrameVBConstants.cullingViewports[faceIdx].windowSize, PerFrameVBConstants.cullingViewports[faceIdx].sampleCount);

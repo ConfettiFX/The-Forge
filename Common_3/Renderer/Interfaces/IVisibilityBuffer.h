@@ -91,7 +91,7 @@ typedef struct VBPreFilterStats
 } VBPreFilterStats;
 
 typedef struct TriangleFilteringPassDesc
-{
+{ //-V802
     Pipeline* pPipelineClearBuffers;
     Pipeline* pPipelineTriangleFiltering;
 
@@ -105,6 +105,11 @@ typedef struct TriangleFilteringPassDesc
     uint32_t mBuffersIndex; // See comment in VisibilityBufferDesc::mNumBuffers
 
     VBPreFilterStats mVBPreFilterStats;
+
+#if defined(ENABLE_WORKGRAPH)
+    Workgraph* pWorkgraph;
+    bool       mInitWorkgraph;
+#endif
 } TriangleFilteringPassDesc;
 
 typedef struct UpdateVBMeshFilterGroupsDesc

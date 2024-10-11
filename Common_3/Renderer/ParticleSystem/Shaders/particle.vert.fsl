@@ -31,10 +31,8 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
-	// First 16 bits: age over max age, last 16 bits: speed over max speed
-	DATA(FLAT(uint), Modulator, TEXCOORD1);
-	// First bit: modulation type, remaining 31 bits: particle set index
-	DATA(FLAT(uint), ParticleSetIndexModulationType, TEXCOORD2);
+	DATA(FLAT(uint), Color, TEXCOORD1);
+	DATA(FLAT(uint), TexIndex, TEXCOORD2);
 };
 
 VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
@@ -44,8 +42,8 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 	VSOutput result;
 	result.Position = float4(0,0,0,0);
 	result.TexCoord = float2(0,0);
-	result.Modulator = 0;
-	result.ParticleSetIndexModulationType = 0;
+	result.Color = 0;
+	result.TexIndex = 0;
 
 	uint particleIdx = ParticlesToRasterize[instanceId];
 
@@ -55,9 +53,10 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 	float4 VelocityAge;
 	float3 position;
 
-	UnpackParticle(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particleData, position, VelocityAge);
+	uint particleSetIdx = Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+	UnpackParticle(ParticleSetsBuffer[particleSetIdx], particleData, position, VelocityAge);
 
-	float scale = UnpackParticleSize(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), particleIdx, UnpackParticleAgeOverMaxAge(particleData));
+	float scale = UnpackParticleSize(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], particleIdx, UnpackParticleAgeOverMaxAge(particleData));
 	const float3 vertexPosCache_indexed[4] =
 	{
 		float3(-scale, -scale, 0.0f),
@@ -74,39 +73,31 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 		float2(1.0f, 1.0f),
 	};
 
-	const float3 vertexPosCache[6] =
+	uint vertIndex;
+	switch (vertexId)
 	{
-		vertexPosCache_indexed[0],
-		vertexPosCache_indexed[1],
-		vertexPosCache_indexed[2],
-		vertexPosCache_indexed[2],
-		vertexPosCache_indexed[3],
-		vertexPosCache_indexed[0],
-	};
-
-	const float2 vertexTexCache[6] =
-	{
-		vertexTexCache_indexed[0],
-		vertexTexCache_indexed[1],
-		vertexTexCache_indexed[2],
-		vertexTexCache_indexed[2],
-		vertexTexCache_indexed[3],
-		vertexTexCache_indexed[0],
-	};
-
-	float4 offset = float4(vertexPosCache[vertexId], 1.0f);
-	uint billboardMode = Bitfield & PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK;
+		case 0: 
+		case 1: 
+		case 2: vertIndex = vertexId; break;
+		case 3: vertIndex = 2; break;
+		case 4: vertIndex = 3; break;
+		case 5: vertIndex = 0; break;
+	}
 
 	float3 right = getCol(ParticleConstantBuffer.ViewTransform, 0).xyz;
 	float3 up = getCol(ParticleConstantBuffer.ViewTransform, 1).xyz;
 	float3 forward = getCol(ParticleConstantBuffer.ViewTransform, 2).xyz;
 
-	switch (billboardMode)
+	switch (Bitfield & PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK)
 	{
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_SCREEN_ALIGNED:
 		{
-			result.Position = mul(ParticleConstantBuffer.ViewTransform, float4(position, 1.0f));
-			result.Position.xyz += vertexPosCache[vertexId].xyz;
+			float3 velocityViewSpace = mul(ParticleConstantBuffer.ViewTransform, float4(VelocityAge.xyz, 0.0)).xyz;
+
+			result.Position.xyz = vertexPosCache_indexed[vertIndex].xyz;
+			result.Position.xyz += dot(result.Position.xyz, velocityViewSpace) * velocityViewSpace * ParticleSetsBuffer[particleSetIdx].VelocityStretch;
+			result.Position += 	mul(ParticleConstantBuffer.ViewTransform, float4(position, 1.0f));
+
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_VELOCITY_ORIENTED:
 		{
@@ -115,7 +106,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 			right = cross(up, forward);
 			forward = cross(up, right);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
-			result.Position = mul(billboard, offset);
+			result.Position = mul(billboard, float4(vertexPosCache_indexed[vertIndex], 1.0));
 			result.Position = mul(ParticleConstantBuffer.ViewTransform, result.Position);
 		} break;
 		case PARTICLE_BITFIELD_BILLBOARD_MODE_HORIZONTAL:
@@ -124,17 +115,40 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 			up = float3(0.0f, 0.0f, 1.0f);
 			right = float3(1.0f, 0.0f, 0.0f);
 			float4x4 billboard = make_f4x4_cols(float4(right, 0), float4(up, 0), float4(forward, 0), float4(position, 1.0f));
-			result.Position = mul(billboard, offset);
+			result.Position = mul(billboard, float4(vertexPosCache_indexed[vertIndex], 1.0));
 			result.Position = mul(ParticleConstantBuffer.ViewTransform, result.Position);
 		} break;
 		default:
 			break;
 	}
 
+	uint texIndex = (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0 ? UnpackSecondaryTextureIndex(ParticleSetsBuffer[particleSetIdx]) : 
+		UnpackPrimaryTextureIndex(ParticleSetsBuffer[particleSetIdx]);
+	float2 tileOffset = float2(0,0);
+	uint2 tileAmount = uint2(1,1);
+	
+	if ((Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0)
+	{
+		uint frameIndex = uint(particleData.AnimationTime * UnpackAnimationFrameCount(ParticleSetsBuffer[particleSetIdx]));
+		tileAmount = uint2(UnpackAnimationTilesX(ParticleSetsBuffer[particleSetIdx]), UnpackAnimationTilesY(ParticleSetsBuffer[particleSetIdx]));
+		frameIndex = (Bitfield & PARTICLE_BITFIELD_LOOP_ANIMATION) > 0 ? (frameIndex % (tileAmount.x * tileAmount.y)) : clamp(frameIndex, uint(0), tileAmount.x * tileAmount.y);
+
+		tileOffset = float2(frameIndex % tileAmount.x, frameIndex / tileAmount.x);
+		tileOffset /= float2(tileAmount);
+	}
+
+	float ageOverMaxAge = UnpackParticleAgeOverMaxAge(particleData);
+	float2 minMaxSpeed = float2(unpack2Floats(ParticleSetsBuffer[particleSetIdx].SteeringStrengthMinSpeed).y, unpack2Floats(ParticleSetsBuffer[particleSetIdx].MaxSizeAndSpeed).y);
+	float speedOverMaxSpeed = UnpackParticleSpeedOverMaxSpeed(particleData, ParticleSetsBuffer[particleSetIdx], minMaxSpeed.x, minMaxSpeed.y);
+
 	result.Position = mul(ParticleConstantBuffer.ProjTransform, result.Position);
-	result.TexCoord = vertexTexCache[vertexId];
-	result.Modulator = pack2Floats(UnpackParticleAgeOverMaxAge(particleData), UnpackParticleSpeedOverMaxSpeed(particleData, GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK)));
-	result.ParticleSetIndexModulationType = (Bitfield & 0xFF) | ((Bitfield & PARTICLE_MODULATION_TYPE_LIFETIME) > 0 ? 1 << 31 : 0);
+	result.TexCoord = vertexTexCache_indexed[vertIndex] / float2(tileAmount) + tileOffset;
+	result.Color = packUnorm4x8((ParticleSetsBuffer[particleSetIdx].ParticleSetBitfield & PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME) > 0 ?
+		UnpackParticleColorLifetime(ParticleSetsBuffer[particleSetIdx].StartColor, ParticleSetsBuffer[particleSetIdx].EndColor, ageOverMaxAge) : 
+		UnpackParticleColorSpeed(ParticleSetsBuffer[particleSetIdx].StartColor, ParticleSetsBuffer[particleSetIdx].EndColor, 
+			ageOverMaxAge, pow(speedOverMaxSpeed, PARTICLE_COLOR_OVER_SPEED_STRENGTH)) * 
+			float4(1,1,1,UnpackAlpha(ParticleSetsBuffer[particleSetIdx], particleIdx)));
+	result.TexIndex = texIndex;
 
 	RETURN(result);
 }

@@ -308,7 +308,7 @@ void setupPlatformUI()
     UIComponentDesc desc = {};
     desc.mStartPosition = vec2(pApp->mSettings.mWidth * 0.6f, pApp->mSettings.mHeight * 0.90f);
     uiAddComponent("Reload Control", &desc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -464,7 +464,6 @@ char     benchmarkOutput[1024] = { "\0" };
             exit(1);
         }
 
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
         initLog(pApp->GetName(), DEFAULT_LOG_LEVEL);
 
         NSString* strSysName = [[UIDevice currentDevice] systemName];

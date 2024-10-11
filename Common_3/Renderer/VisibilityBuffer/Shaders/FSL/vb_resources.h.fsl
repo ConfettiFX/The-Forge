@@ -25,12 +25,13 @@
 #ifndef _VB_RESOURCES_H
 #define _VB_RESOURCES_H
 
-#ifdef _VB_CLEAR_BUFFERS_H
+#if defined(_VB_TRIANGLE_FILTERING_H)
+RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
+#elif defined(_VB_CLEAR_BUFFERS_H)
 RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_NONE, u0, binding = 0);
 #endif
 
 #ifdef _VB_TRIANGLE_FILTERING_H
-RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
 RES(RWBuffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, u2, binding = 6);
 
 RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u3, binding = 8);

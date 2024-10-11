@@ -24,8 +24,6 @@
 
 #include "../../Application/Config.h"
 
-#include <functional>
-
 #if !defined(XBOX)
 // clang-format off
 #include "shlobj.h"
@@ -57,16 +55,12 @@ static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 
 extern "C"
 {
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-    void fsGetParentPath(const char* path, char* output);
+    extern ResourceDirectoryInfo gResourceDirectories[RD_COUNT];
+    void                         parse_path_statement(char* PathStatment, size_t size);
 }
 
 #ifndef XBOX
-static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
-
-static char gApplicationPath[FS_MAX_PATH] = {};
-static char gDocumentsPath[FS_MAX_PATH] = {};
+static bool gInitialized = false;
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
@@ -77,41 +71,27 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     }
     ASSERT(pDesc);
 
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-        gResourceMounts[i] = "";
-
-    // Get application directory
-    wchar_t utf16Path[FS_MAX_PATH];
-    GetModuleFileNameW(0, utf16Path, FS_MAX_PATH);
-    char applicationFilePath[FS_MAX_PATH] = {};
-    WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
-    fsGetParentPath(applicationFilePath, gApplicationPath);
-    gResourceMounts[RM_CONTENT] = gApplicationPath;
-    gResourceMounts[RM_DEBUG] = gApplicationPath;
-
-    // Get user directory
-    PWSTR userDocuments = NULL;
-    SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
-    WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
-    CoTaskMemFree(userDocuments);
-    gResourceMounts[RM_DOCUMENTS] = gDocumentsPath;
-    gResourceMounts[RM_SAVE_0] = gApplicationPath;
-
-    // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    if (!pDesc->mIsTool)
     {
-        if (pDesc->pResourceMounts[i])
-            gResourceMounts[i] = pDesc->pResourceMounts[i];
-    }
+        FILE* pathStatement = fopen(PATHSTATEMENT_FILE_NAME, "r");
+        if (!pathStatement)
+        {
+            ASSERT(false);
+            return false;
+        }
 
-    //// Get app data directory
-    // char appData[FS_MAX_PATH] = {};
-    // PWSTR localAppdata = NULL;
-    // SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppdata);
-    // pathLength = wcslen(localAppdata);
-    // utf8Length = WideCharToMultiByte(CP_UTF8, 0, localAppdata, (int)pathLength, NULL, 0, NULL, NULL);
-    // WideCharToMultiByte(CP_UTF8, 0, localAppdata, (int)pathLength, appData, utf8Length, NULL, NULL);
-    // CoTaskMemFree(localAppdata);
+        fseek(pathStatement, 0, SEEK_END);
+        size_t fileSize = ftell(pathStatement);
+        rewind(pathStatement);
+
+        char* buffer = (char*)tf_malloc(fileSize);
+        // size may change after converting \r\n into \n
+        fileSize = fread(buffer, 1, fileSize, pathStatement);
+        fclose(pathStatement);
+
+        parse_path_statement(buffer, fileSize);
+        tf_free(buffer);
+    }
 
     gInitialized = true;
     return true;
@@ -119,53 +99,6 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 
 void exitFileSystem(void) { gInitialized = false; }
 #endif
-
-static bool fsDirectoryExists(const char* path)
-{
-    return withUTF16Path<bool>(path,
-                               [](const wchar_t* pathStr)
-                               {
-                                   DWORD attributes = GetFileAttributesW(pathStr);
-                                   return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
-                               });
-}
-
-static bool fsCreateDirectory(const char* path)
-{
-    if (fsDirectoryExists(path))
-    {
-        return true;
-    }
-
-    char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
-    if (parentPath[0] != 0)
-    {
-        if (!fsDirectoryExists(parentPath))
-        {
-            fsCreateDirectory(parentPath);
-        }
-    }
-    return withUTF16Path<bool>(path, [](const wchar_t* pathStr) { return ::CreateDirectoryW(pathStr, NULL) ? true : false; });
-}
-
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsCreateDirectory(fsGetResourceDirectory(resourceDir)); }
-
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
-{
-    char filePath[FS_MAX_PATH] = { 0 };
-    if (!fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
-        return 0;
-
-    // Fix paths for Windows 7 - needs to be generalized and propagated
-    // eastl::string path = eastl::string(filePath);
-    // auto directoryPos = path.find(":");
-    // eastl::string cleanPath = path.substr(directoryPos - 1);
-
-    struct stat fileInfo = { 0 };
-    stat(filePath, &fileInfo);
-    return fileInfo.st_mtime;
-}
 
 struct WindowsFileStream
 {
@@ -238,8 +171,11 @@ static inline FORGE_CONSTEXPR const char* fsOverwriteFileModeToString(FileMode m
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
-    char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(resourceDir), fileName, '\\', sizeof filePath, filePath);
+    memset(pOut, 0, sizeof *pOut);
+
+    char filePath[FS_MAX_PATH] = { 0 };
+    strcat_s(filePath, FS_MAX_PATH, gResourceDirectories[resourceDir].mPath);
+    strcat_s(filePath, FS_MAX_PATH, fileName);
 
     // Path utf-16 conversion
     size_t  filePathLen = strlen(filePath) + 1;
@@ -312,12 +248,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 
 static bool ioWindowsFsOpen(IFileSystem*, ResourceDirectory rd, const char* fileName, FileMode mode, FileStream* pOut)
 {
-    if (PlatformOpenFile(rd, fileName, mode, pOut))
-    {
-        pOut->mMount = fsGetResourceDirectoryMount(rd);
-        return true;
-    }
-    return false;
+    return PlatformOpenFile(rd, fileName, mode, pOut);
 }
 
 static ssize_t ioWindowsFsGetSize(FileStream* fs)
@@ -471,9 +402,13 @@ bool ioWindowsFsIsAtEnd(FileStream* fs)
     return feof(stream->file) != 0;
 }
 
-#if !defined(XBOX)
-static const char* ioWindowsFsGetResourceMount(ResourceMount mount) { return gResourceMounts[mount]; }
-#else
+void* ioWindowsGetSystemHandle(FileStream* fs)
+{
+    WSD(stream, fs);
+    return stream->handle;
+}
+
+#if defined(XBOX)
 #define ioWindowsFsGetResourceMount NULL
 #endif
 
@@ -487,10 +422,10 @@ static IFileSystem gWindowsFileIO = {
     ioWindowsFsGetSize,
     ioWindowsFsFlush,
     ioWindowsFsIsAtEnd,
-    ioWindowsFsGetResourceMount,
     NULL,
     NULL,
     ioWindowsFsMemoryMap,
+    ioWindowsGetSystemHandle,
     NULL,
 };
 

@@ -33,7 +33,12 @@ RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s2, binding = 3);
 RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding=4);
 RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t2, binding = 5);
 RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t3, binding = 6);
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t4, binding = 7);
+
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t0, binding = 27);
+#else
+RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], space4, t0, binding = 27);
+#endif
 
 STRUCT(PsInShadowOpaque)
 {

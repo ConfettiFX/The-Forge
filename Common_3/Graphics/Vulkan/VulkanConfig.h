@@ -68,10 +68,6 @@
 #define VK_RAYTRACING_AVAILABLE
 #endif
 
-#if defined(_WINDOWS) || defined(__linux__)
-#define NSIGHT_AFTERMATH_AVAILABLE
-#endif
-
 #define SHADER_STATS_AVAILABLE
 
 #ifndef VK_OVERRIDE_LAYER_PATH

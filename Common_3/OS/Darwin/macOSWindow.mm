@@ -42,11 +42,15 @@
 #include "../../Graphics/GraphicsConfig.h"
 #include "../../Utilities/Math/MathTypes.h"
 
+#define RECOMMENDED_WINDOW_SIZE_DESIRED_FRACTION     0.75
+#define RECOMMENDED_WINDOW_SIZE_MIN_DESIRED_FRACTION 0.75
+#define RECOMMENDED_WINDOW_SIZE_MAX_DISPLAY_FRACTION 0.75
+
 bool gCursorInsideTrackingArea = true;
 
-MonitorDesc*  gMonitors = nullptr;
-uint32_t      gMonitorCount = 0;
-float2*       gDPIScales = nullptr;
+MonitorDesc* gMonitors = nullptr;
+uint32_t     gMonitorCount = 0;
+float (*gDPIScales)[2] = nullptr;
 NSWindowLevel gDefaultWindowLevel = NSPopUpMenuWindowLevel;
 
 extern WindowDesc             gCurrentWindow;
@@ -55,6 +59,51 @@ extern CustomMessageProcessor sCustomProc;
 //------------------------------------------------------------------------
 // STATIC STRUCTS
 //------------------------------------------------------------------------
+static RectDesc convertNSRectToRectWithDpiScale(NSRect nsRect, const float dpiScale[2])
+{
+    CGFloat maxHeight = NSScreen.mainScreen.frame.size.height * dpiScale[1];
+    nsRect.origin.x *= dpiScale[0];
+    nsRect.origin.y *= dpiScale[1];
+    nsRect.size.width *= dpiScale[0];
+    nsRect.size.height *= dpiScale[1];
+
+    // Note: Forge uses top left corner to define origins of rectangles and displays
+    //       Apple uses bottom left
+    //       Additionally, Apple uses coordinates normalized using dpiScale
+    RectDesc rect = {};
+    rect.left = (int32_t)nsRect.origin.x;
+    rect.top = (int32_t)(maxHeight - (nsRect.origin.y + nsRect.size.height));
+    rect.right = (int32_t)(nsRect.origin.x + nsRect.size.width);
+    rect.bottom = (int32_t)(maxHeight - nsRect.origin.y);
+    return rect;
+}
+
+static RectDesc convertNSRectToRect(const NSRect nsRect, const NSWindow* window)
+{
+    const float scale = [window backingScaleFactor];
+    const float dpiScale[2] = { scale, scale };
+    return convertNSRectToRectWithDpiScale(nsRect, dpiScale);
+}
+
+static NSRect convertRectToNSRectWithDpi(RectDesc rect, const float dpiScale[2])
+{
+    CGFloat maxHeight = NSScreen.mainScreen.frame.size.height;
+
+    NSRect nsRect = {};
+    nsRect.origin.x = (CGFloat)rect.left / dpiScale[0];
+    nsRect.origin.y = maxHeight - (CGFloat)rect.bottom / dpiScale[1];
+    nsRect.size.width = (CGFloat)getRectWidth(&rect) / dpiScale[0];
+    nsRect.size.height = (CGFloat)getRectHeight(&rect) / dpiScale[1];
+
+    return nsRect;
+}
+
+static NSRect convertRectToNSRect(const RectDesc rect, const NSWindow* window)
+{
+    const float scale = [window backingScaleFactor];
+    const float dpiScale[2] = { scale, scale };
+    return convertRectToNSRectWithDpi(rect, dpiScale);
+}
 
 @interface ForgeNSWindow: NSWindow
 {
@@ -94,83 +143,24 @@ extern CustomMessageProcessor sCustomProc;
     return self.frame.size.height - contentHeight;
 }
 
-- (CGPoint)convetToBottomLeft:(CGPoint)coord
-{
-    NSScreen* screen = [self screen];
-    if (screen == nil)
-    {
-        return CGPointZero;
-    }
-
-    NSView* view = self.contentView;
-    BOOL    isFlipped = [view isFlipped];
-    if (isFlipped)
-    {
-        return coord;
-    }
-
-    NSRect screenFrame = [screen visibleFrame];
-    NSRect windowFrame = [self frame];
-
-    CGPoint flipped;
-    flipped.x = coord.x;
-    flipped.y = screenFrame.origin.y + screenFrame.size.height - coord.y - windowFrame.size.height;
-
-    return flipped;
-}
-
-- (CGPoint)convetToTopLeft:(CGPoint)coord
-{
-    NSScreen* screen = [self screen];
-    if (screen == nil)
-    {
-        return CGPointZero;
-    }
-
-    NSView* view = self.contentView;
-    BOOL    isFlipped = [view isFlipped];
-    if (isFlipped)
-    {
-        return coord;
-    }
-
-    NSRect screenFrame = [screen frame];
-    NSRect windowFrame = [self frame];
-
-    CGPoint flipped;
-    flipped.x = coord.x;
-    // take into screen origin to get correct center coords
-    // otherwise we get center of resolution and end up off
-    flipped.y = screenFrame.size.height + screenFrame.origin.y - coord.y - windowFrame.size.height;
-
-    return flipped;
-}
-
-- (RectDesc)setRectFromNSRect:(NSRect)nsrect
-{
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    return { (int32_t)(nsrect.origin.x * dpiScale[0]), (int32_t)(nsrect.origin.y * dpiScale[1]),
-             (int32_t)((nsrect.origin.x + nsrect.size.width) * dpiScale[0]),
-             (int32_t)((nsrect.origin.y + nsrect.size.height) * dpiScale[1]) };
-}
-
 - (void)updateClientRect:(WindowDesc*)winDesc
 {
-    NSRect viewSize = [self.contentView frame];
-    winDesc->clientRect = [self setRectFromNSRect:viewSize];
+    const NSRect viewSize = [self.contentView frame];
+    const NSRect screenView = [self convertRectToScreen:viewSize];
+
+    winDesc->clientRect = convertNSRectToRect(screenView, self);
+    winDesc->mWndX = gCurrentWindow.clientRect.left;
+    winDesc->mWndY = gCurrentWindow.clientRect.top;
+    winDesc->mWndW = getRectWidth(&winDesc->clientRect);
+    winDesc->mWndH = getRectHeight(&winDesc->clientRect);
 }
 
-NSRect getCenteredWindowRect(WindowDesc* winDesc);
+static NSRect getCenteredWindowRect(WindowDesc* winDesc);
 
-- (void)updateWindowRect:(WindowDesc*)winDesc
+- (void)updateWindowedRect:(WindowDesc*)winDesc
 {
-    NSRect windowSize = [self frame];
-
-    CGPoint origin = [self convetToTopLeft:windowSize.origin];
-    windowSize.origin = origin;
-    winDesc->windowedRect = [self setRectFromNSRect:windowSize];
+    NSRect windowRect = [self frame];
+    winDesc->windowedRect = convertNSRectToRect(windowRect, self);
 }
 
 - (void)hideFullScreenButton
@@ -289,23 +279,6 @@ NSRect getCenteredWindowRect(WindowDesc* winDesc);
     [self.delegate didDeminiaturize];
 }
 
-void windowMovedOrResized(RectDesc* centeredRect)
-{
-    if (!gCurrentWindow.fullScreen)
-    {
-        const int windowDecorationMaxSize = 60;
-        gCurrentWindow.centered = gCurrentWindow.windowedRect.left == centeredRect->left &&
-                                  gCurrentWindow.windowedRect.right == centeredRect->right &&
-                                  abs(gCurrentWindow.windowedRect.top - centeredRect->top) < windowDecorationMaxSize &&
-                                  abs(gCurrentWindow.windowedRect.bottom - centeredRect->bottom) < windowDecorationMaxSize;
-    }
-
-    gCurrentWindow.mWndX = gCurrentWindow.windowedRect.left;
-    gCurrentWindow.mWndY = gCurrentWindow.windowedRect.top;
-    gCurrentWindow.mWndW = getRectWidth(&gCurrentWindow.windowedRect);
-    gCurrentWindow.mWndH = getRectHeight(&gCurrentWindow.windowedRect);
-}
-
 - (void)windowDidResize:(NSNotification*)notification
 {
     ForgeNSWindow* window = [notification object];
@@ -318,20 +291,16 @@ void windowMovedOrResized(RectDesc* centeredRect)
 
     [self.delegate didResize:viewSize.size];
 
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale[0], self.frame.size.height * dpiScale[1]);
+    const float  backingScale = self.window.backingScaleFactor;
+    const CGSize contentSize = self.frame.size;
+    metalLayer.drawableSize = CGSizeMake(contentSize.width * backingScale, contentSize.height * backingScale);
 
     if (!gCurrentWindow.fullScreen)
     {
-        [window updateClientRect:&gCurrentWindow];
-        [window updateWindowRect:&gCurrentWindow];
-
-        NSRect   centeredWindowRectNS = getCenteredWindowRect(&gCurrentWindow);
-        RectDesc centeredWindowRect = [window setRectFromNSRect:centeredWindowRectNS];
-        windowMovedOrResized(&centeredWindowRect);
+        [window updateWindowedRect:&gCurrentWindow];
     }
+
+    [window updateClientRect:&gCurrentWindow];
 
     gCurrentWindow.maximized = [window isZoomed];
     gCurrentWindow.minimized = false;
@@ -353,7 +322,7 @@ void windowMovedOrResized(RectDesc* centeredRect)
     metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale[0], self.frame.size.height * dpiScale[1]);
 
     [window updateClientRect:&gCurrentWindow];
-    [window updateWindowRect:&gCurrentWindow];
+    [window updateWindowedRect:&gCurrentWindow];
 }
 
 - (void)windowDidMove:(NSNotification*)notification
@@ -366,11 +335,7 @@ void windowMovedOrResized(RectDesc* centeredRect)
     ForgeNSWindow* window = [notification object];
 
     [window updateClientRect:&gCurrentWindow];
-    [window updateWindowRect:&gCurrentWindow];
-
-    NSRect   centeredWindowRectNS = getCenteredWindowRect(&gCurrentWindow);
-    RectDesc centeredWindowRect = [window setRectFromNSRect:centeredWindowRectNS];
-    windowMovedOrResized(&centeredWindowRect);
+    [window updateWindowedRect:&gCurrentWindow];
 }
 
 - (void)windowDidChangeScreen:(NSNotification*)notification
@@ -379,7 +344,7 @@ void windowMovedOrResized(RectDesc* centeredRect)
     NSScreen*      screen = [window screen];
 
     NSRect frame = [screen frame];
-    gCurrentWindow.fullscreenRect = [window setRectFromNSRect:frame];
+    gCurrentWindow.fullscreenRect = convertNSRectToRect(frame, window);
 }
 
 - (NSApplicationPresentationOptions)window:(NSWindow*)window
@@ -428,11 +393,7 @@ void windowMovedOrResized(RectDesc* centeredRect)
 
 - (void)windowDidExitFullScreen:(NSNotification*)notification
 {
-    ForgeNSWindow* window = [notification object];
     gCurrentWindow.fullScreen = false;
-
-    if (window && gCurrentWindow.centered)
-        centerWindow(&gCurrentWindow);
 }
 
 - (CAMetalLayer*)metalLayer
@@ -576,7 +537,7 @@ NSWindowStyleMask PrepareStyleMask(WindowDesc* winDesc)
 {
     NSWindowStyleMask styleMask = 0u;
 
-    ForgeMTLView* view = (__bridge ForgeMTLView*)(gCurrentWindow.handle.window);
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
     if (view != nil)
     {
         ForgeNSWindow* window = (ForgeNSWindow*)view.window;
@@ -586,7 +547,7 @@ NSWindowStyleMask PrepareStyleMask(WindowDesc* winDesc)
     // Enforce resizable mask for fullscreen
     // requirement for direct-to-display presentation
     // otherwise display is not able to acquire direct mode in fullscreen.
-    if (gCurrentWindow.noresizeFrame && !gCurrentWindow.fullScreen)
+    if (winDesc->noresizeFrame && !winDesc->fullScreen)
     {
         styleMask &= ~NSWindowStyleMaskResizable;
     }
@@ -596,16 +557,16 @@ NSWindowStyleMask PrepareStyleMask(WindowDesc* winDesc)
     }
 
     NSWindowStyleMask fullScreenStyleMask = NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
-    NSWindowStyleMask borderlessStyleMask = NSWindowStyleMaskBorderless;
+    NSWindowStyleMask borderlessStyleMask = NSWindowStyleMaskBorderless | NSWindowStyleMaskMiniaturizable;
     NSWindowStyleMask windowedStyleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
 
-    if (gCurrentWindow.fullScreen)
+    if (winDesc->fullScreen)
     {
         styleMask &= ~windowedStyleMask;
         styleMask &= ~borderlessStyleMask;
         styleMask |= fullScreenStyleMask;
     }
-    else if (gCurrentWindow.borderlessWindow)
+    else if (winDesc->borderlessWindow)
     {
         styleMask &= ~windowedStyleMask;
         styleMask &= ~fullScreenStyleMask;
@@ -625,6 +586,42 @@ static NSString* screenNameForDisplay(CGDirectDisplayID displayID, NSScreen* scr
 {
     NSString* screenName = screen.localizedName;
     return screenName;
+}
+
+void displayReconfigureCallback(CGDirectDisplayID displayID, CGDisplayChangeSummaryFlags flags, void* userInfo)
+{
+    // Process only display mode changes after they are already applied
+    if ((flags & (kCGDisplaySetModeFlag | kCGDisplayBeginConfigurationFlag)) != kCGDisplaySetModeFlag)
+    {
+        return;
+    }
+
+    // Find monitor
+    uint32_t monitorIndex;
+    for (monitorIndex = 0; monitorIndex < gMonitorCount; ++monitorIndex)
+    {
+        if (gMonitors[monitorIndex].displayID == displayID)
+        {
+            break;
+        }
+    }
+
+    MonitorDesc* pMonitor = &gMonitors[monitorIndex];
+
+    const Resolution* resolutions = pMonitor->resolutions;
+
+    // Find current resolution for the display
+    CGDisplayModeRef currentDisplayMode = CGDisplayCopyDisplayMode(displayID);
+    uint32_t         displayModeWidth = (uint32_t)CGDisplayModeGetWidth(currentDisplayMode);
+    uint32_t         displayModeHeight = (uint32_t)CGDisplayModeGetHeight(currentDisplayMode);
+    for (uint32_t i = 0; i < arrlen(resolutions); ++i)
+    {
+        if (resolutions[i].mWidth == displayModeWidth && resolutions[i].mHeight == displayModeHeight)
+        {
+            pMonitor->currentResolution = i;
+            break;
+        }
+    }
 }
 
 void collectMonitorInfo()
@@ -654,7 +651,7 @@ void collectMonitorInfo()
 
     gMonitorCount = displayCount;
     gMonitors = (MonitorDesc*)tf_calloc(displayCount, sizeof(MonitorDesc));
-    gDPIScales = (float2*)tf_calloc(displayCount, sizeof(float2));
+    gDPIScales = (float(*)[2])tf_calloc(displayCount, sizeof(float[2]));
 
     NSArray<NSScreen*>* screens = [NSScreen screens];
     CGDirectDisplayID   mainDisplayID = CGMainDisplayID();
@@ -683,7 +680,8 @@ void collectMonitorInfo()
         }
 
         float dpiScale = (float)[displayScreen backingScaleFactor];
-        gDPIScales[displayIndex] = { (float)dpiScale, (float)dpiScale };
+        gDPIScales[displayIndex][0] = (float)dpiScale;
+        gDPIScales[displayIndex][1] = (float)dpiScale;
 
         MonitorDesc& display = gMonitors[displayIndex];
 
@@ -693,9 +691,10 @@ void collectMonitorInfo()
         display.physicalSize[0] = physicalSize.width;
         display.physicalSize[1] = physicalSize.height;
 
-        NSRect frameRect = [displayScreen frame];
-        display.defaultResolution.mWidth = frameRect.size.width;
-        display.defaultResolution.mHeight = frameRect.size.height;
+        NSRect   frameRectNS = [displayScreen frame];
+        RectDesc frameRect = convertNSRectToRectWithDpiScale(frameRectNS, gDPIScales[displayIndex]);
+        display.defaultResolution.mWidth = getRectWidth(&frameRect);
+        display.defaultResolution.mHeight = getRectHeight(&frameRect);
 
         NSString* displayName = screenNameForDisplay(displayID, displayScreen);
         // weird edge case where displayScreen's name is null causing a crash in strcpy=
@@ -708,11 +707,7 @@ void collectMonitorInfo()
         id<MTLDevice> metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
         strcpy(display.publicAdapterName, metalDevice.name.UTF8String);
 
-        // our rects use left / top / right / bottom so need to compute right and bottom
-        // by using left + width and top + height
-        // use frame of screen
-        display.workRect = { (int32_t)frameRect.origin.x, (int32_t)frameRect.origin.y, (int32_t)(frameRect.origin.x + frameRect.size.width),
-                             (int32_t)(frameRect.origin.y + frameRect.size.height) };
+        display.workRect = frameRect;
         display.monitorRect = display.workRect;
 
         Resolution* displayResolutions = NULL;
@@ -762,6 +757,17 @@ void collectMonitorInfo()
               });
 
         display.resolutions = displayResolutions;
+
+        // Find current resolution for the display
+        for (uint32_t i = 0; i < arrlen(displayResolutions); ++i)
+        {
+            if (displayResolutions[i].mWidth == display.defaultResolution.mWidth &&
+                displayResolutions[i].mHeight == display.defaultResolution.mHeight)
+            {
+                display.currentResolution = i;
+                break;
+            }
+        }
 
         Resolution highest = display.resolutions[arrlen(display.resolutions) - 1];
 
@@ -816,26 +822,36 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
                 int32_t monitorIndex)
 {
     NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
+    NSScreen*         activeScreen = getNSScreenFromIndex(monitorIndex);
 
-    NSRect    viewRect{ { (float)gCurrentWindow.windowedRect.left, (float)gCurrentWindow.windowedRect.top },
-                     { (float)getRectWidth(&gCurrentWindow.clientRect), (float)getRectHeight(&gCurrentWindow.clientRect) } };
-    NSScreen* activeScreen = getNSScreenFromIndex(monitorIndex);
+    const float backingFactor = activeScreen.backingScaleFactor;
+    const float dpiScale[2] = { backingFactor, backingFactor };
 
-    NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
-    // divide by retina factor
-    // otherwise position is all off
-    styleAdjustedRect.origin.x /= [activeScreen backingScaleFactor];
-    styleAdjustedRect.origin.y /= [activeScreen backingScaleFactor];
+    NSRect viewRect = convertRectToNSRectWithDpi(winDesc->clientRect, dpiScale);
+    NSRect windowRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
+
+    // Make sure that window title bar is within screen bounds
+    if (!winDesc->fullScreen)
+    {
+        CGFloat diff = activeScreen.frame.size.height - (windowRect.origin.y + windowRect.size.height);
+        viewRect.origin.y += diff;
+        windowRect.origin.y += diff;
+    }
 
     // init window with the right size and the given Screen to ensure the correct window properties are setup from the start.
-    ForgeNSWindow* window = [[ForgeNSWindow alloc] initWithContentRect:styleAdjustedRect
+    ForgeNSWindow* window = [[ForgeNSWindow alloc] initWithContentRect:viewRect
                                                              styleMask:styleMask
                                                                backing:NSBackingStoreBuffered
                                                                  defer:YES
                                                                 screen:activeScreen];
     [window hideFullScreenButton];
 
-    ForgeMTLView* view = [[ForgeMTLView alloc] initWithFrame:viewRect device:device display:0 hdr:NO vsync:NO];
+    // Requires convertRectToBacking to provide view size in pixel coordinates
+    ForgeMTLView* view = [[ForgeMTLView alloc] initWithFrame:[window convertRectToBacking:viewRect]
+                                                      device:device
+                                                     display:0
+                                                         hdr:NO
+                                                       vsync:NO];
 
     NSNotificationCenter* notificationCenter = [[NSWorkspace sharedWorkspace] notificationCenter];
     [notificationCenter addObserver:view selector:@selector(onActivation:) name:NSWorkspaceDidActivateApplicationNotification object:nil];
@@ -851,12 +867,6 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
 
     view.delegate = delegateRenderProvider;
     gCurrentWindow.handle.window = (void*)CFBridgingRetain(view);
-
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    NSSize windowSize = CGSizeMake(viewRect.size.width / dpiScale[0], viewRect.size.height / dpiScale[1]);
-    [window setContentSize:windowSize];
 
     NSRect                bounds = [view bounds];
     NSTrackingAreaOptions options = (NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited |
@@ -888,20 +898,8 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
     }
     [view.window setLevel:gDefaultWindowLevel];
 
-    styleAdjustedRect.origin = [window convetToTopLeft:styleAdjustedRect.origin];
-    if (gCurrentWindow.centered)
-    {
-        centerWindow(winDesc);
-    }
-    else
-    {
-        [window setFrameOrigin:styleAdjustedRect.origin];
-
-        RectDesc newRect = [window setRectFromNSRect:styleAdjustedRect];
-        windowMovedOrResized(&newRect);
-    }
-
-    [window updateWindowRect:winDesc];
+    [window updateWindowedRect:winDesc];
+    [window updateClientRect:winDesc];
 
     if (gCurrentWindow.fullScreen)
     {
@@ -909,7 +907,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
         setFullscreen(winDesc);
     }
 
-    setMousePositionRelative(winDesc, styleAdjustedRect.size.width / 2.0 / dpiScale[0], styleAdjustedRect.size.height / 2.0 / dpiScale[1]);
+    setMousePositionRelative(winDesc, windowRect.size.width, windowRect.size.height);
 }
 
 void closeWindow(WindowDesc* winDesc)
@@ -927,70 +925,92 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
 
     gCurrentWindow.windowedRect = *pRect;
 
-    if (gCurrentWindow.centered)
-    {
-        centerWindow(winDesc);
-    }
-    else
-    {
-        NSRect         frameRect;
-        float          dpiScale[2];
-        const uint32_t monitorIdx = getActiveMonitorIdx();
-        getMonitorDpiScale(monitorIdx, dpiScale);
-        frameRect.origin.x = pRect->left / dpiScale[0];
-        frameRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - pRect->bottom) / dpiScale[1];
-        frameRect.size.width = (float)getRectWidth(pRect) / dpiScale[0];
-        frameRect.size.height = (float)getRectHeight(pRect) / dpiScale[1];
+    NSRect         frameRect;
+    float          dpiScale[2];
+    const uint32_t monitorIdx = getActiveMonitorIdx();
+    getMonitorDpiScale(monitorIdx, dpiScale);
+    frameRect.origin.x = pRect->left / dpiScale[0];
+    frameRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - pRect->bottom) / dpiScale[1];
+    frameRect.size.width = (float)getRectWidth(pRect) / dpiScale[0];
+    frameRect.size.height = (float)getRectHeight(pRect) / dpiScale[1];
 
-        ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-        window.styleMask = PrepareStyleMask(winDesc);
+    ForgeNSWindow* window = (ForgeNSWindow*)view.window;
+    window.styleMask = PrepareStyleMask(winDesc);
 
-        [window setFrame:frameRect display:true];
-
-        RectDesc newRect = [window setRectFromNSRect:frameRect];
-        windowMovedOrResized(&newRect);
-    }
+    [window setFrame:frameRect display:true];
 }
 
 void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
 {
-    RectDesc desc{ 0, 0, (int)width, (int)height };
+    RectDesc desc{ winDesc->windowedRect.left, winDesc->windowedRect.top, winDesc->windowedRect.left + (int)width,
+                   winDesc->windowedRect.top + (int)height };
     setWindowRect(winDesc, &desc);
 }
 
-void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect)
 {
-    ForgeMTLView* view = (__bridge ForgeMTLView*)(gCurrentWindow.handle.window);
+    NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
+
+    NSRect viewRect{ { (float)rect->left, (float)rect->top }, { (float)getRectWidth(rect), (float)getRectHeight(rect) } };
+
+    NSRect   styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
+    RectDesc windowRect = {};
+    windowRect.left = (int32_t)styleAdjustedRect.origin.x;
+    windowRect.top = (int32_t)styleAdjustedRect.origin.y;
+    windowRect.right = (int32_t)styleAdjustedRect.origin.x + (int32_t)viewRect.size.width;
+    windowRect.bottom = (int32_t)styleAdjustedRect.origin.y + (int32_t)viewRect.size.height;
+    setWindowRect(winDesc, rect);
+}
+void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
+{
+    RectDesc desc{ winDesc->clientRect.left, winDesc->clientRect.top, winDesc->clientRect.left + (int)width,
+                   winDesc->clientRect.top + (int)height };
+    setWindowClientRect(winDesc, &desc);
+}
+
+static void toggleBorderless(WindowDesc* winDesc)
+{
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
     if (view == nil)
     {
         return;
     }
+    NSWindow* window = [view window];
 
-    ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-    gCurrentWindow.borderlessWindow = !gCurrentWindow.borderlessWindow;
-    if (gCurrentWindow.fullScreen)
+    // Get new windowRect by converting it into content rect
+    // and then reverting back using a new style mask
+    RectDesc newWindowedRect = winDesc->windowedRect;
     {
+        NSRect     frameRect = convertRectToNSRect(newWindowedRect, window);
+        // Fullscreen needs to be false to get correct style mask for windowed window
+        WindowDesc tempWindowDesc = *winDesc;
+        tempWindowDesc.fullScreen = false;
+        NSWindowStyleMask styleMask = PrepareStyleMask(&tempWindowDesc);
+        tempWindowDesc.borderlessWindow = !tempWindowDesc.borderlessWindow;
+        NSWindowStyleMask newStyleMask = PrepareStyleMask(&tempWindowDesc);
+
+        NSRect contentRect = [NSWindow contentRectForFrameRect:frameRect styleMask:styleMask];
+        NSRect newFrameRect = [NSWindow frameRectForContentRect:contentRect styleMask:newStyleMask];
+        newWindowedRect = convertNSRectToRect(newFrameRect, window);
+    }
+
+    winDesc->borderlessWindow = !winDesc->borderlessWindow;
+
+    if (winDesc->fullScreen)
+    {
+        winDesc->windowedRect = newWindowedRect;
         return;
     }
 
     window.styleMask = PrepareStyleMask(winDesc);
-    NSRect         contentBounds = view.bounds;
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    uint32_t currentWidth = (uint32_t)(contentBounds.size.width * dpiScale[0] + 1e-6);
-    uint32_t currentHeight = (uint32_t)(contentBounds.size.height * dpiScale[1] + 1e-6);
-    if (currentWidth != width || currentHeight != height)
-    {
-        setWindowSize(winDesc, width, height);
-    }
+    setWindowRect(winDesc, &newWindowedRect);
 
     [view updateTrackingAreas];
 }
 
 void toggleFullscreen(WindowDesc* winDesc)
 {
-    ForgeMTLView* view = (__bridge ForgeMTLView*)(gCurrentWindow.handle.window);
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
     if (view == nil)
     {
         return;
@@ -1005,44 +1025,39 @@ void toggleFullscreen(WindowDesc* winDesc)
     getMonitorDpiScale(monitorIdx, dpiScale);
     if (isFullscreen)
     {
-        gCurrentWindow.fullScreen = isFullscreen;
+        winDesc->fullScreen = isFullscreen;
         window.styleMask = PrepareStyleMask(winDesc);
 
-        NSSize size = { (CGFloat)getRectWidth(&gCurrentWindow.fullscreenRect) / dpiScale[0],
-                        (CGFloat)getRectHeight(&gCurrentWindow.fullscreenRect) / dpiScale[1] };
+        NSSize size = { (CGFloat)getRectWidth(&winDesc->fullscreenRect) / dpiScale[0],
+                        (CGFloat)getRectHeight(&winDesc->fullscreenRect) / dpiScale[1] };
         [window setContentSize:size];
 
         [view.window setLevel:NSNormalWindowLevel];
-
-        gCurrentWindow.mWndX = 0;
-        gCurrentWindow.mWndY = 0;
-        gCurrentWindow.mWndW = getRectWidth(&gCurrentWindow.fullscreenRect);
-        gCurrentWindow.mWndH = getRectHeight(&gCurrentWindow.fullscreenRect);
-        gCurrentWindow.mWindowMode = WM_FULLSCREEN;
+        winDesc->mWindowMode = WM_FULLSCREEN;
     }
 
     [window toggleFullScreen:window];
 
     if (!isFullscreen)
     {
-        NSSize size = { (CGFloat)getRectWidth(&gCurrentWindow.clientRect) / dpiScale[0],
-                        (CGFloat)getRectHeight(&gCurrentWindow.clientRect) / dpiScale[1] };
-        [window setContentSize:size];
+        winDesc->fullScreen = isFullscreen;
+        NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
 
-        gCurrentWindow.fullScreen = isFullscreen;
-        window.styleMask = PrepareStyleMask(winDesc);
+        NSRect frameRect = convertRectToNSRect(winDesc->windowedRect, window);
+        NSRect contentRect = [NSWindow contentRectForFrameRect:frameRect styleMask:styleMask];
 
+        [window setFrame:contentRect display:true];
+
+        window.styleMask = styleMask;
         [view.window setLevel:gDefaultWindowLevel];
 
-        gCurrentWindow.mWndX = gCurrentWindow.windowedRect.left;
-        gCurrentWindow.mWndY = gCurrentWindow.windowedRect.top;
-        gCurrentWindow.mWndW = getRectWidth(&gCurrentWindow.clientRect);
-        gCurrentWindow.mWndH = getRectHeight(&gCurrentWindow.clientRect);
-        gCurrentWindow.mWindowMode = gCurrentWindow.borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+        [window setFrameOrigin:frameRect.origin];
+
+        winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
     }
 }
 
-void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowed(WindowDesc* winDesc)
 {
     winDesc->maximized = false;
 
@@ -1052,27 +1067,22 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
     }
     if (winDesc->borderlessWindow)
     {
-        toggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
+        toggleBorderless(winDesc);
     }
     winDesc->mWindowMode = WindowMode::WM_WINDOWED;
 }
 
-void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setBorderless(WindowDesc* winDesc)
 {
     if (winDesc->fullScreen)
     {
         toggleFullscreen(winDesc);
-        if (!winDesc->borderlessWindow)
-            toggleBorderless(winDesc, width, height);
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
     }
-    else if (!winDesc->borderlessWindow)
+    if (!winDesc->borderlessWindow)
     {
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
-        toggleBorderless(winDesc, width, height);
-        if (!winDesc->borderlessWindow)
-            winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+        toggleBorderless(winDesc);
     }
+    winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
 }
 
 void setFullscreen(WindowDesc* winDesc)
@@ -1140,42 +1150,28 @@ void minimizeWindow(WindowDesc* winDesc)
     gCurrentWindow.minimized = true;
 }
 
-NSRect getCenteredWindowRect(WindowDesc* winDesc)
+static NSRect getCenteredWindowRect(WindowDesc* winDesc)
 {
-    ForgeMTLView* view = (__bridge ForgeMTLView*)(gCurrentWindow.handle.window);
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
     if (view == nil)
     {
         return NSRect();
     }
+    NSWindow* window = [view window];
+    NSScreen* screen = [window screen];
 
-    uint32_t fsHalfWidth = getRectWidth(&gCurrentWindow.fullscreenRect) >> 1;
-    uint32_t fsHalfHeight = getRectHeight(&gCurrentWindow.fullscreenRect) >> 1;
-    uint32_t windowWidth = getRectWidth(&gCurrentWindow.clientRect);
-    uint32_t windowHeight = getRectHeight(&gCurrentWindow.clientRect);
-    uint32_t windowHalfWidth = windowWidth >> 1;
-    uint32_t windowHalfHeight = windowHeight >> 1;
+    const NSRect  fullscreenRect = [screen visibleFrame];
+    const NSRect  contentRect = [view frame];
+    const CGSize  fsHalfSize = { fullscreenRect.size.width / 2, fullscreenRect.size.height / 2 };
+    const CGSize  contentHalfSize = { contentRect.size.width / 2, contentRect.size.height / 2 };
+    const CGPoint origin = { fsHalfSize.width - contentHalfSize.width, fsHalfSize.height - contentHalfSize.height };
 
-    // use int32_t in case of window larger than full size.
-    int32_t X = fsHalfWidth - windowHalfWidth;
-    int32_t Y = fsHalfHeight - windowHalfHeight;
+    NSRect centeredRect = NSRect{ // take into account fullscreen position otherwise we might end up on the wrong screen
+                                  { fullscreenRect.origin.x + origin.x, fullscreenRect.origin.y + origin.y },
+                                  contentRect.size
+    };
 
-    NSRect         contentRect;
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    // take into account left position otherwise we might end up on the wrong screen
-    contentRect.origin.x = (float)(gCurrentWindow.fullscreenRect.left + X) / dpiScale[0];
-    contentRect.origin.y =
-        (float)(gCurrentWindow.fullscreenRect.top + getRectHeight(&gCurrentWindow.fullscreenRect) - (float)(Y + windowHeight)) /
-        dpiScale[1];
-    contentRect.size.width = (float)(windowWidth) / dpiScale[0];
-    contentRect.size.height = (float)(windowHeight) / dpiScale[1];
-
-    ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-    window.styleMask = PrepareStyleMask(winDesc);
-    NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect styleMask:window.styleMask];
-
-    return styleAdjustedRect;
+    return [NSWindow frameRectForContentRect:centeredRect styleMask:PrepareStyleMask(winDesc)];
 }
 
 void centerWindow(WindowDesc* winDesc)
@@ -1186,15 +1182,10 @@ void centerWindow(WindowDesc* winDesc)
         return;
     }
 
-    gCurrentWindow.centered = true;
-
-    NSRect styleAdjustedRect = getCenteredWindowRect(winDesc);
+    NSRect frameRect = getCenteredWindowRect(winDesc);
 
     ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-    [window setFrame:styleAdjustedRect display:true];
-
-    RectDesc newRect = [window setRectFromNSRect:styleAdjustedRect];
-    windowMovedOrResized(&newRect);
+    [window setFrame:frameRect display:true];
 }
 
 //------------------------------------------------------------------------
@@ -1348,8 +1339,8 @@ void getDpiScale(float array[2])
         array[1] = 1.f;
         return;
     }
-    array[0] = gDPIScales[0].x;
-    array[1] = gDPIScales[0].y;
+    array[0] = gDPIScales[0][0];
+    array[1] = gDPIScales[0][1];
 }
 
 void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
@@ -1366,21 +1357,19 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
     dpiScale[0] = dpiScale[1] = [displayScreen backingScaleFactor];
 }
 
-void getRecommendedResolution(RectDesc* rect)
+void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect)
 {
-    float          dpiScale[2]{};
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-    // use screen 0 instead of main screen as this can get called without an active window.
-    // mainscreen refers to the key window where the mouse currently is.
-    // use 75% of full screen rect
-    // NSRect mainScreenRect = [[NSScreen main][0] frame];
-    NSRect mainScreenRect = [[NSScreen mainScreen] frame];
-    *rect = RectDesc{ 0, 0, (int32_t)(mainScreenRect.size.width * dpiScale[0] * 0.75),
-                      (int32_t)(mainScreenRect.size.height * dpiScale[1] * 0.75) };
-}
+    RectDesc recommendedClient = {};
+    getRecommendedResolution(&recommendedClient);
+    NSRect viewRect{ { (float)recommendedClient.left, (float)recommendedClient.top },
+                     { (float)getRectWidth(&recommendedClient), (float)getRectHeight(&recommendedClient) } };
+    NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:PrepareStyleMask(winDesc)];
 
-void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect) { getRecommendedResolution(rect); }
+    rect->left = (int32_t)styleAdjustedRect.origin.x;
+    rect->top = (int32_t)styleAdjustedRect.origin.y;
+    rect->right = rect->left + (int32_t)styleAdjustedRect.size.width;
+    rect->bottom = rect->top + (int32_t)styleAdjustedRect.size.height;
+}
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {

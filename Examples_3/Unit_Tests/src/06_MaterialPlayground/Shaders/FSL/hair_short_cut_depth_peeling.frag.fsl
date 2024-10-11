@@ -68,12 +68,13 @@ float PS_MAIN( VSOutput In )
 	}
 
 	uint depth = asuint(In.Position.z);
+	uint2 p = uint2(In.Position.xy);
 	uint prevDepths[3];
 #if TEXTURE_ATOMIC_SUPPORTED
 	const uint3 coords[] = {
-		uint3(In.Position.x, In.Position.y, 0 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
-		uint3(In.Position.x, In.Position.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
-		uint3(In.Position.x, In.Position.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(p.x, p.y, 0 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(p.x, p.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(p.x, p.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 	};
 	AtomicMax3D(DepthsTexture, coords[0], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
@@ -81,11 +82,11 @@ float PS_MAIN( VSOutput In )
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
 	AtomicMax3D(DepthsTexture, coords[2], depth, prevDepths[2]);
 #else
-	uint2 p = uint2(In.Position.xy);
+    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
 	const uint coords[] = {
-		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 0),
-		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 1),
-		uint(p.x + p.y * cbHairGlobal.Viewport.z + cbHairGlobal.Viewport.z * cbHairGlobal.Viewport.w * 2)
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 0),
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 1),
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 2)
 	};
 	AtomicMax(DepthsTexture[coords[0]], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);

@@ -177,8 +177,6 @@ PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pV
 /************************************************************************/
 // Visibility Buffer Filtering
 /************************************************************************/
-BufferBarrier* pFilterBufferBarrier;
-
 VBPreFilterStats updateVBMeshFilterGroups(VisibilityBuffer* pVisibilityBuffer, const UpdateVBMeshFilterGroupsDesc* pDesc)
 {
     ASSERT(pVisibilityBuffer);
@@ -239,6 +237,29 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     ASSERT(pDesc->mBuffersIndex < gVBSettings.mNumBuffers);
     ASSERT(pDesc->mVBPreFilterStats.mNumDispatchGroups < gVBSettings.mMaxFilterBatches);
 
+#if defined(ENABLE_WORKGRAPH)
+    if (pDesc->pWorkgraph)
+    {
+        cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "GPU Pipeline");
+        cmdBindDescriptorSet(pCmd, 0, pDesc->pDescriptorSetTriangleFiltering);
+        cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
+
+        struct EntryRecord
+        {
+            uint32_t mNumDispatchGroups;
+        };
+        EntryRecord       record = { pDesc->mVBPreFilterStats.mNumDispatchGroups };
+        DispatchGraphDesc dispatchDesc = {};
+        dispatchDesc.mInitialize = pDesc->mInitWorkgraph;
+        dispatchDesc.mInputStride = sizeof(EntryRecord);
+        dispatchDesc.mInputType = DISPATCH_GRAPH_INPUT_CPU;
+        dispatchDesc.pInput = &record;
+        dispatchDesc.pWorkgraph = pDesc->pWorkgraph;
+        cmdDispatchWorkgraph(pCmd, &dispatchDesc);
+        cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
+        return;
+    }
+#endif
     /************************************************************************/
     // Clear previous indirect arguments
     /************************************************************************/
@@ -254,15 +275,15 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     uint32_t bufferIndex = 0;
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Buffers Synchronization");
     bufferIndex = 0;
-    pFilterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[pDesc->mFrameIndex],
-                                            RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+    BufferBarrier filterBufferBarrier[2] = {};
+    filterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[pDesc->mFrameIndex],
+                                           RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 
-    pFilterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[pDesc->mBuffersIndex],
-                                            RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-    cmdResourceBarrier(pCmd, bufferIndex, pFilterBufferBarrier, 0, nullptr, 0, nullptr);
+    filterBufferBarrier[bufferIndex++] = { pVisibilityBuffer->ppIndirectDrawArgBuffer[pDesc->mBuffersIndex],
+                                           RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+    cmdResourceBarrier(pCmd, bufferIndex, filterBufferBarrier, 0, nullptr, 0, nullptr);
 
     cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
-
     /************************************************************************/
     // Run triangle filtering shader
     /************************************************************************/
@@ -457,7 +478,6 @@ bool initVisibilityBuffer(Renderer* pRenderer, const VisibilityBufferDesc* pDesc
     gVBSettings.mNumFrames = pDesc->mNumFrames;
     gVBSettings.mNumBuffers = pDesc->mNumBuffers;
     gVBSettings.mComputeThreads = pDesc->mComputeThreads;
-    pFilterBufferBarrier = (BufferBarrier*)tf_malloc(sizeof(BufferBarrier) * (pDesc->mNumViews + 1));
 
     if (pDesc->mEnablePreSkinPass)
     {
@@ -624,9 +644,6 @@ void exitVisibilityBuffer(VisibilityBuffer* pVisibilityBuffer)
     pVisibilityBuffer->ppIndirectDataBuffer = NULL;
     tf_free(pVisibilityBuffer->ppIndirectDrawArgBuffer);
     pVisibilityBuffer->ppIndirectDrawArgBuffer = NULL;
-
-    tf_free(pFilterBufferBarrier);
-    pFilterBufferBarrier = NULL;
 
     tf_free(pVisibilityBuffer);
     pVisibilityBuffer = NULL;

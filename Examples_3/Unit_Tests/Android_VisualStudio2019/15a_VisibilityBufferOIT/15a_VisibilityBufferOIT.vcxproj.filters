@@ -63,6 +63,9 @@
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\gpu_pipeline.graph.fsl">
+      <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
+    </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\light_cull_resources.h.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
@@ -115,6 +118,9 @@
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.comp.fsl">
+      <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering_impl.h.fsl">
       <Filter>Unit_Tests\src\15a_VisibilityBufferOIT\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\vb_resources.h.fsl">

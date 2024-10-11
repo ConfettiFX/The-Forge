@@ -14,3 +14,10 @@
 #include "skybox.vert.fsl"
 #end
 
+#frag copyQuad.frag
+#include "copyQuad.frag.fsl"
+#end
+
+#vert copyQuad.vert
+#include "copyQuad.vert.fsl"
+#end

@@ -27,6 +27,7 @@
 #define VSM_SHADOWMAP_RES    SHADOWMAP_RES
 #define NUM_SDF_MESHES       3
 #define MAX_BLUR_KERNEL_SIZE 16
+#define TEST_GPU_BREADCRUMBS 1
 
 #include "../../../../Common_3/Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 
@@ -821,6 +822,11 @@ Pipeline* pPipelineSSSClear;
 RootSignature* pRootSignatureSSS;
 DescriptorSet* pDescriptorSetSSS;
 DescriptorSet* pDescriptorSetSSSClear;
+
+#if TEST_GPU_BREADCRUMBS
+Shader*   pShaderSSSCrash = NULL;
+Pipeline* pPipelineSSSCrash = NULL;
+#endif
 /************************************************************************/
 // ASM copy quads pass Shader Pack
 /************************************************************************/
@@ -870,6 +876,11 @@ Shader*        pShaderVBBufferPass[gNumGeomSets] = {};
 Pipeline*      pPipelineVBBufferPass[gNumGeomSets] = {};
 RootSignature* pRootSignatureVBPass = NULL;
 DescriptorSet* pDescriptorSetVBPass[3] = { NULL };
+
+#if TEST_GPU_BREADCRUMBS
+Shader*   pShaderVBBufferCrashPass = NULL;
+Pipeline* pPipelineVBBufferCrashPass = NULL;
+#endif
 /************************************************************************/
 // VB shade pipeline
 /************************************************************************/
@@ -877,6 +888,11 @@ Shader*        pShaderVBShade[MSAA_LEVELS_COUNT] = { NULL };
 Pipeline*      pPipelineVBShadeSrgb = NULL;
 RootSignature* pRootSignatureVBShade = NULL;
 DescriptorSet* pDescriptorSetVBShade[2] = { NULL };
+
+#if TEST_GPU_BREADCRUMBS
+Shader*   pShaderVBShadeCrash = NULL;
+Pipeline* pPipelineVBShadeSrgbCrash = NULL;
+#endif
 /************************************************************************/
 // SDF draw update volume texture atlas pipeline
 /************************************************************************/
@@ -1087,6 +1103,46 @@ SwapChain* pSwapChain = NULL;
 Semaphore* pImageAcquiredSemaphore = NULL;
 
 uint32_t gCurrentShadowType = SHADOW_TYPE_ASM;
+
+#if TEST_GPU_BREADCRUMBS
+/// GPU Breadcrumbs
+/* Markers to be used to pinpoint which command has caused GPU hang.
+ * In this example, three markers get injected into the command list: before drawing the VB, before computing SSS,
+ * before shading VB. Pressing one of the crash buttons will make the application hang at that point.
+ * There are additonal markers that reset the buffer at the start of the frame and after VB shading.
+ * When a crash is detected, the marker value is retrieved from the marker buffer that gives a clue
+ * as to what render pass likely was executed last.
+ * Markers aren't perfectly reliable and can be subject to GPU command reordering.
+ * As an example of this, a crash in compute SSS pass will likely show VB shade pass
+ * as the last rendering step, unless additional work is done between the two passes (enabling SDF mesh shadows).
+ * Establishing clear dependencies between render passes can help make them more reliable.
+ */
+
+// Rendering steps where we insert markers
+enum RenderingStep
+{
+    RENDERING_STEP_DRAW_VB_PASS = 0,
+    RENDERING_STEP_SS_SHADOWS_PASS,
+    RENDERING_STEP_SHADE_VB_PASS,
+    RENDERING_STEP_COUNT
+};
+
+enum MarkerType
+{
+    MARKER_TASK_INDEX = 0,
+    MARKER_FRAME_INDEX,
+    MARKER_COUNT,
+};
+#define MARKER_OFFSET(type) ((type)*GPU_MARKER_SIZE)
+
+bool bHasCrashed = false;
+bool bCrashedSteps[RENDERING_STEP_COUNT] = {};
+
+Buffer*        pMarkerBuffer = {};
+const uint32_t gMarkerInitialValue = UINT32_MAX;
+const char*    gMarkerNames[] = { "Draw Visibility Buffer", "Compute Screen Space Shadows", "Shade Visibility Buffer" };
+COMPILE_ASSERT(TF_ARRAY_COUNT(gMarkerNames) == RENDERING_STEP_COUNT);
+#endif
 
 #ifdef METAL
 bool gSupportTextureAtomics = false;
@@ -4830,17 +4886,6 @@ public:
 
     bool Init() override
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-
         bool threadSystemInitialized = threadSystemInit(&gThreadSystem, &gThreadSystemInitDescDefault);
         ASSERT(threadSystemInitialized);
 
@@ -5195,6 +5240,14 @@ public:
             updateSDFVolumeTextureAtlasUniformDesc.ppBuffer = &pBufferUpdateSDFVolumeTextureAtlasConstants[i];
             addResource(&updateSDFVolumeTextureAtlasUniformDesc, NULL);
         }
+
+#if TEST_GPU_BREADCRUMBS
+        // Initialize breadcrumb buffer to write markers in it.
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            initMarkers();
+        }
+#endif
 
         /************************************************************************/
         // Add GPU profiler
@@ -5607,6 +5660,13 @@ public:
 
         exitProfiler();
 
+#if TEST_GPU_BREADCRUMBS
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            exitMarkers();
+        }
+#endif
+
         removeResource(pGeom);
 
         tf_delete(pASM);
@@ -5773,6 +5833,25 @@ public:
             guiDesc3.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.6f);
             uiAddComponent("Screen Space Shadows", &guiDesc3, &pSSSGui);
 
+#if TEST_GPU_BREADCRUMBS
+            if (pRenderer->pGpu->mGpuMarkers)
+            {
+                static uint32_t renderingStepIndices[RENDERING_STEP_COUNT];
+                for (uint32_t i = 0; i < RENDERING_STEP_COUNT; i++)
+                {
+                    renderingStepIndices[i] = i;
+
+                    char label[MAX_LABEL_STR_LENGTH];
+                    snprintf(label, MAX_LABEL_STR_LENGTH, "Simulate crash (%s)", gMarkerNames[i]);
+                    ButtonWidget   crashButton;
+                    UIWidget*      pCrashButton = uiAddComponentWidget(pGuiWindow, label, &crashButton, WIDGET_TYPE_BUTTON);
+                    WidgetCallback crashCallback = [](void* pUserData) { bCrashedSteps[*(uint32_t*)pUserData] = true; };
+                    uiSetWidgetOnEditedCallback(pCrashButton, &renderingStepIndices[i], crashCallback);
+                    REGISTER_LUA_WIDGET(pCrashButton);
+                }
+            }
+#endif
+
             // Screen Space Shadows Controls UI
             {
                 CheckboxWidget SSSEnabled = {};
@@ -5826,6 +5905,19 @@ public:
                 {
                     gAppSettings.mMsaaIndex = gAppSettings.mMsaaIndexRequested;
                     gAppSettings.mMsaaLevel = (SampleCount)(1 << gAppSettings.mMsaaIndex);
+
+                    while (gAppSettings.mMsaaIndex > 0)
+                    {
+                        if ((pRenderer->pGpu->mFrameBufferSamplesCount & gAppSettings.mMsaaLevel) == 0)
+                        {
+                            gAppSettings.mMsaaIndex--;
+                            gAppSettings.mMsaaLevel = (SampleCount)(gAppSettings.mMsaaLevel / 2);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -6449,7 +6541,27 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Compute Screen Space Shadows");
 
-        cmdBindPipeline(cmd, pPipelineSSS);
+        Pipeline* pipeline = pPipelineSSS;
+#if TEST_GPU_BREADCRUMBS
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            MarkerDesc marker = {};
+            marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+            marker.mValue = RENDERING_STEP_SS_SHADOWS_PASS;
+            marker.pBuffer = pMarkerBuffer;
+            cmdWriteMarker(cmd, &marker);
+        }
+
+        // Using the malfunctioned pipeline
+        if (pRenderer->pGpu->mGpuMarkers && bCrashedSteps[RENDERING_STEP_SS_SHADOWS_PASS])
+        {
+            bCrashedSteps[RENDERING_STEP_SS_SHADOWS_PASS] = false;
+            bHasCrashed = true;
+            pipeline = pPipelineSSSCrash;
+            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (COMPUTE SCREEN SPACE SHADOWS)...");
+        }
+#endif
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSS);
 
         // Dispatch the compute shader
@@ -6500,7 +6612,7 @@ public:
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetUpdateSDFVolumeTextureAtlas[0]);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUpdateSDFVolumeTextureAtlas[1]);
 
-        uint32_t* threadGroup = pShaderUpdateSDFVolumeTextureAtlas->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+        uint32_t* threadGroup = pShaderUpdateSDFVolumeTextureAtlas->mNumThreadsPerGroup;
 
         cmdDispatch(cmd, SDF_VOLUME_TEXTURE_ATLAS_WIDTH / threadGroup[0], SDF_VOLUME_TEXTURE_ATLAS_HEIGHT / threadGroup[1],
                     SDF_VOLUME_TEXTURE_ATLAS_DEPTH / threadGroup[2]);
@@ -6579,6 +6691,17 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "VB pass");
 
+#if TEST_GPU_BREADCRUMBS
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            MarkerDesc marker = {};
+            marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+            marker.mValue = RENDERING_STEP_DRAW_VB_PASS;
+            marker.pBuffer = pMarkerBuffer;
+            cmdWriteMarker(cmd, &marker);
+        }
+#endif
+
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
@@ -6593,7 +6716,18 @@ public:
         for (uint32_t i = 0; i < NUM_GEOMETRY_SETS; ++i)
         {
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, profileNames[i]);
-            cmdBindPipeline(cmd, pPipelineVBBufferPass[i]);
+            Pipeline* pipeline = pPipelineVBBufferPass[i];
+#if TEST_GPU_BREADCRUMBS
+            // Using the malfunctioned pipeline
+            if (pRenderer->pGpu->mGpuMarkers && bCrashedSteps[RENDERING_STEP_DRAW_VB_PASS])
+            {
+                bCrashedSteps[RENDERING_STEP_DRAW_VB_PASS] = false;
+                bHasCrashed = true;
+                pipeline = pPipelineVBBufferCrashPass;
+                LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (DRAW VISIBILITY BUFFER)...");
+            }
+#endif
+            cmdBindPipeline(cmd, pipeline);
 
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
@@ -6623,6 +6757,17 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "VB Shade Pass");
 
+#if TEST_GPU_BREADCRUMBS
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            MarkerDesc marker = {};
+            marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+            marker.mValue = RENDERING_STEP_SHADE_VB_PASS;
+            marker.pBuffer = pMarkerBuffer;
+            cmdWriteMarker(cmd, &marker);
+        }
+#endif
+
         RenderTarget* pDestRenderTarget = gAppSettings.mMsaaLevel > 1 ? pRenderTargetMSAA : pRenderTargetIntermediate;
 
         BindRenderTargetsDesc bindRenderTargets = {};
@@ -6632,7 +6777,18 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestRenderTarget->mWidth, (float)pDestRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pDestRenderTarget->mWidth, pDestRenderTarget->mHeight);
 
-        cmdBindPipeline(cmd, pPipelineVBShadeSrgb);
+        Pipeline* pipeline = pPipelineVBShadeSrgb;
+#if TEST_GPU_BREADCRUMBS
+        // Using the malfunctioned pipeline
+        if (pRenderer->pGpu->mGpuMarkers && bCrashedSteps[RENDERING_STEP_SHADE_VB_PASS])
+        {
+            bCrashedSteps[RENDERING_STEP_SHADE_VB_PASS] = false;
+            bHasCrashed = true;
+            pipeline = pPipelineVBShadeSrgbCrash;
+            LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation (SHADE VISIBILITY BUFFER)...");
+        }
+#endif
+        cmdBindPipeline(cmd, pipeline);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBShade[0]);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetVBShade[1]);
 
@@ -6884,6 +7040,19 @@ public:
         if (fenceStatus == FENCE_STATUS_INCOMPLETE)
             waitForFences(pRenderer, 1, &elem.pFence);
 
+#if TEST_GPU_BREADCRUMBS
+        if (pRenderer->pGpu->mGpuMarkers)
+        {
+            // Check breadcrumb markers
+            bool crashed = checkMarkers();
+            if (crashed)
+            {
+                requestShutdown();
+                return;
+            }
+        }
+#endif
+
         resetCmdPool(pRenderer, elem.pCmdPool);
 
         if (gCurrentShadowType == SHADOW_TYPE_ASM)
@@ -6976,6 +7145,23 @@ public:
         {
             Cmd* cmd = elem.pCmds[0];
             beginCmd(cmd);
+
+#if TEST_GPU_BREADCRUMBS
+            if (pRenderer->pGpu->mGpuMarkers)
+            {
+                // Reset task marker and update frame marker
+                MarkerDesc marker = {};
+                marker.pBuffer = pMarkerBuffer;
+
+                marker.mOffset = MARKER_OFFSET(MARKER_FRAME_INDEX);
+                marker.mValue = gFrameIndex;
+                cmdWriteMarker(cmd, &marker);
+
+                marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+                marker.mValue = gMarkerInitialValue;
+                cmdWriteMarker(cmd, &marker);
+            }
+#endif
 
             gCurrentGpuProfileToken = gCurrentGpuProfileTokens[gCurrentShadowType];
 
@@ -7159,6 +7345,23 @@ public:
                 drawVisibilityBufferShade(cmd, gFrameIndex);
             }
 
+#if TEST_GPU_BREADCRUMBS
+            if (pRenderer->pGpu->mGpuMarkers)
+            {
+                // Reset task marker after checked passes.
+                // This ensures that hangs in the next unmarked passes
+                // are not blamed on previous marked passes.
+                MarkerDesc marker = {};
+                marker.pBuffer = pMarkerBuffer;
+                marker.mOffset = MARKER_OFFSET(MARKER_TASK_INDEX);
+                marker.mValue = gMarkerInitialValue;
+                // wait for previous marker buffer writes to complete
+                // so that markers for hanging passes are not overwritten.
+                marker.mFlags |= MARKER_FLAG_WAIT_FOR_WRITE;
+                cmdWriteMarker(cmd, &marker);
+            }
+#endif
+
             if (gAppSettings.mMsaaLevel > 1)
             {
                 // Pixel Puzzle needs the unresolved MSAA texture
@@ -7261,7 +7464,6 @@ public:
     {
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw UI");
 
-#if !defined(TARGET_IOS)
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pSwapChain->ppRenderTargets[frameIdx], LOAD_ACTION_LOAD };
@@ -7277,7 +7479,6 @@ public:
         cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 75.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
 
         cmdDrawUserInterface(cmd);
-#endif
 
         cmdBindRenderTargets(cmd, NULL);
 
@@ -7381,9 +7582,16 @@ public:
         shadowRTDesc.mClearValue.depth = depthStencilClear.depth;
         shadowRTDesc.mDepth = 1;
         shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        shadowRTDesc.mFormat = pRenderer->pGpu->mFormatCaps[TinyImageFormat_D32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
-                                   ? TinyImageFormat_D32_SFLOAT
-                                   : TinyImageFormat_D24_UNORM_S8_UINT;
+        shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        TinyImageFormat depthFormats[] = { TinyImageFormat_D32_SFLOAT, TinyImageFormat_D24_UNORM_S8_UINT, TinyImageFormat_D16_UNORM };
+        for (uint32_t i = 0; i < TF_ARRAY_COUNT(depthFormats); ++i)
+        {
+            if (pRenderer->pGpu->mFormatCaps[depthFormats[i]] & FORMAT_CAP_LINEAR_FILTER)
+            {
+                shadowRTDesc.mFormat = depthFormats[i];
+                break;
+            }
+        }
         shadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         shadowRTDesc.mWidth = ESM_SHADOWMAP_RES;
         shadowRTDesc.mHeight = ESM_SHADOWMAP_RES;
@@ -8302,28 +8510,41 @@ public:
 
         RootSignatureDesc vbShadeRootDesc = {};
         vbShadeRootDesc.mShaderCount = MSAA_LEVELS_COUNT;
-        vbShadeRootDesc.ppShaders = pShaderVBShade;
+        Shader* pVisibilityBufferShadeListShaders[MSAA_LEVELS_COUNT + 1] = {}; // space for crash shader
+        for (uint32_t i = 0; i < MSAA_LEVELS_COUNT; ++i)
+        {
+            pVisibilityBufferShadeListShaders[i] = pShaderVBShade[i];
+        }
+#if TEST_GPU_BREADCRUMBS
+        pVisibilityBufferShadeListShaders[MSAA_LEVELS_COUNT] = pShaderVBShadeCrash;
+        vbShadeRootDesc.mShaderCount++;
+#endif
+        vbShadeRootDesc.ppShaders = pVisibilityBufferShadeListShaders;
         vbShadeRootDesc.mStaticSamplerCount = 5;
         vbShadeRootDesc.ppStaticSamplers = vbShadeSceneSamplers;
         vbShadeRootDesc.ppStaticSamplerNames = vbShadeSceneSamplersNames;
         vbShadeRootDesc.mMaxBindlessTextures = gMaterialCount;
         // ASMVBShadeRootDesc.mSignatureType = ROOT_SIGN
 
-        Shader* pVisibilityBufferPassListShaders[gNumGeomSets + 6] = {};
+        Shader* pVisibilityBufferPassListShaders[gNumGeomSets + 7] = {};
         for (uint32_t i = 0; i < gNumGeomSets; ++i)
         {
             pVisibilityBufferPassListShaders[i] = pShaderVBBufferPass[i];
         }
-        pVisibilityBufferPassListShaders[gNumGeomSets + 0] = pShaderIndirectDepthPass;
-        pVisibilityBufferPassListShaders[gNumGeomSets + 1] = pShaderIndirectAlphaDepthPass;
-        pVisibilityBufferPassListShaders[gNumGeomSets + 2] = pShaderIndirectVSMDepthPass;
-        pVisibilityBufferPassListShaders[gNumGeomSets + 3] = pShaderIndirectVSMAlphaDepthPass;
-        pVisibilityBufferPassListShaders[gNumGeomSets + 4] = pShaderIndirectMSMDepthPass;
-        pVisibilityBufferPassListShaders[gNumGeomSets + 5] = pShaderIndirectMSMAlphaDepthPass;
+        uint32_t addShaderCount = gNumGeomSets;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectDepthPass;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectAlphaDepthPass;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectVSMDepthPass;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectVSMAlphaDepthPass;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectMSMDepthPass;
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderIndirectMSMAlphaDepthPass;
+#if TEST_GPU_BREADCRUMBS
+        pVisibilityBufferPassListShaders[addShaderCount++] = pShaderVBBufferCrashPass;
+#endif
 
         const char*       vbPassSamplerNames[] = { "nearClampSampler" };
         Sampler*          vbPassSamplers[] = { pSamplerMiplessNear };
-        RootSignatureDesc vbPassRootDesc = { pVisibilityBufferPassListShaders, gNumGeomSets + 6 };
+        RootSignatureDesc vbPassRootDesc = { pVisibilityBufferPassListShaders, addShaderCount };
         vbPassRootDesc.mMaxBindlessTextures = gMaterialCount;
         // vbPassRootDesc.ppStaticSamplerNames = indirectSamplerNames;
         vbPassRootDesc.ppStaticSamplerNames = vbPassSamplerNames;
@@ -8500,6 +8721,13 @@ public:
 
         addShader(pRenderer, &visibilityBufferPassShaderDesc, &pShaderVBBufferPass[GEOMSET_OPAQUE]);
 
+#if TEST_GPU_BREADCRUMBS
+        // vb crash shader
+        ShaderLoadDesc vbCrashDesc = visibilityBufferPassShaderDesc;
+        vbCrashDesc.mVert.pFileName = "visibilityBufferPassCrash.vert";
+        addShader(pRenderer, &vbCrashDesc, &pShaderVBBufferCrashPass);
+#endif
+
         ShaderLoadDesc visibilityBufferPassAlphaShaderDesc = {};
         visibilityBufferPassAlphaShaderDesc.mVert.pFileName = "visibilityBufferPassAlpha.vert";
         visibilityBufferPassAlphaShaderDesc.mFrag.pFileName = "visibilityBufferPassAlpha.frag";
@@ -8614,6 +8842,17 @@ public:
             addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSS[i]);
         }
 
+#if TEST_GPU_BREADCRUMBS
+        // crash shaders
+        ShaderLoadDesc vbShadeCrashShaderDesc = {};
+        vbShadeCrashShaderDesc.mVert.pFileName = "visibilityBufferShade.vert";
+        vbShadeCrashShaderDesc.mFrag.pFileName = "visibilityBufferShadeCrash.frag";
+        addShader(pRenderer, &vbShadeCrashShaderDesc, &pShaderVBShadeCrash);
+        ShaderLoadDesc sssCrashShaderDesc = {};
+        sssCrashShaderDesc.mComp.pFileName = "screenSpaceShadowsCrash.comp";
+        addShader(pRenderer, &sssCrashShaderDesc, &pShaderSSSCrash);
+#endif
+
         ShaderLoadDesc screenSpaceShadowsShaderDesc = {};
         screenSpaceShadowsShaderDesc.mComp.pFileName = "clearScreenSpaceShadows.comp";
         addShader(pRenderer, &screenSpaceShadowsShaderDesc, &pShaderSSSClear);
@@ -8685,6 +8924,12 @@ public:
             removeShader(pRenderer, pShaderSSS[i]);
         }
         removeShader(pRenderer, pShaderSSSClear);
+
+#if TEST_GPU_BREADCRUMBS
+        removeShader(pRenderer, pShaderVBBufferCrashPass);
+        removeShader(pRenderer, pShaderSSSCrash);
+        removeShader(pRenderer, pShaderVBShadeCrash);
+#endif
     }
 
     void addPipelines()
@@ -8807,6 +9052,13 @@ public:
 
             desc.mExtensionCount = 0;
         }
+
+#if TEST_GPU_BREADCRUMBS
+        vbPassPipelineSettings.pRasterizerState = &rasterStateCullNoneDesc;
+        vbPassPipelineSettings.pShaderProgram = pShaderVBBufferCrashPass;
+        addPipeline(pRenderer, &desc, &pPipelineVBBufferCrashPass);
+#endif
+
         desc.mGraphicsDesc = {};
         GraphicsPipelineDesc& vbShadePipelineSettings = desc.mGraphicsDesc;
         vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -8841,6 +9093,13 @@ public:
         desc.pPipelineExtensions = edescs;
 #endif
         addPipeline(pRenderer, &desc, &pPipelineVBShadeSrgb);
+#if TEST_GPU_BREADCRUMBS
+        vbShadePipelineSettings.pColorFormats = &pRenderTargetIntermediate->mFormat;
+        vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+        vbShadePipelineSettings.pShaderProgram = pShaderVBShadeCrash;
+        addPipeline(pRenderer, &desc, &pPipelineVBShadeSrgbCrash);
+#endif
+
         desc.mExtensionCount = 0;
         desc.mGraphicsDesc = {};
 
@@ -8894,6 +9153,10 @@ public:
         screenSpaceShadowDesc.pShaderProgram = pShaderSSS[gAppSettings.mMsaaIndex];
         screenSpaceShadowDesc.pRootSignature = pRootSignatureSSS;
         addPipeline(pRenderer, &desc, &pPipelineSSS);
+#if TEST_GPU_BREADCRUMBS
+        screenSpaceShadowDesc.pShaderProgram = pShaderSSSCrash;
+        addPipeline(pRenderer, &desc, &pPipelineSSSCrash);
+#endif
 
         desc.mComputeDesc = {};
         ComputePipelineDesc& screenSpaceShadowClearDesc = desc.mComputeDesc;
@@ -9146,7 +9409,54 @@ public:
         removePipeline(pRenderer, pPipelineUpsampleSDFShadow);
         removePipeline(pRenderer, pPipelineSSS);
         removePipeline(pRenderer, pPipelineSSSClear);
+
+#if TEST_GPU_BREADCRUMBS
+        removePipeline(pRenderer, pPipelineVBBufferCrashPass);
+        removePipeline(pRenderer, pPipelineSSSCrash);
+        removePipeline(pRenderer, pPipelineVBShadeSrgbCrash);
+#endif
     }
+
+#if TEST_GPU_BREADCRUMBS
+    void initMarkers()
+    {
+        BufferLoadDesc breadcrumbBuffer = {};
+        breadcrumbBuffer.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNDEFINED;
+        breadcrumbBuffer.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+        breadcrumbBuffer.mDesc.mSize = GPU_MARKER_SIZE * MARKER_COUNT;
+        breadcrumbBuffer.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#if defined(VULKAN)
+        breadcrumbBuffer.mDesc.mFlags |= BUFFER_CREATION_FLAG_MARKER;
+#endif
+        breadcrumbBuffer.mDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+        breadcrumbBuffer.pData = NULL;
+        breadcrumbBuffer.ppBuffer = &pMarkerBuffer;
+        addResource(&breadcrumbBuffer, NULL);
+    }
+
+    bool checkMarkers()
+    {
+        if (!bHasCrashed)
+        {
+            return false;
+        }
+
+        threadSleep(2000);
+        uint32_t* markersValue = (uint32_t*)pMarkerBuffer->pCpuMappedAddress;
+        if (!markersValue)
+        {
+            return true;
+        }
+        uint32_t    taskIndex = GPU_MARKER_VALUE(pMarkerBuffer, MARKER_TASK_INDEX * GPU_MARKER_SIZE);
+        uint32_t    frameIndex = GPU_MARKER_VALUE(pMarkerBuffer, MARKER_FRAME_INDEX * GPU_MARKER_SIZE);
+        const char* stepName = taskIndex != gMarkerInitialValue ? gMarkerNames[taskIndex] : "Unknown";
+        LOGF(LogLevel::eINFO, "Last rendering step (approx): %s, crashed frame: %u", stepName, frameIndex);
+        bHasCrashed = false;
+        return true;
+    }
+
+    void exitMarkers() { removeResource(pMarkerBuffer); }
+#endif
 };
 
 void GuiController::updateDynamicUI()

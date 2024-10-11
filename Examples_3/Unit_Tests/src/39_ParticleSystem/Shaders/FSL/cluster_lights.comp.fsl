@@ -24,10 +24,9 @@
 
 
 #include "shader_defs.h.fsl"
+#include "light_cull_resources.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
-#include "light_cull_resources.h.fsl"
-
 
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
@@ -38,20 +37,20 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	INIT_MAIN;
 
 	// Don't exceed the amount of lights
-	uint lightId = groupId.y * uint(ceil(sqrt(float(LIGHT_COUNT)))) + groupId.x;
-	if (lightId > LIGHT_COUNT)
+	uint lightId = groupId.y * uint(ceil(sqrt(float(MAX_LIGHT_COUNT)))) + groupId.x;
+	if (lightId > MAX_LIGHT_COUNT)
 	{
 		RETURN();
 	}
 
 	// Don't consider dead or invisible particles
 	uint Bitfield = BitfieldBuffer[lightId];
-	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_LIGHT_CULLED) > 0)
+	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_LIGHT_CULLED) > 0 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
 	{
 		RETURN();
 	}
 
-	ParticleSet particleSet = GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK);
+	ParticleSet particleSet = ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
 	ParticleData lightData = ParticlesDataBuffer[lightId];
 	float3 lightPos = UnpackParticlePosition(particleSet, ParticlesDataBuffer[lightId]);
 
@@ -141,29 +140,34 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 				continue;
 			}
 
+			// Due to float precision errors if, both min/max are same it will create holes...
+			uint depthMinInt = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 0];
+			uint depthMaxInt = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 1];
+			
 			// Check depth bounds
-			float depthMin = (float(DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 0]) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
+			float depthMin = (float(depthMinInt) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
 			if (lightDepthView < depthMin-lightSize)
 				continue;
-			float depthMax = (float(DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 1]) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
+			float depthMax = (float(depthMaxInt) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
 			if (lightDepthView > depthMax+lightSize)
 				continue;
 
-			// Check depth bitmask
-			uint depthBitmask = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 2];
-
-			// Build the light depth bitmask
-			uint lightBitmask = 0;
-			for (uint i=GetDepthBitmaskIndex(depthMin, depthMax, lightDepthView - lightSize); 
-						i<=GetDepthBitmaskIndex(depthMin, depthMax,lightDepthView + lightSize); i++)
+			if(depthMinInt != depthMaxInt)
 			{
-				lightBitmask = lightBitmask | (1 << i);
-			}
+				// Check depth bitmask
+				uint depthBitmask = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 2];
 
-			// Early exit if the light doesn't intersect the geometry
-			if ((lightBitmask & depthBitmask) == 0)
-			{
-				continue;
+				// Build the light depth bitmask
+				uint lightBitmask = 0xFFFFFFFF;
+				uint lightMaskStart = GetDepthBitmaskIndex(depthMin, depthMax, lightDepthView - lightSize);
+				lightBitmask >>= 31 - (GetDepthBitmaskIndex(depthMin, depthMax, lightDepthView + lightSize) - lightMaskStart);
+				lightBitmask <<= lightMaskStart;
+
+				// Early exit if the light doesn't intersect the geometry
+				if ((lightBitmask & depthBitmask) == 0)
+				{
+					continue;
+				}
 			}
 	
 			// Increase light count on this cluster

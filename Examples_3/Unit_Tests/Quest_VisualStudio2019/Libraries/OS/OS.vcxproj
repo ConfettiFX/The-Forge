@@ -39,7 +39,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Timer.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\FileSystem.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\SystemRun.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\UnixFileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\FontSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\stbtt.cpp" />
@@ -164,8 +163,6 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.vert.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">

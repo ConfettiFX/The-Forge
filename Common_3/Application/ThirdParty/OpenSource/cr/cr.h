@@ -659,9 +659,12 @@ cr_version_path(const char* basepath, unsigned version, const char* temppath)
       (char*)tf_malloc(folderSize + 1 + fnameSize + verSize + 1 + extSize + 1);
 
     char* curr = result;
-    memcpy(curr, folder2, folderSize);
-    curr += folderSize;
-    *(curr++) = '/';
+    if(folderSize)
+    {
+        memcpy(curr, folder2, folderSize);
+        curr += folderSize;
+        *(curr++) = '/';
+    }
     memcpy(curr, fname, fnameSize);
     curr += fnameSize;
     memcpy(curr, version_str, verSize);

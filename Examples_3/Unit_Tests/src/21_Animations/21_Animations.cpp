@@ -308,8 +308,8 @@ struct UIData
     {
         bool  mAutoSetBlendParams = true;
         float mThreshold = 0.1f;
-        float mStandClipWeight = 0.2f;
-        float mWalkClipWeight = 0.2f;
+        float mStandClipWeight = 0.5f;
+        float mWalkClipWeight = 0.5f;
         float mUpperBodyWeight = kDefaultUpperBodyWeight;
         float mStandJointsWeight = kDefaultStandJointsWeight;
         float mWalkJointsWeight = kDefaultWalkJointsWeight;
@@ -325,9 +325,7 @@ struct UIData
     struct AttachedObjectData
     {
         unsigned int mJointIndex = kLeftHandMiddleJointIndex;
-        float        mXOffset = -0.001f; // Values that will place it naturally in the hand
-        float        mYOffset = 0.041f;
-        float        mZOffset = -0.141f;
+        float3       mOffset = { -0.001f, 0.041f, -0.141f }; // Values that will place it naturally in the hand
     } mAttachedObject;
 
     struct IKParamsData
@@ -369,10 +367,17 @@ struct UIData
     unsigned int mUpperBodyJointIndex = kSpineJointIndex;
 } gUIData = {};
 
+enum AnimationIndices
+{
+    ANIMATION_INDEX_PLAYBACK,
+    ANIMATION_INDEX_BLEND,
+    ANIMATION_INDEX_PARTIALBLEND,
+    ANIMATION_INDEX_ADDITIVEBLEND
+};
+
 const char* gAnimationNames[] = { "PlayBack", "Blending", "PartialBlending", "AdditiveBlending" };
 
-uint32_t gAnimationIndexes[] = { 0, 1, 2, 3 };
-uint32_t gCurrentAnimationIndex = 0;
+uint32_t gCurrentAnimationIndex = ANIMATION_INDEX_PLAYBACK;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
 void ShatterClipTimeChangeCallback(void* pUserData)
@@ -403,9 +408,9 @@ void AnimatedCameraChangeCallback(void* pUserData)
 void StandClipPlayCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -420,9 +425,9 @@ void StandClipPlayCallback(void* pUserData)
 void StandClipLoopCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -437,9 +442,9 @@ void StandClipLoopCallback(void* pUserData)
 void StandClipTimeChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         gUIData.mStandClip.mPlay = false;
         for (size_t i = 0; i < gNumRigs; i++)
@@ -451,9 +456,9 @@ void StandClipTimeChangeCallback(void* pUserData)
 void StandClipPlaybackSpeedChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -473,9 +478,9 @@ void SetStandClipJointsWeightWithUIValues(void* pUserData)
 }
 void StandClipJointsWeightCallback(void* pUserData)
 {
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         SetStandClipJointsWeightWithUIValues(pUserData);
     }
@@ -487,10 +492,10 @@ void StandClipJointsWeightCallback(void* pUserData)
 void StandClipWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
-        if (gCurrentAnimationIndex == 2)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND)
         {
             for (size_t i = 0; i < gNumRigs; i++)
             {
@@ -508,9 +513,9 @@ void StandClipWeightCallback(void* pUserData)
 void WalkClipPlayCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -525,9 +530,9 @@ void WalkClipPlayCallback(void* pUserData)
 void WalkClipLoopCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -542,9 +547,9 @@ void WalkClipLoopCallback(void* pUserData)
 void WalkClipTimeChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         gUIData.mWalkClip.mPlay = false;
         for (size_t i = 0; i < gNumRigs; i++)
@@ -556,9 +561,9 @@ void WalkClipTimeChangeCallback(void* pUserData)
 void WalkClipPlaybackSpeedChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -578,9 +583,9 @@ void SetWalkClipJointsWeightWithUIValues()
 void WalkClipJointsWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         SetWalkClipJointsWeightWithUIValues();
     }
@@ -589,13 +594,15 @@ void WalkClipJointsWeightCallback(void* pUserData)
         gUIData.mPartialBlendingParams.mWalkJointsWeight = 1.0f - gUIData.mPartialBlendingParams.mUpperBodyWeight;
     }
 }
+
 void WalkClipWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND) ||
+        gCurrentAnimationIndex == ANIMATION_INDEX_ADDITIVEBLEND)
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             for (size_t i = 0; i < gNumRigs; i++)
             {
@@ -603,21 +610,29 @@ void WalkClipWeightCallback(void* pUserData)
             }
         }
 
-        if (gCurrentAnimationIndex == 2)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND)
         {
             for (size_t i = 0; i < gNumRigs; i++)
             {
                 gWalkClipController[i].mWeight = gUIData.mPartialBlendingParams.mWalkClipWeight;
             }
         }
+
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_ADDITIVEBLEND)
+        {
+            for (size_t i = 0; i < gNumRigs; i++)
+            {
+                gWalkClipController[i].mWeight = gUIData.mAdditiveBlendingParams.mWalkClipWeight;
+            }
+        }
     }
     else
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             gUIData.mBlendingParams.mWalkClipWeight = gWalkClipController[0].mWeight;
         }
-        if (gCurrentAnimationIndex == 2)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND)
         {
             gUIData.mPartialBlendingParams.mWalkClipWeight = gWalkClipController[0].mWeight;
         }
@@ -628,9 +643,9 @@ void WalkClipWeightCallback(void* pUserData)
 void JogClipPlayCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -645,9 +660,9 @@ void JogClipPlayCallback(void* pUserData)
 void JogClipLoopCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -662,9 +677,9 @@ void JogClipLoopCallback(void* pUserData)
 void JogClipTimeChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         gUIData.mJogClip.mPlay = false;
         for (size_t i = 0; i < gNumRigs; i++)
@@ -676,9 +691,9 @@ void JogClipTimeChangeCallback(void* pUserData)
 void JogClipPlaybackSpeedChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -693,8 +708,8 @@ void JogClipPlaybackSpeedChangeCallback(void* pUserData)
 void JogClipJointsWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         SetWalkClipJointsWeightWithUIValues();
     }
@@ -706,10 +721,10 @@ void JogClipJointsWeightCallback(void* pUserData)
 void JogClipWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             for (size_t i = 0; i < gNumRigs; i++)
             {
@@ -719,7 +734,7 @@ void JogClipWeightCallback(void* pUserData)
     }
     else
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             gUIData.mBlendingParams.mJogClipWeight = gJogClipController[0].mWeight;
         }
@@ -730,9 +745,9 @@ void JogClipWeightCallback(void* pUserData)
 void RunClipPlayCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -747,9 +762,9 @@ void RunClipPlayCallback(void* pUserData)
 void RunClipLoopCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -764,9 +779,9 @@ void RunClipLoopCallback(void* pUserData)
 void RunClipTimeChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         gUIData.mRunClip.mPlay = false;
         for (size_t i = 0; i < gNumRigs; i++)
@@ -778,9 +793,9 @@ void RunClipTimeChangeCallback(void* pUserData)
 void RunClipPlaybackSpeedChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -795,10 +810,10 @@ void RunClipPlaybackSpeedChangeCallback(void* pUserData)
 void RunClipWeightCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             for (size_t i = 0; i < gNumRigs; i++)
             {
@@ -808,7 +823,7 @@ void RunClipWeightCallback(void* pUserData)
     }
     else
     {
-        if (gCurrentAnimationIndex == 1)
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND)
         {
             gUIData.mBlendingParams.mRunClipWeight = gRunClipController[0].mWeight;
         }
@@ -819,9 +834,9 @@ void RunClipWeightCallback(void* pUserData)
 void NeckClipPlayCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -836,9 +851,9 @@ void NeckClipPlayCallback(void* pUserData)
 void NeckClipLoopCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -861,9 +876,9 @@ void NeckCrackClipTimeChangeCallback(void* pUserData)
 void NeckClipPlaybackSpeedChangeCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
-    if ((gCurrentAnimationIndex != 1 && gCurrentAnimationIndex != 2) ||
-        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 1) ||
-        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == 2))
+    if ((gCurrentAnimationIndex != ANIMATION_INDEX_BLEND && gCurrentAnimationIndex != ANIMATION_INDEX_PARTIALBLEND) ||
+        (!gUIData.mBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_BLEND) ||
+        (!gUIData.mPartialBlendingParams.mAutoSetBlendParams && gCurrentAnimationIndex == ANIMATION_INDEX_PARTIALBLEND))
     {
         for (size_t i = 0; i < gNumRigs; i++)
         {
@@ -886,6 +901,15 @@ void NeckCrackClipJointsWeightCallback(void* pUserData)
     if (gUIData.mUpperBodyMask.mEnableMask)
     {
         SetNeckCrackClipJointsWeightWithUIValues();
+    }
+}
+
+void NeckCrackClipWeightCallback(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    for (size_t i = 0; i < gNumRigs; i++)
+    {
+        gNeckCrackClipController[i].mWeight = gUIData.mAdditiveBlendingParams.mNeckCrackClipWeight;
     }
 }
 
@@ -1092,6 +1116,7 @@ void SetUpAnimationSpecificGuiWindows()
     unsigned uintValMin = 1;
     unsigned uintValMax = MAX_ANIMATED_OBJECTS;
     unsigned sliderStepSizeUint = 1;
+    float    sliderStepSizeFloat = 0.001f;
 
     enum
     {
@@ -1126,6 +1151,14 @@ void SetUpAnimationSpecificGuiWindows()
 
     enum
     {
+        ATTACHMENT_PARAM_SLIDER_JOINT_INDEX,
+        ATTACHMENT_PARAM_SLIDER_OFFSET,
+
+        ATTACHMENT_PARAM_COUNT
+    };
+
+    enum
+    {
         BLEND_PARAM_CHECKBOX_AUTOBLEND,
         BLEND_PARAM_SLIDER_BLENDRATIO,
         BLEND_PARAM_SLIDER_WALKCLIPWEIGHT,
@@ -1138,15 +1171,18 @@ void SetUpAnimationSpecificGuiWindows()
 
     enum
     {
-        PARIALBLEND_PARAM_CHECKBOX_AUTOBLEND,
-        PARIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT,
-        PARIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT,
-        PARIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT,
-        PARIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT,
-        PARIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT,
-        PARIALBLEND_PARAM_SLIDER_THRESHOLD,
+        // Used when auto blend is enabled
+        PARTIALBLEND_PARAM_CHECKBOX_AUTOBLEND,
+        PARTIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT,
 
-        PARIALBLEND_PARAM_COUNT
+        // Used when auto blend is disabled.
+        PARTIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT,
+        PARTIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT,
+        PARTIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT,
+        PARTIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT,
+        PARTIALBLEND_PARAM_SLIDER_THRESHOLD,
+
+        PARTIALBLEND_PARAM_COUNT
     };
 
     enum
@@ -1183,8 +1219,12 @@ void SetUpAnimationSpecificGuiWindows()
         CLIP_PARAM_COUNT
     };
 
+    // only way to get statically allocated array. maxWidgetCount need to be a compile time constant b/c cpp does not allow
+    // run-time array.
     static const uint32_t maxWidgetCount =
-        max((uint32_t)GENERAL_PARAM_COUNT, max((uint32_t)IK_PARAM_COUNT, max((uint32_t)THREADING_PARAM_COUNT, (uint32_t)CLIP_PARAM_COUNT)));
+        max((uint32_t)PARTIALBLEND_PARAM_COUNT,
+            max((uint32_t)GENERAL_PARAM_COUNT,
+                max((uint32_t)IK_PARAM_COUNT, max((uint32_t)THREADING_PARAM_COUNT, (uint32_t)CLIP_PARAM_COUNT))));
 
     UIWidget  widgetBases[maxWidgetCount] = {};
     UIWidget* widgets[maxWidgetCount];
@@ -1326,6 +1366,36 @@ void SetUpAnimationSpecificGuiWindows()
         widgets[IK_PARAM_SLIDER_FOOTTWOBONE]->pOnEdited = NULL;
 
         luaRegisterWidget(uiAddComponentWidget(pStandaloneAnimationsGUIWindow, "Inverse Kinematics", &CollapsingIKWidgets,
+                                               WIDGET_TYPE_COLLAPSING_HEADER));
+
+        // ATTACHMENT
+        CollapsingHeaderWidget CollapsingAttachmentWidgets;
+        CollapsingAttachmentWidgets.pGroupedWidgets = widgets;
+        CollapsingAttachmentWidgets.mWidgetsCount = 2;
+
+        // Joint Index - Slider
+        SliderUintWidget jointIndex;
+        jointIndex.pData = &gUIData.mAttachedObject.mJointIndex;
+        jointIndex.mMin = 0;
+        jointIndex.mMax = gStickFigureRig.mNumJoints - 1;
+        jointIndex.mStep = sliderStepSizeUint;
+        strcpy(widgets[ATTACHMENT_PARAM_SLIDER_JOINT_INDEX]->mLabel, "Joint Index");
+        widgets[ATTACHMENT_PARAM_SLIDER_JOINT_INDEX]->mType = WIDGET_TYPE_SLIDER_UINT;
+        widgets[ATTACHMENT_PARAM_SLIDER_JOINT_INDEX]->pWidget = &jointIndex;
+        widgets[ATTACHMENT_PARAM_SLIDER_JOINT_INDEX]->pOnEdited = NULL;
+
+        // Cubeoid offset (translation) - Slider
+        SliderFloat3Widget offset;
+        offset.pData = &gUIData.mAttachedObject.mOffset;
+        offset.mMin = { -1.0f, -1.0f, -1.0f };
+        offset.mMax = { 1.0f, 1.0f, 1.0f };
+        offset.mStep = { sliderStepSizeFloat, sliderStepSizeFloat, sliderStepSizeFloat };
+        strcpy(widgets[ATTACHMENT_PARAM_SLIDER_OFFSET]->mLabel, "offset");
+        widgets[ATTACHMENT_PARAM_SLIDER_OFFSET]->mType = WIDGET_TYPE_SLIDER_FLOAT3;
+        widgets[ATTACHMENT_PARAM_SLIDER_OFFSET]->pWidget = &offset;
+        widgets[ATTACHMENT_PARAM_SLIDER_OFFSET]->pOnEdited = NULL;
+
+        luaRegisterWidget(uiAddComponentWidget(pStandaloneAnimationsGUIWindow, "Attachment", &CollapsingAttachmentWidgets,
                                                WIDGET_TYPE_COLLAPSING_HEADER));
     }
 
@@ -1605,15 +1675,15 @@ void SetUpAnimationSpecificGuiWindows()
         //
         CollapsingHeaderWidget CollapsingBlendParamsWidgets;
         CollapsingBlendParamsWidgets.pGroupedWidgets = widgets;
-        CollapsingBlendParamsWidgets.mWidgetsCount = CLIP_PARAM_COUNT;
+        CollapsingBlendParamsWidgets.mWidgetsCount = PARTIALBLEND_PARAM_COUNT;
 
         // AutoSetBlendParams - Checkbox
         CheckboxWidget autoBlend;
         autoBlend.pData = &gUIData.mPartialBlendingParams.mAutoSetBlendParams;
-        widgets[PARIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->mType = WIDGET_TYPE_CHECKBOX;
-        widgets[PARIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->pWidget = &autoBlend;
-        strcpy(widgets[PARIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->mLabel, "Auto Set Blend Params");
-        widgets[PARIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->pOnEdited = &AutoSetBlendParamsCallback;
+        widgets[PARTIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->mType = WIDGET_TYPE_CHECKBOX;
+        widgets[PARTIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->pWidget = &autoBlend;
+        strcpy(widgets[PARTIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->mLabel, "Auto Set Blend Params");
+        widgets[PARTIALBLEND_PARAM_CHECKBOX_AUTOBLEND]->pOnEdited = &AutoSetBlendParamsCallback;
 
         // UpperBodyWeight - Slider
         SliderFloatWidget upperBodyWeight;
@@ -1621,10 +1691,10 @@ void SetUpAnimationSpecificGuiWindows()
         upperBodyWeight.mMin = 0.0f;
         upperBodyWeight.mMax = 1.0f;
         upperBodyWeight.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->mLabel, "Upper Body Weight");
-        widgets[PARIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->pWidget = &upperBodyWeight;
-        widgets[PARIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->pOnEdited = NULL;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->mLabel, "Upper Body Weight");
+        widgets[PARTIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->pWidget = &upperBodyWeight;
+        widgets[PARTIALBLEND_PARAM_SLIDER_UPPERBODYWEIGHT]->pOnEdited = &UpperBodyWeightCallback;
 
         // Stand Clip Weight - Slider
         SliderFloatWidget standClipWeight;
@@ -1632,10 +1702,10 @@ void SetUpAnimationSpecificGuiWindows()
         standClipWeight.mMin = 0.0f;
         standClipWeight.mMax = 1.0f;
         standClipWeight.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->mLabel, "Clip Weight [Stand]");
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->pWidget = &standClipWeight;
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->pOnEdited = &StandClipWeightCallback;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->mLabel, "Clip Weight [Stand]");
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->pWidget = &standClipWeight;
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDCLIPWEIGHT]->pOnEdited = &StandClipWeightCallback;
 
         // Stand Joints Weight - Slider
         SliderFloatWidget standJointsWeight;
@@ -1643,10 +1713,10 @@ void SetUpAnimationSpecificGuiWindows()
         standJointsWeight.mMin = 0.0f;
         standJointsWeight.mMax = 1.0f;
         standJointsWeight.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->mLabel, "Upper Body Weight");
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->pWidget = &standJointsWeight;
-        widgets[PARIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->pOnEdited = &StandClipJointsWeightCallback;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->mLabel, "Upper Body Weight");
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->pWidget = &standJointsWeight;
+        widgets[PARTIALBLEND_PARAM_SLIDER_STANDJOINTWEIGHT]->pOnEdited = &StandClipJointsWeightCallback;
 
         // Walk Clip Weight - Slider
         SliderFloatWidget walkClipWeight;
@@ -1654,10 +1724,10 @@ void SetUpAnimationSpecificGuiWindows()
         walkClipWeight.mMin = 0.0f;
         walkClipWeight.mMax = 1.0f;
         walkClipWeight.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->mLabel, "Clip Weight [Walk]");
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->pWidget = &walkClipWeight;
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->pOnEdited = &WalkClipWeightCallback;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->mLabel, "Clip Weight [Walk]");
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->pWidget = &walkClipWeight;
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKCLIPWEIGHT]->pOnEdited = &WalkClipWeightCallback;
 
         // Walk Joints Weight - Slider
         SliderFloatWidget walkJointsWeight;
@@ -1665,10 +1735,10 @@ void SetUpAnimationSpecificGuiWindows()
         walkJointsWeight.mMin = 0.0f;
         walkJointsWeight.mMax = 1.0f;
         walkJointsWeight.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->mLabel, "Upper Body Weight");
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->pWidget = &walkJointsWeight;
-        widgets[PARIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->pOnEdited = &WalkClipJointsWeightCallback;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->mLabel, "Lower Body Weight");
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->pWidget = &walkJointsWeight;
+        widgets[PARTIALBLEND_PARAM_SLIDER_WALKJOINTWEIGHT]->pOnEdited = &WalkClipJointsWeightCallback;
 
         // Threshold - Slider
         SliderFloatWidget threshold;
@@ -1676,10 +1746,10 @@ void SetUpAnimationSpecificGuiWindows()
         threshold.mMin = 0.01f;
         threshold.mMax = 1.0f;
         threshold.mStep = 0.01f;
-        strcpy(widgets[PARIALBLEND_PARAM_SLIDER_THRESHOLD]->mLabel, "Threshold");
-        widgets[PARIALBLEND_PARAM_SLIDER_THRESHOLD]->mType = WIDGET_TYPE_SLIDER_FLOAT;
-        widgets[PARIALBLEND_PARAM_SLIDER_THRESHOLD]->pWidget = &threshold;
-        widgets[PARIALBLEND_PARAM_SLIDER_THRESHOLD]->pOnEdited = &ThresholdChangeCallback;
+        strcpy(widgets[PARTIALBLEND_PARAM_SLIDER_THRESHOLD]->mLabel, "Threshold");
+        widgets[PARTIALBLEND_PARAM_SLIDER_THRESHOLD]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+        widgets[PARTIALBLEND_PARAM_SLIDER_THRESHOLD]->pWidget = &threshold;
+        widgets[PARTIALBLEND_PARAM_SLIDER_THRESHOLD]->pOnEdited = &ThresholdChangeCallback;
 
         luaRegisterWidget(uiAddComponentWidget(AnimationControlsGUIWindow[2], "Blend Parameters", &CollapsingBlendParamsWidgets,
                                                WIDGET_TYPE_COLLAPSING_HEADER));
@@ -1828,7 +1898,7 @@ void SetUpAnimationSpecificGuiWindows()
         strcpy(widgets[ADDITIVEBLEND_PARAM_SLIDER_NECKCRACKCLIPKWEIGHT]->mLabel, "Clip Weight [NeckCrack]");
         widgets[ADDITIVEBLEND_PARAM_SLIDER_NECKCRACKCLIPKWEIGHT]->mType = WIDGET_TYPE_SLIDER_FLOAT;
         widgets[ADDITIVEBLEND_PARAM_SLIDER_NECKCRACKCLIPKWEIGHT]->pWidget = &neckCrackClipWeight;
-        widgets[ADDITIVEBLEND_PARAM_SLIDER_NECKCRACKCLIPKWEIGHT]->pOnEdited = NULL;
+        widgets[ADDITIVEBLEND_PARAM_SLIDER_NECKCRACKCLIPKWEIGHT]->pOnEdited = &NeckCrackClipWeightCallback;
 
         luaRegisterWidget(uiAddComponentWidget(AnimationControlsGUIWindow[3], "Blend Parameters", &CollapsingBlendParamsWidgets,
                                                WIDGET_TYPE_COLLAPSING_HEADER));
@@ -2002,18 +2072,6 @@ public:
     bool Init() override
     {
         initHiresTimer(&gAnimationUpdateTimer);
-
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
 
         // RIG
         //
@@ -2778,11 +2836,12 @@ public:
 
         // Set the transform of the attached object based on the updated world matrix of
         // the joint in the rig specified by the UI
+        // * TODO: add UI to modify mJointIndex
         gCuboidTransformMat = gStickFigureAnimObject[0].mJointWorldMats[gUIData.mAttachedObject.mJointIndex];
 
         // Compute the offset translation based on the UI values
-        mat4 offset =
-            mat4::translation(vec3(gUIData.mAttachedObject.mXOffset, gUIData.mAttachedObject.mYOffset, gUIData.mAttachedObject.mZOffset));
+        mat4 offset = mat4::translation(
+            vec3(gUIData.mAttachedObject.mOffset.x, gUIData.mAttachedObject.mOffset.y, gUIData.mAttachedObject.mOffset.z));
 
         gUniformDataCuboid.mToWorldMat[0] = gCuboidTransformMat * offset * gCuboidScaleMat;
         gUniformDataCuboid.mColor[0] = gCuboidColor;
@@ -2800,6 +2859,14 @@ public:
 
             // Record animation update time
             getHiresTimerUSec(&gAnimationUpdateTimer, true);
+        }
+
+        // Automated blending controls the clip weights. Update gui after all threads are finished.
+        if (gCurrentAnimationIndex == ANIMATION_INDEX_BLEND && gUIData.mBlendingParams.mAutoSetBlendParams)
+        {
+            gUIData.mBlendingParams.mWalkClipWeight = gWalkClipController[0].mWeight;
+            gUIData.mBlendingParams.mJogClipWeight = gJogClipController[0].mWeight;
+            gUIData.mBlendingParams.mRunClipWeight = gRunClipController[0].mWeight;
         }
     }
 

@@ -8,30 +8,29 @@
 
 /* Begin PBXBuildFile section */
 		095B905A28A718A5000A3A40 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */; };
-		5C172F34214147700074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F32214147700074EE71 /* AppDelegate.m */; };
-		5C17300521414D110074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17300421414D110074EE71 /* AppDelegate.m */; };
 		5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300221414CFA0074EE71 /* libThe-Forge_iOS.a */; };
-		5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF36D2141540E00EFD76A /* GameController.framework */; };
-		650CCC412223C3D8003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC3F2223C3A5003533D9 /* MetalPerformanceShaders.framework */; };
+		64A4D5152C98941F00B6B629 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4D72A37F35300FB75C1 /* GameController.framework */; };
+		64A4D5192C9895AC00B6B629 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5182C9895AC00B6B629 /* CoreVideo.framework */; };
+		64A4D51B2C98969D00B6B629 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D51A2C98969D00B6B629 /* UIKit.framework */; };
+		64A4D51C2C98972A00B6B629 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE50F2A37F4F000FB75C1 /* CoreHaptics.framework */; };
+		64A4D51D2C98973C00B6B629 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
+		64A4D5202C98978000B6B629 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00A42A93F77900981E7B /* QuartzCore.framework */; };
 		7F6E00A52A93F77A00981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00A42A93F77900981E7B /* QuartzCore.framework */; };
 		7F6E00A72A93F77E00981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00A62A93F77D00981E7B /* AppKit.framework */; };
 		7F6E00F32A93FEC200981E7B /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00F22A93FEC200981E7B /* IOKit.framework */; };
-		7F6E01092A94051300981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01082A94051300981E7B /* QuartzCore.framework */; };
-		7F6E010B2A94054000981E7B /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E010A2A94054000981E7B /* CoreVideo.framework */; };
 		971BCE672170013C007F2B2F /* 01_Transformations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */; };
 		997EE4DE2A37F39600FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4D72A37F35300FB75C1 /* GameController.framework */; };
 		997EE5102A37F4F000FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE50F2A37F4F000FB75C1 /* CoreHaptics.framework */; };
-		99E0AC6B28594DAE00AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC6A28594DAE00AB602D /* CoreHaptics.framework */; };
 		B2087DD421421A13006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
-		B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BB21420E7000DF2297 /* UIKit.framework */; };
-		B21F76BF21420E7000DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BC21420E7000DF2297 /* MetalKit.framework */; };
-		B21F76C021420E7000DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BD21420E7000DF2297 /* Metal.framework */; };
-		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
-		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D204ED811F348A5B005F2CEA /* 01_Transformations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */; };
-		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
-		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 		E95891D1234158F000B68D6A /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C55833D21413EE30019960B /* libThe-Forge.a */; };
+		EC417DCC2C94E27100950982 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EC417DCA2C94E27100950982 /* MainMenu.xib */; };
+		EC417DCE2C94E28E00950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417DCD2C94E28E00950982 /* Assets.xcassets */; };
+		EC417DD32C94E30A00950982 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC417DD12C94E30A00950982 /* macOSAppDelegate.m */; };
+		EC417DE32C94E4E800950982 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC417DE02C94E3DA00950982 /* iOSAppDelegate.m */; };
+		EC417DE42C94E4F000950982 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EC417DDB2C94E39C00950982 /* LaunchScreen.storyboard */; };
+		EC417DE52C94E4F300950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417DD62C94E38600950982 /* Assets.xcassets */; };
+		EC417DE82C94E50200950982 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EC417DC82C94E1CE00950982 /* Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,54 +65,48 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		091173E428A73DA100E4E0B4 /* Noesis.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = Noesis.a; path = ../../../../Common_3/Application/ThirdParty/OpenSource/NoesisGUI/SDK/_build/Lib/macos/Debug/Noesis.a; sourceTree = "<group>"; };
-		5C172F32214147700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
-		5C172F33214147700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
-		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
-		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C55833721413EE30019960B /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
-		5CABF36D2141540E00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		650CCC3F2223C3A5003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		64A4D5182C9895AC00B6B629 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		64A4D51A2C98969D00B6B629 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		7F6E00A42A93F77900981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		7F6E00A62A93F77D00981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		7F6E00F22A93FEC200981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
-		7F6E01082A94051300981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
-		7F6E010A2A94054000981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
-		7F6EFFD92A93D86600981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDA2A93D86600981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDB2A93D86600981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDC2A93D86600981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDD2A93D86600981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDE2A93D86600981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFDF2A93D86600981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
-		97E942B025BF4B62009F2F2B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../../../src/01_Transformations/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
-		97E942B125BF4B62009F2F2B /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = resources.h.fsl; path = ../../../src/01_Transformations/Shaders/FSL/resources.h.fsl; sourceTree = "<group>"; };
-		97E942B225BF4B62009F2F2B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../../src/01_Transformations/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
-		97E942B325BF4B62009F2F2B /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.vert.fsl; path = ../../../src/01_Transformations/Shaders/FSL/basic.vert.fsl; sourceTree = "<group>"; };
-		97E942B425BF4B62009F2F2B /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.frag.fsl; path = ../../../src/01_Transformations/Shaders/FSL/basic.frag.fsl; sourceTree = "<group>"; };
-		97E942B525BF4B62009F2F2B /* crash.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = crash.vert.fsl; path = ../../../src/01_Transformations/Shaders/FSL/crash.vert.fsl; sourceTree = "<group>"; };
+		7F6EFFD92A93D86600981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDA2A93D86600981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDB2A93D86600981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDC2A93D86600981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDD2A93D86600981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDE2A93D86600981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFDF2A93D86600981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig; sourceTree = "<group>"; };
 		997EE4D72A37F35300FB75C1 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		997EE50F2A37F4F000FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
-		99E0AC6A28594DAE00AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
-		B21F76BC21420E7000DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		B21F76BD21420E7000DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B2DF811B28216FB40023CDE0 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../../../src/01_Transformations/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 01_Transformations_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 01_Transformations_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 01_Transformations.cpp; path = ../../src/01_Transformations/01_Transformations.cpp; sourceTree = "<group>"; };
-		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
-		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		E967DE9E233B13C20032E4BA /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
-		E967DEA0233B143B0032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = 01_Transformations.cpp; sourceTree = "<group>"; };
 		E967DF68233C36C70032E4BA /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		EA463C8B1EF81E8F005AC8C7 /* 01_Transformations.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 01_Transformations.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
+		EC417DC82C94E1CE00950982 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/MacOS/Info.plist; sourceTree = "<group>"; };
+		EC417DCB2C94E27100950982 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = ../../../Build_Props/XCode/MacOS/Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		EC417DCD2C94E28E00950982 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/MacOS/Assets.xcassets; sourceTree = "<group>"; };
+		EC417DD12C94E30A00950982 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		EC417DD22C94E30A00950982 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		EC417DD62C94E38600950982 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/iOS/Assets.xcassets; sourceTree = "<group>"; };
+		EC417DD72C94E38600950982 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/iOS/Info.plist; sourceTree = "<group>"; };
+		EC417DDC2C94E39C00950982 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = ../../../Build_Props/XCode/iOS/Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		EC417DE02C94E3DA00950982 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		EC417DE12C94E3DA00950982 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		EC66B83A2C9268B80004DC3B /* TestFullScreen.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestFullScreen.lua; sourceTree = "<group>"; };
+		EC66B83B2C9268B80004DC3B /* TestCenteredWindow.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestCenteredWindow.lua; sourceTree = "<group>"; };
+		EC66B83C2C9268B80004DC3B /* TestNonCenteredWindow.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestNonCenteredWindow.lua; sourceTree = "<group>"; };
+		EC66B83D2C9268B80004DC3B /* TestBorderless.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestBorderless.lua; sourceTree = "<group>"; };
+		EC66B84B2C926A540004DC3B /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.vert.fsl; sourceTree = "<group>"; };
+		EC66B84C2C926A540004DC3B /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ShaderList.fsl; sourceTree = "<group>"; };
+		EC66B84D2C926A540004DC3B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.vert.fsl; sourceTree = "<group>"; };
+		EC66B84E2C926A540004DC3B /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.frag.fsl; sourceTree = "<group>"; };
+		EC66B84F2C926A540004DC3B /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.h.fsl; sourceTree = "<group>"; };
+		EC66B8502C926A540004DC3B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.frag.fsl; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,14 +114,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7F6E01092A94051300981E7B /* QuartzCore.framework in Frameworks */,
-				99E0AC6B28594DAE00AB602D /* CoreHaptics.framework in Frameworks */,
-				650CCC412223C3D8003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
-				B21F76BF21420E7000DF2297 /* MetalKit.framework in Frameworks */,
-				7F6E010B2A94054000981E7B /* CoreVideo.framework in Frameworks */,
-				B21F76C021420E7000DF2297 /* Metal.framework in Frameworks */,
-				5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */,
+				64A4D51B2C98969D00B6B629 /* UIKit.framework in Frameworks */,
+				64A4D5192C9895AC00B6B629 /* CoreVideo.framework in Frameworks */,
+				64A4D5202C98978000B6B629 /* QuartzCore.framework in Frameworks */,
+				64A4D51C2C98972A00B6B629 /* CoreHaptics.framework in Frameworks */,
+				64A4D5152C98941F00B6B629 /* GameController.framework in Frameworks */,
+				64A4D51D2C98973C00B6B629 /* Metal.framework in Frameworks */,
 				5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -151,44 +142,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		28A5AB66201F377A000E571F /* Shaders */ = {
-			isa = PBXGroup;
-			children = (
-				B2DF811B28216FB40023CDE0 /* ShaderList.fsl */,
-				97E942B425BF4B62009F2F2B /* basic.frag.fsl */,
-				97E942B325BF4B62009F2F2B /* basic.vert.fsl */,
-				97E942B525BF4B62009F2F2B /* crash.vert.fsl */,
-				97E942B125BF4B62009F2F2B /* resources.h.fsl */,
-				97E942B025BF4B62009F2F2B /* skybox.frag.fsl */,
-				97E942B225BF4B62009F2F2B /* skybox.vert.fsl */,
-			);
-			name = Shaders;
-			path = 01_Transformations_iOS;
-			sourceTree = "<group>";
-		};
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				7F6E010A2A94054000981E7B /* CoreVideo.framework */,
-				7F6E01082A94051300981E7B /* QuartzCore.framework */,
+				64A4D51A2C98969D00B6B629 /* UIKit.framework */,
+				64A4D5182C9895AC00B6B629 /* CoreVideo.framework */,
 				7F6E00F22A93FEC200981E7B /* IOKit.framework */,
 				7F6E00A62A93F77D00981E7B /* AppKit.framework */,
 				7F6E00A42A93F77900981E7B /* QuartzCore.framework */,
 				997EE50F2A37F4F000FB75C1 /* CoreHaptics.framework */,
 				997EE4D72A37F35300FB75C1 /* GameController.framework */,
-				091173E428A73DA100E4E0B4 /* Noesis.a */,
-				99E0AC6A28594DAE00AB602D /* CoreHaptics.framework */,
 				E967DF68233C36C70032E4BA /* libbz2.tbd */,
-				E967DEA0233B143B0032E4BA /* libzlibstatic_iOS.a */,
-				E967DE9E233B13C20032E4BA /* libbz2.tbd */,
-				650CCC3F2223C3A5003533D9 /* MetalPerformanceShaders.framework */,
 				650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */,
-				B21F76BD21420E7000DF2297 /* Metal.framework */,
 				B2087DD221421A13006F372D /* Metal.framework */,
-				B21F76BC21420E7000DF2297 /* MetalKit.framework */,
 				B2087DD121421A13006F372D /* MetalKit.framework */,
-				B21F76BB21420E7000DF2297 /* UIKit.framework */,
-				5CABF36D2141540E00EFD76A /* GameController.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -216,27 +183,15 @@
 			name = BuildsConfigs;
 			sourceTree = "<group>";
 		};
-		C95132EE2010E68A002E584B /* 01_Transformations_iOS */ = {
-			isa = PBXGroup;
-			children = (
-				5C17300321414D110074EE71 /* AppDelegate.h */,
-				5C17300421414D110074EE71 /* AppDelegate.m */,
-				C95132FE2010E68A002E584B /* Assets.xcassets */,
-				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
-				C95133032010E68A002E584B /* Info.plist */,
-			);
-			path = 01_Transformations_iOS;
-			sourceTree = "<group>";
-		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				EC66B8382C92687B0004DC3B /* Art */,
+				EC66B8422C9268C00004DC3B /* Examples_3 */,
 				7F6EFFD82A93D85800981E7B /* BuildsConfigs */,
 				5C55833721413EE30019960B /* The-Forge.xcodeproj */,
-				28A5AB66201F377A000E571F /* Shaders */,
-				D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */,
-				EA463C941EF81E8F005AC8C7 /* 01_Transformations */,
-				C95132EE2010E68A002E584B /* 01_Transformations_iOS */,
+				EC417DC72C94E19500950982 /* 01_Transformations */,
+				EC417DD42C94E34E00950982 /* 01_Transformations_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
 			);
@@ -251,17 +206,104 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		EA463C941EF81E8F005AC8C7 /* 01_Transformations */ = {
+		EC417DC72C94E19500950982 /* 01_Transformations */ = {
 			isa = PBXGroup;
 			children = (
-				5C172F33214147700074EE71 /* AppDelegate.h */,
-				5C172F32214147700074EE71 /* AppDelegate.m */,
-				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
-				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
-				EADF9D661EFD160E00B2008B /* Info.plist */,
+				EC417DD22C94E30A00950982 /* macOSAppDelegate.h */,
+				EC417DD12C94E30A00950982 /* macOSAppDelegate.m */,
+				EC417DCD2C94E28E00950982 /* Assets.xcassets */,
+				EC417DCA2C94E27100950982 /* MainMenu.xib */,
+				EC417DC82C94E1CE00950982 /* Info.plist */,
+			);
+			name = 01_Transformations;
+			sourceTree = "<group>";
+		};
+		EC417DD42C94E34E00950982 /* 01_Transformations_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				EC417DE12C94E3DA00950982 /* iOSAppDelegate.h */,
+				EC417DE02C94E3DA00950982 /* iOSAppDelegate.m */,
+				EC417DDB2C94E39C00950982 /* LaunchScreen.storyboard */,
+				EC417DD62C94E38600950982 /* Assets.xcassets */,
+				EC417DD72C94E38600950982 /* Info.plist */,
+			);
+			name = 01_Transformations_iOS;
+			sourceTree = "<group>";
+		};
+		EC66B8382C92687B0004DC3B /* Art */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8392C92689B0004DC3B /* Scripts */,
+			);
+			name = Art;
+			path = ../../../../Art;
+			sourceTree = "<group>";
+		};
+		EC66B8392C92689B0004DC3B /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B83D2C9268B80004DC3B /* TestBorderless.lua */,
+				EC66B83B2C9268B80004DC3B /* TestCenteredWindow.lua */,
+				EC66B83A2C9268B80004DC3B /* TestFullScreen.lua */,
+				EC66B83C2C9268B80004DC3B /* TestNonCenteredWindow.lua */,
+			);
+			path = Scripts;
+			sourceTree = "<group>";
+		};
+		EC66B8422C9268C00004DC3B /* Examples_3 */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8432C9268D00004DC3B /* Unit_Tests */,
+			);
+			name = Examples_3;
+			path = ../../..;
+			sourceTree = "<group>";
+		};
+		EC66B8432C9268D00004DC3B /* Unit_Tests */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8452C9269210004DC3B /* src */,
+			);
+			path = Unit_Tests;
+			sourceTree = "<group>";
+		};
+		EC66B8452C9269210004DC3B /* src */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8482C92699D0004DC3B /* 01_Transformations */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		EC66B8482C92699D0004DC3B /* 01_Transformations */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8492C9269E20004DC3B /* Shaders */,
+				D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */,
 			);
 			path = 01_Transformations;
-			sourceTree = SOURCE_ROOT;
+			sourceTree = "<group>";
+		};
+		EC66B8492C9269E20004DC3B /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B84A2C926A3E0004DC3B /* FSL */,
+			);
+			path = Shaders;
+			sourceTree = "<group>";
+		};
+		EC66B84A2C926A3E0004DC3B /* FSL */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B84E2C926A540004DC3B /* basic.frag.fsl */,
+				EC66B84B2C926A540004DC3B /* basic.vert.fsl */,
+				EC66B84F2C926A540004DC3B /* resources.h.fsl */,
+				EC66B84C2C926A540004DC3B /* ShaderList.fsl */,
+				EC66B8502C926A540004DC3B /* skybox.frag.fsl */,
+				EC66B84D2C926A540004DC3B /* skybox.vert.fsl */,
+			);
+			path = FSL;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -293,8 +335,8 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
-				5C589FF324D066DF00D1D6F3 /* ShellScript */,
-				09934170284E89DB00215997 /* ShellScript */,
+				5C589FF324D066DF00D1D6F3 /* Run Script */,
+				09934170284E89DB00215997 /* Run Script */,
 			);
 			buildRules = (
 			);
@@ -373,8 +415,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
-				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
+				EC417DE52C94E4F300950982 /* Assets.xcassets in Resources */,
+				EC417DE42C94E4F000950982 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,15 +424,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				EC417DCE2C94E28E00950982 /* Assets.xcassets in Resources */,
+				EC417DCC2C94E27100950982 /* MainMenu.xib in Resources */,
+				EC417DE82C94E50200950982 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		09934170284E89DB00215997 /* ShellScript */ = {
+		09934170284E89DB00215997 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -400,6 +443,7 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -428,7 +472,7 @@
 			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
-		5C589FF324D066DF00D1D6F3 /* ShellScript */ = {
+		5C589FF324D066DF00D1D6F3 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -438,13 +482,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/dds/\" \"$DST/Textures\"\n# Noesis\nrsync -u -r --include '*.xaml' --exclude '*' \"$ASSETS/../Common_3/Application/UI/\" \"$DST/Noesis\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"01_Transformations\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"01_Transformations\" \"TRUE\"\n # Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n\n\n";
 			showEnvVarsInLog = 0;
 		};
 		5C589FF424D06E0B00D1D6F3 /* ShellScript */ = {
@@ -462,7 +507,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Noesis\nrsync -u -r --include '*.xaml' --exclude '*' \"$ASSETS/../Common_3/Application/UI/\" \"$DST/Noesis\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"01_Transformations\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Textures\nrsync -u -rv --include '*/' --include 'Skybox_*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/ktx/\" \"$DST/Textures\"\n\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"01_Transformations\"\n# Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -471,7 +516,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C17300521414D110074EE71 /* AppDelegate.m in Sources */,
+				EC417DE32C94E4E800950982 /* iOSAppDelegate.m in Sources */,
 				971BCE672170013C007F2B2F /* 01_Transformations.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -480,7 +525,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C172F34214147700074EE71 /* AppDelegate.m in Sources */,
+				EC417DD32C94E30A00950982 /* macOSAppDelegate.m in Sources */,
 				D204ED811F348A5B005F2CEA /* 01_Transformations.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -501,20 +546,20 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
+		EC417DCA2C94E27100950982 /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
-				C95133012010E68A002E584B /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D2E631E01F3472DF005BFBA7 /* Base */,
+				EC417DCB2C94E27100950982 /* Base */,
 			);
 			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+		EC417DDB2C94E39C00950982 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EC417DDC2C94E39C00950982 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -527,9 +572,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				INFOPLIST_FILE = 01_Transformations_iOS/Info.plist;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.01-Transformations-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 			};
@@ -542,9 +586,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				INFOPLIST_FILE = 01_Transformations_iOS/Info.plist;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.01-Transformations-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 			};
@@ -574,7 +617,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.01-Transformations";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -586,7 +629,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.01-Transformations";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};

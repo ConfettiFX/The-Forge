@@ -8,30 +8,31 @@
 
 /* Begin PBXBuildFile section */
 		5C05FC7A247BEBD600D4AF59 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4C2141556900E7A798 /* libThe-Forge_iOS.a */; };
-		5C512C402141555200E7A798 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* AppDelegate.m */; };
+		5C512C402141555200E7A798 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* macOSAppDelegate.m */; };
 		5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4A2141556900E7A798 /* libThe-Forge.a */; };
+		64A4D5D62C98B57D00B6B629 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00C62A93F7E400981E7B /* QuartzCore.framework */; };
+		64A4D5D72C98B58700B6B629 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4FB2A37F4B700FB75C1 /* CoreHaptics.framework */; };
+		64A4D5D82C98B58700B6B629 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4F52A37F4A400FB75C1 /* GameController.framework */; };
+		64A4D5D92C98B58700B6B629 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC702223CD2E003533D9 /* MetalPerformanceShaders.framework */; };
+		64A4D5DB2C98B59100B6B629 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5DA2C98B59100B6B629 /* CoreVideo.framework */; };
+		64A4D5DD2C98B59800B6B629 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5DC2C98B59800B6B629 /* UIKit.framework */; };
+		64A4D5F62C98D04A00B6B629 /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
 		650CCC712223CD2E003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC702223CD2E003533D9 /* MetalPerformanceShaders.framework */; };
-		650CCC732223CD3A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC722223CD3A003533D9 /* MetalPerformanceShaders.framework */; };
 		7F6E00C52A93F7E000981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00C42A93F7E000981E7B /* AppKit.framework */; };
 		7F6E00C72A93F7E500981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00C62A93F7E400981E7B /* QuartzCore.framework */; };
 		7F6E00E32A93FE9F00981E7B /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00E22A93FE9F00981E7B /* IOKit.framework */; };
-		7F6E01482A9409E900981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01472A9409E900981E7B /* QuartzCore.framework */; };
-		7F6E014A2A9409EE00981E7B /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01492A9409EE00981E7B /* CoreVideo.framework */; };
 		997EE4F62A37F4A500FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4F52A37F4A400FB75C1 /* GameController.framework */; };
 		997EE4FC2A37F4B700FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4FB2A37F4B700FB75C1 /* CoreHaptics.framework */; };
-		99E0AC8328594DFE00AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC8228594DFE00AB602D /* CoreHaptics.framework */; };
 		B2136E6621668CBE00FEBC97 /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
-		D062DAC32210FFED00CF2B1B /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
 		D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
-		D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD22211027000CF2B1B /* UIKit.framework */; };
-		D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD42211027600CF2B1B /* GameController.framework */; };
-		D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* AppDelegate.m */; };
+		D062DAE52211033700CF2B1B /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* iOSAppDelegate.m */; };
 		D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */; };
 		D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
-		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		EC417DFD2C94EE8000950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417DFC2C94EE8000950982 /* Assets.xcassets */; };
+		EC417DFF2C94EE9300950982 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EC417DFE2C94EE9300950982 /* Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,53 +67,48 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		09D4FF492821FDC3000E3229 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
-		5C512C3E2141555200E7A798 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
-		5C512C3F2141555200E7A798 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		5C512C3E2141555200E7A798 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		5C512C3F2141555200E7A798 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C512C442141556900E7A798 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		64A4D5DA2C98B59100B6B629 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		64A4D5DC2C98B59800B6B629 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC702223CD2E003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
-		650CCC722223CD3A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		7F6E003A2A93DA3B00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E003B2A93DA3B00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
-		7F6E003C2A93DA3B00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6E003D2A93DA3B00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E003E2A93DA3B00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6E003F2A93DA3B00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6E00402A93DA3B00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E003A2A93DA3B00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E003B2A93DA3B00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig; sourceTree = "<group>"; };
+		7F6E003C2A93DA3B00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig; sourceTree = "<group>"; };
+		7F6E003D2A93DA3B00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E003E2A93DA3B00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6E003F2A93DA3B00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig; sourceTree = "<group>"; };
+		7F6E00402A93DA3B00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
 		7F6E00C42A93F7E000981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		7F6E00C62A93F7E400981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		7F6E00E22A93FE9F00981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
-		7F6E01472A9409E900981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
-		7F6E01492A9409EE00981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
-		97E9426425BF4965009F2F2B /* wave.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = wave.vert.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/wave.vert.fsl; sourceTree = "<group>"; };
-		97E9426525BF4965009F2F2B /* magnify.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = magnify.frag.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/magnify.frag.fsl; sourceTree = "<group>"; };
-		97E9426625BF4965009F2F2B /* magnify.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = magnify.vert.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/magnify.vert.fsl; sourceTree = "<group>"; };
-		97E9426725BF4965009F2F2B /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = resources.h.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/resources.h.fsl; sourceTree = "<group>"; };
-		97E9426825BF4965009F2F2B /* wave.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = wave.frag.fsl; path = ../../src/14_WaveIntrinsics/Shaders/FSL/wave.frag.fsl; sourceTree = "<group>"; };
 		997EE4F52A37F4A400FB75C1 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		997EE4FB2A37F4B700FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
-		99E0AC8228594DFE00AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
-		B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 14_WaveIntrinsics.cpp; path = ../../../src/14_WaveIntrinsics/14_WaveIntrinsics.cpp; sourceTree = "<group>"; };
-		B214AD3120E2DD620025F76B /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B214AD3220E2DD620025F76B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
+		B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = 14_WaveIntrinsics.cpp; sourceTree = "<group>"; };
 		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B22D906820E2EDCE0036B88E /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		D062DACE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 14_WaveIntrinsics_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D062DAD22211027000CF2B1B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
-		D062DAD42211027600CF2B1B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		D062DAD92211030400CF2B1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D062DAD92211030400CF2B1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/iOS/Assets.xcassets; sourceTree = "<group>"; };
 		D062DADB2211030400CF2B1B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		D062DADE2211030400CF2B1B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D062DAE32211033700CF2B1B /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
-		D062DAE42211033700CF2B1B /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
-		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		D062DADE2211030400CF2B1B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/iOS/Info.plist; sourceTree = "<group>"; };
+		D062DAE32211033700CF2B1B /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		D062DAE42211033700CF2B1B /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E9A438C9233DC0EB005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
-		E9A438CB233DC0F4005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 14_WaveIntrinsics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 14_WaveIntrinsics.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
+		EC417DFC2C94EE8000950982 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/MacOS/Assets.xcassets; sourceTree = "<group>"; };
+		EC417DFE2C94EE9300950982 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/MacOS/Info.plist; sourceTree = "<group>"; };
+		EC66B8A72C935BD20004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
+		EC66B8AC2C935C320004DC3B /* Test_QuadReadAcross.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_QuadReadAcross.lua; sourceTree = "<group>"; };
+		EC66B8AD2C935C320004DC3B /* Test_WaveGetLaneIndex.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveGetLaneIndex.lua; sourceTree = "<group>"; };
+		EC66B8AE2C935C320004DC3B /* Test_WaveIsFirstLane.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveIsFirstLane.lua; sourceTree = "<group>"; };
+		EC66B8AF2C935C320004DC3B /* Test_WavePrefixSum.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WavePrefixSum.lua; sourceTree = "<group>"; };
+		EC66B8B02C935C320004DC3B /* Test_WaveActiveBallot.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveActiveBallot.lua; sourceTree = "<group>"; };
+		EC66B8B12C935C320004DC3B /* Test_Normal.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_Normal.lua; sourceTree = "<group>"; };
+		EC66B8B22C935C320004DC3B /* Test_WaveActiveSum.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveActiveSum.lua; sourceTree = "<group>"; };
+		EC66B8B32C935C320004DC3B /* Test_WaveReadLaneFirst.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveReadLaneFirst.lua; sourceTree = "<group>"; };
+		EC66B8B42C935C320004DC3B /* Test_WaveGetMaxActiveIndex.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveGetMaxActiveIndex.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,12 +116,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7F6E01482A9409E900981E7B /* QuartzCore.framework in Frameworks */,
-				99E0AC8328594DFE00AB602D /* CoreHaptics.framework in Frameworks */,
-				650CCC732223CD3A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */,
-				D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */,
-				7F6E014A2A9409EE00981E7B /* CoreVideo.framework in Frameworks */,
+				64A4D5DD2C98B59800B6B629 /* UIKit.framework in Frameworks */,
+				64A4D5DB2C98B59100B6B629 /* CoreVideo.framework in Frameworks */,
+				64A4D5D72C98B58700B6B629 /* CoreHaptics.framework in Frameworks */,
+				64A4D5D82C98B58700B6B629 /* GameController.framework in Frameworks */,
+				64A4D5D92C98B58700B6B629 /* MetalPerformanceShaders.framework in Frameworks */,
+				64A4D5D62C98B57D00B6B629 /* QuartzCore.framework in Frameworks */,
 				D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */,
 				D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */,
 				5C05FC7A247BEBD600D4AF59 /* libThe-Forge_iOS.a in Frameworks */,
@@ -151,42 +147,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		28A5AB66201F377A000E571F /* Shaders */ = {
-			isa = PBXGroup;
-			children = (
-				09D4FF492821FDC3000E3229 /* ShaderList.fsl */,
-				97E9426525BF4965009F2F2B /* magnify.frag.fsl */,
-				97E9426625BF4965009F2F2B /* magnify.vert.fsl */,
-				97E9426825BF4965009F2F2B /* wave.frag.fsl */,
-				97E9426425BF4965009F2F2B /* wave.vert.fsl */,
-				97E9426725BF4965009F2F2B /* resources.h.fsl */,
-			);
-			name = Shaders;
-			sourceTree = "<group>";
-		};
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				7F6E01492A9409EE00981E7B /* CoreVideo.framework */,
-				7F6E01472A9409E900981E7B /* QuartzCore.framework */,
+				64A4D5DC2C98B59800B6B629 /* UIKit.framework */,
+				64A4D5DA2C98B59100B6B629 /* CoreVideo.framework */,
 				7F6E00E22A93FE9F00981E7B /* IOKit.framework */,
 				7F6E00C62A93F7E400981E7B /* QuartzCore.framework */,
 				7F6E00C42A93F7E000981E7B /* AppKit.framework */,
 				997EE4FB2A37F4B700FB75C1 /* CoreHaptics.framework */,
 				997EE4F52A37F4A400FB75C1 /* GameController.framework */,
-				99E0AC8228594DFE00AB602D /* CoreHaptics.framework */,
 				E9A438C9233DC0EB005BF1C7 /* libbz2.tbd */,
-				E9A438CB233DC0F4005BF1C7 /* libbz2.tbd */,
 				650CCC702223CD2E003533D9 /* MetalPerformanceShaders.framework */,
-				650CCC722223CD3A003533D9 /* MetalPerformanceShaders.framework */,
-				D062DAD42211027600CF2B1B /* GameController.framework */,
-				B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */,
-				D062DAD22211027000CF2B1B /* UIKit.framework */,
 				B22D906220E2EDCE0036B88E /* Metal.framework */,
 				B22D906820E2EDCE0036B88E /* MetalKit.framework */,
-				B27D879920E2E88B00081DB0 /* GameController.framework */,
-				B214AD3120E2DD620025F76B /* Metal.framework */,
-				B214AD3220E2DD620025F76B /* MetalKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -217,23 +191,24 @@
 		D062DAD82211030400CF2B1B /* 14_WaveIntrinsics_iOS */ = {
 			isa = PBXGroup;
 			children = (
-				D062DAE42211033700CF2B1B /* AppDelegate.h */,
-				D062DAE32211033700CF2B1B /* AppDelegate.m */,
+				D062DAE42211033700CF2B1B /* iOSAppDelegate.h */,
+				D062DAE32211033700CF2B1B /* iOSAppDelegate.m */,
 				D062DAD92211030400CF2B1B /* Assets.xcassets */,
 				D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */,
 				D062DADE2211030400CF2B1B /* Info.plist */,
 			);
-			path = 14_WaveIntrinsics_iOS;
+			name = 14_WaveIntrinsics_iOS;
 			sourceTree = "<group>";
 		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				EC66B8A92C935BE50004DC3B /* Art */,
+				EC66B8A32C935B660004DC3B /* Examples_3 */,
 				7F6E00042A93D9D200981E7B /* BuildConfigs */,
 				5C512C442141556900E7A798 /* The-Forge.xcodeproj */,
 				EA463C941EF81E8F005AC8C7 /* 14_WaveIntrinsics */,
 				D062DAD82211030400CF2B1B /* 14_WaveIntrinsics_iOS */,
-				28A5AB66201F377A000E571F /* Shaders */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
 			);
@@ -251,15 +226,81 @@
 		EA463C941EF81E8F005AC8C7 /* 14_WaveIntrinsics */ = {
 			isa = PBXGroup;
 			children = (
-				B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */,
-				5C512C3F2141555200E7A798 /* AppDelegate.h */,
-				5C512C3E2141555200E7A798 /* AppDelegate.m */,
+				5C512C3F2141555200E7A798 /* macOSAppDelegate.h */,
+				5C512C3E2141555200E7A798 /* macOSAppDelegate.m */,
+				EC417DFC2C94EE8000950982 /* Assets.xcassets */,
 				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
-				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
-				EADF9D661EFD160E00B2008B /* Info.plist */,
+				EC417DFE2C94EE9300950982 /* Info.plist */,
+			);
+			name = 14_WaveIntrinsics;
+			sourceTree = SOURCE_ROOT;
+		};
+		EC66B8A32C935B660004DC3B /* Examples_3 */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8A42C935B7B0004DC3B /* Unit_Tests */,
+			);
+			name = Examples_3;
+			path = ../../..;
+			sourceTree = "<group>";
+		};
+		EC66B8A42C935B7B0004DC3B /* Unit_Tests */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8A52C935B920004DC3B /* src */,
+			);
+			path = Unit_Tests;
+			sourceTree = "<group>";
+		};
+		EC66B8A52C935B920004DC3B /* src */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8A62C935BAE0004DC3B /* 14_WaveIntrinsics */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		EC66B8A62C935BAE0004DC3B /* 14_WaveIntrinsics */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8A72C935BD20004DC3B /* Shaders */,
+				B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */,
 			);
 			path = 14_WaveIntrinsics;
-			sourceTree = SOURCE_ROOT;
+			sourceTree = "<group>";
+		};
+		EC66B8A92C935BE50004DC3B /* Art */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8AA2C935BF30004DC3B /* Scripts */,
+			);
+			name = Art;
+			path = ../../../../Art;
+			sourceTree = "<group>";
+		};
+		EC66B8AA2C935BF30004DC3B /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8AB2C935C0F0004DC3B /* 14_WaveIntrinsics */,
+			);
+			path = Scripts;
+			sourceTree = "<group>";
+		};
+		EC66B8AB2C935C0F0004DC3B /* 14_WaveIntrinsics */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B8B12C935C320004DC3B /* Test_Normal.lua */,
+				EC66B8AC2C935C320004DC3B /* Test_QuadReadAcross.lua */,
+				EC66B8B02C935C320004DC3B /* Test_WaveActiveBallot.lua */,
+				EC66B8B22C935C320004DC3B /* Test_WaveActiveSum.lua */,
+				EC66B8AD2C935C320004DC3B /* Test_WaveGetLaneIndex.lua */,
+				EC66B8B42C935C320004DC3B /* Test_WaveGetMaxActiveIndex.lua */,
+				EC66B8AE2C935C320004DC3B /* Test_WaveIsFirstLane.lua */,
+				EC66B8AF2C935C320004DC3B /* Test_WavePrefixSum.lua */,
+				EC66B8B32C935C320004DC3B /* Test_WaveReadLaneFirst.lua */,
+			);
+			path = 14_WaveIntrinsics;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -375,8 +416,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				EC417DFD2C94EE8000950982 /* Assets.xcassets in Resources */,
+				EC417DFF2C94EE9300950982 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,7 +478,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\" \"TRUE\"\n # Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
 		};
 		5C61B5A124D2E3F200EF5D20 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -453,7 +495,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n\n# Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -462,8 +504,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */,
-				D062DAC32210FFED00CF2B1B /* 14_WaveIntrinsics.cpp in Sources */,
+				64A4D5F62C98D04A00B6B629 /* 14_WaveIntrinsics.cpp in Sources */,
+				D062DAE52211033700CF2B1B /* iOSAppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -471,7 +513,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C512C402141555200E7A798 /* AppDelegate.m in Sources */,
+				5C512C402141555200E7A798 /* macOSAppDelegate.m in Sources */,
 				B2136E6621668CBE00FEBC97 /* 14_WaveIntrinsics.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -498,6 +540,7 @@
 				D062DADB2211030400CF2B1B /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			path = ../../../Build_Props/XCode/iOS;
 			sourceTree = "<group>";
 		};
 		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
@@ -506,6 +549,7 @@
 				D2E631E01F3472DF005BFBA7 /* Base */,
 			);
 			name = MainMenu.xib;
+			path = ../../../Build_Props/XCode/MacOS;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -518,13 +562,13 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = ();
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.14-WaveIntrinsics-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
@@ -538,13 +582,13 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = ();
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.14-WaveIntrinsics-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
@@ -575,12 +619,12 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = ();
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.14-WaveIntrinsics";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -592,12 +636,12 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				HEADER_SEARCH_PATHS = ();
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.14-WaveIntrinsics";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};

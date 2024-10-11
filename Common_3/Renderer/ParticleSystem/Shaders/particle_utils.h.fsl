@@ -58,16 +58,20 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 */
 uint GetCurrentBufferSection(uint particleIdx)
 {
-	uint currBufferSection = 0;
-	uint currBufferOffset = ParticleCountsBuffer[0].x;
+	if (particleIdx < MAX_SHADOW_COUNT)
+		return 0;
+	if (particleIdx < MAX_SHADOW_COUNT + MAX_LIGHT_COUNT)
+		return 1;
+	return 2;
+}
 
-	while (currBufferOffset <= particleIdx && currBufferSection < 2)
-	{
-		currBufferSection++;
-		currBufferOffset += ParticleCountsBuffer[0][currBufferSection];
-	}
-
-	return currBufferSection;
+uint GetBufferSectionFromBitfield(uint bitfield)
+{
+	if ((bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW) > 0)
+		return 0;
+	if ((bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT) > 0)
+		return 1;
+	return 2;
 }
 
 /*
@@ -102,7 +106,8 @@ uint SwapParticles(uint currBitfield, uint currIdx, uint swapIdx, inout(Particle
 	Returns true if the particle was swapped before nAttempts, false otherwise. When returning true, particleData
 		contains the particle we swapped with and currBitfield contains its bitfield.
 */
-bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, uint particleIdx, uint particleCount, inout(uint) currBitfield, inout(ParticleData) particleData)
+bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, uint particleIdx, uint particleCount, 
+	inout(uint) currBitfield, inout(ParticleData) particleData, bool wasAllocated)
 {
 	int sign = isActive ? 1 : -1;
 	uint attemptCount = 0;
@@ -110,31 +115,41 @@ bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, 
 	uint currIdx;
 	uint toSwapBitfield = currBitfield;
 	uint setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
+	uint prevSectionBound;
 
-	uint offset = ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE] - (isActive ? particleCount : 0);
+	switch (currBufferSection)
+	{
+		case 0: prevSectionBound = 0; break;
+		case 1: prevSectionBound = MAX_SHADOW_COUNT; break;
+		case 2: prevSectionBound = MAX_SHADOW_COUNT + MAX_LIGHT_COUNT; break;
+	}
 
 	do
 	{
 		// Get index to swap particle to
-		AtomicAdd(ParticleSectionsIndices[currBufferSection * 2 + PREV_VALUE], sign, currIdx);
-		if (sign*int(currIdx) < sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]))
+		AtomicAdd(ParticleBufferState[0].ParticleSectionsIndices[PREV_BOUND(currBufferSection)], sign, currIdx);
+		if (sign*int(currIdx) < sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) && currIdx >= prevSectionBound)
 		{
 			toSwapBitfield = BitfieldBuffer[currIdx];
 			setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
 			attemptCount++;
+
+			if (isActive && (toSwapBitfield & PARTICLE_BITFIELD_IS_ALLOCATED) == 0 && wasAllocated)
+				break;
 		}
 	}
-	while (isActive == bool(ParticleSetVisibility[setIndex*2+CURR_VALUE]) &&							// Make sure the received particle has the right state
-		sign*int(currIdx) < sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]) &&	// Don't read from the wrong section
-		attemptCount < nAttempts);																			// Only try a certain amount of times
+	while (isActive == bool(ParticleSetVisibility[CURR_VISIBILITY(setIndex)]) &&										// Make sure the received particle has the right state
+		sign*int(currIdx) < sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) &&	// Don't read from the wrong section
+		int(currIdx) >= prevSectionBound &&
+		attemptCount < nAttempts);																						// Only try a certain amount of times
 
-	if (bool(ParticleSetVisibility[setIndex*2+CURR_VALUE]) != isActive)
+	if (bool(ParticleSetVisibility[CURR_VISIBILITY(setIndex)]) != isActive || ((isActive && (toSwapBitfield & PARTICLE_BITFIELD_IS_ALLOCATED) == 0) && wasAllocated))
 	{
 		currBitfield = SwapParticles(currBitfield, particleIdx, currIdx, particleData);
 		return true;
 	}
 	
-	if (sign*int(currIdx) >= sign*int(ParticleSectionsIndices[currBufferSection * 2 + CURR_VALUE]))
+	if (sign*int(currIdx) >= sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) || int(currIdx) < prevSectionBound)
 		return true;
 
 	return false;
@@ -144,10 +159,12 @@ bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, 
 	Stores a particle and its bitfield in the particles / bitfield buffers, initializing the particles with 
 		the attributes passed as arguments.
 */
-void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, float3 position, float age, float3 velocity)
+void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, float3 position, float age, float3 velocity, float animationTime)
 {
 	ParticleData particleData = PackParticle(particleSet, position, float4(velocity, age));
-	
+	particleData.AnimationTime = animationTime;
+	particleData.Pad = 0;
+
 	ParticlesDataBuffer[particleIdx] = particleData;
 	BitfieldBuffer[particleIdx] = bitfield;
 }

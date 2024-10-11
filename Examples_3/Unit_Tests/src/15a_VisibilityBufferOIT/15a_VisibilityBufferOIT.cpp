@@ -297,6 +297,9 @@ typedef struct AppSettings
     bool mAsyncCompute = DEFAULT_ASYNC_COMPUTE;
     // toggle rendering of local point lights
     bool mRenderLocalLights = true;
+#if defined(ENABLE_WORKGRAPH)
+    bool mGpuPipelineWorkgraph = true;
+#endif
 
     bool mDrawDebugTargets = false;
 
@@ -443,6 +446,14 @@ Shader*        pShaderTriangleFiltering = nullptr;
 Pipeline*      pPipelineTriangleFiltering = nullptr;
 RootSignature* pRootSignatureTriangleFiltering = nullptr;
 DescriptorSet* pDescriptorSetTriangleFiltering[2] = { NULL };
+
+#if defined(ENABLE_WORKGRAPH)
+Shader*        pShaderGpuPipeline = {};
+Pipeline*      pPipelineGpuPipeline = {};
+RootSignature* pRootSignatureGpuPipeline = nullptr;
+DescriptorSet* pDescriptorSetGpuPipeline[2] = { NULL };
+Workgraph*     pWorkgraphGpuPipeline = {};
+#endif
 /************************************************************************/
 // Clear OIT Head Index pipeline
 /************************************************************************/
@@ -629,7 +640,6 @@ uint32_t         gFontID = 0;
 
 UIComponent*              pHistogramWindow = NULL;
 bool                      gScaleGeometryPlots = false;
-UIWidget*                 pOldPlotSelector = NULL;
 UIWidget*                 pPlotSelector = NULL;
 UIWidget*                 pIndicesPlot = NULL;
 UIWidget*                 pVerticesPlot[MAX_VERTEX_BINDINGS] = {};
@@ -758,19 +768,6 @@ public:
         gAppSettings.mUpdateSimulation = true;
         gAppSettings.mHoldFilteredResults = false;
 
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_PIPELINE_CACHE, "PipelineCaches");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-
         // Camera Walking
         loadCameraPath("cameraPath.txt", gCameraPoints, &gCameraPathData);
         gCameraPoints = (uint)29084 / 2;
@@ -826,12 +823,14 @@ public:
 #endif                                                                    // SCARLETT
 
         // turn off by default depending on gpu config rules
-        gAppSettings.mEnableVRS = pRenderer->pGpu->mSoftwareVRSSupported && (gGpuSettings.mMSAASampleCount >= SAMPLE_COUNT_4);
+        gAppSettings.mEnableVRS &= pRenderer->pGpu->mSoftwareVRSSupported && (gGpuSettings.mMSAASampleCount >= SAMPLE_COUNT_4);
         gAppSettings.mEnableGodray &= !gGpuSettings.mDisableGodRays;
         gAppSettings.mMsaaLevel = gAppSettings.mEnableVRS ? SAMPLE_COUNT_4 : (SampleCount)min(1u, gGpuSettings.mMSAASampleCount);
         gAppSettings.mMsaaIndex = (uint32_t)log2((uint32_t)gAppSettings.mMsaaLevel);
         gAppSettings.mMsaaIndexRequested = gAppSettings.mMsaaIndex;
-
+#if defined(ENABLE_WORKGRAPH)
+        gAppSettings.mGpuPipelineWorkgraph &= pRenderer->pGpu->mWorkgraphSupported;
+#endif
         gDivider = gAppSettings.mEnableVRS ? 2 : 1;
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -1398,10 +1397,6 @@ public:
 
         removeResource(pSkyboxTri);
         removeTriangleFilteringBuffers();
-        uiRemoveDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR);
-        uiRemoveDynamicWidgets(&gAppSettings.mLinearScale);
-        uiRemoveDynamicWidgets(&gAppSettings.mSCurve);
-        uiRemoveDynamicWidgets(&gAppSettings.mDisplaySetting);
 
         exitProfiler();
 
@@ -1623,6 +1618,18 @@ public:
             {
                 gAppSettings.mMsaaIndex = gAppSettings.mMsaaIndexRequested;
                 gAppSettings.mMsaaLevel = (SampleCount)(1 << gAppSettings.mMsaaIndex);
+                while (gAppSettings.mMsaaIndex > 0)
+                {
+                    if ((pRenderer->pGpu->mFrameBufferSamplesCount & gAppSettings.mMsaaLevel) == 0)
+                    {
+                        gAppSettings.mMsaaIndex--;
+                        gAppSettings.mMsaaLevel = (SampleCount)(gAppSettings.mMsaaLevel / 2);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
             gDivider = gAppSettings.mEnableVRS ? 2 : 1;
 
@@ -1682,6 +1689,13 @@ public:
             checkbox.pData = &gAppSettings.mDrawDebugTargets;
             luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Draw Debug Targets", &checkbox, WIDGET_TYPE_CHECKBOX));
 
+#if defined(ENABLE_WORKGRAPH)
+            if (pRenderer->pGpu->mWorkgraphSupported)
+            {
+                checkbox.pData = &gAppSettings.mGpuPipelineWorkgraph;
+                luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Enable GPU pipeline workgraph", &checkbox, WIDGET_TYPE_CHECKBOX));
+            }
+#endif
             /************************************************************************/
             /************************************************************************/
             if (pRenderer->pGpu->mHDRSupported)
@@ -1942,6 +1956,11 @@ public:
 
             uiRemoveComponent(pHistogramWindow);
             uiRemoveComponent(pGuiWindow);
+            uiRemoveDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR);
+            uiRemoveDynamicWidgets(&gAppSettings.mLinearScale);
+            uiRemoveDynamicWidgets(&gAppSettings.mSCurve);
+            uiRemoveDynamicWidgets(&gAppSettings.mDisplaySetting);
+
             unloadProfilerUI();
         }
 
@@ -2159,6 +2178,16 @@ public:
             triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
 
+#if defined(ENABLE_WORKGRAPH)
+            if (gAppSettings.mGpuPipelineWorkgraph)
+            {
+                triangleFilteringDesc.pWorkgraph = pWorkgraphGpuPipeline;
+                triangleFilteringDesc.mInitWorkgraph = gFrameCount == 0;
+                triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetGpuPipeline[0];
+                triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetGpuPipeline[1];
+            }
+#endif
+
             triangleFilteringDesc.mFrameIndex = frameIdx;
             triangleFilteringDesc.mBuffersIndex = frameIdx;
             triangleFilteringDesc.mGpuProfileToken = gComputeProfileToken;
@@ -2311,6 +2340,16 @@ public:
                 triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
                 triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
 
+#if defined(ENABLE_WORKGRAPH)
+                if (gAppSettings.mGpuPipelineWorkgraph)
+                {
+                    triangleFilteringDesc.pWorkgraph = pWorkgraphGpuPipeline;
+                    triangleFilteringDesc.mInitWorkgraph = gFrameCount == 0;
+                    triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetGpuPipeline[0];
+                    triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetGpuPipeline[1];
+                }
+#endif
+
                 triangleFilteringDesc.mFrameIndex = frameIdx;
                 triangleFilteringDesc.mBuffersIndex = frameIdx;
                 triangleFilteringDesc.mGpuProfileToken = gGraphicsProfileToken;
@@ -2390,7 +2429,7 @@ public:
                     cmdBindPushConstants(graphicsCmd, pRootSignatureResolveCompute, gShadingRateRootConstantIndex, &drawVRSDebug);
 
                     cmdBindDescriptorSet(graphicsCmd, 1 - frameIdx, pDescriptorSetResolveCompute);
-                    const uint32_t* pThreadGroupSize = pShaderResolveCompute->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+                    const uint32_t* pThreadGroupSize = pShaderResolveCompute->mNumThreadsPerGroup;
                     cmdDispatch(graphicsCmd, mSettings.mWidth / (gDivider * pThreadGroupSize[0]) + 1,
                                 mSettings.mHeight / (gDivider * pThreadGroupSize[1]) + 1, pThreadGroupSize[2]);
 
@@ -2551,6 +2590,16 @@ public:
         setDesc = { pRootSignatureResolveCompute, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetResolveCompute);
 
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            setDesc = { pRootSignatureGpuPipeline, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGpuPipeline[0]);
+            setDesc = { pRootSignatureGpuPipeline, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGpuPipeline[1]);
+        }
+#endif
+
         return true;
     }
 
@@ -2582,6 +2631,13 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSetPreSkinVertexes[PRE_SKIN_ASYNC][1]);
         removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[0]);
         removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[1]);
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            removeDescriptorSet(pRenderer, pDescriptorSetGpuPipeline[0]);
+            removeDescriptorSet(pRenderer, pDescriptorSetGpuPipeline[1]);
+        }
+#endif
     }
 
     void prepareDescriptorSets()
@@ -2642,7 +2698,12 @@ public:
             filterParams[2].pName = "VBConstantBuffer";
             filterParams[2].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
             updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 3, filterParams);
-
+#if defined(ENABLE_WORKGRAPH)
+            if (pRenderer->pGpu->mWorkgraphSupported)
+            {
+                updateDescriptorSet(pRenderer, 0, pDescriptorSetGpuPipeline[0], 3, filterParams);
+            }
+#endif
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
                 DescriptorData filterParamsPerFrame[6] = {};
@@ -2660,6 +2721,12 @@ public:
                 filterParamsPerFrame[5].pName = "indirectDataBuffer";
                 filterParamsPerFrame[5].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
                 updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 6, filterParamsPerFrame);
+#if defined(ENABLE_WORKGRAPH)
+                if (pRenderer->pGpu->mWorkgraphSupported)
+                {
+                    updateDescriptorSet(pRenderer, i, pDescriptorSetGpuPipeline[1], 6, filterParamsPerFrame);
+                }
+#endif
             }
         }
         // OIT Head Index Clear
@@ -3134,6 +3201,7 @@ public:
         postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         postProcRTDesc.pName = "pIntermediateRenderTarget";
         addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
+        ESRAM_END_ALLOC(pRenderer);
 
         /************************************************************************/
         // GodRay render target
@@ -3149,14 +3217,12 @@ public:
         GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         GRRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 
         GRRTDesc.pName = "GodRay RT A";
         addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
         GRRTDesc.pName = "GodRay RT B";
         GRRTDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
         addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[1]);
-        ESRAM_END_ALLOC(pRenderer);
         /************************************************************************/
         // VRS History render targets
         /************************************************************************/
@@ -3319,6 +3385,14 @@ public:
         resolveComputeRootSigDesc.ppShaders = &pShaderResolveCompute;
         addRootSignature(pRenderer, &resolveComputeRootSigDesc, &pRootSignatureResolveCompute);
         gShadingRateRootConstantIndex = getDescriptorIndexFromName(pRootSignatureResolveCompute, "cbRootConstant");
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            RootSignatureDesc gpuPipelineRootDesc = { &pShaderGpuPipeline, 1 };
+            addRootSignature(pRenderer, &gpuPipelineRootDesc, &pRootSignatureGpuPipeline);
+        }
+#endif
     }
 
     void removeRootSignatures()
@@ -3341,6 +3415,13 @@ public:
         removeRootSignature(pRenderer, pRootSignatureVBPass);
         removeRootSignature(pRenderer, pRootSignatureFillStencil);
         removeRootSignature(pRenderer, pRootSignatureResolveCompute);
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            removeRootSignature(pRenderer, pRootSignatureGpuPipeline);
+        }
+#endif
     }
 
     void addShaders()
@@ -3499,6 +3580,15 @@ public:
         addShader(pRenderer, &skyboxTriShaderDesc, &pShaderSkyboxTri);
         addShader(pRenderer, &fillStencilDesc, &pShaderFillStencil);
         addShader(pRenderer, &resolveComputeDesc, &pShaderResolveCompute);
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            ShaderLoadDesc gpuPipelineDesc = {};
+            gpuPipelineDesc.mGraph = { "gpu_pipeline.graph" };
+            addShader(pRenderer, &gpuPipelineDesc, &pShaderGpuPipeline);
+        }
+#endif
     }
 
     void removeShaders()
@@ -3536,6 +3626,14 @@ public:
         removeShader(pRenderer, pShaderPresentPass);
         removeShader(pRenderer, pShaderFillStencil);
         removeShader(pRenderer, pShaderResolveCompute);
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pShaderGpuPipeline)
+        {
+            removeShader(pRenderer, pShaderGpuPipeline);
+            pShaderGpuPipeline = {};
+        }
+#endif
     }
 
     void addPipelines()
@@ -3649,6 +3747,21 @@ public:
         computePipelineSettings.pShaderProgram = pShaderClusterLights;
         computePipelineSettings.pRootSignature = pRootSignatureLightClusters;
         addPipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pRenderer->pGpu->mWorkgraphSupported)
+        {
+            pipelineDesc.mType = PIPELINE_TYPE_WORKGRAPH;
+            pipelineDesc.mWorkgraphDesc.pRootSignature = pRootSignatureGpuPipeline;
+            pipelineDesc.mWorkgraphDesc.pShaderProgram = pShaderGpuPipeline;
+            pipelineDesc.mWorkgraphDesc.pWorkgraphName = "GPUPipeline";
+            addPipeline(pRenderer, &pipelineDesc, &pPipelineGpuPipeline);
+
+            WorkgraphDesc workgraphDesc = {};
+            workgraphDesc.pPipeline = pPipelineGpuPipeline;
+            addWorkgraph(pRenderer, &workgraphDesc, &pWorkgraphGpuPipeline);
+        }
+#endif
         /************************************************************************/
         // Setup MSAA resolve pipeline
         /************************************************************************/
@@ -3944,6 +4057,16 @@ public:
         removePipeline(pRenderer, pPipelinePreSkinVertexes[PRE_SKIN_ASYNC]);
         removePipeline(pRenderer, pPipelineTriangleFiltering);
         removePipeline(pRenderer, pPipelineClearBuffers);
+
+#if defined(ENABLE_WORKGRAPH)
+        if (pPipelineGpuPipeline)
+        {
+            removePipeline(pRenderer, pPipelineGpuPipeline);
+            removeWorkgraph(pRenderer, pWorkgraphGpuPipeline);
+            pPipelineGpuPipeline = {};
+            pWorkgraphGpuPipeline = {};
+        }
+#endif
     }
 
     // This method sets the contents of the buffers to indicate the rendering pass that
@@ -4408,21 +4531,6 @@ public:
 
         prevOutputMode = gAppSettings.mOutputMode;
 
-        static bool wasGREnabled = gAppSettings.mEnableGodray;
-
-        if (gAppSettings.mEnableGodray != wasGREnabled)
-        {
-            wasGREnabled = gAppSettings.mEnableGodray;
-            if (wasGREnabled)
-            {
-                uiShowDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR, pGuiWindow);
-            }
-            else
-            {
-                uiHideDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR, pGuiWindow);
-            }
-        }
-
         uiSetComponentActive(pDebugTexturesWindow, gAppSettings.mDrawDebugTargets);
 
         // Async compute
@@ -4485,12 +4593,12 @@ public:
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pHistoryRenderTarget[frameIdx], LOAD_ACTION_LOAD };
         bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_LOAD, LOAD_ACTION_LOAD };
+        bindRenderTargets.mSampleLocation = { gLocations, 1, 1 };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDepthBuffer->mWidth, (float)pDepthBuffer->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pDepthBuffer->mWidth, pDepthBuffer->mHeight);
 
         cmdBindPipeline(cmd, pPipelineFillStencil);
-        cmdSetSampleLocations(cmd, SAMPLE_COUNT_4, 1, 1, gLocations);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetFillStencil[0]);
         cmdBindDescriptorSet(cmd, 1 - frameIdx, pDescriptorSetFillStencil[1]);
 
@@ -4541,14 +4649,6 @@ public:
         BufferBarrier bufferBarrier = { pHeadIndexBufferOIT, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
         cmdResourceBarrier(cmd, 1, &bufferBarrier, 0, NULL, 0, NULL);
 
-        if (gAppSettings.mEnableVRS
-#if defined(VULKAN)
-            && pRenderer->mRendererApi != RENDERER_API_VULKAN
-#endif
-        )
-        {
-            cmdSetSampleLocations(cmd, SAMPLE_COUNT_4, 1, 1, gLocations);
-        }
         /************************************************************************/
         // Visibility Buffer Pass
         /************************************************************************/
@@ -4560,6 +4660,11 @@ public:
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
         bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR, LOAD_ACTION_CLEAR };
+        if (gAppSettings.mEnableVRS)
+        {
+            bindRenderTargets.mSampleLocation = { gLocations, 1, 1 };
+        }
+
         cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
@@ -4581,12 +4686,6 @@ public:
             }
 
             cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[i]);
-
-            if (i != GEOMSET_ALPHA_BLEND)
-            {
-                if (gAppSettings.mEnableVRS)
-                    cmdSetSampleLocations(cmd, SAMPLE_COUNT_4, 1, 1, gLocations);
-            }
 
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
             cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetVBPass[1]);

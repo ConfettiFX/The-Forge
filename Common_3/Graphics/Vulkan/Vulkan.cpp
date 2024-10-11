@@ -61,8 +61,8 @@
 #endif
 
 #include "../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
-#include "../../../Data/Libraries/ags/AgsHelper.h"
-#include "../../../Data/Libraries/nvapi/NvApiHelper.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/ags/AgsHelper.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/nvapi/NvApiHelper.h"
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
@@ -333,13 +333,7 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,  // Required by VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
 	VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,	  // Required by VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME
 	VK_KHR_MULTIVIEW_EXTENSION_NAME,			  // Required by VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME
-    /************************************************************************/
-	// Nsight Aftermath
-	/************************************************************************/
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
-	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
-#endif
+
 	VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME,
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
     VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
@@ -817,7 +811,7 @@ void OnVkDeviceLost(Renderer* pRenderer)
 }
 
 // Internal utility functions (may become external one day)
-VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount);
+VkSampleCountFlagBits util_to_vk_sample_count(Renderer* pRenderer, SampleCount sampleCount);
 
 VkColorSpaceKHR util_to_vk_colorspace(ColorSpace colorSpace);
 ColorSpace      util_from_vk_colorspace(VkColorSpaceKHR colorSpace);
@@ -960,7 +954,7 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
     VkAttachmentReference dsAttachmentRef = {};
     uint32_t              attachmentCount = 0;
 
-    VkSampleCountFlagBits sampleCount = util_to_vk_sample_count(pDesc->mSampleCount);
+    VkSampleCountFlagBits sampleCount = util_to_vk_sample_count(pRenderer, pDesc->mSampleCount);
 
     // Fill out attachment descriptions and references
     {
@@ -1366,7 +1360,7 @@ static void internal_log(LogLevel level, const char* msg, const char* component)
 #endif
 }
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
 // gAssertOnVkValidationError is used to work around a bug in the ovr mobile sdk.
 // There is a fence creation struct that is not initialized in the sdk.
 bool gAssertOnVkValidationError = true;
@@ -1511,7 +1505,7 @@ static inline VkPipelineColorBlendStateCreateInfo util_to_blend_desc(const Blend
                                                                      VkPipelineColorBlendAttachmentState* pAttachments)
 {
     int blendDescIndex = 0;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
 
     for (uint32_t i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
     {
@@ -1968,9 +1962,23 @@ VkSamplerAddressMode util_to_vk_address_mode(AddressMode addressMode)
     }
 }
 
-VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount)
+VkSampleCountFlagBits util_to_vk_sample_count(Renderer* pRenderer, SampleCount sampleCount)
 {
     VkSampleCountFlagBits result = VK_SAMPLE_COUNT_1_BIT;
+
+    while (sampleCount > 0)
+    {
+        if ((pRenderer->pGpu->mFrameBufferSamplesCount & sampleCount) == 0)
+        {
+            LOGF(LogLevel::eWARNING, "Sample Count (%u) not supported. Trying a lower sample count (%u)", sampleCount, sampleCount / 2);
+            sampleCount = (SampleCount)(sampleCount / 2);
+        }
+        else
+        {
+            break;
+        }
+    }
+
     switch (sampleCount)
     {
     case SAMPLE_COUNT_1:
@@ -2753,12 +2761,6 @@ static bool QueryGpuInfo(const RendererContextDesc* pDesc, RendererContext* pCon
                         if (strcmp(wantedDeviceExtensions[k], VK_KHR_MULTIVIEW_EXTENSION_NAME) == 0)
                             pGpuDesc->mMultiviewExtension = true;
 #endif
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-                        if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME) == 0)
-                            pGpuDesc->mNVDeviceDiagnosticsCheckpointExtension = true;
-                        if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME) == 0)
-                            pGpuDesc->mNVDeviceDiagnosticsConfigExtension = true;
-#endif
                         break;
                     }
                 }
@@ -2871,10 +2873,6 @@ static bool QueryGpuInfo(const RendererContextDesc* pDesc, RendererContext* pCon
     pGpuDesc->mExternalMemoryExtension = pGpuDesc->mExternalMemoryExtension && pGpuDesc->mExternalMemoryWin32Extension;
 #endif
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    pGpuDesc->mAftermathSupport = pGpuDesc->mNVDeviceDiagnosticsCheckpointExtension && pGpu->mNVDeviceDiagnosticsConfigExtension;
-#endif
-
     pGpuDesc->mUniformBufferAlignment = (uint32_t)gpuProperties.properties.limits.minUniformBufferOffsetAlignment;
     pGpuDesc->mUploadBufferAlignment = 1;
     pGpuDesc->mUploadBufferTextureAlignment = (uint32_t)gpuProperties.properties.limits.optimalBufferCopyOffsetAlignment;
@@ -2957,6 +2955,7 @@ static bool QueryGpuInfo(const RendererContextDesc* pDesc, RendererContext* pCon
 #if defined(AMDAGS)
     pGpuDesc->mAmdAsicFamily = agsGetAsicFamily(gpuProperties.properties.deviceID);
 #endif
+    pGpuDesc->mFrameBufferSamplesCount = (uint32_t)gpuProperties.properties.limits.framebufferColorSampleCounts;
 #if defined(ANDROID) || defined(NX64)
     pGpuDesc->mUnifiedMemorySupported = true;
 #endif
@@ -3117,7 +3116,7 @@ void InitializeImageCreateInfo(Renderer* pRenderer, const TextureDesc* pDesc, Vk
     add_info.extent.depth = pDesc->mDepth;
     add_info.mipLevels = pDesc->mMipLevels;
     add_info.arrayLayers = arraySize;
-    add_info.samples = util_to_vk_sample_count(pDesc->mSampleCount);
+    add_info.samples = util_to_vk_sample_count(pRenderer, pDesc->mSampleCount);
     add_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     add_info.usage = util_to_vk_image_usage(descriptors);
     add_info.usage |= additionalFlags;
@@ -3427,7 +3426,7 @@ void CreateInstance(const char* app_name, const RendererContextDesc* pDesc, uint
     volkLoadInstance(pContext->mVk.pInstance);
 
     // Debug
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     VkResult debugCallbackRes = VK_ERROR_UNKNOWN;
     if (pContext->mVk.mDebugUtilsExtension)
     {
@@ -3861,21 +3860,6 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     create_info.ppEnabledExtensionNames = deviceExtensionCache;
     create_info.pEnabledFeatures = NULL;
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    VkDeviceDiagnosticsConfigCreateInfoNV diagnosticsNV = { VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV };
-    if (pRenderer->pGpu->mVk.mAftermathSupport)
-    {
-        LOGF(LogLevel::eINFO, "Successfully loaded Aftermath extensions");
-        diagnosticsNV.flags = VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |
-                              VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |
-                              VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV;
-        ADD_TO_NEXT_CHAIN(true, diagnosticsNV);
-        // Enable Nsight Aftermath GPU crash dump creation.
-        // This needs to be done before the Vulkan device is created.
-        CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
-    }
-#endif
-
     /************************************************************************/
     // Add Device Group Extension if requested and available
     /************************************************************************/
@@ -3973,14 +3957,6 @@ static void RemoveDevice(Renderer* pRenderer)
     vkDestroyDescriptorPool(pRenderer->mVk.pDevice, pRenderer->mVk.pEmptyDescriptorPool,
                             GetAllocationCallbacks(VK_OBJECT_TYPE_DESCRIPTOR_POOL));
     vkDestroyDevice(pRenderer->mVk.pDevice, GetAllocationCallbacks(VK_OBJECT_TYPE_DEVICE));
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    if (pRenderer->pGpu->mVk.mAftermathSupport)
-    {
-        ASSERT(pRenderer->mOwnsContext);
-        DestroyAftermathTracker(&pRenderer->mAftermathTracker);
-    }
-#endif
 }
 
 VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer)
@@ -4042,9 +4018,13 @@ void initRendererContext(const char* appName, const RendererContextDesc* pDesc, 
     initMutex(&gDeviceMemStats.mMemoryMapMutex);
 #endif
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     // this turns on all validation layers
     instanceLayers[instanceLayerCount++] = "VK_LAYER_KHRONOS_validation";
+#endif
+
+#if defined(NX64) && defined(FORGE_DEBUG)
+    instanceLayers[instanceLayerCount++] = "VK_LAYER_RENDERDOC_Capture";
 #endif
 
     // Add user specified instance layers for instance creation
@@ -5391,7 +5371,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
         }
     }
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
     {
         setBufferName(pRenderer, pBuffer, pDesc->pName);
@@ -5644,7 +5624,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
     pTexture->mFormat = pDesc->mFormat;
     pTexture->mSampleCount = pDesc->mSampleCount;
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
     {
         setTextureName(pRenderer, pTexture, pDesc->pName);
@@ -5870,7 +5850,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
     }
 #endif
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
     {
         setRenderTargetName(pRenderer, pRenderTarget, pDesc->pName);
@@ -6217,7 +6197,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
     SAFE_FREE(pDescriptorSet);
 }
 
-#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK) || defined(PVS_STUDIO)
 #define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
     if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__)) \
     {                                                                          \
@@ -6336,7 +6316,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
         {
             VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
             DescriptorIndexMap* pNode = shgetp_null(pRootSignature->pDescriptorNameToIndexMap, pDesc->pName);
             if (!pNode)
             {
@@ -6469,16 +6449,15 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
                 if (pParam->pRanges)
                 {
                     DescriptorDataRange range = pParam->pRanges[arr];
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
                     uint32_t maxRange = DESCRIPTOR_TYPE_UNIFORM_BUFFER == type
                                             ? pRenderer->pGpu->mVk.mGpuProperties.properties.limits.maxUniformBufferRange
                                             : pRenderer->pGpu->mVk.mGpuProperties.properties.limits.maxStorageBufferRange;
-#endif
 
                     VALIDATE_DESCRIPTOR(range.mSize, "Descriptor (%s) - pRanges[%u].mSize is zero", pDesc->pName, arr);
                     VALIDATE_DESCRIPTOR(range.mSize <= maxRange, "Descriptor (%s) - pRanges[%u].mSize is %ull which exceeds max size %u",
                                         pDesc->pName, arr, range.mSize, maxRange);
-
+#endif
                     currUpdateData->offset = range.mOffset;
                     currUpdateData->range = range.mSize;
                 }
@@ -6611,7 +6590,7 @@ void cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* 
             VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName);
         }
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
         const uint32_t maxRange = DESCRIPTOR_TYPE_UNIFORM_BUFFER == pDesc->mType
                                       ? //-V522
                                       pCmd->pRenderer->pGpu->mVk.mGpuProperties.properties.limits.maxUniformBufferRange
@@ -6887,6 +6866,11 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
     }
 
     addPipelineReflection(stageReflections, counter, pShaderProgram->pReflection);
+
+    for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
+    {
+        removeShaderReflection(&stageReflections[i]);
+    }
 
 #if defined(QUEST_VR)
     pShaderProgram->mIsMultiviewVR = pDesc->mIsMultiviewVR;
@@ -7499,40 +7483,35 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
                 {
                 case SHADER_STAGE_VERT:
                 {
-                    stages[stage_count].pName =
-                        pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mVertexStageIndex].pEntryPoint;
+                    stages[stage_count].pName = pShaderProgram->mVk.pEntryNames[pShaderProgram->pReflection->mVertexStageIndex];
                     stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
                     stages[stage_count].module = pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mVertexStageIndex];
                 }
                 break;
                 case SHADER_STAGE_TESC:
                 {
-                    stages[stage_count].pName =
-                        pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mHullStageIndex].pEntryPoint;
+                    stages[stage_count].pName = pShaderProgram->mVk.pEntryNames[pShaderProgram->pReflection->mHullStageIndex];
                     stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
                     stages[stage_count].module = pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mHullStageIndex];
                 }
                 break;
                 case SHADER_STAGE_TESE:
                 {
-                    stages[stage_count].pName =
-                        pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mDomainStageIndex].pEntryPoint;
+                    stages[stage_count].pName = pShaderProgram->mVk.pEntryNames[pShaderProgram->pReflection->mDomainStageIndex];
                     stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
                     stages[stage_count].module = pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mDomainStageIndex];
                 }
                 break;
                 case SHADER_STAGE_GEOM:
                 {
-                    stages[stage_count].pName =
-                        pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mGeometryStageIndex].pEntryPoint;
+                    stages[stage_count].pName = pShaderProgram->mVk.pEntryNames[pShaderProgram->pReflection->mGeometryStageIndex];
                     stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
                     stages[stage_count].module = pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex];
                 }
                 break;
                 case SHADER_STAGE_FRAG:
                 {
-                    stages[stage_count].pName =
-                        pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mPixelStageIndex].pEntryPoint;
+                    stages[stage_count].pName = pShaderProgram->mVk.pEntryNames[pShaderProgram->pReflection->mPixelStageIndex];
                     stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
                     stages[stage_count].module = pShaderProgram->mVk.pShaderModules[pShaderProgram->pReflection->mPixelStageIndex];
                 }
@@ -7648,8 +7627,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
             ts.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
             ts.pNext = NULL;
             ts.flags = 0;
-            ts.patchControlPoints =
-                pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mHullStageIndex].mNumControlPoint;
+            ts.patchControlPoints = pShaderProgram->pReflection->mNumControlPoint;
         }
 
         DECLARE_ZERO(VkPipelineViewportStateCreateInfo, vs);
@@ -7666,7 +7644,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
         ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         ms.pNext = NULL;
         ms.flags = 0;
-        ms.rasterizationSamples = util_to_vk_sample_count(pDesc->mSampleCount);
+        ms.rasterizationSamples = util_to_vk_sample_count(pRenderer, pDesc->mSampleCount);
         ms.sampleShadingEnable = VK_FALSE;
         ms.minSampleShading = 0.0f;
         ms.pSampleMask = 0;
@@ -7782,7 +7760,7 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
         stage.flags = 0;
         stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         stage.module = pDesc->pShaderProgram->mVk.pShaderModules[0];
-        stage.pName = pDesc->pShaderProgram->pReflection->mStageReflections[0].pEntryPoint;
+        stage.pName = pDesc->pShaderProgram->mVk.pEntryNames[0];
         stage.pSpecializationInfo = pDesc->pShaderProgram->mVk.pSpecializationInfo;
 
         DECLARE_ZERO(VkComputePipelineCreateInfo, create_info);
@@ -7986,6 +7964,19 @@ void removePipelineStats(Renderer* pRenderer, PipelineStats* pStats)
 /************************************************************************/
 // Command buffer functions
 /************************************************************************/
+void util_cache_sample_location_state(Cmd* pCmd, const SampleLocationDesc* pDesc, SampleCount sampleCount)
+{
+    uint32_t sampleLocationsCount = pDesc->mGridSizeX * pDesc->mGridSizeY * sampleCount;
+    ASSERT(sampleLocationsCount <= MAX_SAMPLE_LOCATIONS);
+    pCmd->mVk.mGridSizeX = pDesc->mGridSizeX;
+    pCmd->mVk.mGridSizeY = pDesc->mGridSizeY;
+    pCmd->mVk.mSampleCount = sampleCount;
+    for (uint32_t i = 0; i < sampleLocationsCount; i++)
+    {
+        pCmd->mVk.mSampleLocations[i] = pDesc->pLocations[i];
+    }
+}
+
 void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
     ASSERT(pRenderer);
@@ -8056,7 +8047,8 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         return;
     }
 
-    bool vrFoveatedRendering = false;
+    SampleCount sampleCount = SAMPLE_COUNT_1;
+    bool        vrFoveatedRendering = false;
     UNREF_PARAM(vrFoveatedRendering);
     VkRenderingAttachmentInfo colorAttachments[MAX_RENDER_TARGET_ATTACHMENTS] = {};
     VkRenderingAttachmentInfo depthAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
@@ -8069,7 +8061,7 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
         vrFoveatedRendering |= desc->pRenderTarget->mVRFoveatedRendering;
         const LoadActionType loadAction = desc->mLoadAction;
-
+        sampleCount = desc->pRenderTarget->mSampleCount;
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
         StoreActionType storeAction;
         bool            resolveAttachment = IsStoreActionResolve(desc->mStoreAction);
@@ -8138,7 +8130,7 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     if (hasDepth)
     {
         const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
-
+        sampleCount = desc->pDepthStencil->mSampleCount;
         vrFoveatedRendering |= desc->pDepthStencil->mVRFoveatedRendering;
         const LoadActionType depthLoadAction = desc->mLoadAction;
         const LoadActionType stencilLoadAction = desc->mLoadActionStencil;
@@ -8302,6 +8294,8 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 
     vkCmdBeginRenderingKHR(pCmd->mVk.pCmdBuf, &renderingInfo);
     pCmd->mVk.mIsRendering = true;
+
+    util_cache_sample_location_state(pCmd, &pDesc->mSampleLocation, sampleCount);
 }
 
 void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
@@ -8509,25 +8503,8 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 
     vkCmdBeginRenderPass(pCmd->mVk.pCmdBuf, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
     pCmd->mVk.pActiveRenderPass = pRenderPass->pRenderPass;
-}
 
-void cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t grid_size_x, uint32_t grid_size_y, SampleLocations* locations)
-{
-    uint32_t sampleLocationsCount = samples_count * grid_size_x * grid_size_y;
-    ASSERT(sampleLocationsCount <= 16);
-
-    VkSampleLocationEXT sampleLocations[16] = {};
-    for (uint32_t i = 0; i < sampleLocationsCount; ++i)
-        sampleLocations[i] = util_to_vk_locations(locations[i]);
-
-    VkSampleLocationsInfoEXT sampleLocationsInfo = {};
-    sampleLocationsInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
-    sampleLocationsInfo.sampleLocationsPerPixel = util_to_vk_sample_count(samples_count);
-    sampleLocationsInfo.sampleLocationGridSize = { grid_size_x, grid_size_y };
-    sampleLocationsInfo.sampleLocationsCount = sampleLocationsCount;
-    sampleLocationsInfo.pSampleLocations = sampleLocations;
-
-    vkCmdSetSampleLocationsEXT(pCmd->mVk.pCmdBuf, &sampleLocationsInfo);
+    util_cache_sample_location_state(pCmd, &pDesc->mSampleLocation, sampleCount);
 }
 
 void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
@@ -8573,6 +8550,23 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 
     VkPipelineBindPoint pipeline_bind_point = gPipelineBindPoint[pPipeline->mVk.mType];
     vkCmdBindPipeline(pCmd->mVk.pCmdBuf, pipeline_bind_point, pPipeline->mVk.pPipeline);
+
+    uint32_t sampleLocationsCount = pCmd->mVk.mGridSizeX * pCmd->mVk.mGridSizeY * pCmd->mVk.mSampleCount;
+    if (sampleLocationsCount)
+    {
+        VkSampleLocationEXT sampleLocations[MAX_SAMPLE_LOCATIONS] = {};
+        for (uint32_t i = 0; i < sampleLocationsCount; i++)
+        {
+            sampleLocations[i] = util_to_vk_locations(pCmd->mVk.mSampleLocations[i]);
+        }
+        VkSampleLocationsInfoEXT sampleLocationInfo = {};
+        sampleLocationInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
+        sampleLocationInfo.pSampleLocations = sampleLocations;
+        sampleLocationInfo.sampleLocationsPerPixel = util_to_vk_sample_count(pCmd->pRenderer, (SampleCount)pCmd->mVk.mSampleCount);
+        sampleLocationInfo.sampleLocationGridSize = { pCmd->mVk.mGridSizeX, pCmd->mVk.mGridSizeY };
+        sampleLocationInfo.sampleLocationsCount = sampleLocationsCount;
+        vkCmdSetSampleLocationsEXT(pCmd->mVk.pCmdBuf, &sampleLocationInfo);
+    }
 }
 
 void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
@@ -9269,22 +9263,7 @@ void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 
     if (numValidFences)
     {
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-        VkResult result = vkWaitForFences(pRenderer->mVk.pDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
-        if (pRenderer->pGpu->mVk.mAftermathSupport)
-        {
-            if (VK_ERROR_DEVICE_LOST == result)
-            {
-                OnVkDeviceLost(pRenderer);
-                // Device lost notification is asynchronous to the NVIDIA display
-                // driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
-                // thread some time to do its work before terminating the process.
-                threadSleep(3000);
-            }
-        }
-#else
         CHECK_VKRESULT(vkWaitForFences(pRenderer->mVk.pDevice, numValidFences, fences, VK_TRUE, UINT64_MAX));
-#endif
     }
 }
 
@@ -9678,6 +9657,7 @@ void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* tota
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->pRenderer->pContext->mVk.mDebugUtilsExtension)
     {
         VkDebugUtilsLabelEXT markerInfo = {};
@@ -9700,10 +9680,12 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
         markerInfo.pMarkerName = pName;
         vkCmdDebugMarkerBeginEXT(pCmd->mVk.pCmdBuf, &markerInfo);
     }
+#endif
 }
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->pRenderer->pContext->mVk.mDebugUtilsExtension)
     {
         vkCmdEndDebugUtilsLabelEXT(pCmd->mVk.pCmdBuf);
@@ -9712,10 +9694,12 @@ void cmdEndDebugMarker(Cmd* pCmd)
     {
         vkCmdDebugMarkerEndEXT(pCmd->mVk.pCmdBuf);
     }
+#endif
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->pRenderer->pContext->mVk.mDebugUtilsExtension)
     {
         VkDebugUtilsLabelEXT markerInfo = {};
@@ -9738,13 +9722,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
         markerInfo.pMarkerName = pName;
         vkCmdDebugMarkerInsertEXT(pCmd->mVk.pCmdBuf, &markerInfo);
     }
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    if (pCmd->pRenderer->pGpu->mVk.mAftermathSupport)
-    {
-        vkCmdSetCheckpointNV(pCmd->mVk.pCmdBuf, pName);
-    }
-#endif
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 }
 
 void cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
@@ -9785,7 +9763,7 @@ static void SetVkObjectName(Renderer* pRenderer, uint64_t handle, VkObjectType t
     UNREF_PARAM(type);
     UNREF_PARAM(typeExt);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     // #NOTE: Some drivers dont like empty names - VK_ERROR_OUT_OF_HOST_MEMORY
     if (!pName || !strcmp(pName, ""))
     {

@@ -754,5 +754,18 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	shadedColor += ambient;
     
     Out.FinalColor = float4(shadedColor.xyz, 1.0f);
+
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        Out.FinalColor.rgb += float3(0.1, 0.2, 0.3);
+        counter += abs(Out.FinalColor.r);
+		// Trick PlayStation compilers into thinking that the loop will finish
+		counter -= 0.00000001;
+    }
+#endif
+
 	RETURN(Out);
 }

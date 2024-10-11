@@ -93,11 +93,14 @@ def util_shadertarget_dx(stage, features):
         for feature in features:
             if feature in dx_levels:
                 level_dx = max(level_dx, dx_levels[feature])
+    if stage is Stages.GRAPH:
+        level_dx = max(level_dx, '_6_8')
     stage_dx = {
         Stages.VERT: 'vs',
         Stages.FRAG: 'ps',
         Stages.COMP: 'cs',
         Stages.GEOM: 'gs',
+        Stages.GRAPH: 'lib',
     }
     return stage_dx[stage] + level_dx
 

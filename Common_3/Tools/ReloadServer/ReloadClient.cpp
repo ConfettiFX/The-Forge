@@ -68,11 +68,6 @@ If an error occurs on the host:
 #define TARGET_PC
 #endif
 
-// You can explicitly disable auto-start by defining `RELOAD_SERVER_DISABLE_AUTO_START`
-#if defined(TARGET_PC) && !defined(RELOAD_SERVER_DISABLE_AUTO_START)
-#define RELOAD_SERVER_AUTO_START_ENABLED
-#endif
-
 #define USE_COMPILE_TIME_ENDIAN_DETECTION
 
 #define tfrg_align_up(x, a) (((x) + (a)-1) & ~((a)-1))
@@ -113,11 +108,13 @@ If an error occurs on the host:
 
 #define RELOAD_SERVER_FILE "reload-server.txt"
 
-#if defined(LINUX) || defined(TARGET_MACOS) || defined(TARGET_IOS) || defined(TARGET_IOS_SIMULATOR)
+#if (defined(__linux__) && !defined(ANDROID)) || defined(TARGET_MACOS) || defined(TARGET_IOS) || defined(TARGET_IOS_SIMULATOR)
 #define DAEMON_CMD "Common_3/Tools/ReloadServer/ReloadServer.sh"
 #else
 #define DAEMON_CMD "Common_3\\Tools\\ReloadServer\\ReloadServer.bat"
 #endif
+
+#define MAX_NOTIFICATION_STR_SIZE 128
 
 typedef struct UpdatedShader
 {
@@ -135,7 +132,9 @@ typedef struct ReloadClient
     UpdatedShader*       pUpdatedShaders;
     UpdatedShader*       pUpdatedShadersEnd;
     UIComponent*         pReloadShaderComponent;
-    bool                 mPrevReloadShaderComponentState;
+    DynamicUIWidgets     mButtonWidget;
+    bool                 mIsButtonActiveState;
+    bool                 mLastButtonActiveState;
     tfrg_atomic32_t      mDidReload;
     tfrg_atomic32_t      mShouldReenableButton;
     tfrg_atomic32_t      mIsReloading;
@@ -143,6 +142,8 @@ typedef struct ReloadClient
     bool                 mDidInit;
     bstring              mHost;
     bstring              mIntermediateDir;
+    bstring              mNotification;
+    unsigned char        mNotificationBuf[MAX_NOTIFICATION_STR_SIZE];
     // File contains line for each of (host, port, intermediateDir)
     // Each line can have a max length of FS_MAX_PATH + 2, where 2 is the max number of line terminators '\r\n'.
     // Therefore max size of the entire file is 3 * (FS_MAX_PATH + 2).
@@ -522,86 +523,6 @@ static void requestRecompileThreadFunc(void* userdata)
     }
 }
 
-#ifdef RELOAD_SERVER_AUTO_START_ENABLED
-
-#include "../../Utilities/Interfaces/IToolFileSystem.h"
-
-// NOTE: This can also be done with IDE properties/build-time macros, but that ends up being
-// quite ugly, difficult to understand, and far away from this code that needs it.
-// If ReloadClient.cpp is ever moved, this needs to be updated.
-#define THE_FORGE_ROOT_DIR        __FILE__ "/../../../.."
-
-#define THE_FORGE_PYTHON_PATH     "Data/Tools/python-3.6.0-embed-amd64/python.exe"
-#define RELOAD_SERVER_SCRIPT_PATH "Common_3/Tools/ReloadServer/ReloadServer.py"
-
-typedef enum ReloadServerAction
-{
-    RELOAD_SERVER_ACTION_START,
-    RELOAD_SERVER_ACTION_KILL,
-} ReloadServerAction;
-
-void platformStartStopReloadServerOnHost(ReloadServerAction action)
-{
-    static bool didStart = false;
-    const bool  kill = action == RELOAD_SERVER_ACTION_KILL;
-    if (kill && !didStart)
-    {
-        return;
-    }
-
-    char rootTheForge[FS_MAX_PATH] = {};
-    fsNormalizePath(THE_FORGE_ROOT_DIR, '/', rootTheForge);
-
-#ifdef _WINDOWS
-    char python[FS_MAX_PATH] = {};
-    fsAppendPathComponent(rootTheForge, THE_FORGE_PYTHON_PATH, python);
-#else
-    const char* python = "python3";
-#endif
-
-    char scriptPath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(rootTheForge, RELOAD_SERVER_SCRIPT_PATH, scriptPath);
-
-    char port[64] = {};
-    snprintf(port, sizeof(port), "%u", gClient.mPort);
-
-    const char* args[] = { scriptPath, kill ? "--kill" : "--daemon", "--port", port };
-
-    const char* outputFilename = kill ? "ReloadServerKill.txt" : "ReloadServerStart.txt";
-
-    char outputPath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(fsGetResourceDirectory(RD_DEBUG), outputFilename, outputPath);
-
-    int ret = systemRun(python, args, sizeof(args) / sizeof(args[0]), outputPath);
-    if (ret != 0)
-    {
-        FileStream fs;
-        if (fsOpenStreamFromPath(RD_DEBUG, outputFilename, FM_READ, &fs))
-        {
-            ssize_t size = fsGetStreamFileSize(&fs);
-            char*   output = (char*)tf_malloc(size + 1);
-            size_t  nRead = fsReadFromStream(&fs, (void*)output, (size_t)size);
-            fsCloseStream(&fs);
-            ASSERT(nRead == (size_t)size);
-            output[size] = '\0';
-            const char* actionStr = kill ? "killing" : "starting";
-            LOGF(eERROR, "Error %s the ReloadServer process:\n%s\n", actionStr, output);
-            tf_free(output);
-        }
-        else
-        {
-            LOGF(eERROR, "Failed to auto-start ReloadServer process and the output of `systemRun` was never written to file - this is "
-                         "likely an internal error.");
-        }
-    }
-    else if (!kill)
-    {
-        didStart = true;
-    }
-}
-
-#endif
-
 bool platformInitReloadClient(void)
 {
     if (!initNetwork())
@@ -633,13 +554,13 @@ bool platformInitReloadClient(void)
     gClient.mDidInit = true;
     gClient.pUpdatedShaders = nullptr;
     gClient.pUpdatedShadersEnd = nullptr;
+    gClient.mIsButtonActiveState = true;
+    gClient.mLastButtonActiveState = true;
     tfrg_atomic32_store_release(&gClient.mDidReload, 0);
     tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 0);
     tfrg_atomic32_store_release(&gClient.mIsReloading, 0);
-
-#ifdef RELOAD_SERVER_AUTO_START_ENABLED
-    platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_START);
-#endif
+    gClient.mNotification = bfromarr(gClient.mNotificationBuf);
+    bassigncstr(&gClient.mNotification, "Notificaiton: None");
 
     gReloadKey = inputGetCustomBindingEnum("reload_shaders");
 
@@ -656,10 +577,6 @@ void platformExitReloadClient()
     acquireMutex(&gClient.mLock);
     releaseMutex(&gClient.mLock);
 
-#ifdef RELOAD_SERVER_AUTO_START_ENABLED
-    platformStartStopReloadServerOnHost(RELOAD_SERVER_ACTION_KILL);
-#endif
-
     exitMutex(&gClient.mLock);
 
     for (UpdatedShader* cur = gClient.pUpdatedShaders; cur != nullptr;)
@@ -669,9 +586,11 @@ void platformExitReloadClient()
         cur = next;
     }
 
-    exitNetwork();
+    uiRemoveDynamicWidgets(&gClient.mButtonWidget);
 
-    memset(&gClient, 0, sizeof(ReloadClient));
+    exitNetwork();
+    // Pass compiler check by casting to void*
+    memset((void*)&gClient, 0, sizeof(ReloadClient));
 }
 
 void platformReloadClientRequestShaderRecompile()
@@ -682,8 +601,8 @@ void platformReloadClientRequestShaderRecompile()
         return;
     }
 
-    gClient.mPrevReloadShaderComponentState = gClient.pReloadShaderComponent->mActive;
-    uiSetComponentActive(gClient.pReloadShaderComponent, false);
+    gClient.mIsButtonActiveState = false;
+    bassigncstr(&gClient.mNotification, "Connecting to reload server...");
 
     ThreadDesc desc = { requestRecompileThreadFunc, nullptr, "ShaderRecompile" };
     if (!initThread(&desc, &gClient.mThread))
@@ -737,7 +656,30 @@ bool platformReloadClientShouldQuit(void)
         joinThread(gClient.mThread);
         gClient.mThread = INVALID_THREAD_ID;
         tfrg_atomic32_store_release(&gClient.mIsReloading, 0);
-        uiSetComponentActive(gClient.pReloadShaderComponent, gClient.mPrevReloadShaderComponentState);
+        gClient.mIsButtonActiveState = true;
+
+        if (tfrg_atomic32_load_relaxed(&gClient.mDidReload))
+        {
+            bassigncstr(&gClient.mNotification, "Notification: None");
+        }
+        else
+        {
+            bassigncstr(&gClient.mNotification, "Notification: Please ensure `ReloadServer` is running by executing \n" DAEMON_CMD);
+        }
+    }
+
+    // Must be updated this way. Can't hide button in its own callback.
+    if (gClient.mIsButtonActiveState != gClient.mLastButtonActiveState)
+    {
+        if (gClient.mIsButtonActiveState)
+        {
+            uiShowDynamicWidgets(&gClient.mButtonWidget, gClient.pReloadShaderComponent);
+        }
+        else
+        {
+            uiHideDynamicWidgets(&gClient.mButtonWidget, gClient.pReloadShaderComponent);
+        }
+        gClient.mLastButtonActiveState = gClient.mIsButtonActiveState;
     }
 
     if (tfrg_atomic32_store_release(&gClient.mDidReload, 0) == 1)
@@ -758,7 +700,7 @@ bool platformReloadClientShouldQuit(void)
     return false;
 }
 
-void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderComponent)
+void platformReloadClientAddReloadShadersWidgets(UIComponent* pReloadShaderComponent)
 {
     if (!gClient.mDidInit)
     {
@@ -766,7 +708,7 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
     }
 
     ButtonWidget shaderReload;
-    UIWidget*    pShaderReload = uiAddComponentWidget(pReloadShaderComponent, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
+    UIWidget*    pShaderReload = uiAddDynamicWidgets(&gClient.mButtonWidget, "Reload shaders (Ctrl-S)", &shaderReload, WIDGET_TYPE_BUTTON);
     uiSetWidgetOnEditedCallback(pShaderReload, nullptr,
                                 [](void* pUserData)
                                 {
@@ -774,6 +716,15 @@ void platformReloadClientAddReloadShadersButton(UIComponent* pReloadShaderCompon
                                     platformReloadClientRequestShaderRecompile();
                                 });
     REGISTER_LUA_WIDGET(pShaderReload);
+
+    static float4     color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DynamicTextWidget notification;
+    notification.pColor = &color;
+    notification.pText = &gClient.mNotification;
+    UIWidget* pNotification = uiAddComponentWidget(pReloadShaderComponent, "", &notification, WIDGET_TYPE_DYNAMIC_TEXT);
+    REGISTER_LUA_WIDGET(pNotification);
+
+    uiShowDynamicWidgets(&gClient.mButtonWidget, pReloadShaderComponent);
 
     gClient.pReloadShaderComponent = pReloadShaderComponent;
 }

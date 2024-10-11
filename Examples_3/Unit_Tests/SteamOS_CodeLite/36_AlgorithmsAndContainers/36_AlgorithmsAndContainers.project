@@ -58,16 +58,18 @@
       </Debugger>
       <PreBuild/>
       <PostBuild>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Screenshots</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Debug</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/PipelineCaches</Command>
+        <Command Enabled="no"># Path Statement</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/PathStatement.SteamOS.txt $(ProjectPath)/$(ConfigurationName)/PathStatement.txt</Command>
         <Command Enabled="no"># Shaders</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="no"># Fonts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
-        <Command Enabled="no"># Scripts</Command>
-        <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../../../Art/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
-        
         <Command Enabled="no"># Misc</Command>
-        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Data/Libraries/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
+        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -125,16 +127,16 @@ shaders:&#xD;
       </Debugger>
       <PreBuild/>
       <PostBuild>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Screenshots</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Debug</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/PipelineCaches</Command>
+        <Command Enabled="no"># Path Statement</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/PathStatement.SteamOS.txt $(ProjectPath)/$(ConfigurationName)/PathStatement.txt</Command>
         <Command Enabled="no"># Shaders</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
-        <Command Enabled="no"># Fonts</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
-        <Command Enabled="no"># Scripts</Command>
-        <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../../../Art/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
-        
         <Command Enabled="no"># Misc</Command>
-        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Data/Libraries/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
+        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>

@@ -32,20 +32,12 @@
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
-const char*        getResourceMount(ResourceMount mount) { return gResourceMounts[mount]; }
-
-static char gSaveUrl[FS_MAX_PATH] = {};
-#ifndef TARGET_IOS
-static char gApplicationPath[FS_MAX_PATH] = {};
-#else
-static char gDebugUrl[FS_MAX_PATH] = {};
-#endif
+static bool gInitialized = false;
 
 extern "C"
 {
-    void fsGetParentPath(const char* path, char* output);
+    void                         parse_path_statement(char* PathStatment, size_t size);
+    extern ResourceDirectoryInfo gResourceDirectories[RD_COUNT];
 }
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
@@ -56,71 +48,89 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
         return true;
     }
     ASSERT(pDesc);
-    pSystemFileIO->GetResourceMount = getResourceMount;
 
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-        gResourceMounts[i] = "";
-
-    NSFileManager* fileManager = [NSFileManager defaultManager];
-    // Get application directory
-    gResourceMounts[RM_CONTENT] = [[[[NSBundle mainBundle] resourceURL] relativePath] UTF8String];
-
-    if (!pDesc->pResourceMounts[RM_CONTENT])
+    if (!pDesc->mIsTool)
     {
-        [fileManager changeCurrentDirectoryPath:[[NSBundle mainBundle] bundlePath]];
-    }
+        char debugDir[FS_MAX_PATH] = { 0 };
+        char bundleDir[FS_MAX_PATH] = { 0 };
 
-    // Get save directory
-    NSError* error = nil;
-    NSURL*   pSaveUrl = [fileManager URLForDirectory:NSDocumentDirectory
-                                          inDomain:NSUserDomainMask
-                                 appropriateForURL:nil
-                                            create:true
-                                             error:&error];
+        const char* resourcePath = [[[[[NSBundle mainBundle] resourceURL] absoluteURL] path] UTF8String];
+        size_t      resourcePathLen = strlen(resourcePath);
+        ASSERT(resourcePathLen + 2 < FS_MAX_PATH);
+        strncpy(bundleDir, resourcePath, resourcePathLen);
+        bundleDir[resourcePathLen] = '/';
 
-    if (!error)
-    {
-        const char* pSaveUrlStr = [[pSaveUrl path] UTF8String];
-        strcpy(gSaveUrl, pSaveUrlStr);
-        gResourceMounts[RM_DOCUMENTS] = gSaveUrl;
-    }
-    else
-    {
-        LOGF(LogLevel::eERROR, "Error retrieving user documents directory: %s", [[error description] UTF8String]);
-        return false;
-    }
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        NSError*       error = nil;
 
-    // Get debug directory
-#ifdef TARGET_IOS
-    // Place log files in the application support directory on iOS.
-    NSURL* pDebugUrl = [fileManager URLForDirectory:NSDocumentDirectory
-                                           inDomain:NSUserDomainMask
-                                  appropriateForURL:nil
-                                             create:true
-                                              error:&error];
-    if (!error)
-    {
-        const char* pDebugUrlStr = [[pDebugUrl path] UTF8String];
-        strcpy(gDebugUrl, pDebugUrlStr);
-        gResourceMounts[RM_DEBUG] = gDebugUrl;
-        gResourceMounts[RM_SAVE_0] = gDebugUrl;
-    }
-    else
-    {
-        LOGF(LogLevel::eERROR, "Error retrieving application support directory: %s", [[error description] UTF8String]);
-    }
+#if defined(TARGET_IOS)
+        // in iOS we use documents folder as working directory
+        // for non bundled and generated resource dirs usually RD_DEBUG, RD_LOG
+        NSURL* pAppDocumentsUrl = [fileManager URLForDirectory:NSDocumentDirectory
+                                                      inDomain:NSUserDomainMask
+                                             appropriateForURL:nil
+                                                        create:true
+                                                         error:&error];
+        if (!error)
+        {
+            const char* documentsPath = [[pAppDocumentsUrl path] UTF8String];
+            size_t      documentPathLen = strlen(documentsPath);
+            ASSERT(documentPathLen + 2 < FS_MAX_PATH);
+            strncpy(debugDir, documentsPath, documentPathLen);
+            debugDir[documentPathLen] = '/';
+        }
+        else
+        {
+            ASSERT(FALSE);
+        }
 #else
-    const char* path = [[[NSBundle mainBundle] bundlePath] UTF8String];
-    fsGetParentPath(path, gApplicationPath);
-    gResourceMounts[RM_DEBUG] = gApplicationPath;
-    gResourceMounts[RM_SAVE_0] = gApplicationPath;
+        // for macos we use the same folder as the bundle since there's
+        // not a good way of setting working dir for bundles
+        NSString* bundlePathsNString = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
+        [fileManager changeCurrentDirectoryPath:bundlePathsNString];
+
+        const char* bundlePath = [bundlePathsNString UTF8String];
+        size_t      bundlePathLen = strlen(bundlePath);
+        ASSERT(bundlePathLen + 2 < FS_MAX_PATH);
+        strncpy(debugDir, bundlePath, bundlePathLen);
+        debugDir[bundlePathLen] = '/';
 #endif
 
-    // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-    {
-        if (pDesc->pResourceMounts[i])
-            gResourceMounts[i] = pDesc->pResourceMounts[i];
+        char pathStatmentsPath[FS_MAX_PATH] = { 0 };
+        strcat(pathStatmentsPath, resourcePath);
+        strcat(pathStatmentsPath, "/" PATHSTATEMENT_FILE_NAME);
+
+        FILE* pathStatement = fopen(pathStatmentsPath, "r");
+        if (!pathStatement)
+        {
+            ASSERT(false);
+            return false;
+        }
+
+        fseek(pathStatement, 0, SEEK_END);
+        size_t fileSize = ftell(pathStatement);
+        rewind(pathStatement);
+
+        char* buffer = (char*)tf_malloc(fileSize);
+        fileSize = fread(buffer, 1, fileSize, pathStatement);
+        fclose(pathStatement);
+        parse_path_statement(buffer, fileSize);
+        tf_free(buffer);
+
+        for (uint32_t i = 0; i < RD_COUNT; i++)
+        {
+            char dirPath[FS_MAX_PATH] = { 0 };
+            strcat(dirPath, gResourceDirectories[i].mBundled ? bundleDir : debugDir);
+            strcat(dirPath, gResourceDirectories[i].mPath);
+            strcpy(gResourceDirectories[i].mPath, dirPath);
+        }
+
+#if defined(AUTOMATED_TESTING) && defined(ENABLE_SCREENSHOT)
+        NSURL* dirURL = [NSURL fileURLWithPath:[NSString stringWithUTF8String:gResourceDirectories[RD_SCREENSHOTS].mPath] isDirectory:TRUE];
+        [fileManager createDirectoryAtURL:dirURL withIntermediateDirectories:YES attributes:nil error:&error];
+#else
+        UNREF_PARAM(error);
+#endif
     }
 
     gInitialized = true;

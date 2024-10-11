@@ -235,7 +235,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     binary.derivatives[platform] = [['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=0', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=0']]
 
-    shader = getShader(platform, binary.fsl_filepath, binary.preprocessed_srcs[platform], dst)
+    shader = getShader(platform, binary, binary.preprocessed_srcs[platform], dst)
     # check for function overloading.
     get_fn_table(shader.lines)
 

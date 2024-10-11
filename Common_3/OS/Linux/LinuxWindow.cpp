@@ -206,6 +206,86 @@ static RROutput getPrimaryOutput(Display* display, Window rootWindow, XRRScreenR
     return output;
 }
 
+static RectDesc getWindowDecorations(Display* display, Window window)
+{
+    RectDesc result = { 0, 0, 0, 0 };
+    Atom     frameExtentsProperty = XInternAtom(display, "_NET_FRAME_EXTENTS", True);
+    if (frameExtentsProperty == None)
+        return result;
+
+    Atom           type = None;
+    int            format = 0;
+    unsigned long  items_count = 0;
+    unsigned long  bytes_remaining = 0;
+    unsigned char* data = NULL;
+
+    while (XGetWindowProperty(display, window, frameExtentsProperty, 0, 4, False, AnyPropertyType, &type, &format, &items_count,
+                              &bytes_remaining, &data) != Success ||
+           items_count != 4 || bytes_remaining != 0)
+    {
+        XEvent event;
+        XNextEvent(display, &event);
+    }
+
+    // Failed to find proper extents
+    if (items_count != 4)
+        return result;
+
+    switch (format)
+    {
+    case 8:
+    {
+        char* array = (char*)data;
+        result.left = (int32_t)array[0];
+        result.right = (int32_t)array[1];
+        result.top = (int32_t)array[2];
+        result.bottom = (int32_t)array[3];
+        break;
+    }
+    case 16:
+    {
+        short* array = (short*)data;
+        result.left = (int32_t)array[0];
+        result.right = (int32_t)array[1];
+        result.top = (int32_t)array[2];
+        result.bottom = (int32_t)array[3];
+        break;
+    }
+    case 32:
+    {
+        long* array = (long*)data;
+        result.left = (int32_t)array[0];
+        result.right = (int32_t)array[1];
+        result.top = (int32_t)array[2];
+        result.bottom = (int32_t)array[3];
+        break;
+    }
+    }
+    return result;
+}
+
+static RectDesc convertClientRectToWindowRect(RectDesc client, RectDesc decorations)
+{
+    RectDesc windowedRect = client;
+    windowedRect.left -= decorations.left;
+    windowedRect.top -= decorations.top;
+    windowedRect.right += decorations.right;
+    windowedRect.bottom += decorations.bottom;
+
+    return windowedRect;
+}
+
+static RectDesc convertWindowRectToClientRect(RectDesc window, RectDesc decorations)
+{
+    RectDesc client = window;
+    client.left += decorations.left;
+    client.top += decorations.top;
+    client.right -= decorations.right;
+    client.bottom -= decorations.bottom;
+
+    return client;
+}
+
 void collectMonitorInfo()
 {
     gMonitorCount = XScreenCount(gDefaultDisplay);
@@ -396,6 +476,66 @@ void linuxUnmaximizeWindow(WindowDesc* winDesc)
 //------------------------------------------------------------------------
 // WINDOW HANDLING INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
+void toggleBorderless(WindowDesc* winDesc)
+{
+    if (winDesc->fullScreen)
+    {
+        return;
+    }
+
+    if (winDesc->borderlessWindow)
+    {
+        Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
+
+        MWMHints hints;
+        hints.flags = MWM_HINTS_DECORATIONS;
+        hints.decorations = MWM_FUNC_ALL;
+
+        XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
+    }
+    else
+    {
+        Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
+
+        MWMHints hints;
+        hints.flags = MWM_HINTS_DECORATIONS;
+        hints.decorations = 0;
+
+        XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
+    }
+
+    winDesc->borderlessWindow = !winDesc->borderlessWindow;
+    winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+}
+
+void toggleFullscreen(WindowDesc* winDesc)
+{
+    winDesc->fullScreen = !winDesc->fullScreen;
+
+    Atom   stateAtom = XInternAtom(winDesc->handle.display, "_NET_WM_STATE", False);
+    Atom   fullScreenAtom = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_FULLSCREEN", False);
+    XEvent x_event = {};
+    x_event.type = ClientMessage;
+    x_event.xclient.window = winDesc->handle.window;
+    x_event.xclient.message_type = stateAtom;
+    x_event.xclient.format = 32;
+    x_event.xclient.data.l[0] = _NET_WM_STATE_TOGGLE;
+    x_event.xclient.data.l[1] = fullScreenAtom;
+    x_event.xclient.data.l[2] = 0; // no second property to toggle
+    x_event.xclient.data.l[3] = 1; // source indication: application
+    x_event.xclient.data.l[4] = 0; // unused
+    XSendEvent(winDesc->handle.display, winDesc->handle.window, False, ClientMessage, &x_event);
+
+    // Going fullscreen.
+    if (winDesc->fullScreen)
+    {
+        winDesc->mWindowMode = WM_FULLSCREEN;
+    }
+    else
+    {
+        winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+    }
+}
 
 void openWindow(const char* app_name, WindowDesc* winDesc)
 {
@@ -429,13 +569,18 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
     windowAttributes.border_pixel = 0;
     windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask | FocusChangeMask | PropertyChangeMask;
 
+    // Make sure that we have proper client rect for initial window
+    if (getRectHeight(&winDesc->clientRect) <= 0 || getRectWidth(&winDesc->clientRect) <= 0)
+    {
+        getRecommendedResolution(&winDesc->clientRect);
+    }
+
     winDesc->handle.type = WINDOW_HANDLE_TYPE_XLIB;
-    winDesc->handle.window =
-        XCreateWindow(winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->windowedRect.left,
-                      winDesc->windowedRect.top, winDesc->windowedRect.right - winDesc->windowedRect.left,
-                      winDesc->windowedRect.bottom - winDesc->windowedRect.top, 0, visualInfo->depth, InputOutput, visualInfo->visual,
-                      CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
-    winDesc->clientRect = winDesc->windowedRect;
+    winDesc->handle.window = XCreateWindow(
+        winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->clientRect.left,
+        winDesc->clientRect.top, winDesc->clientRect.right - winDesc->clientRect.left, winDesc->clientRect.bottom - winDesc->clientRect.top,
+        0, visualInfo->depth, InputOutput, visualInfo->visual, CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
+
     ASSERT(winDesc->handle.window);
     XFree(visualInfo);
 
@@ -465,15 +610,13 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
     );
     XMapWindow(winDesc->handle.display, winDesc->handle.window);
     XFlush(winDesc->handle.display);
-    if (winDesc->centered)
-    {
-        centerWindow(winDesc);
-    }
 
-    winDesc->mWndX = winDesc->windowedRect.left;
-    winDesc->mWndY = winDesc->windowedRect.top;
-    winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-    winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
+    winDesc->handle.windowDecorations = getWindowDecorations(winDesc->handle.display, winDesc->handle.window);
+    winDesc->windowedRect = convertClientRectToWindowRect(winDesc->clientRect, winDesc->handle.windowDecorations);
+    winDesc->mWndX = winDesc->clientRect.left;
+    winDesc->mWndY = winDesc->clientRect.top;
+    winDesc->mWndW = getRectWidth(&winDesc->clientRect);
+    winDesc->mWndH = getRectHeight(&winDesc->clientRect);
 
     winDesc->handle.xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->handle.xlib_wm_delete_window, 1);
@@ -493,6 +636,17 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
     size_hints->min_height = 128;
     XSetWMNormalHints(winDesc->handle.display, winDesc->handle.window, size_hints);
     XFree(size_hints);
+
+    if (winDesc->borderlessWindow)
+    {
+        winDesc->borderlessWindow = false;
+        toggleBorderless(winDesc);
+    }
+    if (winDesc->fullScreen)
+    {
+        winDesc->fullScreen = false;
+        toggleFullscreen(winDesc);
+    }
 
     double baseDpi = 96.0;
     gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->handle.display) / baseDpi);
@@ -524,97 +678,41 @@ void closeWindow(WindowDesc* winDesc)
     XSendEvent(winDesc->handle.display, winDesc->handle.window, False, NoEventMask, &event);
 }
 
-void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
+void setWindowClientRect(WindowDesc* winDesc, const RectDesc* pRect)
 {
-    RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
-    currentRect = *pRect;
-
-    winDesc->clientRect = *pRect;
+    if (winDesc->fullScreen)
+        return;
 
     XResizeWindow(winDesc->handle.display, winDesc->handle.window, pRect->right - pRect->left, pRect->bottom - pRect->top);
-    if (winDesc->centered)
-    {
-        centerWindow(winDesc);
-    }
-    else
-    {
-        XMoveWindow(winDesc->handle.display, winDesc->handle.window, pRect->left, pRect->top);
-        XFlush(winDesc->handle.display);
-    }
+    XMoveWindow(winDesc->handle.display, winDesc->handle.window, pRect->left, pRect->top);
+    XFlush(winDesc->handle.display);
 }
 
-void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
 {
-    RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
-    currentRect.right = currentRect.left + width;
-    currentRect.bottom = currentRect.top + height;
+    if (winDesc->fullScreen)
+        return;
 
     XResizeWindow(winDesc->handle.display, winDesc->handle.window, width, height);
     XFlush(winDesc->handle.display);
 }
 
-void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
 {
-    if (winDesc->borderlessWindow)
-    {
-        Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
-
-        MWMHints hints;
-        hints.flags = MWM_HINTS_DECORATIONS;
-        hints.decorations = MWM_FUNC_ALL;
-
-        XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
-    }
-    else
-    {
-        Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
-
-        MWMHints hints;
-        hints.flags = MWM_HINTS_DECORATIONS;
-        hints.decorations = 0;
-
-        XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
-    }
-
-    setWindowSize(winDesc, width, height);
-    winDesc->borderlessWindow = !winDesc->borderlessWindow;
-    winDesc->mWndW = width;
-    winDesc->mWndH = height;
-    winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+    const RectDesc decorations = winDesc->handle.windowDecorations;
+    const RectDesc clientRect = convertWindowRectToClientRect(*pRect, decorations);
+    setWindowClientRect(winDesc, &clientRect);
 }
 
-void toggleFullscreen(WindowDesc* winDesc)
+void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
 {
-    winDesc->fullScreen = !winDesc->fullScreen;
-
-    // Going fullscreen.
-    if (winDesc->fullScreen)
-    {
-        Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
-        toggleBorderless(winDesc, screen->width, screen->height);
-        XMoveWindow(winDesc->handle.display, winDesc->handle.window, 0, 0);
-        XFlush(winDesc->handle.display);
-
-        winDesc->mWndX = 0;
-        winDesc->mWndY = 0;
-        winDesc->mWndW = getRectWidth(&winDesc->fullscreenRect);
-        winDesc->mWndH = getRectHeight(&winDesc->fullscreenRect);
-        winDesc->mWindowMode = WM_FULLSCREEN;
-    }
-    else
-    {
-        toggleBorderless(winDesc, getRectWidth(&winDesc->windowedRect), getRectHeight(&winDesc->windowedRect));
-        setWindowRect(winDesc, &winDesc->windowedRect);
-
-        winDesc->mWndX = winDesc->windowedRect.left;
-        winDesc->mWndY = winDesc->windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->clientRect);
-        winDesc->mWndH = getRectHeight(&winDesc->clientRect);
-        winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
-    }
+    RectDesc windowRect = winDesc->windowedRect;
+    windowRect.right = windowRect.left + width;
+    windowRect.bottom = windowRect.top + height;
+    setWindowRect(winDesc, &windowRect);
 }
 
-void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowed(WindowDesc* winDesc)
 {
     winDesc->maximized = false;
 
@@ -624,26 +722,20 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
     }
     if (winDesc->borderlessWindow)
     {
-        toggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
+        toggleBorderless(winDesc);
     }
     winDesc->mWindowMode = WindowMode::WM_WINDOWED;
 }
 
-void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setBorderless(WindowDesc* winDesc)
 {
     if (winDesc->fullScreen)
     {
         toggleFullscreen(winDesc);
-        if (!winDesc->borderlessWindow)
-            toggleBorderless(winDesc, width, height);
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
     }
-    else if (!winDesc->borderlessWindow)
+    if (!winDesc->borderlessWindow)
     {
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
-        toggleBorderless(winDesc, width, height);
-        if (!winDesc->borderlessWindow)
-            winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+        toggleBorderless(winDesc);
     }
 }
 
@@ -721,11 +813,7 @@ void centerWindow(WindowDesc* winDesc)
 {
     RectDesc newRect = getCenteredWindowRect(winDesc);
 
-    winDesc->windowedRect = newRect;
-    winDesc->clientRect = newRect;
-
-    XMoveWindow(winDesc->handle.display, winDesc->handle.window, newRect.left, newRect.top);
-    XFlush(winDesc->handle.display);
+    setWindowClientRect(winDesc, &newRect);
 }
 
 //------------------------------------------------------------------------
@@ -811,14 +899,17 @@ void setMousePositionAbsolute(int32_t x, int32_t y)
 // MONITOR AND RESOLUTION HANDLING INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-void getRecommendedResolution(RectDesc* rect)
+void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect)
 {
-    Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
-
-    *rect = { 0, 0, min(1920, (int)(WidthOfScreen(screen) * 0.75)), min(1080, (int)(HeightOfScreen(screen) * 0.75)) };
+    RectDesc clientRect = {};
+    getRecommendedResolution(&clientRect);
+    const RectDesc decorations = winDesc->handle.windowDecorations;
+    const RectDesc windowRect = convertClientRectToWindowRect(clientRect, decorations);
+    rect->left = windowRect.left;
+    rect->top = windowRect.top;
+    rect->right = windowRect.right;
+    rect->bottom = windowRect.bottom;
 }
-
-void getRecommendedWindowRect(WindowDesc*, RectDesc* rect) { getRecommendedResolution(rect); }
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
@@ -1020,26 +1111,20 @@ bool handleMessages(WindowDesc* winDesc)
             rect = { (int)event.xconfigure.x, (int)event.xconfigure.y, (int)event.xconfigure.width + (int)event.xconfigure.x,
                      (int)event.xconfigure.height + (int)event.xconfigure.y };
 
+            winDesc->clientRect = rect;
+            winDesc->mWndX = rect.left;
+            winDesc->mWndY = rect.top;
+            winDesc->mWndW = getRectWidth(&rect);
+            winDesc->mWndH = getRectHeight(&rect);
             if (!winDesc->fullScreen)
             {
-                winDesc->clientRect = rect;
-                winDesc->windowedRect = rect;
-
-                const int windowDecorationMaxSize = 60;
-                RectDesc  centeredRect = getCenteredWindowRect(winDesc);
-                winDesc->centered = winDesc->windowedRect.left == centeredRect.left && winDesc->windowedRect.right == centeredRect.right &&
-                                    abs(winDesc->windowedRect.top - centeredRect.top) < windowDecorationMaxSize &&
-                                    abs(winDesc->windowedRect.bottom - centeredRect.bottom) < windowDecorationMaxSize;
+                const RectDesc decorations = winDesc->handle.windowDecorations;
+                winDesc->windowedRect = convertClientRectToWindowRect(rect, decorations);
             }
             else
             {
                 winDesc->fullscreenRect = rect;
             }
-
-            winDesc->mWndX = winDesc->windowedRect.left;
-            winDesc->mWndY = winDesc->windowedRect.top;
-            winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-            winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
 
             // Handle Resize event
             if (event.xconfigure.width != (int)pWindowAppRef->mSettings.mWidth ||

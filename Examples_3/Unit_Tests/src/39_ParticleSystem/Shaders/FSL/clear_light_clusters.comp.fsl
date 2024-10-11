@@ -24,6 +24,7 @@
 
 #include "shader_defs.h.fsl"
 #include "light_cull_resources.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
 NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )

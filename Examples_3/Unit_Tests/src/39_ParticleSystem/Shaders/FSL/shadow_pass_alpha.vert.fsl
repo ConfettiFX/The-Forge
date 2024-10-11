@@ -53,8 +53,14 @@ PsInShadowAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 	else
 	{
 		uint Bitfield = BitfieldBuffer[ShadowRootConstants.ParticleIndex];
+		if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
+		{
+			Out.position = float4(0,0,0,0);
+			RETURN(Out);
+		}
+
 		ParticleData p = ParticlesDataBuffer[ShadowRootConstants.ParticleIndex];
-		float3 pos = UnpackParticlePosition(GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK), p);
+		float3 pos = UnpackParticlePosition(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], p);
 
 		Out.position = mul(PerFrameVBConstants.transform[VIEW_SHADOW + ShadowRootConstants.CubeIndex].mvp.mat, float4(vertexPos.xyz - pos.xyz, 1.0f));
 		Out.position.z = Out.position.w * (1.0 - (length(vertexPos.xyz - pos.xyz) + 0.01) / (CAMERA_FAR - 0.01));

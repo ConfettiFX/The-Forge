@@ -80,7 +80,49 @@ struct MonitorInfo
 RECT         getCenteredWindowRect(WindowDesc* winDesc);
 static DWORD PrepareStyleMask(WindowDesc* winDesc);
 
-static void UpdateWindowDescFullScreenRect(WindowDesc* winDesc)
+// Same as GetClientRect but applies screen space offset
+// Allows us to keep track of client rect instead of window rect
+// GetClientRect docs: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclientrect
+static BOOL GetClientRectWithOffset(HWND hWnd, LPRECT lpRect)
+{
+    RECT clientRect = {};
+    if (GetClientRect(hWnd, &clientRect) == FALSE)
+    {
+        return FALSE;
+    }
+
+    POINT offset = {};
+    if (ClientToScreen(hWnd, &offset) == FALSE)
+    {
+        return FALSE;
+    }
+
+    lpRect->left = clientRect.left + offset.x;
+    lpRect->right = clientRect.right + offset.x;
+    lpRect->top = clientRect.top + offset.y;
+    lpRect->bottom = clientRect.bottom + offset.y;
+    return TRUE;
+}
+
+// Helper function to convert window rect to client rect
+static void WindowRectFromClient(RectDesc* rectDescOut, const RectDesc* clientRect, DWORD windowStyle, bool bMenu)
+{
+    RECT windowedRect = {};
+    windowedRect.left = clientRect->left;
+    windowedRect.right = clientRect->right;
+    windowedRect.top = clientRect->top;
+    windowedRect.bottom = clientRect->bottom;
+
+    AdjustWindowRect(&windowedRect, windowStyle, bMenu);
+
+    rectDescOut->left = windowedRect.left;
+    rectDescOut->right = windowedRect.right;
+    rectDescOut->top = windowedRect.top;
+    rectDescOut->bottom = windowedRect.bottom;
+}
+
+// Fetches the fullscreen rectangle from the system and assigns it to WindowDesc
+static void ResetWindowDescFullScreenRect(WindowDesc* winDesc)
 {
     HMONITOR      currentMonitor = MonitorFromWindow((HWND)winDesc->handle.window, MONITOR_DEFAULTTONEAREST);
     MONITORINFOEX info;
@@ -94,7 +136,27 @@ static void UpdateWindowDescFullScreenRect(WindowDesc* winDesc)
     winDesc->fullscreenRect.bottom = info.rcMonitor.bottom;
 }
 
-static void UpdateWindowDescWindowedRect(WindowDesc* winDesc)
+// Fetches the client rectangle from the system and assigns it to WindowDesc
+static void ResetWindowDescClientRect(WindowDesc* winDesc)
+{
+    RECT clientRect;
+    HWND hwnd = (HWND)winDesc->handle.window;
+
+    GetClientRectWithOffset(hwnd, &clientRect);
+
+    winDesc->clientRect.left = clientRect.left;
+    winDesc->clientRect.right = clientRect.right;
+    winDesc->clientRect.top = clientRect.top;
+    winDesc->clientRect.bottom = clientRect.bottom;
+
+    winDesc->mWndX = clientRect.left;
+    winDesc->mWndY = clientRect.top;
+    winDesc->mWndW = getRectWidth(&winDesc->clientRect);
+    winDesc->mWndH = getRectHeight(&winDesc->clientRect);
+}
+
+// Fetches the window rectangle from the system and assigns it to WindowDesc
+static void ResetWindowDescWindowedRect(WindowDesc* winDesc)
 {
     RECT windowedRect;
     HWND hwnd = (HWND)winDesc->handle.window;
@@ -104,45 +166,68 @@ static void UpdateWindowDescWindowedRect(WindowDesc* winDesc)
     if (windowedRect.left != winDesc->windowedRect.left || windowedRect.right != winDesc->windowedRect.right ||
         windowedRect.top != winDesc->windowedRect.top || windowedRect.bottom != winDesc->windowedRect.bottom)
     {
-        winDesc->windowedRect.left = max(windowedRect.left, 0l);
+        winDesc->windowedRect.left = windowedRect.left;
         winDesc->windowedRect.right = windowedRect.right;
-        winDesc->windowedRect.top = max(windowedRect.top, 0l);
+        winDesc->windowedRect.top = windowedRect.top;
         winDesc->windowedRect.bottom = windowedRect.bottom;
 
-        if (winDesc->handle.window != NULL && !winDesc->fullScreen)
-        {
-            RECT centeredRect = getCenteredWindowRect(winDesc);
-            if (!winDesc->borderlessWindow)
-                AdjustWindowRect(&centeredRect, PrepareStyleMask(winDesc), false);
-            winDesc->centered = windowedRect.left == centeredRect.left && windowedRect.right == centeredRect.right &&
-                                windowedRect.top == centeredRect.top && windowedRect.bottom == centeredRect.bottom;
-        }
-        winDesc->mWndX = windowedRect.left;
-        winDesc->mWndY = windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
+        ResetWindowDescClientRect(winDesc);
     }
 }
 
-static void UpdateWindowDescClientRect(WindowDesc* winDesc)
+// Sets the size of the client rectangle and all fields associated with it
+// Used when processing resize messages
+static void UpdateWindowDescClientSize(WindowDesc* winDesc, int32_t clientWidth, int32_t clientHeight)
 {
-    RECT clientRect;
-    HWND hwnd = (HWND)winDesc->handle.window;
+    winDesc->clientRect.right = winDesc->clientRect.left + clientWidth;
+    winDesc->clientRect.bottom = winDesc->clientRect.top + clientHeight;
 
-    GetClientRect(hwnd, &clientRect);
+    if (!winDesc->fullScreen)
+    {
+        WindowRectFromClient(&winDesc->windowedRect, &winDesc->clientRect, PrepareStyleMask(winDesc), FALSE);
+    }
 
-    winDesc->clientRect.left = clientRect.left;
-    winDesc->clientRect.right = clientRect.right;
-    winDesc->clientRect.top = clientRect.top;
-    winDesc->clientRect.bottom = clientRect.bottom;
+    winDesc->mWndW = clientWidth;
+    winDesc->mWndH = clientHeight;
+}
+
+static void UpdateWindowDescClientPos(WindowDesc* winDesc, int32_t xPos, int32_t yPos)
+{
+    int32_t dx = xPos - winDesc->clientRect.left;
+    int32_t dy = yPos - winDesc->clientRect.top;
+    winDesc->clientRect.left += dx;
+    winDesc->clientRect.top += dy;
+    winDesc->clientRect.right += dx;
+    winDesc->clientRect.bottom += dy;
+    winDesc->mWndX = xPos;
+    winDesc->mWndY = yPos;
+}
+
+// Sets the position of the client rectangle and all fields associated with it
+// Used when processing movement messages
+static void UpdateWindowDescWindowedPos(WindowDesc* winDesc, int32_t xPos, int32_t yPos)
+{
+    int32_t dx = xPos - winDesc->clientRect.left;
+    int32_t dy = yPos - winDesc->clientRect.top;
+    winDesc->windowedRect.left += dx;
+    winDesc->windowedRect.top += dy;
+    winDesc->windowedRect.right += dx;
+    winDesc->windowedRect.bottom += dy;
+    UpdateWindowDescClientPos(winDesc, xPos, yPos);
 }
 
 static DWORD PrepareStyleMask(WindowDesc* winDesc)
 {
     DWORD windowStyle = WS_OVERLAPPEDWINDOW;
+    // Note: we want to have WS_THICKFRAME here to enable resize.
+    // However, for Windows 10 and 11 window without title is always resizable.
+    // Additionally, when sending WS_THICKFRAME to AdjustWindowRect or AdjustWindowRectEx
+    // these functions calculate the size as if the window has a title bar.
+    // Which results in a wrong window size.
+    // Take this note into account in case a need of refactoring arises.
     if (winDesc->borderlessWindow)
     {
-        windowStyle = WS_POPUP | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+        windowStyle = WS_POPUP;
     }
 
     if (winDesc->noresizeFrame)
@@ -171,7 +256,7 @@ static void OffsetRectToDisplay(WindowDesc* winDesc, LPRECT rect)
     rect->bottom += (LONG)displayOffsetY;
 }
 
-void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool maximized)
+static void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 {
     if (pWindowAppRef == nullptr || !pWindowAppRef->mSettings.mInitialized)
     {
@@ -186,37 +271,41 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool maximize
 
     pWindowAppRef->mSettings.mWidth = newSizeX;
     pWindowAppRef->mSettings.mHeight = newSizeY;
-    wnd->maximized = maximized;
-    wnd->minimized = false;
-
-    // Adjust windowed rect for windowed mode rendering.
-    RECT rect = { 0L, 0L, (LONG)newSizeX, (LONG)newSizeY };
-
-    if (!wnd->borderlessWindow)
-    {
-        DWORD windowStyle = PrepareStyleMask(wnd);
-        AdjustWindowRect(&rect, windowStyle, FALSE);
-    }
-
-    wnd->mWndW = rect.right - rect.left;
-    wnd->mWndH = rect.bottom - rect.top;
 
     ReloadDesc reloadDesc;
     reloadDesc.mType = RELOAD_TYPE_RESIZE;
     requestReload(&reloadDesc);
 }
 
-void adjustWindow(WindowDesc* winDesc)
+// Sets index for current resolution of the monitor
+static void updateMonitorResolution(MonitorDesc* pMonitor, uint32_t newWidth, uint32_t newHeight)
+{
+    pMonitor->currentResolution = UINT32_MAX;
+    for (size_t i = 0; i < arrlenu(pMonitor->resolutions); ++i)
+    {
+        if (newWidth == pMonitor->resolutions[i].mWidth && newHeight == pMonitor->resolutions[i].mHeight)
+        {
+            pMonitor->currentResolution = (uint32_t)i;
+            break;
+        }
+    }
+    ASSERT(pMonitor->currentResolution != UINT32_MAX);
+}
+
+void adjustWindow(WindowDesc* winDesc, bool isDisplayChange)
 {
     HWND hwnd = (HWND)winDesc->handle.window;
 
+    if (isDisplayChange)
+    {
+        // Note: On windows 10 cursor position becomes invalid
+        // until the window is moved or resized.
+        // Minimizing the window before resizing fixes the issue
+        ShowWindow(hwnd, SW_MINIMIZE);
+    }
+
     if (winDesc->fullScreen)
     {
-        RECT windowedRect = {};
-        // Save the old window rect so we can restore it when exiting fullscreen mode.
-        GetWindowRect(hwnd, &windowedRect);
-        winDesc->windowedRect = { (int)windowedRect.left, (int)windowedRect.top, (int)windowedRect.right, (int)windowedRect.bottom };
-
         // Make the window borderless so that the client area can fill the screen.
         SetWindowLong(hwnd, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
 
@@ -235,16 +324,17 @@ void adjustWindow(WindowDesc* winDesc)
                      info.rcMonitor.bottom - info.rcMonitor.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
         ShowWindow(hwnd, SW_MAXIMIZE);
-
-        onResize(winDesc, info.rcMonitor.right - info.rcMonitor.left, info.rcMonitor.bottom - info.rcMonitor.top, false);
     }
     else
     {
         DWORD windowStyle = PrepareStyleMask(winDesc);
         SetWindowLong(hwnd, GWL_STYLE, windowStyle);
 
-        SetWindowPos(hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top, getRectWidth(&winDesc->windowedRect),
-                     getRectHeight(&winDesc->windowedRect), SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        if (!isDisplayChange)
+        {
+            SetWindowPos(hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top, getRectWidth(&winDesc->windowedRect),
+                         getRectHeight(&winDesc->windowedRect), SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
 
         if (winDesc->maximized)
         {
@@ -454,6 +544,7 @@ void collectMonitorInfo()
             NULL);
 
         pMonitor->resolutions = resolutions;
+        updateMonitorResolution(pMonitor, pMonitor->defaultResolution.mWidth, pMonitor->defaultResolution.mHeight);
     }
 }
 
@@ -534,19 +625,17 @@ static LRESULT HitTestNCA(HWND hWnd, WPARAM /*wParam*/, LPARAM lParam)
 
 void openWindow(const char* app_name, WindowDesc* winDesc)
 {
-    UpdateWindowDescFullScreenRect(winDesc);
+    ResetWindowDescFullScreenRect(winDesc);
 
     // Defer borderless window setting
     bool borderless = winDesc->borderlessWindow;
     winDesc->borderlessWindow = false;
 
     // Adjust windowed rect for windowed mode rendering.
-    RECT  rect = { (LONG)winDesc->clientRect.left, (LONG)winDesc->clientRect.top,
-                  (LONG)winDesc->clientRect.left + (LONG)winDesc->clientRect.right,
-                  (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
-    DWORD windowStyle = PrepareStyleMask(winDesc);
+    RectDesc rect = winDesc->clientRect;
+    DWORD    windowStyle = PrepareStyleMask(winDesc);
 
-    AdjustWindowRect(&rect, windowStyle, FALSE);
+    WindowRectFromClient(&rect, &winDesc->clientRect, windowStyle, FALSE);
 
     // Due to windows style and border, the rect can end up with negative values
     const int intMinPlusOne = INT_MIN + 1;
@@ -558,6 +647,8 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
         const int32_t offset = abs(rect.left);
         rect.left += offset;
         rect.right += offset;
+        winDesc->clientRect.left += offset;
+        winDesc->clientRect.right += offset;
     }
 
     if (rect.top < 0)
@@ -568,6 +659,8 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
         const int32_t offset = abs(rect.top);
         rect.top += offset;
         rect.bottom += offset;
+        winDesc->clientRect.top += offset;
+        winDesc->clientRect.bottom += offset;
     }
 
     WCHAR  app[FS_MAX_PATH] = {};
@@ -595,12 +688,6 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
         winDesc->handle.type = WINDOW_HANDLE_TYPE_WIN32;
         winDesc->handle.window = hwnd;
 
-        GetClientRect(hwnd, &rect);
-        winDesc->clientRect = { (int)rect.left, (int)rect.top, (int)rect.right, (int)rect.bottom };
-
-        GetWindowRect(hwnd, &rect);
-        winDesc->windowedRect = { (int)rect.left, (int)rect.top, (int)rect.right, (int)rect.bottom };
-
         if (!winDesc->hide)
         {
             if (winDesc->maximized)
@@ -614,12 +701,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 
             if (borderless)
             {
-                setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-            }
-
-            if (winDesc->centered)
-            {
-                centerWindow(winDesc);
+                setBorderless(winDesc);
             }
 
             if (fullscreen)
@@ -627,11 +709,6 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
                 setFullscreen(winDesc);
             }
         }
-
-        winDesc->mWndX = winDesc->windowedRect.left;
-        winDesc->mWndY = winDesc->windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
 
         LOGF(LogLevel::eINFO, "Created window app %s", app_name);
     }
@@ -669,6 +746,13 @@ void closeWindow(WindowDesc* winDesc)
 
 void setWindowRect(WindowDesc* winDesc, const RectDesc* rect)
 {
+    ASSERT(winDesc);
+    ASSERT(rect);
+    if (winDesc->fullScreen)
+    {
+        return;
+    }
+
     HWND hwnd = (HWND)winDesc->handle.window;
 
     DWORD windowStyle = PrepareStyleMask(winDesc);
@@ -676,22 +760,9 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* rect)
 
     winDesc->windowedRect = *rect;
 
-    if (winDesc->centered)
-    {
-        centerWindow(winDesc);
-    }
-    else
-    {
-        SetWindowPos(hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top,
-                     winDesc->windowedRect.right - winDesc->windowedRect.left, winDesc->windowedRect.bottom - winDesc->windowedRect.top,
-                     SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
-        RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
-        winDesc->clientRect.bottom = clientRect.bottom;
-        winDesc->clientRect.top = clientRect.top;
-        winDesc->clientRect.left = clientRect.left;
-        winDesc->clientRect.right = clientRect.right;
-    }
+    SetWindowPos(hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top,
+                 winDesc->windowedRect.right - winDesc->windowedRect.left, winDesc->windowedRect.bottom - winDesc->windowedRect.top,
+                 SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 }
 
 void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
@@ -705,63 +776,59 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
     setWindowRect(winDesc, &newWindowRect);
 }
 
-static void ToggleBorderless(WindowDesc* winDesc, unsigned clientWidth, unsigned clientHeight)
+void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect)
+{
+    ASSERT(winDesc);
+    ASSERT(rect);
+
+    if (winDesc->fullScreen)
+    {
+        return;
+    }
+
+    RectDesc windowRect = {};
+    WindowRectFromClient(&windowRect, rect, PrepareStyleMask(winDesc), FALSE);
+
+    return setWindowRect(winDesc, &windowRect);
+}
+FORGE_API void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
+{
+    RectDesc newWindowRect = {};
+    newWindowRect.left = winDesc->clientRect.left;
+    newWindowRect.top = winDesc->clientRect.top;
+    newWindowRect.right = newWindowRect.left + (int32_t)width;
+    newWindowRect.bottom = newWindowRect.top + (int32_t)height;
+
+    setWindowClientRect(winDesc, &newWindowRect);
+}
+
+static void ToggleBorderless(WindowDesc* winDesc)
 {
     if (!winDesc->fullScreen)
     {
         winDesc->borderlessWindow = !winDesc->borderlessWindow;
-
-        RECT newWindowRect;
-        newWindowRect.left = winDesc->clientRect.left;
-        newWindowRect.top = winDesc->clientRect.top;
-        newWindowRect.right = newWindowRect.left + (int32_t)clientWidth;
-        newWindowRect.bottom = newWindowRect.top + (int32_t)clientHeight;
-        if (!winDesc->borderlessWindow)
-        {
-            DWORD windowStyle = PrepareStyleMask(winDesc);
-            AdjustWindowRect(&newWindowRect, windowStyle, FALSE);
-        }
-
-        unsigned w = newWindowRect.right - newWindowRect.left;
-        unsigned h = newWindowRect.bottom - newWindowRect.top;
-
-        bool centered = winDesc->centered;
-        winDesc->centered = false;
-        setWindowSize(winDesc, w, h);
-        winDesc->centered = centered;
-
-        winDesc->mWndW = w;
-        winDesc->mWndH = h;
         winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
+
+        setWindowClientSize(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
     }
 }
 
 void ToggleFullscreen(WindowDesc* winDesc)
 {
     winDesc->fullScreen = !winDesc->fullScreen;
-    adjustWindow(winDesc);
+    adjustWindow(winDesc, false);
     if (winDesc->fullScreen)
     {
-        winDesc->mWndX = 0;
-        winDesc->mWndY = 0;
-        winDesc->mWndW = getRectWidth(&winDesc->fullscreenRect);
-        winDesc->mWndH = getRectHeight(&winDesc->fullscreenRect);
         winDesc->mWindowMode = WM_FULLSCREEN;
     }
     else
     {
-        winDesc->mWndX = winDesc->windowedRect.left;
-        winDesc->mWndY = winDesc->windowedRect.top;
-        winDesc->mWndW = getRectWidth(&winDesc->windowedRect);
-        winDesc->mWndH = getRectHeight(&winDesc->windowedRect);
         winDesc->mWindowMode = winDesc->borderlessWindow ? WM_BORDERLESS : WM_WINDOWED;
     }
 }
 
-void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowed(WindowDesc* winDesc)
 {
-    UNREF_PARAM(width);
-    UNREF_PARAM(height);
     winDesc->maximized = false;
 
     if (winDesc->fullScreen)
@@ -770,35 +837,29 @@ void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
     }
     if (winDesc->borderlessWindow)
     {
-        ToggleBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
+        ToggleBorderless(winDesc);
     }
     winDesc->mWindowMode = WindowMode::WM_WINDOWED;
 }
 
-void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setBorderless(WindowDesc* winDesc)
 {
     if (winDesc->fullScreen)
     {
         ToggleFullscreen(winDesc);
-        if (!winDesc->borderlessWindow)
-            ToggleBorderless(winDesc, width, height);
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
     }
-    else if (!winDesc->borderlessWindow)
+    if (!winDesc->borderlessWindow)
     {
-        winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
-        ToggleBorderless(winDesc, width, height);
-        if (!winDesc->borderlessWindow)
-            winDesc->mWindowMode = WindowMode::WM_WINDOWED;
+        ToggleBorderless(winDesc);
     }
+    winDesc->mWindowMode = WindowMode::WM_BORDERLESS;
 }
 
 void toggleFullscreen(WindowDesc* pWindow)
 {
     if (pWindow->fullScreen)
     {
-        pWindow->borderlessWindow ? setBorderless(pWindow, getRectWidth(&pWindow->clientRect), getRectHeight(&pWindow->clientRect))
-                                  : setWindowed(pWindow, getRectWidth(&pWindow->clientRect), getRectHeight(&pWindow->clientRect));
+        pWindow->borderlessWindow ? setBorderless(pWindow) : setWindowed(pWindow);
     }
     else
     {
@@ -841,8 +902,6 @@ void minimizeWindow(WindowDesc* winDesc)
 
 RECT getCenteredWindowRect(WindowDesc* winDesc)
 {
-    UpdateWindowDescFullScreenRect(winDesc);
-
     uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
     uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
     uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
@@ -923,7 +982,7 @@ void captureCursor(WindowDesc* winDesc, bool bEnable)
             SetCapture(handle);
 
             RECT clientRect;
-            GetClientRect(handle, &clientRect);
+            GetClientRectWithOffset(handle, &clientRect);
             // convert screen rect to client coordinates.
             POINT ptClientUL = { clientRect.left, clientRect.top };
             // Add one to the right and bottom sides, because the
@@ -968,21 +1027,6 @@ void setMousePositionAbsolute(int32_t x, int32_t y) { SetCursorPos(x, y); }
 //------------------------------------------------------------------------
 // MONITOR AND RESOLUTION HANDLING INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
-
-void getRecommendedResolution(RectDesc* rect)
-{
-    float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
-
-    int desiredWidth = (int)(1920 * dpiScale[0]);
-    int desiredHeight = (int)(1080 * dpiScale[1]);
-
-    int maxWidth = (int)(GetSystemMetrics(SM_CXSCREEN) * 0.75);
-    int maxHeight = (int)(GetSystemMetrics(SM_CYSCREEN) * 0.75);
-
-    *rect = { 0, 0, min(desiredWidth, maxWidth), min(desiredHeight, maxHeight) };
-}
 
 void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect)
 {
@@ -1155,6 +1199,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_NCPAINT:
+    case WM_WINDOWPOSCHANGING:
     case WM_WINDOWPOSCHANGED:
     case WM_STYLECHANGED:
     {
@@ -1162,7 +1207,8 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     case WM_DISPLAYCHANGE:
     {
-        adjustWindow(gWindow);
+        updateMonitorResolution(getMonitor(getActiveMonitorIdx()), (uint32_t)LOWORD(lParam), (uint32_t)HIWORD(lParam));
+        adjustWindow(gWindow, true);
         break;
     }
     case WM_GETMINMAXINFO:
@@ -1184,16 +1230,20 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         HDC    hdc = (HDC)wParam;
         RECT   rc;
         HBRUSH hbrWhite = CreateSolidBrush(0x00000000);
-        GetClientRect(hwnd, &rc);
+        GetClientRectWithOffset(hwnd, &rc);
         FillRect(hdc, &rc, hbrWhite);
         break;
     }
-    case WM_WINDOWPOSCHANGING:
     case WM_MOVE:
     {
-        UpdateWindowDescFullScreenRect(gWindow);
+        ResetWindowDescFullScreenRect(gWindow);
+        // Update the position of window
+        // Note: Avoid resetting window or client size while processing WM_SIZE.
+        // It can result in incorrect rectangle size returned by the OS.
         if (!gWindow->fullScreen)
-            UpdateWindowDescWindowedRect(gWindow);
+            UpdateWindowDescWindowedPos(gWindow, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
+        else
+            UpdateWindowDescClientPos(gWindow, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
         break;
     }
     case WM_STYLECHANGING:
@@ -1202,26 +1252,22 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     case WM_SIZE:
     {
+        // Update the position of window
+        // Note: Avoid resetting window or client size while processing WM_SIZE.
+        // It can result in incorrect rectangle size returned by the OS.
+        UINT width = LOWORD(lParam);
+        UINT height = HIWORD(lParam);
         switch (wParam)
         {
         case SIZE_MAXIMIZED:
             maximized = true;
-            onFocusChanged(true);
-            gWindow->minimized = false;
-            if (!gWindow->fullScreen && !gWindowIsResizing)
-            {
-                UpdateWindowDescClientRect(gWindow);
-                onResize(gWindow, getRectWidth(&gWindow->clientRect), getRectHeight(&gWindow->clientRect), maximized);
-            }
-            break;
+            // fall through
         case SIZE_RESTORED:
             onFocusChanged(true);
+            gWindow->maximized = maximized;
             gWindow->minimized = false;
-            if (!gWindow->fullScreen && !gWindowIsResizing)
-            {
-                UpdateWindowDescClientRect(gWindow);
-                onResize(gWindow, getRectWidth(&gWindow->clientRect), getRectHeight(&gWindow->clientRect), maximized);
-            }
+            UpdateWindowDescClientSize(gWindow, width, height);
+            onResize(gWindow, getRectWidth(&gWindow->clientRect), getRectHeight(&gWindow->clientRect));
             break;
         case SIZE_MINIMIZED:
             onFocusChanged(false);
@@ -1251,9 +1297,10 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         gWindowIsResizing = false;
         if (!gWindow->fullScreen)
         {
-            UpdateWindowDescClientRect(gWindow);
-            onResize(gWindow, getRectWidth(&gWindow->clientRect), getRectHeight(&gWindow->clientRect), false);
+            gWindow->maximized = false;
+            ResetWindowDescWindowedRect(gWindow);
         }
+        onResize(gWindow, getRectWidth(&gWindow->clientRect), getRectHeight(&gWindow->clientRect));
         break;
     }
     case WM_SETCURSOR:
@@ -1301,7 +1348,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-void initWindowClass()
+bool initWindowSystem()
 {
     if (!gWindowClassInitialized)
     {
@@ -1329,7 +1376,7 @@ void initWindowClass()
 
                 LOGF(eERROR, "%s", messageBuffer);
                 LocalFree(messageBuffer);
-                return;
+                return false;
             }
             else
             {
@@ -1339,9 +1386,10 @@ void initWindowClass()
     }
 
     collectMonitorInfo();
+    return true;
 }
 
-void exitWindowClass()
+void exitWindowSystem()
 {
     for (uint32_t i = 0; i < gMonitorCount; ++i)
         arrfree(gMonitors[i].resolutions);

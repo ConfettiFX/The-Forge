@@ -227,6 +227,18 @@ float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
+
+	// Manual depth test with resolved depth buffer for hair...
+	#if !TEXTURE_ATOMIC_SUPPORTED
+	uint2 p = uint2(In.Position.xy);
+    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
+	float fragDepth = asfloat(DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
+	if(In.Position.z < fragDepth)
+	{
+		clip(-1.0f);
+	}
+	#endif
+
 	float3 NDC = ScreenPosToNDC(In.Position.xyz, cbHairGlobal.Viewport);
 	float2 p0 = In.P0P1.xy / In.W0W1.x;
 	float2 p1 = In.P0P1.zw / In.W0W1.y;

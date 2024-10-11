@@ -5,7 +5,7 @@
 #frag particle.frag
 
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #else
 #define MAX_TRANSPARENCY_LAYERS	24
 #endif
@@ -17,7 +17,7 @@
 #frag particle_hq.frag
 
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #elif defined(PROSPERO) || defined(WINDOWS)
 #define MAX_TRANSPARENCY_LAYERS 64
 #else
@@ -36,23 +36,23 @@
 #comp particle_simulate.comp
 
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #else
 #define MAX_TRANSPARENCY_LAYERS	24
 #endif
-
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl"
 #end
 
 
 #comp particle_simulate_hq.comp
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #elif defined(PROSPERO) || defined(WINDOWS)
 #define MAX_TRANSPARENCY_LAYERS 64
 #else
 #define MAX_TRANSPARENCY_LAYERS	24
 #endif
+#define DETERMINISTIC_SIMULATION
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl"
 #end
 
@@ -138,7 +138,7 @@
 #frag fsq.frag
 
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #else
 #define MAX_TRANSPARENCY_LAYERS	24
 #endif
@@ -150,7 +150,7 @@
 #frag fsq_hq.frag
 
 #if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS	16
+#define MAX_TRANSPARENCY_LAYERS	20
 #elif defined(PROSPERO) || defined(WINDOWS)
 #define MAX_TRANSPARENCY_LAYERS 64
 #else

@@ -550,17 +550,6 @@ public:
 
     bool Init()
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         InitAppSettings();
 
         INIT_STRUCT(gSettings);
@@ -1035,15 +1024,6 @@ public:
         memcpy(directionalLightBuffUpdateDesc.pMappedData, &gUniformDataDirectionalLights, sizeof(gUniformDataDirectionalLights));
         endUpdateResource(&directionalLightBuffUpdateDesc);
 
-        if (gReflectionType == PP_REFLECTION)
-        {
-            uiShowDynamicWidgets(&PPR_Widgets, pGui);
-        }
-        else if (gReflectionType == SSS_REFLECTION)
-        {
-            uiShowDynamicWidgets(&SSSR_Widgets, pGui);
-        }
-
         // We need to allocate enough indices for the entire scene
         uint32_t visibilityBufferFilteredIndexCount[NUM_GEOMETRY_SETS] = {};
 
@@ -1447,7 +1427,7 @@ public:
         params[0].ppTextures = &pBRDFIntegrationMap;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF, 1, params);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetBRDF);
-        const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+        const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
         TextureBarrier srvBarrier[1] = { { pBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
@@ -1466,7 +1446,7 @@ public:
         params[1].ppTextures = &pIrradianceMap;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetIrradiance, 2, params);
         cmdBindDescriptorSet(pCmd, 0, pDescriptorSetIrradiance);
-        pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+        pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
 
         /************************************************************************/
@@ -1495,7 +1475,7 @@ public:
             params[0].mUAVMipSlice = (uint16_t)i;
             updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
             cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
-            pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+            pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
             cmdDispatch(pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
         }
         /************************************************************************/
@@ -1716,6 +1696,15 @@ public:
             UIWidget*    pRunScript = uiAddComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
             uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
             luaRegisterWidget(pRunScript);
+
+            if (gReflectionType == PP_REFLECTION)
+            {
+                uiShowDynamicWidgets(&PPR_Widgets, pGui);
+            }
+            else if (gReflectionType == SSS_REFLECTION)
+            {
+                uiShowDynamicWidgets(&SSSR_Widgets, pGui);
+            }
 
             if (!addSwapChain())
                 return false;
@@ -2156,7 +2145,7 @@ public:
             cmdBindPipeline(cmd, pPPR_ProjectionPipeline);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR_Projection[0]);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPPR_Projection[1]);
-            const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
+            const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mNumThreadsPerGroup;
             cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);

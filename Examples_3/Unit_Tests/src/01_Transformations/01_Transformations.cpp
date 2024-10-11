@@ -433,16 +433,6 @@ class Transformations: public IApp
 public:
     bool Init()
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         // window and renderer setup
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
@@ -1014,14 +1004,13 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Planets");
-
         cmdBindPipeline(cmd, pSpherePipeline);
         cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &gSphereVertexLayout.mBindings[0].mStride, nullptr);
         cmdBindIndexBuffer(cmd, pSphereIndexBuffer, INDEX_TYPE_UINT16, 0);
-
         cmdDrawIndexedInstanced(cmd, gSphereIndexCount, 0, gNumPlanets, 0, 0);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken); // Draw Skybox/Planets
         cmdBindRenderTargets(cmd, NULL);
 
