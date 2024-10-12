@@ -82,6 +82,23 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.60 - October 11th, 2024 - GPU Work Graphs | Filesystem Refactor | Window System Refactor Phase 1 
+
+### GPU Work Graphs
+We are testing GPU Work Graphs now for a while. We see opportunities to implement more complex compute driven interactions, which helps us to move towards GPU-driven rendering more and more. The current example runs the clear buffers and triangle culling in a GPU Work Graph if GPU Work Graphs are supported. Otherwise it takes the old path. So visually there is no change for all the unit tests that run the Triangle Visiblity Buffer.
+
+### Filesystem Refactor
+We data drive the everything in a game engine. For the file system, we finally managed to implement that too in the public repository. We also removed unnecessary copies and symlinks. Please note our file system consists of "two" file systems. One for the run-time and one for tools. You can't ship a tools file system in a game :-) I know that this is well known but people always want to check if a path is right, a directory exists, a file exists, before they load this one file ... yeaahh ... so our run-time file system prevents that from happening.
+
+### Window System Refactor Phase 1
+With the on-going challenges in the area of upscaling and general window management on Operating systems that support windows, we decided to refactor our window system to bring it up to existing standards and allow us to integrate upscalers easier. Currently most upscalers do not consider the pixel center, they were written by people who never studied Bresenham's algorithm. We wanted to make sure our upscaler actually works without introducing Moire patterns or strong staircase effects like the ones currently promoted by hardware vendors.
+We will add more functionality in Phase 2 ... 
+
+### Steamdeck 
+We are pushing forward in making Steamdeck a first class citizen. It represents our Linux run-time efforts, so we can switch if its necessary to any Linux distro ... 
+
+
+
 ## Release 1.59 - September 6th, 2024 - STAR WARS™: Bounty Hunter™ | Replaced Gainput with our own Input library | Removed Vulkan from Windows Run-Time | Removed API Switch | Third-Party Integration
 
 STAR WARS™: Bounty Hunter™
