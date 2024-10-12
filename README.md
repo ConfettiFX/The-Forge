@@ -85,7 +85,7 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 ## Release 1.60 - October 11th, 2024 - GPU Work Graphs | Filesystem Refactor | Window System Refactor Phase 1 
 
 ### GPU Work Graphs
-We are testing GPU Work Graphs now for a while. We see opportunities to implement more complex compute driven interactions, which helps us to move towards GPU-driven rendering more and more. The current example runs the clear buffers and triangle culling in a GPU Work Graph if GPU Work Graphs are supported. Otherwise it takes the old path. So visually there is no change for all the unit tests that run the Triangle Visiblity Buffer.
+We are testing GPU Work Graphs now for a while. We see opportunities to implement more complex compute driven interactions, which helps us to move towards GPU-driven rendering more and more. The current example runs the clear buffers and triangle culling in a GPU Work Graph if GPU Work Graphs are supported. Otherwise it takes the old path. So visually there is no change.
 
 ### Filesystem Refactor
 We data drive the everything in a game engine. For the file system, we finally managed to implement that too in the public repository. We also removed unnecessary copies and symlinks. Please note our file system consists of "two" file systems. One for the run-time and one for tools. You can't ship a tools file system in a game :-) I know that this is well known but people always want to check if a path is right, a directory exists, a file exists, before they load this one file ... yeaahh ... so our run-time file system prevents that from happening.
