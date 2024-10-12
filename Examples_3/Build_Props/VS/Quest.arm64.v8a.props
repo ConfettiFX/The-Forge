@@ -12,7 +12,7 @@
     <ClCompile>
         <AdditionalIncludeDirectories>
           $(VS_NdkRoot)\sources\android\native_app_glue\;
-          $(TheForgeRoot)Data\Libraries\agdk\include;
+          $(TheForgeRoot)Common_3\OS\ThirdParty\OpenSource\agdk\include;
           %(AdditionalIncludeDirectories);
         </AdditionalIncludeDirectories>
         <PreprocessorDefinitions>ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -80,7 +80,7 @@
       <Command>
         %(Command)
         RD /S /Q $(AndroidGradleBuildOutputDir)
-        xcopy $(TheForgeRoot)Data\Libraries\VulkanSDK\bin\Android\*.* $(OutDir) /s /y /d
+        xcopy $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\VulkanSDK\bin\Android\*.* $(OutDir) /s /y /d
       </Command>
       <Command Condition="'$(UseQuest)' != ''">
         %(Command)
@@ -89,7 +89,7 @@
     </PreBuildEvent>
     <Link>
       <AdditionalDependencies>
-        $(TheForgeRoot)Data\Libraries\agdk\libs\arm64-v8a_cpp_static_Release\libmemory_advice_static.a;
+        $(TheForgeRoot)Common_3\OS\ThirdParty\OpenSource\agdk\libs\arm64-v8a_cpp_static_Release\libmemory_advice_static.a;
         %(AdditionalDependencies)
       </AdditionalDependencies>
     </Link>

@@ -131,6 +131,8 @@ Examples_3/Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/
 /**/macOS\ Xcode/**/Bin/
 /**/macOS\ Xcode/**/build/
 **/Xcode_Cache/
+**/Xcode_Cache_Sanitizers/
+**/BinSanitizers/
 
 # Nuget packages
 Tools/ShaderBuildCommand/packages/

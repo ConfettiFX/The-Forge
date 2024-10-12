@@ -814,12 +814,12 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
 
         CmdDesc cmdDesc = {};
         cmdDesc.pPool = resourceSet.pCmdPool;
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG_ANNOTATION
         static char buffer[MAX_DEBUG_NAME_LENGTH];
         const char* engineName = pDesc->pQueueName ? pDesc->pQueueName : "Unnamed";
         snprintf(buffer, sizeof(buffer), "Node %u %s CopyEngine buffer %u Cmd", pDesc->mNodeIndex, engineName, i);
         cmdDesc.pName = buffer;
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
         initCmd(pRenderer, &cmdDesc, &resourceSet.pCmd);
 
         initSemaphore(pRenderer, &resourceSet.pSemaphore);
@@ -2220,11 +2220,11 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
                 initCmdPool(pLoader->ppRenderers[i], &poolDesc, &resourceSet.pPostCopyBarrierCmdPool);
                 CmdDesc cmdDesc = {};
                 cmdDesc.pPool = resourceSet.pPostCopyBarrierCmdPool;
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG_ANNOTATION
                 static char buffer[MAX_DEBUG_NAME_LENGTH];
                 snprintf(buffer, sizeof(buffer), "Node %u Strict Queue buffer %u Cmd", i, b);
                 cmdDesc.pName = buffer;
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
                 initCmd(pLoader->ppRenderers[i], &cmdDesc, &resourceSet.pPostCopyBarrierCmd);
                 initFence(pLoader->ppRenderers[i], &resourceSet.pPostCopyBarrierFence);
             }
@@ -3883,10 +3883,10 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     // NOTE: On some platforms, we might not be allowed to write in the `RD_SHADER_BINARIES` directory.
     // If we want to load re-compiled binaries, then they must be cached elsewhere and queried here.
 
+#ifdef ENABLE_FORGE_RELOAD_SHADER
     void*    pCachedByteCode = NULL;
     uint32_t cachedByteCodeSize = 0;
 
-#ifdef ENABLE_FORGE_RELOAD_SHADER
     const bool result = platformReloadClientGetShaderBinary(binaryShaderPath, &pCachedByteCode, &cachedByteCodeSize)
                             ? fsOpenStreamFromMemory(pCachedByteCode, cachedByteCodeSize, FM_READ, false, &binaryFileStream)
                             : fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
@@ -4029,13 +4029,18 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 #if defined(METAL)
     bool bIsICBCompatible = true;
 #endif
-#define SHADER_STAGE_INDEX_VERT 0
-#define SHADER_STAGE_INDEX_TESC 1
-#define SHADER_STAGE_INDEX_TESE 2
-#define SHADER_STAGE_INDEX_GEOM 3
-#define SHADER_STAGE_INDEX_FRAG 4
-#define SHADER_STAGE_INDEX_COMP 5
-    const ShaderStageLoadDesc* stages[] = { &pDesc->mVert, &pDesc->mHull, &pDesc->mDomain, &pDesc->mGeom, &pDesc->mFrag, &pDesc->mComp };
+#define SHADER_STAGE_INDEX_VERT      0
+#define SHADER_STAGE_INDEX_TESC      1
+#define SHADER_STAGE_INDEX_TESE      2
+#define SHADER_STAGE_INDEX_GEOM      3
+#define SHADER_STAGE_INDEX_FRAG      4
+#define SHADER_STAGE_INDEX_COMP      5
+#define SHADER_STAGE_INDEX_WORKGRAPH 6
+    const ShaderStageLoadDesc* stages[] = { &pDesc->mVert, &pDesc->mHull, &pDesc->mDomain, &pDesc->mGeom, &pDesc->mFrag, &pDesc->mComp,
+#if defined(ENABLE_WORKGRAPH)
+        &pDesc->mGraph
+#endif
+    };
 
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(stages); ++i)
     {
@@ -4073,6 +4078,12 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
             stage = SHADER_STAGE_GEOM;
             pBinaryStageDesc = &binaryDesc.mGeom;
             break;
+#if defined(ENABLE_WORKGRAPH)
+        case SHADER_STAGE_INDEX_WORKGRAPH:
+            stage = SHADER_STAGE_WORKGRAPH;
+            pBinaryStageDesc = &binaryDesc.mComp;
+            break;
+#endif
         default:
             ASSERTMSG(false, "Unkown shader stage.");
             break;
@@ -4142,9 +4153,9 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 #else
     if (SHADER_STAGE_COMP == binaryDesc.mStages)
     {
-        pShader->mNumThreadsPerGroup[0] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[0];
-        pShader->mNumThreadsPerGroup[1] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[1];
-        pShader->mNumThreadsPerGroup[2] = pShader->pReflection->mStageReflections[0].mNumThreadsPerGroup[2];
+        pShader->mNumThreadsPerGroup[0] = pShader->pReflection->mNumThreadsPerGroup[0];
+        pShader->mNumThreadsPerGroup[1] = pShader->pReflection->mNumThreadsPerGroup[1];
+        pShader->mNumThreadsPerGroup[2] = pShader->pReflection->mNumThreadsPerGroup[2];
     }
 #endif
 

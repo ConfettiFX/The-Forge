@@ -32,6 +32,7 @@
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 
 #if defined(QUEST_VR)
 #include "../Quest/VrApi.h"
@@ -50,106 +51,20 @@ bool isLoaded = false;
 // AndroidBase.cpp
 extern CustomMessageProcessor sCustomProc;
 
+static MonitorDesc gMonitor;
+
 //------------------------------------------------------------------------
 // STATIC STRUCTS
 //------------------------------------------------------------------------
 
 struct DisplayMetrics
 {
-    uint32_t widthPixels;
-    uint32_t heightPixels;
     float    density;
     uint32_t densityDpi;
     float    scaledDensity;
-    float    xdpi;
-    float    ydpi;
 };
 
 DisplayMetrics metrics = {};
-
-//------------------------------------------------------------------------
-// STATIC HELPER FUNCTIONS
-//------------------------------------------------------------------------
-
-void getDisplayMetrics(android_app* pAndroidApp, JNIEnv* pJavaEnv)
-{
-    if (!pAndroidApp || !pAndroidApp->activity || !pAndroidApp->activity->vm || !pJavaEnv)
-        return;
-
-    // get all the classes we want to access from the JVM
-    jclass classNativeActivity = pJavaEnv->FindClass("android/app/NativeActivity");
-    jclass classWindowManager = pJavaEnv->FindClass("android/view/WindowManager");
-    jclass classDisplay = pJavaEnv->FindClass("android/view/Display");
-    jclass classDisplayMetrics = pJavaEnv->FindClass("android/util/DisplayMetrics");
-
-    if (!classNativeActivity || !classWindowManager || !classDisplay || !classDisplayMetrics)
-    {
-        pAndroidApp->activity->vm->DetachCurrentThread();
-        return;
-    }
-
-    // Get all the methods we want to access from the JVM classes
-    // Note: You can get the signatures (third parameter of GetMethodID) for all
-    // functions of a class with the javap tool, like in the following example for class DisplayMetrics:
-    // javap -s -classpath myandroidpath/adt-bundle-linux-x86_64-20131030/sdk/platforms/android-10/android.jar android/util/DisplayMetrics
-    jmethodID idNativeActivity_getWindowManager =
-        pJavaEnv->GetMethodID(classNativeActivity, "getWindowManager", "()Landroid/view/WindowManager;");
-    jmethodID idWindowManager_getDefaultDisplay =
-        pJavaEnv->GetMethodID(classWindowManager, "getDefaultDisplay", "()Landroid/view/Display;");
-    jmethodID idDisplayMetrics_constructor = pJavaEnv->GetMethodID(classDisplayMetrics, "<init>", "()V");
-    jmethodID idDisplay_getMetrics = pJavaEnv->GetMethodID(classDisplay, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
-
-    if (!idNativeActivity_getWindowManager || !idWindowManager_getDefaultDisplay || !idDisplayMetrics_constructor || !idDisplay_getMetrics)
-    {
-        pAndroidApp->activity->vm->DetachCurrentThread();
-        return;
-    }
-
-    jobject windowManager = pJavaEnv->CallObjectMethod(pAndroidApp->activity->clazz, idNativeActivity_getWindowManager);
-
-    if (!windowManager)
-    {
-        pAndroidApp->activity->vm->DetachCurrentThread();
-        return;
-    }
-    jobject display = pJavaEnv->CallObjectMethod(windowManager, idWindowManager_getDefaultDisplay);
-    if (!display)
-    {
-        pAndroidApp->activity->vm->DetachCurrentThread();
-        return;
-    }
-    jobject displayMetrics = pJavaEnv->NewObject(classDisplayMetrics, idDisplayMetrics_constructor);
-    if (!displayMetrics)
-    {
-        pAndroidApp->activity->vm->DetachCurrentThread();
-        return;
-    }
-    pJavaEnv->CallVoidMethod(display, idDisplay_getMetrics, displayMetrics);
-
-    // access the fields of DisplayMetrics (we ignore the DENSITY constants)
-    jfieldID idDisplayMetrics_widthPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "widthPixels", "I");
-    jfieldID idDisplayMetrics_heightPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "heightPixels", "I");
-    jfieldID idDisplayMetrics_density = pJavaEnv->GetFieldID(classDisplayMetrics, "density", "F");
-    jfieldID idDisplayMetrics_densityDpi = pJavaEnv->GetFieldID(classDisplayMetrics, "densityDpi", "I");
-    jfieldID idDisplayMetrics_scaledDensity = pJavaEnv->GetFieldID(classDisplayMetrics, "scaledDensity", "F");
-    jfieldID idDisplayMetrics_xdpi = pJavaEnv->GetFieldID(classDisplayMetrics, "xdpi", "F");
-    jfieldID idDisplayMetrics_ydpi = pJavaEnv->GetFieldID(classDisplayMetrics, "ydpi", "F");
-
-    if (idDisplayMetrics_widthPixels)
-        metrics.widthPixels = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_widthPixels);
-    if (idDisplayMetrics_heightPixels)
-        metrics.heightPixels = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_heightPixels);
-    if (idDisplayMetrics_density)
-        metrics.density = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_density);
-    if (idDisplayMetrics_densityDpi)
-        metrics.densityDpi = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_densityDpi);
-    if (idDisplayMetrics_scaledDensity)
-        metrics.scaledDensity = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_scaledDensity);
-    if (idDisplayMetrics_xdpi)
-        metrics.xdpi = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_xdpi);
-    if (idDisplayMetrics_ydpi)
-        metrics.ydpi = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_ydpi);
-}
 
 static void onFocusChanged(bool focused)
 {
@@ -185,12 +100,22 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
     // No-op
 }
 
-void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect)
 {
     // No-op
 }
 
-void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
+{
+    // No-op
+}
+
+void setWindowed(WindowDesc* winDesc)
+{
+    // No-op
+}
+
+void setBorderless(WindowDesc* winDesc)
 {
     // No-op
 }
@@ -277,7 +202,12 @@ void setMousePositionAbsolute(int32_t x, int32_t y)
 // MONITOR AND RESOLUTION HANDLING INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-MonitorDesc* getMonitor(uint32_t index) { return NULL; }
+MonitorDesc* getMonitor(uint32_t index)
+{
+    ASSERT(index == 0);
+    UNREF_PARAM(index);
+    return &gMonitor;
+}
 
 uint32_t getMonitorCount(void) { return 1; }
 
@@ -291,11 +221,10 @@ void getDpiScale(float array[2])
 
 void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
 {
+    ASSERT(monitorIndex == 0);
     UNREF_PARAM(monitorIndex);
     getDpiScale(dpiScale);
 }
-
-void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, (int32_t)metrics.widthPixels, (int32_t)metrics.heightPixels }; }
 
 void getRecommendedWindowRect(WindowDesc*, RectDesc* rect) { getRecommendedResolution(rect); }
 
@@ -440,3 +369,100 @@ void handle_cmd(android_app* app, int32_t cmd)
     }
     }
 }
+
+//------------------------------------------------------------------------
+// WINDOW SYSTEM INIT/EXIT
+//------------------------------------------------------------------------
+
+bool initWindowSystem(android_app* pAndroidApp, JNIEnv* pJavaEnv)
+{
+    if (!pAndroidApp || !pAndroidApp->activity || !pAndroidApp->activity->vm || !pJavaEnv)
+        return false;
+
+    // get all the classes we want to access from the JVM
+    jclass classNativeActivity = pJavaEnv->FindClass("android/app/NativeActivity");
+    jclass classWindowManager = pJavaEnv->FindClass("android/view/WindowManager");
+    jclass classDisplay = pJavaEnv->FindClass("android/view/Display");
+    jclass classDisplayMetrics = pJavaEnv->FindClass("android/util/DisplayMetrics");
+
+    if (!classNativeActivity || !classWindowManager || !classDisplay || !classDisplayMetrics)
+    {
+        pAndroidApp->activity->vm->DetachCurrentThread();
+        return false;
+    }
+
+    // Get all the methods we want to access from the JVM classes
+    // Note: You can get the signatures (third parameter of GetMethodID) for all
+    // functions of a class with the javap tool, like in the following example for class DisplayMetrics:
+    // javap -s -classpath myandroidpath/adt-bundle-linux-x86_64-20131030/sdk/platforms/android-10/android.jar android/util/DisplayMetrics
+    jmethodID idNativeActivity_getWindowManager =
+        pJavaEnv->GetMethodID(classNativeActivity, "getWindowManager", "()Landroid/view/WindowManager;");
+    jmethodID idWindowManager_getDefaultDisplay =
+        pJavaEnv->GetMethodID(classWindowManager, "getDefaultDisplay", "()Landroid/view/Display;");
+    jmethodID idDisplayMetrics_constructor = pJavaEnv->GetMethodID(classDisplayMetrics, "<init>", "()V");
+    jmethodID idDisplay_getMetrics = pJavaEnv->GetMethodID(classDisplay, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
+
+    if (!idNativeActivity_getWindowManager || !idWindowManager_getDefaultDisplay || !idDisplayMetrics_constructor || !idDisplay_getMetrics)
+    {
+        pAndroidApp->activity->vm->DetachCurrentThread();
+        return false;
+    }
+
+    jobject windowManager = pJavaEnv->CallObjectMethod(pAndroidApp->activity->clazz, idNativeActivity_getWindowManager);
+
+    if (!windowManager)
+    {
+        pAndroidApp->activity->vm->DetachCurrentThread();
+        return false;
+    }
+    jobject display = pJavaEnv->CallObjectMethod(windowManager, idWindowManager_getDefaultDisplay);
+    if (!display)
+    {
+        pAndroidApp->activity->vm->DetachCurrentThread();
+        return false;
+    }
+    jobject displayMetrics = pJavaEnv->NewObject(classDisplayMetrics, idDisplayMetrics_constructor);
+    if (!displayMetrics)
+    {
+        pAndroidApp->activity->vm->DetachCurrentThread();
+        return false;
+    }
+    pJavaEnv->CallVoidMethod(display, idDisplay_getMetrics, displayMetrics);
+
+    // access the fields of DisplayMetrics (we ignore the DENSITY constants)
+    jfieldID idDisplayMetrics_widthPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "widthPixels", "I");
+    jfieldID idDisplayMetrics_heightPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "heightPixels", "I");
+    jfieldID idDisplayMetrics_density = pJavaEnv->GetFieldID(classDisplayMetrics, "density", "F");
+    jfieldID idDisplayMetrics_densityDpi = pJavaEnv->GetFieldID(classDisplayMetrics, "densityDpi", "I");
+    jfieldID idDisplayMetrics_scaledDensity = pJavaEnv->GetFieldID(classDisplayMetrics, "scaledDensity", "F");
+    jfieldID idDisplayMetrics_xdpi = pJavaEnv->GetFieldID(classDisplayMetrics, "xdpi", "F");
+    jfieldID idDisplayMetrics_ydpi = pJavaEnv->GetFieldID(classDisplayMetrics, "ydpi", "F");
+
+    if (idDisplayMetrics_widthPixels)
+        gMonitor.defaultResolution.mWidth = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_widthPixels);
+    if (idDisplayMetrics_heightPixels)
+        gMonitor.defaultResolution.mHeight = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_heightPixels);
+    if (idDisplayMetrics_density)
+        metrics.density = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_density);
+    if (idDisplayMetrics_densityDpi)
+        metrics.densityDpi = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_densityDpi);
+    if (idDisplayMetrics_scaledDensity)
+        metrics.scaledDensity = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_scaledDensity);
+    if (idDisplayMetrics_xdpi)
+        gMonitor.dpi[0] = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_xdpi);
+    if (idDisplayMetrics_ydpi)
+        gMonitor.dpi[1] = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_ydpi);
+
+    arrsetlen(gMonitor.resolutions, 1);
+    gMonitor.resolutions[0] = gMonitor.defaultResolution;
+
+    gMonitor.monitorRect.left = 0;
+    gMonitor.monitorRect.top = 0;
+    gMonitor.monitorRect.right = gMonitor.defaultResolution.mWidth;
+    gMonitor.monitorRect.top = gMonitor.defaultResolution.mHeight;
+    gMonitor.workRect = gMonitor.monitorRect;
+
+    return true;
+}
+
+void exitWindowSystem() { arrfree(gMonitor.resolutions); }

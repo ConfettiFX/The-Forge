@@ -109,6 +109,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -116,6 +117,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -143,17 +145,8 @@
     </Manifest>
     <PostBuildEvent>
       <Command>
-        %(Command) :: Copy Art files
+        %(Command)
         if not exist "$(OutDir)SDF\" mklink /j "$(OutDir)SDF\" "$(TheForgeArtDir)SDF\"
-        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
-
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Meshes\" mklink /j "$(OutDir)Meshes\" "$(TheForgeArtDir)Meshes\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -170,8 +163,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>
@@ -206,17 +199,8 @@
     </Manifest>
     <PostBuildEvent>
       <Command>
-        %(Command) :: Copy Art files
+        %(Command)
         if not exist "$(OutDir)SDF\" mklink /j "$(OutDir)SDF\" "$(TheForgeArtDir)SDF\"
-        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
-
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Meshes\" mklink /j "$(OutDir)Meshes\" "$(TheForgeArtDir)Meshes\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -233,8 +217,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>

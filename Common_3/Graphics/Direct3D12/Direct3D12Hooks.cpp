@@ -59,7 +59,7 @@ void hook_enable_debug_layer(const RendererContextDesc* pDesc, RendererContext* 
 {
     UNREF_PARAM(pDesc);
     UNREF_PARAM(pContext);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     pContext->mDx.pDebug->EnableDebugLayer();
 
     ID3D12Debug1* pDebug1 = NULL;
@@ -109,7 +109,19 @@ HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_CO
     return pDevice->CreateComputePipelineState(pDesc, IID_PPV_ARGS(ppPipeline));
 }
 
-void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->mDx.pPipelineState); }
+void hook_remove_pipeline(Pipeline* pPipeline)
+{
+#if defined(ENABLE_WORKGRAPH)
+    if (PIPELINE_TYPE_WORKGRAPH == pPipeline->mDx.mType)
+    {
+        SAFE_RELEASE(pPipeline->mDx.pStateObject);
+    }
+    else
+#endif
+    {
+        SAFE_RELEASE(pPipeline->mDx.pPipelineState);
+    }
+}
 
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
                                   D3D12_RESOURCE_STATES state, uint32_t flags, Buffer* pBuffer)

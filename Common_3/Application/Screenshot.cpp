@@ -82,9 +82,9 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
 
     CmdDesc cmdDesc = {};
     cmdDesc.pPool = pCmdPool;
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG_ANNOTATION
     cmdDesc.pName = "Screenshot Cmd";
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
     initCmd(pRenderer, &cmdDesc, &gCmd);
 
     updateUIVisibility();

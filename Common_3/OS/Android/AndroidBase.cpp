@@ -93,6 +93,8 @@ extern IApp* pWindowAppRef;
 extern bool  windowReady;
 extern bool  isActive;
 extern bool  isLoaded;
+extern bool  initWindowSystem(android_app* pAndroidApp, JNIEnv* pJavaEnv);
+extern void  exitWindowSystem();
 
 JNIEnv* pMainJavaEnv = {};
 
@@ -445,7 +447,7 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -547,7 +549,6 @@ void setRefreshRate(JNIEnv* pJNI, android_app* android_app, float refreshRateInM
 
 // AndroidWindow.cpp
 extern void handleMessages(WindowDesc*);
-extern void getDisplayMetrics(android_app*, JNIEnv*);
 extern void handle_cmd(android_app*, int32_t);
 
 static void OnBackKeyPressed(android_app* app)
@@ -615,9 +616,6 @@ int AndroidMain(void* param, IApp* app)
         return EXIT_FAILURE;
     }
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-    fsSetPathForResourceDir(pSystemFileIO, RM_SYSTEM, RD_SYSTEM, "");
-
     initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
     snprintf(gOsInfo.osName, 256, "Android");
@@ -662,7 +660,10 @@ int AndroidMain(void* param, IApp* app)
     HiresTimer      deltaTimer;
     initHiresTimer(&deltaTimer);
 
-    getDisplayMetrics(android_app, pMainJavaEnv);
+    if (!initWindowSystem(android_app, pMainJavaEnv))
+        return EXIT_FAILURE;
+
+    pSettings->mMonitorIndex = 0;
 
 #if defined(QUEST_VR)
     initVrApi(android_app, pMainJavaEnv);
@@ -677,10 +678,16 @@ int AndroidMain(void* param, IApp* app)
 #endif
 
 #ifdef AUTOMATED_TESTING
-    int             frameCountArgs;
+    int frameCountArgs;
+
+#ifdef ENABLE_FORGE_RELOAD_SHADER
     extern uint32_t gReloadServerRequestRecompileAfter;
-    char            benchmarkOutput[1024] = { "\0" };
-    bool            benchmarkArgs =
+#else
+    uint32_t gReloadServerRequestRecompileAfter = 0;
+#endif
+
+    char benchmarkOutput[1024] = { "\0" };
+    bool benchmarkArgs =
         getBenchmarkArguments(android_app, pMainJavaEnv, frameCountArgs, gReloadServerRequestRecompileAfter, &benchmarkOutput[0]);
     if (benchmarkArgs)
     {
@@ -958,6 +965,8 @@ int AndroidMain(void* param, IApp* app)
     pApp->Exit();
 
     exitBaseSubsystems();
+
+    exitWindowSystem();
 
     exitLog();
 

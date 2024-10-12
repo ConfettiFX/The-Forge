@@ -102,6 +102,10 @@ enum
 #define ENABLE_RAYTRACING
 #endif
 
+#if defined(D3D12_WORKGRAPH_AVAILABLE)
+#define ENABLE_WORKGRAPH
+#endif
+
 #ifdef ENABLE_PROFILER
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 #define ENABLE_GPU_PROFILER
@@ -110,13 +114,19 @@ enum
 
 // Enable graphics debug if general debug is turned on
 #ifdef FORGE_DEBUG
-#define ENABLE_GRAPHICS_DEBUG
+// Runtime checks by Forge itself
+#define ENABLE_GRAPHICS_RUNTIME_CHECK
+// Graphics API Validation
+#define ENABLE_GRAPHICS_VALIDATION
+// Object names, markers and labels
+#define ENABLE_GRAPHICS_DEBUG_ANNOTATION
 #endif
 
-#ifdef NSIGHT_AFTERMATH_AVAILABLE
-#ifdef FORGE_DEBUG
-// #define ENABLE_NSIGHT_AFTERMATH
-#endif
+#ifdef FORGE_PROFILE
+// If configuration is profile, this disables validation while keeping debug annotation on
+#undef ENABLE_GRAPHICS_RUNTIME_CHECK
+#undef ENABLE_GRAPHICS_VALIDATION
+#define ENABLE_GRAPHICS_DEBUG_ANNOTATION
 #endif
 
 #if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) == 0
@@ -147,7 +157,6 @@ enum
 // ------------------------------- gpu configuration rules ------------------------------- //
 
 struct GpuDesc;
-struct GPUCapBits;
 struct Renderer;
 typedef struct ExtendedSettings
 {
@@ -184,8 +193,8 @@ FORGE_API uint32_t util_select_best_gpu(struct GpuDesc* availableSettings, uint3
 FORGE_API GPUPresetLevel getDefaultPresetLevel();
 FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName);
 
-// apply the configuration rules stored in gpu.cfg to to a single GpuDesc
-FORGE_API void applyGPUConfigurationRules(struct GpuDesc* pGpuDesc);
+// apply the configuration rules stored in gpu.cfg to to a single GPUSettings and GPUCapBits
+FORGE_API void applyGPUConfigurationRules(struct GpuDesc* pGpuSettings);
 
 // apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
 FORGE_API void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GpuDesc* pGpuDesc);

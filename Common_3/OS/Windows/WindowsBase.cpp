@@ -93,6 +93,8 @@ extern bool         gCursorVisible;
 extern bool         gCursorInsideRectangle;
 extern MonitorDesc* gMonitors;
 extern uint32_t     gMonitorCount;
+extern bool         initWindowSystem();
+extern void         exitWindowSystem();
 
 // WindowsLog.c
 extern "C" HWND* gLogWindowHandle;
@@ -278,7 +280,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.9f);
     uiAddComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
 #endif
 
     // GPU SWITCHING
@@ -338,10 +340,6 @@ void togglePlatformUI()
 // APP ENTRY POINT
 //------------------------------------------------------------------------
 
-// WindowsWindow.cpp
-extern void initWindowClass();
-extern void exitWindowClass();
-
 int          IApp::argc;
 const char** IApp::argv;
 
@@ -357,9 +355,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     if (!initFileSystem(&fsDesc))
         return EXIT_FAILURE;
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
     // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
     // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
     SetEnvironmentVariableA("VK_LAYER_PATH", pSystemFileIO->GetResourceMount(RM_DEBUG));
@@ -384,7 +380,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
     pApp = app;
     pWindowAppRef = app;
 
-    initWindowClass();
+    if (!initWindowSystem())
+    {
+        return EXIT_FAILURE;
+    }
 
     // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
 #if defined(AUTOMATED_TESTING)
@@ -419,15 +418,17 @@ int WindowsMain(int argc, char** argv, IApp* app)
     MonitorDesc* monitor = getMonitor(pSettings->mMonitorIndex);
     ASSERT(monitor != nullptr);
 
-    gWindow->clientRect = { (int)pSettings->mWindowX + monitor->monitorRect.left, (int)pSettings->mWindowY + monitor->monitorRect.top,
-                            (int)pSettings->mWidth, (int)pSettings->mHeight };
+    gWindow->clientRect = {};
+    gWindow->clientRect.left = (int)pSettings->mWindowX + monitor->monitorRect.left;
+    gWindow->clientRect.top = (int)pSettings->mWindowY + monitor->monitorRect.top;
+    gWindow->clientRect.right = gWindow->clientRect.left + pSettings->mWidth;
+    gWindow->clientRect.bottom = gWindow->clientRect.top + pSettings->mHeight;
 
     gWindow->windowedRect = gWindow->clientRect;
     gWindow->fullScreen = pSettings->mFullScreen;
     gWindow->maximized = false;
     gWindow->noresizeFrame = !pSettings->mDragToResize;
     gWindow->borderlessWindow = pSettings->mBorderlessWindow;
-    gWindow->centered = false; // pSettings->mCentered;
     gWindow->forceLowDPI = pSettings->mForceLowDPI;
     gWindow->overrideDefaultPosition = true;
     gWindow->cursorCaptured = false;
@@ -695,13 +696,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
     pApp->Unload(&gReloadDescriptor);
     pApp->Exit();
 
-    exitWindowClass();
-
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
     WindowsStackTrace::Exit();
 #endif
 
     exitBaseSubsystems();
+
+    exitWindowSystem();
 
     exitLog();
 

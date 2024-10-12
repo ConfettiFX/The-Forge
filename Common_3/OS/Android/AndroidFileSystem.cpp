@@ -37,16 +37,14 @@
 
 extern "C"
 {
-    bool fsIsBundledResourceDir(ResourceDirectory resourceDir);
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    void                         parse_path_statement(char* PathStatment, size_t size);
+    extern ResourceDirectoryInfo gResourceDirectories[RD_COUNT];
 }
 
 static ANativeActivity* pNativeActivity = NULL;
 static AAssetManager*   pAssetManager = NULL;
 
-static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
-const char*        ioAndroidGetResourceMount(ResourceMount mount) { return gResourceMounts[mount]; }
+static bool gInitialized = false;
 
 struct AndroidFileStream
 {
@@ -116,11 +114,12 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
         return false;
     }
 
-    if (!fsIsBundledResourceDir(rd))
-        return fsIoOpenStreamFromPath(&gUnixSystemFileIO, rd, fileName, mode, fs);
+    char filePath[FS_MAX_PATH] = { 0 };
+    strcat(filePath, gResourceDirectories[rd].mPath);
+    strcat(filePath, fileName);
 
-    char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+    if (!gResourceDirectories[rd].mBundled)
+        return gUnixSystemFileIO.Open(&gUnixSystemFileIO, rd, filePath, mode, fs);
 
     if ((mode & FM_WRITE) != 0)
     {
@@ -141,7 +140,6 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
 
     fs->mMode = mode;
     fs->pIO = io;
-    fs->mMount = fsGetResourceDirectoryMount(rd);
 
     if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
     {
@@ -155,9 +153,20 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
 }
 
 static IFileSystem gBundledFileIO = {
-    ioAssetStreamOpen,    ioAssetStreamClose,        ioAssetStreamRead,    NULL,
-    ioAssetStreamSeek,    ioAssetStreamGetPosition,  ioAssetStreamGetSize, NULL,
-    ioAssetStreamIsAtEnd, ioAndroidGetResourceMount,
+    ioAssetStreamOpen,
+    ioAssetStreamClose,
+    ioAssetStreamRead,
+    NULL,
+    ioAssetStreamSeek,
+    ioAssetStreamGetPosition,
+    ioAssetStreamGetSize,
+    NULL,
+    ioAssetStreamIsAtEnd,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
 };
 
 IFileSystem* pSystemFileIO = &gBundledFileIO;
@@ -171,25 +180,45 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     }
     ASSERT(pDesc);
 
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-        gResourceMounts[i] = "";
-
     pNativeActivity = (ANativeActivity*)pDesc->pPlatformData;
     ASSERT(pNativeActivity);
 
     pAssetManager = pNativeActivity->assetManager;
-    gResourceMounts[RM_CONTENT] = "\0";
-    gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
-    gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
-    gResourceMounts[RM_SAVE_0] = pNativeActivity->externalDataPath;
-    gResourceMounts[RM_SYSTEM] = "/proc/";
 
-    // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    AAsset* file = AAssetManager_open(pAssetManager, PATHSTATEMENT_FILE_NAME, AASSET_MODE_BUFFER);
+    if (!file)
     {
-        if (pDesc->pResourceMounts[i])
-            gResourceMounts[i] = pDesc->pResourceMounts[i];
+        ASSERT(false);
+        return false;
     }
+
+    size_t fileSize = (size_t)AAsset_getLength(file);
+    char*  buffer = (char*)tf_malloc(fileSize);
+    AAsset_read(file, buffer, fileSize);
+
+    parse_path_statement(buffer, fileSize);
+
+    tf_free(buffer);
+    AAsset_close(file);
+
+    const char* debugMount = pNativeActivity->externalDataPath;
+    size_t      debugMountLen = strlen(debugMount);
+    // Override Resource mounts
+    for (uint32_t i = 0; i < RD_COUNT; ++i)
+    {
+        if (gResourceDirectories[i].mBundled)
+            continue;
+
+        char path[FS_MAX_PATH] = { 0 };
+        strcat(path, debugMount);
+        path[debugMountLen] = '/';
+        strcat(path, gResourceDirectories[i].mPath);
+        strcpy(gResourceDirectories[i].mPath, path);
+    }
+
+#if defined(AUTOMATED_TESTING) && defined(ENABLE_SCREENSHOT)
+    mkdir(gResourceDirectories[RD_SCREENSHOTS].mPath, 0700);
+#endif
 
     gInitialized = true;
     return true;

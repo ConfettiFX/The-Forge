@@ -91,9 +91,6 @@
 		5C172FF721414CC60074EE71 /* Log.c in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.c */; };
 		5C172FF821414CC60074EE71 /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C172FFD21414CC60074EE71 /* Timer.c in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.c */; };
-		5C17301421414D8C0074EE71 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301321414D8C0074EE71 /* Metal.framework */; };
-		5C17301621414D900074EE71 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301521414D900074EE71 /* MetalKit.framework */; };
-		5C17301821414D940074EE71 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */; };
 		5C3EDDB8247873A3003C9434 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
 		5C5582F621413D550019960B /* MemoryTracking.c in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.c */; };
 		5C5582F721413D550019960B /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
@@ -107,6 +104,12 @@
 		5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */; };
 		641F524F2AE66819005B8EC1 /* ParticleSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */; };
 		641F52992AE6796E005B8EC1 /* ParticleSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */; };
+		64A4D6112C98D87E00B6B629 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D6102C98D87E00B6B629 /* UIKit.framework */; };
+		64A4D6122C98D89E00B6B629 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
+		64A4D6132C98D8A200B6B629 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F21214145440074EE71 /* MetalKit.framework */; };
+		64A4D6142C98D8A200B6B629 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F21214145440074EE71 /* MetalKit.framework */; };
+		64A4D6152C98D8A600B6B629 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F1F214145410074EE71 /* Metal.framework */; };
+		64A4D6172C98D8A800B6B629 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F1F214145410074EE71 /* Metal.framework */; };
 		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
@@ -239,7 +242,6 @@
 		B243251F2874829800B1A081 /* ICameraController.h in Headers */ = {isa = PBXBuildFile; fileRef = B24325182874829800B1A081 /* ICameraController.h */; };
 		B24325202874829800B1A081 /* IUI.h in Headers */ = {isa = PBXBuildFile; fileRef = B24325192874829800B1A081 /* IUI.h */; };
 		B24325212874829800B1A081 /* IMiddleware.h in Headers */ = {isa = PBXBuildFile; fileRef = B243251A2874829800B1A081 /* IMiddleware.h */; };
-		B24325222874829800B1A081 /* IInput.h in Headers */ = {isa = PBXBuildFile; fileRef = B243251B2874829800B1A081 /* IInput.h */; };
 		B24325232874829800B1A081 /* IProfiler.h in Headers */ = {isa = PBXBuildFile; fileRef = B243251C2874829800B1A081 /* IProfiler.h */; };
 		B24325242874829800B1A081 /* IScreenshot.h in Headers */ = {isa = PBXBuildFile; fileRef = B243251D2874829800B1A081 /* IScreenshot.h */; };
 		B260BB09299D8495005C6CAC /* UnixFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = B260BB08299D8495005C6CAC /* UnixFileSystem.c */; };
@@ -266,7 +268,6 @@
 		DD3ABA942B69576300DA53AE /* Network.c in Sources */ = {isa = PBXBuildFile; fileRef = DD3ABA922B69576300DA53AE /* Network.c */; };
 		DD3ABA952B69576300DA53AE /* Network.c in Sources */ = {isa = PBXBuildFile; fileRef = DD3ABA922B69576300DA53AE /* Network.c */; };
 		DD3ABA962B69576300DA53AE /* Network.h in Headers */ = {isa = PBXBuildFile; fileRef = DD3ABA932B69576300DA53AE /* Network.h */; };
-		E95891EB2341596500B68D6A /* SystemRun.c in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.c */; };
 		E967DE3A233B0A2C0032E4BA /* DarwinThread.c in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.c */; };
 		E967DE3B233B0A2C0032E4BA /* DarwinThread.c in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.c */; };
 		E967DE3C233B0A2C0032E4BA /* DarwinLog.c in Sources */ = {isa = PBXBuildFile; fileRef = E967DE39233B0A2C0032E4BA /* DarwinLog.c */; };
@@ -275,7 +276,6 @@
 		E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C7233B098900B21FD6 /* iOSBase.mm */; };
 		E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C9233B098900B21FD6 /* macOSBase.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
-		E98584E72334397C00692529 /* SystemRun.c in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.c */; };
 		ED609563286F36D500331537 /* Atomics.h in Headers */ = {isa = PBXBuildFile; fileRef = ED60955F286F36D500331537 /* Atomics.h */; };
 		ED609566286F36D500331537 /* ThreadSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = ED609561286F36D500331537 /* ThreadSystem.h */; };
 		ED609567286F36D500331537 /* UnixThreadID.h in Headers */ = {isa = PBXBuildFile; fileRef = ED609562286F36D500331537 /* UnixThreadID.h */; };
@@ -299,8 +299,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		26834438297831F800F4F318 /* lz4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lz4.c; path = ../../../../../Common_3/Utilities/ThirdParty/OpenSource/lz4/lz4.c; sourceTree = "<group>"; };
-		2683443E2978326400F4F318 /* lz4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lz4.h; path = ../../../../../Common_3/Utilities/ThirdParty/OpenSource/lz4/lz4.h; sourceTree = "<group>"; };
+		26834438297831F800F4F318 /* lz4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lz4.c; sourceTree = "<group>"; };
+		2683443E2978326400F4F318 /* lz4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lz4.h; sourceTree = "<group>"; };
 		268344482978343E00F4F318 /* IFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IFileSystem.h; path = ../Interfaces/IFileSystem.h; sourceTree = "<group>"; };
 		2683445129783D5D00F4F318 /* bits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bits.h; path = ../../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/bits.h; sourceTree = "<group>"; };
 		2683445229783D5D00F4F318 /* entropy_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = entropy_common.c; path = ../../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/entropy_common.c; sourceTree = "<group>"; };
@@ -357,14 +357,10 @@
 		5C172F4D214148840074EE71 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../Resources/ResourceLoader/ResourceLoader.cpp; sourceTree = "<group>"; };
 		5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		5C172FC821414C490074EE71 /* libThe-Forge_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libThe-Forge_iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C17301321414D8C0074EE71 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		5C17301521414D900074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		5C5582E021413D180019960B /* libThe-Forge.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libThe-Forge.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C6B574E2C10A248003F8514 /* TouchInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TouchInput.h; path = Input/TouchInput.h; sourceTree = "<group>"; };
 		5C6B574F2C10A248003F8514 /* InputCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputCommon.h; path = Input/InputCommon.h; sourceTree = "<group>"; };
 		5CA018182BFF4C970035F62C /* DarwinInput.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DarwinInput.mm; sourceTree = "<group>"; };
-		5CABF32C214151F500EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalAvailabilityMacros.h; path = ../Graphics/Metal/MetalAvailabilityMacros.h; sourceTree = "<group>"; };
 		641F524E2AE66819005B8EC1 /* ParticleSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ParticleSystem.cpp; path = ../../Renderer/ParticleSystem/ParticleSystem.cpp; sourceTree = "<group>"; };
 		641F52E12AE68DB6005B8EC1 /* particle.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle.frag.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle.frag.fsl; sourceTree = "<group>"; };
@@ -378,6 +374,7 @@
 		641F52EA2AE68DB6005B8EC1 /* particle_defs.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_defs.h.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_defs.h.fsl; sourceTree = "<group>"; };
 		641F52EB2AE68DB6005B8EC1 /* particle_simulate.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_simulate.comp.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_simulate.comp.fsl; sourceTree = "<group>"; };
 		641F52ED2AE68DB6005B8EC1 /* particle_clear_sorting_structs.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = particle_clear_sorting_structs.comp.fsl; path = ../../../Renderer/ParticleSystem/Shaders/particle_clear_sorting_structs.comp.fsl; sourceTree = "<group>"; };
+		64A4D6102C98D87E00B6B629 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		654D978621E922F300113964 /* ClipController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ClipController.h; sourceTree = "<group>"; };
 		654D978721E922F300113964 /* Rig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Rig.h; sourceTree = "<group>"; };
 		654D978821E922F300113964 /* ClipMask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ClipMask.h; sourceTree = "<group>"; };
@@ -394,13 +391,13 @@
 		654D979321E922F400113964 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Clip.h; sourceTree = "<group>"; };
 		65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = ../Graphics/Metal/MetalRaytracing.mm; sourceTree = "<group>"; usesTabs = 1; };
 		65F9793621EDFA44008EC741 /* IRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IRay.h; path = ../Graphics/Interfaces/IRay.h; sourceTree = "<group>"; };
-		7F6EFFD12A93D78100981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD22A93D78100981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD32A93D78100981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD42A93D78100981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD52A93D78100981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD62A93D78100981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
-		7F6EFFD72A93D78100981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../../Examples_3/Build_Props/XCode/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFD12A93D78100981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD22A93D78100981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD32A93D78100981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD42A93D78100981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD52A93D78100981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD62A93D78100981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig; sourceTree = "<group>"; };
+		7F6EFFD72A93D78100981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/TF_Lib_Shared.xcconfig; sourceTree = "<group>"; };
 		997EE4D52A37F34600FB75C1 /* GameKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; };
 		997EE4DC2A37F38500FB75C1 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		B21B0D912876E2B700C0DB69 /* imgui_tables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_tables.cpp; path = ../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_tables.cpp; sourceTree = "<group>"; };
@@ -470,7 +467,6 @@
 		B24325182874829800B1A081 /* ICameraController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ICameraController.h; sourceTree = "<group>"; };
 		B24325192874829800B1A081 /* IUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IUI.h; sourceTree = "<group>"; };
 		B243251A2874829800B1A081 /* IMiddleware.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IMiddleware.h; sourceTree = "<group>"; };
-		B243251B2874829800B1A081 /* IInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IInput.h; sourceTree = "<group>"; };
 		B243251C2874829800B1A081 /* IProfiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IProfiler.h; sourceTree = "<group>"; };
 		B243251D2874829800B1A081 /* IScreenshot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IScreenshot.h; sourceTree = "<group>"; };
 		B260BB08299D8495005C6CAC /* UnixFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = UnixFileSystem.c; sourceTree = "<group>"; };
@@ -492,9 +488,7 @@
 		B2DE327727ACBD4900FB8676 /* WindowSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = WindowSystem.cpp; path = WindowSystem/WindowSystem.cpp; sourceTree = "<group>"; };
 		B2DE327E27ACBF4500FB8676 /* macOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = macOSWindow.mm; sourceTree = "<group>"; };
 		B2DE340C27ADFDE100FB8676 /* iOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSWindow.mm; sourceTree = "<group>"; };
-		B2DF7704281BEC0F0023CDE0 /* panini_projection.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = panini_projection.vert.fsl; sourceTree = "<group>"; };
 		B2DF7705281BEC0F0023CDE0 /* resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = resources.h; sourceTree = "<group>"; };
-		B2DF7706281BEC0F0023CDE0 /* panini_projection.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = panini_projection.frag.fsl; sourceTree = "<group>"; };
 		B2F25549283454A800E0468E /* UI_ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = UI_ShaderList.fsl; path = FSL/UI_ShaderList.fsl; sourceTree = "<group>"; };
 		B2F2554A283454C100E0468E /* Fonts_ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Fonts_ShaderList.fsl; path = Shaders/FSL/Fonts_ShaderList.fsl; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = ../Utilities/MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
@@ -508,7 +502,6 @@
 		E967DE38233B0A2C0032E4BA /* DarwinThread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DarwinThread.c; sourceTree = "<group>"; };
 		E967DE39233B0A2C0032E4BA /* DarwinLog.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DarwinLog.c; sourceTree = "<group>"; };
 		E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CocoaFileSystem.mm; sourceTree = "<group>"; };
-		E98584E52334397C00692529 /* SystemRun.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; name = SystemRun.c; path = ../Utilities/FileSystem/SystemRun.c; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = macOSAppDelegate.m; sourceTree = "<group>"; };
@@ -540,9 +533,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C17301821414D940074EE71 /* MetalPerformanceShaders.framework in Frameworks */,
-				5C17301621414D900074EE71 /* MetalKit.framework in Frameworks */,
-				5C17301421414D8C0074EE71 /* Metal.framework in Frameworks */,
+				64A4D6142C98D8A200B6B629 /* MetalKit.framework in Frameworks */,
+				64A4D6122C98D89E00B6B629 /* MetalPerformanceShaders.framework in Frameworks */,
+				64A4D6172C98D8A800B6B629 /* Metal.framework in Frameworks */,
+				64A4D6112C98D87E00B6B629 /* UIKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -550,7 +544,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64A4D6132C98D8A200B6B629 /* MetalKit.framework in Frameworks */,
 				FA7B2FA0249C15B4007B9D2F /* IOKit.framework in Frameworks */,
+				64A4D6152C98D8A600B6B629 /* Metal.framework in Frameworks */,
 				650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -564,7 +560,8 @@
 				2683443E2978326400F4F318 /* lz4.h */,
 				26834438297831F800F4F318 /* lz4.c */,
 			);
-			path = LZ4;
+			name = LZ4;
+			path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/lz4;
 			sourceTree = "<group>";
 		};
 		2683444E29783CE700F4F318 /* ZSTD */ = {
@@ -636,14 +633,11 @@
 		5C172F1E214145400074EE71 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				64A4D6102C98D87E00B6B629 /* UIKit.framework */,
 				997EE4DC2A37F38500FB75C1 /* GameController.framework */,
 				997EE4D52A37F34600FB75C1 /* GameKit.framework */,
 				FA7B2F9F249C15B4007B9D2F /* IOKit.framework */,
 				E9E601BD233AFB0700B21FD6 /* libbz2.tbd */,
-				5CABF32C214151F500EFD76A /* UIKit.framework */,
-				5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */,
-				5C17301521414D900074EE71 /* MetalKit.framework */,
-				5C17301321414D8C0074EE71 /* Metal.framework */,
 				5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */,
 				5C172F21214145440074EE71 /* MetalKit.framework */,
 				5C172F1F214145410074EE71 /* Metal.framework */,
@@ -724,18 +718,9 @@
 			name = Input;
 			sourceTree = "<group>";
 		};
-		B214ACF120E2DAFC0025F76B /* gainput */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = gainput;
-			path = ../../../../Common_3/Application/ThirdParty/OpenSource/gainput;
-			sourceTree = "<group>";
-		};
 		B22D906C20E3F8BC0036B88E /* Middleware_3 */ = {
 			isa = PBXGroup;
 			children = (
-				B2DF76FC281BEC0F0023CDE0 /* PaniniProjection */,
 				5C32AEDC246453E50066E921 /* ParallelPrimitives */,
 				654D978521E922C800113964 /* Animation */,
 			);
@@ -890,7 +875,6 @@
 				B24325182874829800B1A081 /* ICameraController.h */,
 				B24325192874829800B1A081 /* IUI.h */,
 				B243251A2874829800B1A081 /* IMiddleware.h */,
-				B243251B2874829800B1A081 /* IInput.h */,
 				B243251C2874829800B1A081 /* IProfiler.h */,
 				B243251D2874829800B1A081 /* IScreenshot.h */,
 			);
@@ -947,15 +931,6 @@
 			name = WindowSystem;
 			sourceTree = "<group>";
 		};
-		B2DF76FC281BEC0F0023CDE0 /* PaniniProjection */ = {
-			isa = PBXGroup;
-			children = (
-				B2DF76FF281BEC0F0023CDE0 /* Shaders */,
-			);
-			name = PaniniProjection;
-			path = ../../../../Middleware_3/PaniniProjection;
-			sourceTree = "<group>";
-		};
 		B2DF76FF281BEC0F0023CDE0 /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
@@ -967,9 +942,7 @@
 		B2DF7703281BEC0F0023CDE0 /* FSL */ = {
 			isa = PBXGroup;
 			children = (
-				B2DF7704281BEC0F0023CDE0 /* panini_projection.vert.fsl */,
 				B2DF7705281BEC0F0023CDE0 /* resources.h */,
-				B2DF7706281BEC0F0023CDE0 /* panini_projection.frag.fsl */,
 			);
 			path = FSL;
 			sourceTree = "<group>";
@@ -980,7 +953,6 @@
 				2683444E29783CE700F4F318 /* ZSTD */,
 				268344362978318300F4F318 /* LZ4 */,
 				B2B2F1C02472F79300B483FF /* rmem */,
-				B214ACF120E2DAFC0025F76B /* gainput */,
 				55E0CEF327FEF25500A60EF1 /* bstrlib */,
 				B274D8BE27DE559A00670028 /* cpu_features */,
 				B23498422693B75600504010 /* imgui */,
@@ -1131,7 +1103,6 @@
 				D20D920F1F3879A4004B3A42 /* Camera */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
 				B2DE327627ACBD2400FB8676 /* WindowSystem */,
-				E98584E52334397C00692529 /* SystemRun.c */,
 			);
 			path = OS;
 			sourceTree = "<group>";
@@ -1267,7 +1238,6 @@
 				B24325242874829800B1A081 /* IScreenshot.h in Headers */,
 				2683447B29783D5E00F4F318 /* xxhash.h in Headers */,
 				2683446F29783D5E00F4F318 /* bitstream.h in Headers */,
-				B24325222874829800B1A081 /* IInput.h in Headers */,
 				2683447829783D5E00F4F318 /* portability_macros.h in Headers */,
 				ED609566286F36D500331537 /* ThreadSystem.h in Headers */,
 				B231A24823F40207006D7450 /* ProfilerBase.h in Headers */,
@@ -1382,7 +1352,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "APP=\"$SRCROOT/../../../../Common_3/Application\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${APP}/UI/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\nfor fsl in \"${APP}/Fonts/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\nfor fsl in \"${APP}/../Resources/AnimationSystem/Animation/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\nfor fsl in \"${MID}/PaniniProjection/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\n";
+			shellScript = "APP=\"$SRCROOT/../../../../Common_3/Application\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${APP}/UI/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\nfor fsl in \"${APP}/Fonts/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\nfor fsl in \"${APP}/../Resources/AnimationSystem/Animation/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l IOS --incremental --compile\ndone\n";
 		};
 		97C908C225BF3B47003C978D /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1399,7 +1369,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "APP=\"$SRCROOT/../../../../Common_3/Application\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${APP}/UI/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\nfor fsl in \"${APP}/Fonts/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\nfor fsl in \"${APP}/../Resources/AnimationSystem/Animation/Shaders/FSL/\"*.fsl; do\n    echo \"${fsl} -> ${PROJECT_DIR}/CompiledShaders\"\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\n\nfor fsl in \"${MID}/PaniniProjection/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\n";
+			shellScript = "APP=\"$SRCROOT/../../../../Common_3/Application\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${APP}/UI/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\nfor fsl in \"${APP}/Fonts/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\nfor fsl in \"${APP}/../Resources/AnimationSystem/Animation/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/CompiledShaders\"  -l MACOS --incremental --compile\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1415,7 +1385,6 @@
 				B21B0D952876E2B700C0DB69 /* imgui_tables.cpp in Sources */,
 				B2DE327B27ACBD5300FB8676 /* WindowSystem.cpp in Sources */,
 				EDA02B86291D01440067A459 /* VisibilityBuffer.cpp in Sources */,
-				E98584E72334397C00692529 /* SystemRun.c in Sources */,
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.c in Sources */,
 				2683447529783D5E00F4F318 /* debug.c in Sources */,
 				B23498512693B78800504010 /* UI.cpp in Sources */,
@@ -1577,7 +1546,6 @@
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
 				B23498362693B74100504010 /* LuaSystem.cpp in Sources */,
 				B23498C02693B83600504010 /* lauxlib.c in Sources */,
-				E95891EB2341596500B68D6A /* SystemRun.c in Sources */,
 				2683449729783D9B00F4F318 /* huf_decompress_amd64.S in Sources */,
 				B274E4BC27DE57FE00670028 /* CPUConfig.cpp in Sources */,
 				B274E48527DE560600670028 /* impl_x86_macos.c in Sources */,
@@ -1633,6 +1601,10 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/iOSSupport/System/Library/Frameworks",
+				);
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				OTHER_LDFLAGS = (
@@ -1650,6 +1622,10 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/iOSSupport/System/Library/Frameworks",
+				);
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				OTHER_LDFLAGS = (

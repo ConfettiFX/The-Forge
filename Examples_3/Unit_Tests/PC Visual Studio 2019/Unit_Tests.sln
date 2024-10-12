@@ -152,7 +152,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\runtime\ozz_animation.vcxproj", "{E0CB3186-0614-4DF0-891B-848743572AB2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ispc_texcomp", "..\..\..\Data\Tools\ISPCTextureCompressor\ispc_texcomp\ispc_texcomp.vcxproj", "{9B44F7B9-A9AF-45A4-8695-96792A18B052}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ispc_texcomp", "..\..\..\Common_3\Tools\ThirdParty\OpenSource\ISPCTextureCompressor\ispc_texcomp\ispc_texcomp.vcxproj", "{9B44F7B9-A9AF-45A4-8695-96792A18B052}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BunyLib", "..\..\..\Common_3\Tools\BunyArchive\VisualStudio\BunyLib.vcxproj", "{F4BE7E97-8876-4A34-834F-4BC918020B57}"
 EndProject

@@ -34,7 +34,7 @@ float3 Avoid(float3 currPos, float3 currVel, float3 otherPos, float maxForce, fl
 	float3 otherToCurr = otherPos - currPos;
 	
 	float targetDist = length(otherToCurr);
-	float proj = dot(dir, otherToCurr);
+	float proj = dot(otherToCurr, dir);
 
 	float3 target = currPos + dir * proj;
 	float3 forceDir = normalize(target - otherPos);
@@ -49,7 +49,7 @@ float3 Separation(float3 currPos, float3 otherPos, float maxForce)
 	float len = length(otherToCurr);
 	
 	otherToCurr = normalize(otherToCurr);
-	return (maxForce * otherToCurr) / (len*len);
+	return (maxForce * otherToCurr) / (len + len*len);
 }
 
 float3 Cohesion(float3 currPos, float3 avgPos, float maxForce)

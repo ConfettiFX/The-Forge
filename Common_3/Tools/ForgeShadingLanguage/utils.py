@@ -65,11 +65,12 @@ def get_target(platform: Platforms):
     return platform.name
 
 class Stages(Enum):
-    VERT = 0
-    FRAG = 1
-    COMP = 2
-    GEOM = 3
-    NONE = 4
+    VERT =  0
+    FRAG =  1
+    COMP =  2
+    GEOM =  3
+    GRAPH = 4
+    NONE =  5
 
 class Features(Enum):
     PRIM_ID = 0,
@@ -139,6 +140,7 @@ def fsl_platform_assert(platform: Platforms, condition, filepath, message ):
             fne = error.find(':', 2)
             if fne > 0:
                 src = error[:fne]
+                print(error)
                 line, msg = error[fne+1:].split(':', 1)
                 if 'ERROR:' in message:
                     message = '{}({}): ERROR : {}\n'.format(src, line, msg)
@@ -376,12 +378,20 @@ def collect_resources(lines: list):
         decls[StructType.PUSH_CONSTANT], \
         decls[StructType.STRUCT], rs
 
-def getShader(platform: Platforms, fsl_path: str, fsl: list, dst=None, line_directives=True) -> Shader:
+def getShader(platform: Platforms, binary: ShaderBinary, fsl: list, dst=None, line_directives=True) -> Shader:
     
     # collect shader declarations
     lines = fsl
+    fsl_path = binary.fsl_filepath
     cbuffers, pushConstant, structs, resources = collect_resources(lines)
-    stage, entry_ret, entry_args, waveops_flags = get_entry_signature(fsl_path, lines)
+    # Graph shaders exception. #TODO: Check again
+    if binary.stage is Stages.GRAPH:
+        stage = Stages.GRAPH
+        entry_ret = 'void'
+        entry_args = []
+        waveops_flags = []
+    else:
+        stage, entry_ret, entry_args, waveops_flags = get_entry_signature(fsl_path, lines)
 
     ''' check entry signature '''
     # returnStruct = None
@@ -519,7 +529,7 @@ def needs_regen(args, dependency_filepath, platforms, regen, dependencies):
 def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, binary_declarations):
     pp = []
     if os.name == 'nt':
-        pp += [join(dirname(dirname(dirname(dirname(__file__)))), 'Data', 'Tools', 'mcpp', 'bin', 'mcpp.exe')]
+        pp += [join(dirname(dirname(dirname(dirname(__file__)))), 'Common_3', 'Utilities', 'ThirdParty', 'OpenSource', 'mcpp', 'bin', 'mcpp.exe')]
     else:
         pp += ['cc', '-E', '-']
 
@@ -571,6 +581,8 @@ def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, bin
             stage = Stages.COMP
         if line.startswith('#geom'):
             stage = Stages.GEOM
+        if line.startswith('#graph'):
+            stage = Stages.GRAPH
         if stage is not Stages.NONE:
 
             binary = ShaderBinary()
@@ -690,7 +702,10 @@ def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, bin
                     correctLines += [line]
                 shaderSource = b'\n'.join(correctLines)
             
-            if shaderSource.find(b'_MAIN(') > -1:
+            doProcess = b'_MAIN(' in shaderSource
+            if binary.stage is Stages.GRAPH:
+                doProcess = b'[Shader("node")]' in shaderSource
+            if doProcess:
                 binary.preprocessed_srcs[platform] = shaderSource.decode().splitlines(keepends=True)
 
     return binary_declarations, fsl_dependencies
@@ -796,6 +811,7 @@ def visibility_from_stage(stage):
         Stages.VERT: 'SHADER_VIS_VS',
         Stages.FRAG: 'SHADER_VIS_PS',
         Stages.COMP: 'SHADER_VIS_CS',
+        Stages.GRAPH: 'SHADER_VIS_GRAPH',
     }
     return masks[stage]
     # print(stage)

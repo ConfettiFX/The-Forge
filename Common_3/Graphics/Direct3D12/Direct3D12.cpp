@@ -44,16 +44,22 @@
 
 #include "../Interfaces/IGraphics.h"
 
+#if defined(FORGE_PROFILE)
+#define PROFILE_BUILD // This turns on USE_PIX so that we can set markers even in release build
+#endif
 #if defined(XBOX)
 #include <pix3.h>
 #else
-#include "../../../Data/Libraries/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#endif
+#if defined(FORGE_PROFILE)
+#undef PROFILE_BUILD
 #endif
 
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
-#include "../../../Data/Libraries/ags/AgsHelper.h"
-#include "../../../Data/Libraries/nvapi/NvApiHelper.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/ags/AgsHelper.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/nvapi/NvApiHelper.h"
 #include "../ThirdParty/OpenSource/renderdoc/renderdoc_app.h"
 
 #include "../../Utilities/Interfaces/ILog.h"
@@ -72,7 +78,7 @@
 #error "Windows is needed!"
 #endif
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && !defined(XBOX)
 #include <dxgidebug.h>
 #endif
 
@@ -121,7 +127,7 @@ static void SetObjectName(ID3D12Object* pObject, const char* pName)
 {
     UNREF_PARAM(pObject);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (!pName)
     {
         return;
@@ -221,7 +227,7 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 
 #if defined(RENDERER_IMPLEMENTATION)
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
+#if defined(FORGE_DEBUG) && !defined(XBOX)
 #pragma comment(lib, "dxguid.lib")
 #endif
 
@@ -603,7 +609,7 @@ static inline FORGE_CONSTEXPR uint8_t ToColorWriteMask(ColorMask mask)
 constexpr D3D12_BLEND_DESC util_to_blend_desc(const BlendStateDesc* pDesc)
 {
     int blendDescIndex = 0;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
 
     for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
     {
@@ -1590,7 +1596,7 @@ DXGI_FORMAT util_to_dx12_uav_format(DXGI_FORMAT defaultFormat)
     case DXGI_FORMAT_R32_FLOAT:
         return DXGI_FORMAT_R32_FLOAT;
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK)
     case DXGI_FORMAT_R32G8X24_TYPELESS:
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
     case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -1767,6 +1773,13 @@ D3D12_SHADER_VISIBILITY util_to_dx12_shader_visibility(ShaderStage stages)
     {
         return D3D12_SHADER_VISIBILITY_ALL;
     }
+#if defined(ENABLE_WORKGRAPH)
+    else if (stages == SHADER_STAGE_WORKGRAPH)
+    {
+        return D3D12_SHADER_VISIBILITY_ALL;
+    }
+#endif
+
     if (stages & SHADER_STAGE_VERT)
     {
         res = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -2003,6 +2016,21 @@ static void QueryRaytracingSupport(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
 #endif
 }
 
+static void QueryWorkGraphSupport(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
+{
+    UNREF_PARAM(pDevice);
+    UNREF_PARAM(pGpuDesc);
+#if defined(ENABLE_WORKGRAPH)
+    ASSERT(pDevice);
+    D3D12_FEATURE_DATA_D3D12_OPTIONS21 opts21 = {};
+    HRESULT                            hres = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &opts21, sizeof(opts21));
+    if (SUCCEEDED(hres))
+    {
+        pGpuDesc->mWorkgraphSupported = (opts21.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED);
+    }
+#endif
+}
+
 static void Query64BitAtomicsSupport(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
 {
     ASSERT(pDevice);
@@ -2120,6 +2148,7 @@ void QueryGpuDesc(ID3D12Device* pDevice, const DXGPUInfo* pDXGPUInfo, GpuDesc* p
     gpuDesc.mMaxBoundTextures = UINT32_MAX;
 
     QueryRaytracingSupport(pDevice, pGpuDesc);
+    QueryWorkGraphSupport(pDevice, pGpuDesc);
     Query64BitAtomicsSupport(pDevice, pGpuDesc);
 }
 
@@ -2273,7 +2302,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
         *pStartResourceState = actualStartState;
 }
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
 void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERITY severity, D3D12_MESSAGE_ID id, LPCSTR pDescription,
                           void* pContext)
 {
@@ -2438,11 +2467,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     CHECK_HRESULT(d3d12dll_CreateDevice(pRenderer->pGpu->mDx.pGpu, supportedFeatureLevel, IID_ARGS(&pRenderer->mDx.pDevice)));
 #endif
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    SetAftermathDevice(pRenderer->mDx.pDevice);
-#endif
-
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
     HRESULT hr = pRenderer->mDx.pDevice->QueryInterface(IID_ARGS(&pRenderer->mDx.pDebugValidation));
     pRenderer->mDx.mUseDebugCallback = true;
     if (!SUCCEEDED(hr))
@@ -2509,16 +2534,16 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     }
 #endif
 
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     SetObjectName(pRenderer->mDx.pDevice, "Main Device");
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 
     return true;
 }
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
     if (pRenderer->mDx.pDebugValidation && pRenderer->pGpu->mSuppressInvalidSubresourceStateAfterExit)
     {
         // bypass AMD driver issue with vk and dxgi swapchains resource states
@@ -2534,10 +2559,6 @@ static void RemoveDevice(Renderer* pRenderer)
 #endif
 
     SAFE_RELEASE(pRenderer->mDx.pDevice);
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    DestroyAftermathTracker(&pRenderer->mAftermathTracker);
-#endif
 }
 
 void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
@@ -2558,10 +2579,7 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
         nvapiPrintDriverInfo();
     }
 
-    // The D3D debug layer (as well as Microsoft PIX and other graphics debugger
-    // tools using an injection library) is not compatible with Nsight Aftermath.
-    // If Aftermath detects that any of these tools are present it will fail initialization.
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS) && !defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
     // add debug layer if in debug mode
     if (SUCCEEDED(d3d12dll_GetDebugInterface(IID_ARGS(&pContext->mDx.pDebug))))
     {
@@ -2571,7 +2589,7 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
 
 #if !defined(XBOX)
     UINT flags = 0;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
     flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -2591,14 +2609,14 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
 void ExitCommon(RendererContext* pContext)
 {
     SAFE_RELEASE(pContext->mDx.pDXGIFactory);
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
     SAFE_RELEASE(pContext->mDx.pDebug);
 #endif
 #if defined(USE_DRED)
     SAFE_RELEASE(pContext->pDredSettings);
 #endif
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(XBOX)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && !defined(XBOX)
     IDXGIDebug1* dxgiDebug = NULL;
     if (SUCCEEDED(d3d12dll_DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
     {
@@ -2764,12 +2782,6 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
             pRenderer->mUnlinkedRendererIndex = gRendererCount;
             pRenderer->mOwnsContext = false;
         }
-
-#if defined(USE_NSIGHT_AFTERMATH)
-        // Enable Nsight Aftermath GPU crash dump creation.
-        // This needs to be done before the Vulkan device is created.
-        CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
-#endif
 
         if (!AddDevice(pDesc, pRenderer))
         {
@@ -3169,12 +3181,12 @@ void initCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     // to record yet. The main loop expects it to be closed, so close it now.
     CHECK_HRESULT(pCmd->mDx.pCmdList->Close());
 
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
         SetObjectName(pCmd->mDx.pCmdList, pDesc->pName);
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
     pCmd->mDx.pCmdList->QueryInterface(IID_ARGS(&pCmd->mDx.pDebugCmdList));
 #endif
 
@@ -3187,7 +3199,7 @@ void exitCmd(Renderer* pRenderer, Cmd* pCmd)
     ASSERT(pRenderer);
     ASSERT(pCmd);
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
     SAFE_RELEASE(pCmd->mDx.pDebugCmdList);
 #endif
 
@@ -4281,6 +4293,9 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
                 pStage = &pDesc->mFrag;
                 break;
             case SHADER_STAGE_COMP:
+#if defined(ENABLE_WORKGRAPH)
+            case SHADER_STAGE_WORKGRAPH:
+#endif
                 pStage = &pDesc->mComp;
                 break;
             default:
@@ -4290,7 +4305,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
             totalSize += sizeof(ID3DBlob*);
             totalSize += sizeof(LPCWSTR);
-            totalSize += (strlen(pStage->pEntryPoint) + 1) * sizeof(WCHAR); //-V522
+            totalSize += pStage->pEntryPoint ? (strlen(pStage->pEntryPoint) + 1) * sizeof(WCHAR) : 0; //-V522
             ++reflectionCount;
         }
     }
@@ -4306,6 +4321,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
     uint8_t* mem = (uint8_t*)(pShaderProgram->mDx.pEntryNames + reflectionCount);
 
     reflectionCount = 0;
+
+    ShaderReflection stageReflections[SHADER_STAGE_COUNT] = {};
 
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
@@ -4331,9 +4348,11 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
                 pStage = &pDesc->mFrag;
                 break;
             case SHADER_STAGE_COMP:
+#if defined(ENABLE_WORKGRAPH)
+            case SHADER_STAGE_WORKGRAPH:
+#endif
                 pStage = &pDesc->mComp;
                 break;
-
             default:
                 LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
                 break;
@@ -4347,7 +4366,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
             d3d12_addShaderReflection((uint8_t*)(pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferPointer()),
                                       (uint32_t)pShaderProgram->mDx.pShaderBlobs[reflectionCount]->GetBufferSize(), stage_mask,
-                                      &pShaderProgram->pReflection->mStageReflections[reflectionCount]);
+                                      &stageReflections[reflectionCount]);
 
             WCHAR* entryPointName = (WCHAR*)mem;
             mbstowcs((WCHAR*)entryPointName, pStage->pEntryPoint, strlen(pStage->pEntryPoint));
@@ -4358,7 +4377,12 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
         }
     }
 
-    addPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+    addPipelineReflection(stageReflections, reflectionCount, pShaderProgram->pReflection);
+
+    for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
+    {
+        removeShaderReflection(&stageReflections[i]);
+    }
 
     *ppShaderProgram = pShaderProgram;
 }
@@ -4424,13 +4448,23 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
         shaderStages |= pReflection->mShaderStages;
 
         if (pReflection->mShaderStages & SHADER_STAGE_COMP)
+        {
             pipelineType = PIPELINE_TYPE_COMPUTE;
+        }
+#if defined(ENABLE_WORKGRAPH)
+        else if (pReflection->mShaderStages & SHADER_STAGE_WORKGRAPH)
+        {
+            pipelineType = PIPELINE_TYPE_WORKGRAPH;
+        }
+#endif
         else
+        {
             pipelineType = PIPELINE_TYPE_GRAPHICS;
+        }
 
         if (pReflection->mShaderStages & SHADER_STAGE_VERT)
         {
-            if (pReflection->mStageReflections[pReflection->mVertexStageIndex].mVertexInputsCount)
+            if (pReflection->mVertexInputsCount)
             {
                 useInputLayout = true;
             }
@@ -5044,7 +5078,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
     SAFE_FREE(pDescriptorSet);
 }
 
-#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK) || defined(PVS_STUDIO)
 #define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
     if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__)) \
     {                                                                          \
@@ -5333,9 +5367,13 @@ static bool ResetRootSignature(Cmd* pCmd, PipelineType type, const RootSignature
     pCmd->mDx.pBoundRootSignature = pRootSignature;
 
     if (type == PIPELINE_TYPE_GRAPHICS)
+    {
         pCmd->mDx.pCmdList->SetGraphicsRootSignature(pRootSignature->mDx.pRootSignature);
+    }
     else
+    {
         pCmd->mDx.pCmdList->SetComputeRootSignature(pRootSignature->mDx.pRootSignature);
+    }
 
     for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
     {
@@ -5476,7 +5514,7 @@ void cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* 
 /************************************************************************/
 // Pipeline State Functions
 /************************************************************************/
-void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
+static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 {
     ASSERT(pRenderer);
     ASSERT(ppPipeline);
@@ -5799,7 +5837,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     case PRIMITIVE_TOPO_PATCH_LIST:
     {
         const PipelineReflection* pReflection = pDesc->pShaderProgram->pReflection;
-        uint32_t                  controlPoint = pReflection->mStageReflections[pReflection->mHullStageIndex].mNumControlPoint;
+        uint32_t                  controlPoint = pReflection->mNumControlPoint;
         topology = (D3D_PRIMITIVE_TOPOLOGY)(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (controlPoint - 1));
     }
     break;
@@ -5814,7 +5852,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     *ppPipeline = pPipeline;
 }
 
-void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
+static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 {
     ASSERT(pRenderer);
     ASSERT(ppPipeline);
@@ -5886,20 +5924,31 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     *ppPipeline = pPipeline;
 }
 
+#if defined(ENABLE_WORKGRAPH)
+static void addWorkgraphPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline);
+#endif
+
 void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
     switch (pDesc->mType)
     {
-    case (PIPELINE_TYPE_COMPUTE):
+    case PIPELINE_TYPE_COMPUTE:
     {
         addComputePipeline(pRenderer, pDesc, ppPipeline);
         break;
     }
-    case (PIPELINE_TYPE_GRAPHICS):
+    case PIPELINE_TYPE_GRAPHICS:
     {
         addGraphicsPipeline(pRenderer, pDesc, ppPipeline);
         break;
     }
+#if defined(ENABLE_WORKGRAPH)
+    case PIPELINE_TYPE_WORKGRAPH:
+    {
+        addWorkgraphPipeline(pRenderer, pDesc, ppPipeline);
+        break;
+    }
+#endif
     default:
     {
         ASSERTFAIL("Unknown pipeline type %i", pDesc->mType);
@@ -6073,10 +6122,12 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[MAX_RENDER_TARGET_ATTACHMENTS] = {};
     const bool                  hasDepth = pDesc->mDepthStencil.pDepthStencil;
+    SampleCount                 sampleCount = SAMPLE_COUNT_1;
 
     for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
         const BindRenderTargetDesc* desc = &pDesc->mRenderTargets[i];
+        sampleCount = desc->pRenderTarget->mSampleCount;
 #if defined(XBOX)
         pCmd->mDx.mSampleCount = desc->pRenderTarget->mSampleCount;
 #endif
@@ -6113,6 +6164,31 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             const float* clearValue = desc->mOverrideClearValue ? &desc->mClearValue.r : &desc->pRenderTarget->mClearValue.r;
             pCmd->mDx.pCmdList->ClearRenderTargetView(rtvs[i], clearValue, 0, NULL);
         }
+    }
+
+    // SetSamplePositions() needs to be called before potential depth clear. Read / write sample positions needs to match with clear.
+    const SampleLocationDesc* pSampleLocation = &pDesc->mSampleLocation;
+    uint32_t                  numPixels = pSampleLocation->mGridSizeX * pSampleLocation->mGridSizeY;
+    uint32_t                  sampleLocationsCount = sampleCount * numPixels;
+#if defined(XBOX)
+    pCmd->mDx.mNumPixel = numPixels;
+#endif
+    if (sampleLocationsCount)
+    {
+        ASSERT(sampleLocationsCount <= MAX_SAMPLE_LOCATIONS);
+        ASSERT(pSampleLocation->pLocations);
+
+        D3D12_SAMPLE_POSITION* pLocs;
+#if defined(XBOX)
+        pLocs = pCmd->mDx.mSampleLocations;
+#elif defined(_WINDOWS)
+        D3D12_SAMPLE_POSITION sampleLocations[MAX_SAMPLE_LOCATIONS];
+        pLocs = sampleLocations;
+#endif
+        for (uint32_t i = 0; i < sampleLocationsCount; ++i)
+            pLocs[i] = { pDesc->mSampleLocation.pLocations[i].mX, pDesc->mSampleLocation.pLocations[i].mY };
+
+        pCmd->mDx.pCmdList->SetSamplePositions(sampleCount, numPixels, pLocs);
     }
 
     if (hasDepth)
@@ -6214,21 +6290,6 @@ void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
     pCmd->mDx.pCmdList->OMSetStencilRef(val);
 }
 
-void cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t grid_size_x, uint32_t grid_size_y, SampleLocations* locations)
-{
-    ASSERT(pCmd);
-    ASSERT(pCmd->mDx.pCmdList);
-
-    uint32_t sampleLocationsCount = samples_count * grid_size_x * grid_size_y;
-    ASSERT(sampleLocationsCount <= 16);
-
-    D3D12_SAMPLE_POSITION samplePositions[16] = {};
-    for (uint32_t i = 0; i < sampleLocationsCount; ++i)
-        samplePositions[i] = { locations[i].mX, locations[i].mY };
-
-    pCmd->mDx.pCmdList->SetSamplePositions(samples_count, grid_size_x * grid_size_y, samplePositions);
-}
-
 void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
     ASSERT(pCmd);
@@ -6250,6 +6311,13 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         ResetRootSignature(pCmd, pPipeline->mDx.mType, pPipeline->mDx.pRootSignature);
         pCmd->mDx.pCmdList->SetPipelineState(pPipeline->mDx.pPipelineState);
     }
+
+#if defined(XBOX)
+    if (pCmd->mDx.mNumPixel * pCmd->mDx.mSampleCount)
+    {
+        pCmd->mDx.pCmdList->SetSamplePositions(pCmd->mDx.mSampleCount, pCmd->mDx.mNumPixel, pCmd->mDx.mSampleLocations);
+    }
+#endif
 }
 
 void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
@@ -6338,7 +6406,7 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
     // dispatch given command
     ASSERT(pCmd->mDx.pCmdList != NULL);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_VALIDATION)
     // Bug in validation when using acceleration structure in compute or graphics pipeline
     // D3D12 ERROR: ID3D12CommandList::Dispatch: Static Descriptor SRV resource dimensions (UNKNOWN (11)) differs from that expected by
     // shader (D3D12_SRV_DIMENSION_BUFFER) UNKNOWN (11) is D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE
@@ -6354,7 +6422,7 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 
     hook_dispatch(pCmd, groupCountX, groupCountY, groupCountZ);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_VALIDATION)
     if (pCmd->pRenderer->mDx.pDebugValidation && pCmd->mDx.pBoundRootSignature->mDx.mHasRayQueryAccelerationStructure)
     {
         pCmd->pRenderer->mDx.pDebugValidation->PopStorageFilter();
@@ -6369,7 +6437,7 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
         (D3D12_RESOURCE_BARRIER*)alloca((numBufferBarriers + numTextureBarriers + numRtBarriers) * sizeof(D3D12_RESOURCE_BARRIER));
     uint32_t transitionCount = 0;
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
     ID3D12DebugCommandList* debugCmd = pCmd->mDx.pDebugCmdList;
 #endif
 
@@ -6423,7 +6491,7 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
 
                 ++transitionCount;
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
                 if (debugCmd)
                 {
                     debugCmd->AssertResourceState(pBarrier->Transition.pResource, pBarrier->Transition.Subresource,
@@ -6476,7 +6544,7 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
 
             ++transitionCount;
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
             if (debugCmd)
             {
                 debugCmd->AssertResourceState(pBarrier->Transition.pResource, pBarrier->Transition.Subresource,
@@ -6528,7 +6596,7 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
 
             ++transitionCount;
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
             if (debugCmd)
             {
                 debugCmd->AssertResourceState(pBarrier->Transition.pResource, pBarrier->Transition.Subresource,
@@ -6718,7 +6786,7 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         return;
     }
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
     decltype(pQueue->mDx.pRenderer->mDx)* pRenderer = &pQueue->mDx.pRenderer->mDx;
     if (pRenderer->pDebugValidation && pRenderer->mSuppressMismatchingCommandListDuringPresent)
     {
@@ -6738,7 +6806,7 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
     SwapChain* pSwapChain = pDesc->pSwapChain;
     HRESULT    hr = hook_queue_present(pQueue, pSwapChain, pDesc->mIndex);
 
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
     if (pRenderer->pDebugValidation && pRenderer->mSuppressMismatchingCommandListDuringPresent)
     {
         pRenderer->pDebugValidation->PopStorageFilter();
@@ -6759,13 +6827,6 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
             resetDesc.mType = RESET_TYPE_DEVICE_LOST;
             requestReset(&resetDesc);
         }
-
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-        // DXGI_ERROR error notification is asynchronous to the NVIDIA display
-        // driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
-        // thread some time to do its work before terminating the process.
-        threadSleep(3000);
-#endif
 
 #if defined(USE_DRED)
         ID3D12DeviceRemovedExtendedData* pDread;
@@ -6866,7 +6927,7 @@ void cmdExecuteIndirect(Cmd* pCmd, IndirectArgumentType type, uint maxCommandCou
 {
     ASSERT(pIndirectBuffer);
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_VALIDATION)
     if (pCmd->pRenderer->mDx.pDebugValidation && pCmd->mDx.pBoundRootSignature->mDx.mHasRayQueryAccelerationStructure)
     {
         D3D12_MESSAGE_ID        hide[] = { D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH };
@@ -6914,13 +6975,179 @@ void cmdExecuteIndirect(Cmd* pCmd, IndirectArgumentType type, uint maxCommandCou
                                             pCounterBuffer->mDx.pResource, counterBufferOffset);
     }
 
-#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(D3D12_RAYTRACING_AVAILABLE) && defined(ENABLE_GRAPHICS_VALIDATION)
     if (pCmd->pRenderer->mDx.pDebugValidation && pCmd->mDx.pBoundRootSignature->mDx.mHasRayQueryAccelerationStructure)
     {
         pCmd->pRenderer->mDx.pDebugValidation->PopStorageFilter();
     }
 #endif
 }
+/************************************************************************/
+// Workgraph Implementation
+/************************************************************************/
+#if defined(ENABLE_WORKGRAPH)
+static void addWorkgraphPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
+{
+    ASSERT(pRenderer);
+    ASSERT(pMainDesc);
+    ASSERT(ppPipeline);
+
+    const WorkgraphPipelineDesc* desc = &pMainDesc->mWorkgraphDesc;
+
+    size_t    extSize = sizeof(WCHAR) * (strlen(desc->pWorkgraphName) + 1);
+    Pipeline* pipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline) + extSize);
+    ASSERT(pipeline);
+
+    pipeline->mDx.mType = PIPELINE_TYPE_WORKGRAPH;
+    pipeline->mDx.pRootSignature = desc->pRootSignature;
+    pipeline->mDx.pWorkgraphName = (WCHAR*)(pipeline + 1);
+
+    D3D12_STATE_SUBOBJECT subobjects[3] = {};
+    uint32_t              subobjectCount = 0;
+    subobjects[subobjectCount++] = { D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, &desc->pRootSignature->mDx.pRootSignature };
+
+    D3D12_DXIL_LIBRARY_DESC dxilDesc = {};
+    dxilDesc.DXILLibrary.BytecodeLength = desc->pShaderProgram->mDx.pShaderBlobs[0]->GetBufferSize();
+    dxilDesc.DXILLibrary.pShaderBytecode = desc->pShaderProgram->mDx.pShaderBlobs[0]->GetBufferPointer();
+    subobjects[subobjectCount++] = { D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &dxilDesc };
+
+    D3D12_WORK_GRAPH_DESC workgraphDesc = {};
+    workgraphDesc.Flags = D3D12_WORK_GRAPH_FLAG_INCLUDE_ALL_AVAILABLE_NODES;
+    mbstowcs(pipeline->mDx.pWorkgraphName, desc->pWorkgraphName, strlen(desc->pWorkgraphName));
+    workgraphDesc.ProgramName = pipeline->mDx.pWorkgraphName;
+    subobjects[subobjectCount++] = { D3D12_STATE_SUBOBJECT_TYPE_WORK_GRAPH, &workgraphDesc };
+
+    ID3D12Device9* device = NULL;
+    HRESULT        hres = pRenderer->mDx.pDevice->QueryInterface(&device);
+    if (!SUCCEEDED(hres))
+    {
+        ASSERTFAIL("ID3D12Device9 query failed");
+        return;
+    }
+
+    ASSERT(subobjectCount <= TF_ARRAY_COUNT(subobjects));
+
+    D3D12_STATE_OBJECT_DESC stateDesc = {};
+    stateDesc.Type = D3D12_STATE_OBJECT_TYPE_EXECUTABLE;
+    stateDesc.NumSubobjects = subobjectCount;
+    stateDesc.pSubobjects = subobjects;
+    hres = device->CreateStateObject(&stateDesc, IID_ARGS(&pipeline->mDx.pStateObject));
+    if (!SUCCEEDED(hres))
+    {
+        ASSERTFAIL("CreateStateObject failed");
+        return;
+    }
+
+    SAFE_RELEASE(device);
+
+    *ppPipeline = pipeline;
+}
+
+void addWorkgraph(Renderer* pRenderer, const WorkgraphDesc* pDesc, Workgraph** ppWorkgraph)
+{
+    ASSERT(pRenderer);
+    ASSERT(pDesc);
+    ASSERT(ppWorkgraph);
+
+    Workgraph* workgraph = (Workgraph*)tf_calloc_memalign(1, alignof(Workgraph), sizeof(Workgraph));
+    ASSERT(workgraph);
+
+    workgraph->pPipeline = pDesc->pPipeline;
+
+    ID3D12StateObjectProperties1* stateObjProps = NULL;
+    ID3D12WorkGraphProperties*    workgraphProps = NULL;
+    CHECK_HRESULT(pDesc->pPipeline->mDx.pStateObject->QueryInterface(&stateObjProps));
+    CHECK_HRESULT(pDesc->pPipeline->mDx.pStateObject->QueryInterface(&workgraphProps));
+
+    const WCHAR*                         workgraphName = pDesc->pPipeline->mDx.pWorkgraphName;
+    D3D12_PROGRAM_IDENTIFIER             id = stateObjProps->GetProgramIdentifier(workgraphName);
+    uint32_t                             workgraphIndex = workgraphProps->GetWorkGraphIndex(workgraphName);
+    D3D12_WORK_GRAPH_MEMORY_REQUIREMENTS memReqs = {};
+    workgraphProps->GetWorkGraphMemoryRequirements(workgraphIndex, &memReqs);
+    ASSERT(memReqs.MaxSizeInBytes);
+
+    if (memReqs.MaxSizeInBytes != 0) //-V547 - MaxSizeInBytes can be zero. PVS false positive
+    {
+        BufferDesc backingDesc = {};
+        backingDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        backingDesc.mFlags |= BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+        backingDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+        backingDesc.mStartState = RESOURCE_STATE_COMMON;
+        backingDesc.mSize = memReqs.MaxSizeInBytes;
+        addBuffer(pRenderer, &backingDesc, &workgraph->pBackingBuffer);
+    }
+
+    workgraph->mId = id;
+
+    SAFE_RELEASE(stateObjProps);
+    SAFE_RELEASE(workgraphProps);
+
+    *ppWorkgraph = workgraph;
+}
+
+void removeWorkgraph(Renderer* pRenderer, Workgraph* pWorkgraph)
+{
+    ASSERT(pRenderer);
+    ASSERT(pWorkgraph);
+
+    if (pWorkgraph->pBackingBuffer)
+    {
+        removeBuffer(pRenderer, pWorkgraph->pBackingBuffer);
+    }
+
+    SAFE_FREE(pWorkgraph);
+}
+
+void cmdDispatchWorkgraph(Cmd* pCmd, const DispatchGraphDesc* pDesc)
+{
+    ID3D12GraphicsCommandList10* cmd = NULL;
+    HRESULT                      hres = pCmd->mDx.pCmdList->QueryInterface(&cmd);
+    if (!SUCCEEDED(hres))
+    {
+        ASSERTFAIL("ID3D12GraphicsCommandList10 query failed");
+        return;
+    }
+
+    D3D12_SET_WORK_GRAPH_DESC workgraphDesc = {};
+    workgraphDesc.BackingMemory = { pDesc->pWorkgraph->pBackingBuffer->mDx.mGpuAddress, pDesc->pWorkgraph->pBackingBuffer->mSize };
+    workgraphDesc.Flags |= pDesc->mInitialize ? D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE : D3D12_SET_WORK_GRAPH_FLAG_NONE;
+    workgraphDesc.ProgramIdentifier = pDesc->pWorkgraph->mId;
+
+    D3D12_SET_PROGRAM_DESC programDesc = {};
+    programDesc.Type = D3D12_PROGRAM_TYPE_WORK_GRAPH;
+    programDesc.WorkGraph = workgraphDesc;
+    cmd->SetProgram(&programDesc);
+
+    D3D12_DISPATCH_GRAPH_DESC    dispatchDesc = {};
+    const DispatchGraphInputType input = pDesc->mInputType;
+    switch (input)
+    {
+    case DISPATCH_GRAPH_INPUT_CPU:
+    {
+        dispatchDesc.Mode = D3D12_DISPATCH_MODE_NODE_CPU_INPUT;
+        dispatchDesc.NodeCPUInput.NumRecords = 1;
+        dispatchDesc.NodeCPUInput.pRecords = pDesc->pInput;
+        dispatchDesc.NodeCPUInput.RecordStrideInBytes = pDesc->mInputStride;
+        break;
+    }
+    case DISPATCH_GRAPH_INPUT_GPU:
+    {
+        dispatchDesc.Mode = D3D12_DISPATCH_MODE_NODE_GPU_INPUT;
+        dispatchDesc.NodeGPUInput = pDesc->pInputBuffer->mDx.mGpuAddress + pDesc->mInputBufferOffset;
+        break;
+    }
+    default:
+        ASSERTFAIL("Invalid DispatchGraphInputType");
+        break;
+    }
+
+    ResetRootSignature(pCmd, PIPELINE_TYPE_WORKGRAPH, pDesc->pWorkgraph->pPipeline->mDx.pRootSignature);
+
+    cmd->DispatchGraph(&dispatchDesc);
+
+    SAFE_RELEASE(cmd);
+}
+#endif
 /************************************************************************/
 // Query Heap Implementation
 /************************************************************************/
@@ -7129,20 +7356,24 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
     UNREF_PARAM(g);
     UNREF_PARAM(b);
     UNREF_PARAM(pName);
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     // note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
     // is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #if defined(USE_PIX)
     // color is in B8G8R8X8 format where X is padding
     PIXBeginEvent(pCmd->mDx.pCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 }
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
     UNREF_PARAM(pCmd);
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
 #if defined(USE_PIX)
     PIXEndEvent(pCmd->mDx.pCmdList);
 #endif
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -7152,13 +7383,12 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
     UNREF_PARAM(g);
     UNREF_PARAM(b);
     UNREF_PARAM(pName);
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
 #if defined(USE_PIX)
     // color is in B8G8R8X8 format where X is padding
     PIXSetMarker(pCmd->mDx.pCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->mDx.pCmdList, pName);
-#endif
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 }
 
 void cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
@@ -7191,7 +7421,7 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pBuffer);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     ASSERT(pRenderer);
     ASSERT(pBuffer);
     ASSERT(pName);
@@ -7204,7 +7434,7 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pTexture);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     ASSERT(pRenderer);
     ASSERT(pTexture);
     ASSERT(pName);
@@ -7222,7 +7452,7 @@ void setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pPipeline);
     UNREF_PARAM(pName);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     ASSERT(pRenderer);
     ASSERT(pPipeline);
     ASSERT(pName);

@@ -47,12 +47,15 @@ const char* ERR_getErrorString(ERR_enum code)
     case PREFIX(dstSize_tooSmall): return "Destination buffer is too small";
     case PREFIX(srcSize_wrong): return "Src size is incorrect";
     case PREFIX(dstBuffer_null): return "Operation on NULL destination buffer";
+    case PREFIX(noForwardProgress_destFull): return "Operation made no progress over multiple calls, due to output buffer being full";
+    case PREFIX(noForwardProgress_inputEmpty): return "Operation made no progress over multiple calls, due to input being empty";
         /* following error codes are not stable and may be removed or changed in a future version */
     case PREFIX(frameIndex_tooLarge): return "Frame index is too large";
     case PREFIX(seekableIO): return "An I/O error occurred when reading/seeking";
     case PREFIX(dstBuffer_wrong): return "Destination buffer is wrong";
     case PREFIX(srcBuffer_wrong): return "Source buffer is wrong";
-    case PREFIX(externalMatchFinder_failed): return "External matchfinder returned an error code";
+    case PREFIX(sequenceProducer_failed): return "Block-level external sequence producer returned an error code";
+    case PREFIX(externalSequences_invalid): return "External sequences are not valid";
     case PREFIX(maxCode):
     default: return notErrorCode;
     }

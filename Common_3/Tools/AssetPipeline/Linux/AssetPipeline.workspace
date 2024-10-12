@@ -5,7 +5,7 @@
   <Project Name="ozz_animation_offline" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/SteamOS_CodeLite/OSBase/OSBase.project" Active="No"/>
-  <Project Name="ispc_texcomp" Path="../../../../Data/Tools/ISPCTextureCompressor/Linux/ispc_texcomp.project" Active="No"/>
+  <Project Name="ispc_texcomp" Path="../../../../Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.project" Active="No"/>
   <Project Name="Buny" Path="../../BunyArchive/codelite/Buny.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">

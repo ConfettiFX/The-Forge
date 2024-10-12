@@ -120,11 +120,11 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
     // Combine all shaders
     // this will have a large amount of looping
     // 1. count number of resources
-    uint32_t        vertexStageIndex = ~0u;
-    uint32_t        hullStageIndex = ~0u;
-    uint32_t        domainStageIndex = ~0u;
-    uint32_t        geometryStageIndex = ~0u;
-    uint32_t        pixelStageIndex = ~0u;
+    uint32_t        vertexStageIndex = UINT32_MAX;
+    uint32_t        hullStageIndex = UINT32_MAX;
+    uint32_t        domainStageIndex = UINT32_MAX;
+    uint32_t        geometryStageIndex = UINT32_MAX;
+    uint32_t        pixelStageIndex = UINT32_MAX;
     ShaderResource* pResources = NULL;
     ShaderVariable* pVariables = NULL;
 
@@ -135,16 +135,21 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
     for (uint32_t i = 0; i < stageCount; ++i)
     {
         ShaderReflection* pSrcRef = pReflection + i;
-        pOutReflection->mStageReflections[i] = *pSrcRef;
+#if defined(DIRECT3D12)
+        pOutReflection->mResourceHeapIndexing |= pSrcRef->mResourceHeapIndexing;
+        pOutReflection->mSamplerHeapIndexing |= pSrcRef->mSamplerHeapIndexing;
+#endif
 
         if (pSrcRef->mShaderStage == SHADER_STAGE_VERT)
         {
             vertexStageIndex = i;
+            pOutReflection->mVertexInputsCount = pSrcRef->mVertexInputsCount;
         }
 #if !defined(METAL)
         else if (pSrcRef->mShaderStage == SHADER_STAGE_HULL)
         {
             hullStageIndex = i;
+            pOutReflection->mNumControlPoint = pSrcRef->mNumControlPoint;
         }
         else if (pSrcRef->mShaderStage == SHADER_STAGE_DOMN)
         {
@@ -158,6 +163,11 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
         else if (pSrcRef->mShaderStage == SHADER_STAGE_FRAG)
         {
             pixelStageIndex = i;
+            pOutReflection->mOutputRenderTargetTypesMask = pSrcRef->mOutputRenderTargetTypesMask;
+        }
+        else if (pSrcRef->mShaderStage == SHADER_STAGE_COMP)
+        {
+            memcpy(pOutReflection->mNumThreadsPerGroup, pSrcRef->mNumThreadsPerGroup, sizeof(pSrcRef->mNumThreadsPerGroup));
         }
 
         // Loop through all shader resources
@@ -218,6 +228,27 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
         }
     }
 
+    if (arrlen(pUniqueResources))
+    {
+        for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueResources); ++i)
+        {
+            pOutReflection->mNamePoolSize += pUniqueResources[i]->name_size + 1;
+        }
+    }
+    if (arrlen(pUniqueVariable))
+    {
+        for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueVariable); ++i)
+        {
+            pOutReflection->mNamePoolSize += pUniqueVariable[i]->name_size + 1;
+        }
+    }
+    if (pOutReflection->mNamePoolSize)
+    {
+        pOutReflection->pNamePool = (char*)tf_calloc(pOutReflection->mNamePoolSize, 1);
+    }
+
+    char* namePool = pOutReflection->pNamePool;
+
     // Copy over the shader resources in a dynamic array of the correct size
     if (arrlen(pUniqueResources))
     {
@@ -227,6 +258,9 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
         {
             pResources[i] = *pUniqueResources[i];
             pResources[i].used_stages = pShaderUsage[i];
+            pResources[i].name = namePool;
+            strncpy(namePool, pUniqueResources[i]->name, pUniqueResources[i]->name_size);
+            namePool += pUniqueResources[i]->name_size + 1;
         }
     }
 
@@ -238,6 +272,10 @@ void addPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, P
         for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueVariable); ++i)
         {
             pVariables[i] = *pUniqueVariable[i];
+            pVariables[i].name = namePool;
+            strncpy(namePool, pUniqueVariable[i]->name, pUniqueVariable[i]->name_size);
+            namePool += pUniqueVariable[i]->name_size + 1;
+
             ShaderResource* parentResource = pUniqueVariableParent[i];
             // look for parent
             for (uint32_t j = 0; j < (uint32_t)arrlen(pUniqueResources); ++j)
@@ -279,9 +317,7 @@ void removePipelineReflection(PipelineReflection* pReflection)
     if (pReflection == NULL)
         return;
 
-    for (uint32_t i = 0; i < pReflection->mStageReflectionCount; ++i)
-        removeShaderReflection(&pReflection->mStageReflections[i]);
-
     tf_free(pReflection->pShaderResources);
     tf_free(pReflection->pVariables);
+    tf_free(pReflection->pNamePool);
 }

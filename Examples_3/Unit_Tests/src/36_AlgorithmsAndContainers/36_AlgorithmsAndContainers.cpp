@@ -60,10 +60,6 @@ class Transformations: public IApp
 public:
     bool Init()
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         //////////////////////////////////////////////
         // Actual unit tests
         //////////////////////////////////////////////

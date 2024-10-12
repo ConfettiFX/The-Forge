@@ -264,12 +264,22 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
     // No-op
 }
 
-void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect)
 {
     // No-op
 }
 
-void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
+{
+    // No-op
+}
+
+void setWindowed(WindowDesc* winDesc)
+{
+    // No-op
+}
+
+void setBorderless(WindowDesc* winDesc)
 {
     // No-op
 }
@@ -379,6 +389,8 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
 }
 
 void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight }; }
+
+void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect) { getRecommendedResolution(rect); }
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 {

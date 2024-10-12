@@ -579,7 +579,7 @@ void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t par
     util_bind_push_constant(pCmd, pDesc, pConstants);
 }
 
-#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK) || defined(PVS_STUDIO)
 #define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
     if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__)) \
     {                                                                          \
@@ -707,7 +707,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
         ShaderStage shaderStages =
             (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE ? SHADER_STAGE_COMP : (SHADER_STAGE_VERT | SHADER_STAGE_FRAG));
 
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_VALIDATION
         // to circumvent a metal validation bug which overwrites the arguments array, we make a local copy
         NSMutableArray<MTLArgumentDescriptor*>* descriptorsCopy = [[NSMutableArray alloc] init];
         for (MTLArgumentDescriptor* myArrayElement in descriptors)
@@ -734,7 +734,8 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
         bufferDesc.mAlignment = 256;
         bufferDesc.mSize = argumentBufferSize * pDesc->mMaxSets;
         bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
         char debugName[FS_MAX_PATH] = {};
         snprintf(debugName, sizeof debugName, "Argument Buffer %u", pDesc->mUpdateFrequency);
         bufferDesc.pName = debugName;
@@ -1797,7 +1798,7 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
         memset(memory, 0, sizeof(VkDeviceMemory_T));
         memory->pHeap = [device->pDevice newHeapWithDescriptor:heapDesc];
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
         switch (pAllocateInfo->memoryTypeIndex)
         {
         case MEMORY_TYPE_GPU_ONLY:
@@ -2427,7 +2428,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 
     if (IOS14_RUNTIME)
     {
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
         pRenderer->pContext->mMtl.mExtendedEncoderDebugReport = true;
 #else
         pRenderer->pContext->mMtl.mExtendedEncoderDebugReport = settings->mEnableGpuBasedValidation;
@@ -2997,7 +2998,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
     pBuffer->mMemoryUsage = pDesc->mMemoryUsage;
     pBuffer->mNodeIndex = pDesc->mNodeIndex;
     pBuffer->mDescriptors = pDesc->mDescriptors;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
     {
         setBufferName(pRenderer, pBuffer, pDesc->pName);
@@ -3209,7 +3210,9 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
     pShaderProgram->mStages = pDesc->mStages;
     pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
 
-    uint32_t reflectionCount = 0;
+    uint32_t         reflectionCount = 0;
+    ShaderReflection stageReflections[SHADER_STAGE_COUNT] = {};
+
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         ShaderStage                  stage_mask = (ShaderStage)(1 << i);
@@ -3267,24 +3270,22 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
             *compiled_code = function;
 
-            mtl_addShaderReflection(pRenderer, pShaderProgram, stage_mask,
-                                    &pShaderProgram->pReflection->mStageReflections[reflectionCount++]);
+            mtl_addShaderReflection(pRenderer, pShaderProgram, stage_mask, &stageReflections[reflectionCount++]);
 
             if (pShaderProgram->mStages & SHADER_STAGE_FRAG)
             {
-                pShaderProgram->pReflection->mStageReflections[reflectionCount].mOutputRenderTargetTypesMask =
-                    pDesc->mFrag.mOutputRenderTargetTypesMask;
+                stageReflections[reflectionCount].mOutputRenderTargetTypesMask = pDesc->mFrag.mOutputRenderTargetTypesMask;
             }
         }
     }
 
-    addPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
+    addPipelineReflection(stageReflections, reflectionCount, pShaderProgram->pReflection);
 
     if (pShaderProgram->mStages & SHADER_STAGE_COMP)
     {
         for (size_t i = 0; i < 3; ++i)
         {
-            pShaderProgram->pReflection->mStageReflections[0].mNumThreadsPerGroup[i] = pDesc->mComp.mNumThreadsPerGroup[i];
+            pShaderProgram->pReflection->mNumThreadsPerGroup[i] = pDesc->mComp.mNumThreadsPerGroup[i];
             pShaderProgram->mNumThreadsPerGroup[i] = pDesc->mComp.mNumThreadsPerGroup[i];
             // ASSERT(pShaderProgram->mNumThreadsPerGroup[i]);
         }
@@ -3293,6 +3294,11 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
     if (pShaderProgram->pVertexShader)
     {
         pShaderProgram->mTessellation = pShaderProgram->pVertexShader.patchType != MTLPatchTypeNone;
+    }
+
+    for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
+    {
+        removeShaderReflection(&stageReflections[i]);
     }
 
     *ppShaderProgram = pShaderProgram;
@@ -3790,7 +3796,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const char* pName, const Graph
 #endif
     }
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pName)
     {
         renderPipelineDesc.label = [NSString stringWithUTF8String:pName];
@@ -3853,7 +3859,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const char* pName, const Comput
 
     MTLComputePipelineDescriptor* pipelineDesc = [[MTLComputePipelineDescriptor alloc] init];
     pipelineDesc.computeFunction = pDesc->pShaderProgram->pComputeShader;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pName)
     {
         pipelineDesc.label = [NSString stringWithUTF8String:pName];
@@ -3948,7 +3954,7 @@ void beginCmd(Cmd* pCmd)
         pCmd->pBlitEncoder = nil;
         pCmd->pBoundPipeline = NULL;
         pCmd->mBoundIndexBuffer = nil;
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
         pCmd->mDebugMarker[0] = '\0';
 #endif
 
@@ -4157,11 +4163,19 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             renderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
         }
 
-        if (pCmd->mSampleLocationsCount > 0 && pDesc->mRenderTargetCount > 0)
+        SampleCount sampleCount = pDesc->mRenderTargetCount > 0 ? pDesc->mRenderTargets[0].pRenderTarget->mSampleCount : SAMPLE_COUNT_1;
+        uint32_t    sampleLocationsCount = pDesc->mSampleLocation.mGridSizeX * pDesc->mSampleLocation.mGridSizeY * sampleCount;
+        ASSERT(sampleLocationsCount < MAX_SAMPLE_LOCATIONS);
+        if (sampleLocationsCount > 0)
         {
-            if (pDesc->mRenderTargets[0].pRenderTarget->mSampleCount > SAMPLE_COUNT_1)
+            MTLSamplePosition samplePositions[MAX_SAMPLE_LOCATIONS];
+            for (uint32_t i = 0; i < sampleLocationsCount; i++)
             {
-                [renderPassDesc setSamplePositions:pCmd->mSamplePositions count:pCmd->mSampleLocationsCount];
+                samplePositions[i] = util_to_mtl_locations(pDesc->mSampleLocation.pLocations[i]);
+            }
+            if (sampleCount > SAMPLE_COUNT_1)
+            {
+                [renderPassDesc setSamplePositions:samplePositions count:sampleLocationsCount];
             }
         }
 
@@ -4200,7 +4214,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         util_end_current_encoders(pCmd, false);
         pCmd->pRenderEncoder = [pCmd->pCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
 
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
         util_set_debug_group(pCmd);
         if (pCmd->mDebugMarker[0])
         {
@@ -4212,20 +4226,6 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 
         util_set_heaps_graphics(pCmd);
     }
-}
-
-// Note: setSamplePositions in Metal is incosistent with other APIs: it cannot be called inside the renderpass
-void cmdSetSampleLocations(Cmd* pCmd, SampleCount samples_count, uint32_t grid_size_x, uint32_t grid_size_y, SampleLocations* locations)
-{
-    uint32_t sampleLocationsCount = samples_count * grid_size_x * grid_size_y;
-    ASSERT(sampleLocationsCount <= MAX_SAMPLE_LOCATIONS);
-
-    for (int i = 0; i < sampleLocationsCount; ++i)
-    {
-        pCmd->mSamplePositions[i] = util_to_mtl_locations(locations[i]);
-        ;
-    }
-    pCmd->mSampleLocationsCount = sampleLocationsCount;
 }
 
 void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
@@ -4346,7 +4346,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 
                     util_end_current_encoders(pCmd, barrierRequired);
                     pCmd->pComputeEncoder = [pCmd->pCommandBuffer computeCommandEncoderWithDescriptor:computePassDescriptor];
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
                     util_set_debug_group(pCmd);
                     if (pCmd->mDebugMarker[0])
                     {
@@ -5033,7 +5033,7 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
         if (waitCommandBufferRequired)
         {
             id<MTLCommandBuffer> waitCommandBuffer = [pQueue->pCommandQueue commandBufferWithUnretainedReferences];
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
             waitCommandBuffer.label = @"WAIT_COMMAND_BUFFER";
 #endif
             for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
@@ -5149,22 +5149,29 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     snprintf(pCmd->mDebugMarker, MAX_DEBUG_NAME_LENGTH, "%s", pName);
     util_set_debug_group(pCmd);
 #endif
 }
 
-void cmdEndDebugMarker(Cmd* pCmd) { util_unset_debug_group(pCmd); }
+void cmdEndDebugMarker(Cmd* pCmd)
+{
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
+    util_unset_debug_group(pCmd);
+#endif
+}
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->pRenderEncoder)
         [pCmd->pRenderEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
     else if (pCmd->pComputeEncoder)
         [pCmd->pComputeEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
     else if (pCmd->pBlitEncoder)
         [pCmd->pBlitEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
+#endif
 }
 
 void cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
@@ -5407,7 +5414,7 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
     ASSERT(pBuffer);
     ASSERT(pName);
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pBuffer->pBuffer)
     {
         NSString* str = [NSString stringWithUTF8String:pName];
@@ -5432,7 +5439,7 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
     ASSERT(pTexture);
     ASSERT(pName);
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     NSString* str = [NSString stringWithUTF8String:pName];
     pTexture->pTexture.label = str;
 #endif
@@ -5802,7 +5809,7 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 
 void util_set_debug_group(Cmd* pCmd)
 {
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pCmd->mDebugMarker[0] == '\0')
     {
         return;
@@ -5824,7 +5831,7 @@ void util_set_debug_group(Cmd* pCmd)
 
 void util_unset_debug_group(Cmd* pCmd)
 {
-#ifdef ENABLE_GRAPHICS_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     pCmd->mDebugMarker[0] = '\0';
     if (nil != pCmd->pRenderEncoder)
     {
@@ -6093,7 +6100,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
             pTexture->pTexture = [pRenderer->pDevice newTextureWithDescriptor:textureDesc];
             pTexture->mLazilyAllocated = true;
             ASSERT(pTexture->pTexture);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
             setTextureName(pRenderer, pTexture, "Memoryless Texture");
 #endif
         }
@@ -6188,7 +6195,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
     pTexture->mArraySizeMinusOne = pDesc->mArraySize - 1;
     pTexture->mFormat = pDesc->mFormat;
     pTexture->mSampleCount = pDesc->mSampleCount;
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG_ANNOTATION)
     if (pDesc->pName)
     {
         setTextureName(pRenderer, pTexture, pDesc->pName);

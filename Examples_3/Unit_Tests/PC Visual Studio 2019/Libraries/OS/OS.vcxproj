@@ -68,7 +68,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsInput.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\FileSystem.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\SystemRun.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Log\Log.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\StbDs.c" />
@@ -158,7 +157,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\Atomics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\resources.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl" />
@@ -175,9 +173,6 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.vert.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\Panini_ShaderList.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{30DD3D57-0026-48C8-BFD1-6392F319E23A}</ProjectGuid>

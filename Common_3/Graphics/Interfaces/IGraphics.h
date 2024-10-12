@@ -26,10 +26,6 @@
 
 #include "../GraphicsConfig.h"
 
-#ifdef ENABLE_NSIGHT_AFTERMATH
-#include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
-#endif
-
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 
 #include "../../OS/Interfaces/IOperatingSystem.h"
@@ -324,6 +320,8 @@ typedef enum SampleCount
     SAMPLE_COUNT_8 = 8,
     SAMPLE_COUNT_16 = 16,
     SAMPLE_COUNT_COUNT = 5,
+    SAMPLE_COUNT_ALL_BITS = ((uint32_t)SAMPLE_COUNT_1 | (uint32_t)SAMPLE_COUNT_2 | (uint32_t)SAMPLE_COUNT_4 | (uint32_t)SAMPLE_COUNT_8 |
+                             (uint32_t)SAMPLE_COUNT_16),
 } SampleCount;
 
 typedef enum ShaderStage
@@ -339,7 +337,12 @@ typedef enum ShaderStage
                                  (uint32_t)SHADER_STAGE_GEOM | (uint32_t)SHADER_STAGE_FRAG),
     SHADER_STAGE_HULL = SHADER_STAGE_TESC,
     SHADER_STAGE_DOMN = SHADER_STAGE_TESE,
+#if defined(ENABLE_WORKGRAPH)
+    SHADER_STAGE_WORKGRAPH = 0x40,
+    SHADER_STAGE_COUNT = 7,
+#else
     SHADER_STAGE_COUNT = 6,
+#endif
 } ShaderStage;
 MAKE_ENUM_FLAG(uint32_t, ShaderStage)
 
@@ -497,6 +500,9 @@ typedef enum PipelineType
     PIPELINE_TYPE_UNDEFINED = 0,
     PIPELINE_TYPE_COMPUTE,
     PIPELINE_TYPE_GRAPHICS,
+#if defined(ENABLE_WORKGRAPH)
+    PIPELINE_TYPE_WORKGRAPH,
+#endif
     PIPELINE_TYPE_COUNT,
 } PipelineType;
 
@@ -1722,9 +1728,9 @@ typedef struct CmdDesc
     uint32_t mMaxSize;
 #endif
     bool mSecondary;
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG_ANNOTATION
     const char* pName;
-#endif // ENABLE_GRAPHICS_DEBUG
+#endif // ENABLE_GRAPHICS_DEBUG_ANNOTATION
 } CmdDesc;
 
 typedef enum MarkerFlags
@@ -1768,7 +1774,7 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             DmaCmd mDma;
 #endif
             ID3D12GraphicsCommandList1* pCmdList;
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS)
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(_WINDOWS)
             // For resource state validation
             ID3D12DebugCommandList* pDebugCmdList;
 #endif
@@ -1779,12 +1785,17 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             // Command buffer state
             const RootSignature* pBoundRootSignature;
             DescriptorSet*       pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-            uint16_t             mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-            uint32_t             mNodeIndex : 4;
-            uint32_t             mType : 3;
+#if defined(XBOX)
+            D3D12_SAMPLE_POSITION mSampleLocations[MAX_SAMPLE_LOCATIONS];
+#endif
+            uint16_t mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+            uint32_t mNodeIndex : 4;
+            uint32_t mType : 3;
 #if defined(XBOX)
             // Required for setting occlusion query control
             uint32_t mSampleCount : 5;
+            // Required for setting sample locations
+            uint32_t mNumPixel : 3;
 #endif
             CmdPool* pCmdPool;
         } mDx;
@@ -1795,10 +1806,16 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             VkCommandBuffer  pCmdBuf;
             VkRenderPass     pActiveRenderPass;
             VkPipelineLayout pBoundPipelineLayout;
+            // VkSampleLocationEXT is 8 byte each. Choose to store SampleLocation instead.
+            SampleLocations  mSampleLocations[MAX_SAMPLE_LOCATIONS];
             CmdPool*         pCmdPool;
             uint32_t         mNodeIndex : 4;
             uint32_t         mType : 3;
             uint32_t         mIsRendering : 1;
+            // Required for vkSetSampleLocations
+            uint32_t         mGridSizeX : 2;
+            uint32_t         mGridSizeY : 2;
+            uint32_t         mSampleCount : 5;
         } mVk;
 #endif
 #if defined(METAL)
@@ -1828,11 +1845,8 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             // Stored in cmdBindPipeline and used in all draw functions (primitive type does not go in PSO but specified in the draw call)
             uint32_t             mSelectedPrimitiveType : 4;
             uint32_t             mPipelineType : 3;
-            // To store sample locations provided by cmdSetSampleLocations and used in cmdBindRenderTargets
-            uint32_t             mSampleLocationsCount : 5;
             uint32_t             mShouldRebindDescriptorSets: DESCRIPTOR_UPDATE_FREQ_COUNT;
             uint32_t             mShouldRebindPipeline : 1;
-            MTLSamplePosition    mSamplePositions[MAX_SAMPLE_LOCATIONS];
             const RootSignature* pUsedRootSignature;
             DescriptorSet*       mBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
             uint32_t             mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -1844,7 +1858,7 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
             uint32_t mStrides[MAX_VERTEX_BINDINGS];
             uint32_t mFirstVertex;
 #endif
-#ifdef ENABLE_GRAPHICS_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG_ANNOTATION
             char mDebugMarker[MAX_DEBUG_NAME_LENGTH];
 #endif
         };
@@ -2059,12 +2073,12 @@ typedef struct BinaryShaderStageDesc
     ProsperoBinaryShaderStageDesc mStruct;
 #else
     /// Byte code array
-    void*       pByteCode;
-    uint32_t    mByteCodeSize;
+    void* pByteCode;
+    uint32_t mByteCodeSize;
     const char* pEntryPoint;
 #if defined(METAL)
-    uint32_t    mNumThreadsPerGroup[3];
-    uint32_t    mOutputRenderTargetTypesMask;
+    uint32_t mNumThreadsPerGroup[3];
+    uint32_t mOutputRenderTargetTypesMask;
 #endif
 #endif
 } BinaryShaderStageDesc;
@@ -2269,12 +2283,24 @@ typedef struct ComputePipelineDesc
     RootSignature* pRootSignature;
 } ComputePipelineDesc;
 
+#if defined(ENABLE_WORKGRAPH)
+typedef struct WorkgraphPipelineDesc
+{
+    Shader*        pShaderProgram;
+    RootSignature* pRootSignature;
+    const char*    pWorkgraphName;
+} WorkgraphPipelineDesc;
+#endif
+
 typedef struct PipelineDesc
 {
     union
     {
         ComputePipelineDesc  mComputeDesc;
         GraphicsPipelineDesc mGraphicsDesc;
+#if defined(ENABLE_WORKGRAPH)
+        WorkgraphPipelineDesc mWorkgraphDesc;
+#endif
     };
     PipelineCache* pCache;
     void*          pPipelineExtensions;
@@ -2292,7 +2318,17 @@ typedef struct DEFINE_ALIGNED(Pipeline, 64)
 #if defined(DIRECT3D12)
         struct
         {
-            ID3D12PipelineState*   pPipelineState;
+            union
+            {
+                ID3D12PipelineState* pPipelineState;
+#if defined(ENABLE_WORKGRAPH)
+                struct
+                {
+                    ID3D12StateObject* pStateObject;
+                    WCHAR*             pWorkgraphName;
+                };
+#endif
+            };
             const RootSignature*   pRootSignature;
             PipelineType           mType;
             D3D_PRIMITIVE_TOPOLOGY mPrimitiveTopology;
@@ -2459,6 +2495,49 @@ typedef struct PipelineStats
     ShaderStats mFrag;
     ShaderStats mComp;
 } PipelineStats;
+#endif
+
+#if defined(ENABLE_WORKGRAPH)
+typedef struct WorkgraphDesc
+{
+    Pipeline* pPipeline;
+} WorkgraphDesc;
+
+typedef struct Workgraph
+{
+    Buffer*   pBackingBuffer;
+    Pipeline* pPipeline;
+#if defined(DIRECT3D12)
+    D3D12_PROGRAM_IDENTIFIER mId;
+#endif
+} Workgraph;
+
+typedef enum DispatchGraphInputType
+{
+    DISPATCH_GRAPH_INPUT_CPU = 0,
+    DISPATCH_GRAPH_INPUT_GPU,
+    DISPATCH_GRAPH_INPUT_COUNT,
+} DispatchGraphInputType;
+
+typedef struct DispatchGraphDesc
+{
+    Workgraph* pWorkgraph;
+    union
+    {
+        struct
+        {
+            void*    pInput;
+            uint32_t mInputStride;
+        };
+        struct
+        {
+            Buffer*  pInputBuffer;
+            uint32_t mInputBufferOffset;
+        };
+    };
+    DispatchGraphInputType mInputType;
+    bool                   mInitialize;
+} DispatchGraphDesc;
 #endif
 
 typedef enum SwapChainCreationFlags
@@ -2687,6 +2766,7 @@ typedef struct GPUVendorPreset
     uint32_t       mRTCoresCount;
 } GPUVendorPreset;
 
+// if you made change to this structure, please update GraphicsConfig.cpp FORMAT_CAPABILITY_COUNT
 typedef enum FormatCapability
 {
     FORMAT_CAP_NONE = 0,
@@ -2796,6 +2876,7 @@ typedef struct GpuDesc
     uint32_t mUnifiedMemorySupported : 1;
     uint32_t mRayPipelineSupported : 1;
     uint32_t mRayQuerySupported : 1;
+    uint32_t mWorkgraphSupported : 1;
     uint32_t mSoftwareVRSSupported : 1;
     uint32_t mPrimitiveIdSupported : 1;
     uint32_t mPrimitiveIdPsSupported : 1;
@@ -2845,11 +2926,6 @@ typedef struct GpuDesc
 #if defined(QUEST_VR)
     uint32_t mMultiviewExtension : 1;
 #endif
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    uint32_t mNVDeviceDiagnosticsCheckpointExtension : 1;
-    uint32_t mNVDeviceDiagnosticsConfigExtension : 1;
-    uint32_t mAftermathSupport : 1;
-#endif
 
 #endif
     uint32_t mMaxBoundTextures;
@@ -2866,6 +2942,7 @@ typedef struct GpuDesc
 #endif
 #endif
     uint32_t mAmdAsicFamily;
+    uint32_t mFrameBufferSamplesCount;
 } GpuDesc;
 
 typedef struct DEFINE_ALIGNED(Renderer, 64)
@@ -2888,7 +2965,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 #elif defined(DIRECT3D12)
             ID3D12Device*                            pDevice;
 #endif
-#if defined(_WINDOWS) && defined(FORGE_DEBUG)
+#if defined(_WINDOWS) && defined(ENABLE_GRAPHICS_VALIDATION)
             ID3D12InfoQueue1* pDebugValidation;
             DWORD             mCallbackCookie;
             bool              mUseDebugCallback;
@@ -2947,10 +3024,6 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
     };
 #endif
 
-#if defined(ENABLE_NSIGHT_AFTERMATH)
-    // GPU crash dump tracker using Nsight Aftermath instrumentation
-    AftermathTracker mAftermathTracker;
-#endif
     struct NullDescriptors* pNullDescriptors;
     struct RendererContext* pContext;
     const struct GpuDesc*   pGpu;
@@ -3117,11 +3190,20 @@ typedef struct BindDepthTargetDesc
     uint32_t        mUseMipSlice : 1;
 } BindDepthTargetDesc;
 
+// Uses render targets' sample count in bindRenderTargetsDesc
+typedef struct SampleLocationDesc
+{
+    SampleLocations* pLocations;
+    uint32_t         mGridSizeX;
+    uint32_t         mGridSizeY;
+} SampleLocationDesc;
+
 typedef struct BindRenderTargetsDesc
 {
     uint32_t             mRenderTargetCount;
     BindRenderTargetDesc mRenderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
     BindDepthTargetDesc  mDepthStencil;
+    SampleLocationDesc   mSampleLocation;
     // Explicit viewport for empty render pass
     uint32_t             mExtent[2];
 } BindRenderTargetsDesc;
@@ -3201,7 +3283,6 @@ void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool);
 void beginCmd(Cmd* pCmd);
 void endCmd(Cmd* pCmd);
 void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc);
-void cmdSetSampleLocations(Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY, SampleLocations* plocations);
 void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth);
 void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
@@ -3240,6 +3321,12 @@ uint32_t getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHand
 //indirect Draw functions
 void cmdExecuteIndirect(Cmd* pCmd, IndirectArgumentType type, unsigned int maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
 
+// Workgraph functions
+#if defined(ENABLE_WORKGRAPH)
+void addWorkgraph(Renderer* pRenderer, const WorkgraphDesc* pDesc, Workgraph** ppWorkgraph);
+void removeWorkgraph(Renderer* pRenderer, Workgraph* pWorkgraph);
+void cmdDispatchWorkgraph(Cmd* pCmd, const DispatchGraphDesc* pDesc);
+#endif
 /************************************************************************/
 // GPU Query Interface
 /************************************************************************/

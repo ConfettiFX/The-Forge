@@ -15,6 +15,12 @@
 #include "triangle_filtering.comp.fsl"
 #end
 
+#if defined(DIRECT3D12) && !defined(TARGET_XBOX) && !defined(TARGET_SCARLETT)
+#graph gpu_pipeline.graph
+#include "gpu_pipeline.graph.fsl"
+#end
+#endif
+
 #comp clear_light_clusters.comp
 #include "clear_light_clusters.comp.fsl"
 #end

@@ -41,13 +41,6 @@
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/SkeletonBatcher.cpp"/>
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/SkeletonBatcher.h"/>
     </VirtualDirectory>
-    <VirtualDirectory Name="PaniniProjection">
-      <VirtualDirectory Name="Shaders">
-        <File Name="../../../../Middleware_3/PaniniProjection/Shaders/FSL/panini_projection.frag.fsl"/>
-        <File Name="../../../../Middleware_3/PaniniProjection/Shaders/FSL/panini_projection.vert.fsl"/>
-        <File Name="../../../../Middleware_3/PaniniProjection/Shaders/FSL/resources.h"/>
-      </VirtualDirectory>
-    </VirtualDirectory>
   </VirtualDirectory>
   <Description/>
   <Dependencies/>
@@ -229,7 +222,6 @@
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../../../Common_3/Utilities/FileSystem/FileSystem.c"/>
-    <File Name="../../../../Common_3/Utilities/FileSystem/SystemRun.c"/>
     <File Name="../../../../Common_3/Utilities/FileSystem/UnixFileSystem.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Profiler">
@@ -314,7 +306,6 @@
 SRC_UI        = $(ProjectPath)/../../../../Common_3/Application/UI/Shaders/FSL/
 SRC_TEXT      = $(ProjectPath)/../../../../Common_3/Application/Fonts/Shaders/FSL/
 SRC_ANIMATION = $(ProjectPath)/../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
-SRC_PANINI    = $(ProjectPath)/../../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
@@ -322,7 +313,6 @@ shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
 
 AS=$(CC) -O3 -c
 </CustomPreBuild>
@@ -368,7 +358,6 @@ AS=$(CC) -O3 -c
 SRC_UI        = $(ProjectPath)/../../../../Common_3/Application/UI/Shaders/FSL/
 SRC_TEXT      = $(ProjectPath)/../../../../Common_3/Application/Fonts/Shaders/FSL/
 SRC_ANIMATION = $(ProjectPath)/../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
-SRC_PANINI    = $(ProjectPath)/../../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
@@ -376,7 +365,6 @@ shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
 
 AS=$(CC) -O3 -c</CustomPreBuild>
       </AdditionalRules>

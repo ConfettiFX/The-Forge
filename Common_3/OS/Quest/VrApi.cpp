@@ -121,7 +121,7 @@ void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWi
 
             LOGF(eINFO, "vrapi_EnterVrMode()");
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
             // gAssertOnVkValidationError is used to work around a bug in the ovr mobile sdk.
             // There is a fence creation struct that is not initialized in the sdk.
             // We temporarily disable asserts for this specific ovr mobile sdk function.
@@ -131,7 +131,7 @@ void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWi
 
             pQuest->pOvr = vrapi_EnterVrMode((ovrModeParms*)&parms);
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_VALIDATION)
             gAssertOnVkValidationError = true;
 #endif
 

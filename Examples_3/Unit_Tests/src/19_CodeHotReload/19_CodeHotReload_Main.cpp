@@ -51,6 +51,14 @@
 #include "IGamePlugin.h"
 #if FORGE_CODE_HOT_RELOAD
 #define CR_HOST
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, FileStream* pFs);
+#ifdef __cplusplus
+}
+#endif
 #endif
 #include "../../../../Common_3/Application/ThirdParty/OpenSource/cr/cr.h"
 
@@ -63,124 +71,56 @@ int tfMainCodeReload(cr_plugin* ctx, cr_op operation);
 #endif
 
 #if defined(_WINDOWS) && FORGE_CODE_HOT_RELOAD
+#define VS_WHERE_PATH __FILE__ "/../../../../../Tools/vswhere.exe"
 // VisualStudio doesn't set any environment variable, to locate it's install path, you can have several VS installations.
 // This function uses a utility that comes with the VS installer, vswhere.exe, to get information about all the VS installation in this PC.
 static const char* findMsBuildPath()
 {
     // User can't change the installation while running VS, safe to cache it for the entire lifetime of the debug session.
-    static char cachedPath[FS_MAX_PATH] = {};
+    static char cachedPath[FS_MAX_PATH] = { 0 };
 
-    if (cachedPath[0] == 0)
+    if (cachedPath[0] != 0)
     {
-#if defined(AUTOMATED_TESTING)
-        bstring command = bdynfromcstr(fsGetResourceDirectory(RD_OTHER_FILES));
-        bstring commandAppend = bdynfromcstr("/../../../");
-        bconcat(&command, &commandAppend);
-        bdestroy(&commandAppend);
-#else
-        bstring command = bempty();
-#endif
-        const char* msBuildSubpath = "";
-        char*       buffer = nullptr;
+        // already there
+        return cachedPath;
+    }
 
-        // Read text file to retrieve vswhere command and args
-        {
-            FileStream stream{};
-            bool       res = fsOpenStreamFromPath(RD_OTHER_FILES, "vswhere_args.txt", FM_READ, &stream);
-            ASSERT(res);
+    const char* msBuildSubpath = "/MSBuild/Current/Bin/MSBuild.exe";
+    const char* params[] = { "-latest",   "-version",        "\"[16, 17)\"", "-requires", "Microsoft.Component.MSBuild",
+                             "-property", "installationPath" };
 
-            ssize_t size = fsGetStreamFileSize(&stream);
-            ASSERT(size > 0);
+    const char* tempFilename = "tempMsBuildPath.txt";
 
-            buffer = (char*)tf_malloc(size);
-            size_t readSize = fsReadFromStream(&stream, buffer, size);
-            ASSERT(readSize == (size_t)size);
+    // Run vswhere and output the installation path of VS to our temp file
+    FileStream fs{};
+    fsOpenStreamFromPath(RD_DEBUG, tempFilename, FM_WRITE, &fs);
+    const int result = systemRun(VS_WHERE_PATH, params, TF_ARRAY_COUNT(params), &fs);
+    fsCloseStream(&fs);
 
-            // VSWhere command
-            char* endPos = strchr(buffer, '\n');
-            ASSERT(endPos);
-
-            bool hasCR = *(endPos - 1) == '\r';
-            *(endPos - (hasCR ? 1 : 0)) = '\0';
-            endPos = hasCR ? endPos : endPos + 1;
-
-            bstring vswhereStr = bdynfromcstr(buffer);
-            bconcat(&command, &vswhereStr);
-
-            // MSBuild subpath
-            char* startPos = endPos;
-            endPos = strchr(endPos, hasCR ? '\r' : '\n');
-            ASSERT(endPos);
-            *endPos = '\0';
-            msBuildSubpath = startPos + (hasCR ? 1 : 0);
-
-            bdestroy(&vswhereStr);
-
-            res = fsCloseStream(&stream);
-            ASSERT(res);
-        }
-
-        // File where the output of vswhere.exe will be stored, the path to the VS installation folder.
-        const char* tempFilename = "tempMsBuildPath.txt";
-        const char* logDirectory = fsGetResourceDirectory(RD_LOG);
-
-        char fullCommandWithArgs[FS_MAX_PATH] = { 0 };
-        if (bisvalid(&command) && logDirectory != NULL)
-        {
-#if defined(AUTOMATED_TESTING)
-            snprintf(fullCommandWithArgs, sizeof(fullCommandWithArgs), "(\"%s) > \"%s/%s\"", bdata(&command), logDirectory, //-V576
-                     tempFilename);                                                                                         //-V576
-#else
-            snprintf(fullCommandWithArgs, sizeof(fullCommandWithArgs), "(\"%s/../../../%s) > \"%s/%s\"", logDirectory, //-V576
-                     bdata(&command),                                                                                  //-V576
-                     logDirectory, tempFilename);                                                                      //-V576
-#endif
-        }
-
-        // Run vswhere and output the installation path of VS to our temp file
-        const int result = system(fullCommandWithArgs);
-        bdestroy(&command);
+    if (fsOpenStreamFromPath(RD_DEBUG, tempFilename, FM_READ, &fs))
+    {
+        char         buffer[FS_MAX_PATH] = { 0 };
+        const size_t readSize = fsReadFromStream(&fs, buffer, FS_MAX_PATH);
         if (result == 0)
         {
-            // Read install path from the temp file
-            FileStream fileStream;
-            if (fsOpenStreamFromPath(RD_LOG, tempFilename, FileMode::FM_READ, &fileStream))
-            {
-                const size_t readSize = fsReadFromStream(&fileStream, cachedPath, sizeof(cachedPath));
-                for (uint32_t i = 0; i < sizeof(cachedPath); ++i)
-                {
-                    if (cachedPath[i] == '\n' || cachedPath[i] == '\r')
-                    {
-                        cachedPath[i] = '\0';
-                        break;
-                    }
-                }
+            if (buffer[readSize - 1] == '\r' || buffer[readSize - 1] == '\n')
+                buffer[readSize - 1] = '\0';
 
-                // WE have the base path of the installation, we just need to get to msbuild.exe
-                if (readSize + strlen(msBuildSubpath) < sizeof(cachedPath))
-                {
-                    strcat(cachedPath, msBuildSubpath);
-                    LOGF(eINFO, "Found Visual Studio 2019 installed at: %s", cachedPath);
-                    tf_free(buffer);
-                    return cachedPath;
-                }
-                else
-                {
-                    tf_free(buffer);
-                    return nullptr;
-                }
-            }
-            else
-            {
-                tf_free(buffer);
-                return nullptr;
-            }
+            if (buffer[readSize - 2] == '\r' || buffer[readSize - 2] == '\n')
+                buffer[readSize - 2] = '\0';
+
+            strcat_s(cachedPath, buffer);
+            strcat_s(cachedPath, msBuildSubpath);
         }
         else
         {
-            tf_free(buffer);
-            return nullptr;
+            LOGF(eERROR, "Error running vswhere: %s", buffer);
         }
+        fsCloseStream(&fs);
+    }
+    else
+    {
+        LOGF(eERROR, "vswhere didn't write to file RD_DEBUG/%s or can't open the file", tempFilename);
     }
 
     return cachedPath;
@@ -195,7 +135,6 @@ struct SpriteData
 };
 
 // COMPONENTS
-
 ECS_COMPONENT_DECLARE(AppDataComponent);
 ECS_COMPONENT_DECLARE(WorldBoundsComponent);
 ECS_COMPONENT_DECLARE(PositionComponent);
@@ -412,8 +351,9 @@ void FillRenderDataSpritesSystem(ecs_iter_t* it)
 
 void FillRenderDataAvoidersSystem(ecs_iter_t* it)
 {
-    FillRenderData(it, 0); // Put Avoidance objects first, when running on with GLES (Android) we might not have enough size in the instance
-                           // UBO to hold all objects, this way we ensure the number of objects that might not be visible are sprites
+    FillRenderData(it,
+                   0); // Put Avoidance objects first, when running on with GLES (Android) we might not have enough size in the instance
+                       // UBO to hold all objects, this way we ensure the number of objects that might not be visible are sprites
 }
 
 struct CreationData
@@ -467,17 +407,6 @@ class CodeHotReload: public IApp
 public:
     bool Init()
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         initGPUConfiguration(settings.pExtendedSettings);
@@ -489,13 +418,6 @@ public:
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
-        // Code Hot Reload only supported in Debug mode.
-        if (fsGetResourceDirectory(RD_LOG)[0] == 0)
-        {
-            ShowUnsupportedMessage("Code Hot Reload is not supported in Release mode.");
-            return false;
-        }
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -606,13 +528,11 @@ public:
         gCrGamePlugin.userdata = &gGamePlugin;
 
 #if FORGE_CODE_HOT_RELOAD
-        // use RD_LOG to load next to .app location
+        // assuming it's next to the executable
         // this will need to be customized depending on
         // whether we're distributing (should be in bundle)
         // or development (should be external to support hot reloading)
-        const char* installDir = fsGetResourceDirectory(RD_LOG);
-        char        gamePluginPath[FS_MAX_PATH] = {};
-        snprintf(gamePluginPath, sizeof(gamePluginPath), "%s/%s", installDir, GAME_PLUGIN_ADD_EXTENSION(GAME_PLUGIN_NAME));
+        char gamePluginPath[FS_MAX_PATH] = "./" GAME_PLUGIN_ADD_EXTENSION(GAME_PLUGIN_NAME);
         if (!cr_plugin_open(gCrGamePlugin, gamePluginPath))
         {
             ASSERT(false);
@@ -792,8 +712,7 @@ public:
 #if FORGE_CODE_HOT_RELOAD
 #if defined(__APPLE__)
             LabelWidget labelWidget;
-            uiAddComponentWidget(pGUIWindow, "Use Command+B in XCode to rebuild the hot-reloadable library.", &labelWidget,
-                                 WIDGET_TYPE_LABEL);
+            uiAddComponentWidget(pGUIWindow, "Use Command+B in XCode to rebuild CodeHotReload_Main.", &labelWidget, WIDGET_TYPE_LABEL);
 #else
             ButtonWidget       button;
             UIWidget*          widget = uiAddComponentWidget(pGUIWindow, "Rebuild Game", &button, WIDGET_TYPE_BUTTON);
@@ -801,17 +720,15 @@ public:
             widget->pOnEdited = [](void* pUserData)
             {
                 UNREF_PARAM(pUserData);
-                const char* logDirectory = fsGetResourceDirectory(RD_LOG);
-                char        buildLogFile[FS_MAX_PATH] = {};
-                snprintf(buildLogFile, sizeof(buildLogFile), "%s\\%s", logDirectory, "CodeReloadBuild.log");
 
                 const char* buildCommand = NULL;
-                const char* args[3] = {};
+                const char* args[4] = {};
+                size_t      buildArgUsed;
 
 #if defined(_WINDOWS)
                 buildCommand = findMsBuildPath();
 
-                if (buildCommand == nullptr)
+                if (buildCommand == nullptr) // -V547
                 {
                     errorMessagePopup(
                         "Couldn't find vswhere.exe",
@@ -824,41 +741,45 @@ public:
                 // The build settup for The Forge for PC contains all project files in the same directory,
                 // this is why we don't need any path in here, Visual Studio uses the project directory as
                 // the Working Directory when launching programs. Use relative path from executable during automated testing.
-#if defined(AUTOMATED_TESTING)
                 args[0] = "../../../" GAME_PLUGIN_NAME ".vcxproj";
-#else
-                args[0] = GAME_PLUGIN_NAME ".vcxproj";
-#endif
                 args[1] = "-property:Platform=x64";
 #ifdef FORGE_DEBUG
                 args[2] = "-property:Configuration=Debug";
 #else
                 args[2] = "-property:Configuration=Release";
 #endif
+                buildArgUsed = 3;
 #elif defined(__linux__)
 
                 // No need to set the configuration in linux CodeLite updates the makefile based on the configuration,
                 // running with this makefile will compile for the same configuration we are currently working on.
 
                 buildCommand = "make";
-                args[0] = "all -j 8";                      // Build using 8 jobs (magic number)
+                args[0] = "all";
+                args[1] = "--jobs=8";
+                // args[0] = "all -j 8";                      // Build using 8 jobs (magic number)
 #if defined(AUTOMATED_TESTING)
-                args[1] = "--directory=19_CodeHotReload/"; // Makefile is stored one down the codelite directory
+                args[2] = "--directory=19_CodeHotReload/"; // Makefile is stored one down the codelite directory
 #else
-                args[1] = "--directory=../"; // Makefile is stored one up the debug directory
+                args[2] = "--directory=../"; // Makefile is stored one up the debug directory
 #endif
-                args[2] = "-f " GAME_PLUGIN_NAME ".mk";    // Automated testing path to makefile
+                args[3] = "--file=" GAME_PLUGIN_NAME ".mk";
+                buildArgUsed = 4;
 #endif
 
-                ASSERT(buildCommand);
-                const int buildResult = systemRun(buildCommand, args, 3, buildLogFile);
+                char       buildLogFile[FS_MAX_PATH] = "CodeReloadBuild.log";
+                FileStream fs{};
+                fsOpenStreamFromPath(RD_DEBUG, buildLogFile, FM_WRITE, &fs);
+                const int buildResult = systemRun(buildCommand, args, buildArgUsed, &fs);
+                fsCloseStream(&fs);
+
                 if (buildResult != 0)
                 {
-                    LOGF(eWARNING, "Couldn't rebuild the project. Build log file is '%s'", buildLogFile);
+                    LOGF(eWARNING, "Couldn't rebuild the project. Build log file is RD_DEBUG/'%s'", buildLogFile);
 
                     char message[1024] = {};
                     snprintf(message, sizeof(message),
-                             "Compilation of the Hot Reloadable module failed.\nPlease check the log file in:\n%s", buildLogFile);
+                             "Compilation of the Hot Reloadable module failed.\nPlease check the log file in: RD_DEBUG/%s", buildLogFile);
 
                     errorMessagePopup("Build Failed", message, &pWindowDesc->handle, NULL);
                 }
@@ -971,8 +892,8 @@ public:
         }
 
         // We expose a pointer to AppDataComponent in GamePlugin so that we can hadle inputs in the hot-reloadable code.
-        // We lazily notify flecs about possible changes, ideally we should have this call in the hot reloadable module by compiling flecs
-        // to dll.
+        // We lazily notify flecs about possible changes, ideally we should have this call in the hot reloadable module by compiling
+        // flecs to dll.
         ecs_singleton_modified(gECSWorld, AppDataComponent);
 
         ecs_progress(gECSWorld, deltaTime * 3.0f);

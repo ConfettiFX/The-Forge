@@ -35,7 +35,7 @@
       <!-- General -->
       <PreprocessorDefinitions>
         D3D12_AGILITY_SDK=1;
-        D3D12_AGILITY_SDK_VERSION=611;
+        D3D12_AGILITY_SDK_VERSION=715;
         %(PreprocessorDefinitions)
       </PreprocessorDefinitions>
     </ClCompile>

@@ -26,16 +26,21 @@
 #include "particle_sets.h.fsl"
 #include "particle_packing.h.fsl"
 
-bool IsParticleSetVisible(ParticleSet particleSet, float4x4 viewProj, uint index)
+bool IsParticleSetVisible(ParticleSet particleSet)
 {
+	if (particleSet.Allocated < 1)
+		return false;
+	if (particleSet.AttractorIndex != -1)
+		return true;
+
 	uint2 colorBufferSize = ParticleConstantBuffer.ScreenSize;
 
-	float4 setPosition = float4(index == 0 ? ParticleConstantBuffer.SeekPosition.xyz : particleSet.Position, 1.0);
+	float4 setPosition = float4(particleSet.AttractorIndex != -1 ? ParticleConstantBuffer.SeekPosition.xyz : particleSet.Position.xyz, 1.0);
 	float4 clipSpacePos = mul(ParticleConstantBuffer.ViewProjTransform, setPosition);
 	float3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
 
 	float fov = 2.0 * atan(1.0 / ParticleConstantBuffer.ProjTransform[1][1]);
-	float3 particleSetScale = UnpackParticleSetSize(particleSet.Size);
+	float3 particleSetScale = UnpackParticleSetSize(particleSet.SpawnVolume);
 	float setRadius = 2.0 * max(particleSetScale.x, max(particleSetScale.y, particleSetScale.z)) * (1 / tan(fov * 0.5f)) / clipSpacePos.w;
 	float ratio = float(ParticleConstantBuffer.ScreenSize.x) / float(ParticleConstantBuffer.ScreenSize.y);
 
@@ -52,46 +57,74 @@ bool IsParticleSetVisible(ParticleSet particleSet, float4x4 viewProj, uint index
 	return true;
 }
 
+uint3 GetAmountsOfParticlesPerLightingMode()
+{
+	uint3 ret = uint3(0, 0, 0);
+
+	for (uint i=0; i<ParticleBufferState[0].LastParticleSetIndex; i++)
+	{
+		if (ParticleSetsBuffer[i].Allocated == 0)
+			continue;
+
+		uint bitfield = ParticleSetsBuffer[i].ParticleSetBitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK;
+		uint maxParticles = uint(UnpackMaxParticles(ParticleSetsBuffer[i]));
+		
+		if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW)
+			ret.x += maxParticles;
+		else if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT)
+			ret.y += maxParticles;
+		else
+			ret.z += maxParticles;
+	}
+
+	return ret;
+}
+
 NUM_THREADS(1, 1, 1)
 void CS_MAIN()
 {
 	INIT_MAIN;
 
 	// Compute the amount of particles per lighting mode to later compute the ranges of each section
-	uint3 amountsPerMode = uint3(0,0,0);
+	uint3 amountsPerMode = uint3(0, 0, 0);
 
-	UNROLL_N(MAX_PARTICLE_SET_COUNT)
-	for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
-	{
-		uint bitfield = GetParticleSet(i).ParticleSetBitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK;
-		uint maxParticles = GetParticleSet(i).MaxParticles;
-		
-		if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW)
-			amountsPerMode.x += maxParticles;
-		else if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT)
-			amountsPerMode.y += maxParticles;
-		else
-			amountsPerMode.z += maxParticles;
-	}
+	// Will be computed later when checking which sets became active
+	ParticleBufferState[0].PrevLastParticleSetIndex = ParticleBufferState[0].LastParticleSetIndex;
+	ParticleBufferState[0].LastParticleSetIndex = 0;
+	ParticleBufferState[0].ChangedAttributesBitmask = 0;
+
+#ifdef _DEBUG
+	StatsBuffer[0].VisibleParticlesCount = 0;
+	StatsBuffer[0].VisibleLightsCount = 0;
+#endif
 
 	// When setting up the particle system, all sets are considered active and visible to allocate them.
 	// Later on, the simulation shader will correctly sort them.
 	if (ParticleConstantBuffer.ResetParticles > 0)
 	{
+		ParticleBufferState[0].PrevLastParticleSetIndex = 0;
+
+		// All sets are active at the beginning to initialize them
+		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
+		{
+			ParticleSetVisibility[CURR_ALLOCATION(i)] = 1;
+			ParticleSetVisibility[PREV_ALLOCATION(i)] = 1;
+			ParticleSetVisibility[PREV_VISIBILITY(i)] = 1;
+			ParticleSetVisibility[CURR_VISIBILITY(i)] = 1;
+			ParticleBufferState[0].LastParticleSetIndex++;
+			ParticleBufferState[0].MaxParticles[i] = uint(UnpackMaxParticles(ParticleSetsBuffer[i]));
+			ParticleBufferState[0].PrevBitfield[i] = ParticleSetsBuffer[i].ParticleSetBitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK;
+		}
+
+		amountsPerMode = GetAmountsOfParticlesPerLightingMode();
+
 		// Light + shadow
 		// Active particles
 		for (uint i=0; i<2; i++)
 		{
-			ParticleSectionsIndices[0 + i] = amountsPerMode[0];
-			ParticleSectionsIndices[2 + i] = amountsPerMode[0] + amountsPerMode[1];
-			ParticleSectionsIndices[4 + i] = amountsPerMode[0] + amountsPerMode[1] + amountsPerMode[2];
-		}
-
-		// All sets are inactive at the beginning
-		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
-		{
-			ParticleSetVisibility[i*2] = 1;
-			ParticleSetVisibility[i*2+1] = 1;
+			ParticleBufferState[0].ParticleSectionsIndices[0 + i] = amountsPerMode[0];
+			ParticleBufferState[0].ParticleSectionsIndices[2 + i] = amountsPerMode[0] + amountsPerMode[1];
+			ParticleBufferState[0].ParticleSectionsIndices[4 + i] = amountsPerMode[0] + amountsPerMode[1] + amountsPerMode[2];
 		}
 	}
 	else
@@ -107,8 +140,8 @@ void CS_MAIN()
 		for (uint i=0; i<MAX_PARTICLE_SET_COUNT; i++)
 		{
 			uint lightModeIndex = 0;
-			uint bitfield = GetParticleSet(i).ParticleSetBitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK;
-			uint maxParticles = GetParticleSet(i).MaxParticles;
+			uint bitfield = ParticleSetsBuffer[i].ParticleSetBitfield & PARTICLE_BITFIELD_LIGHTING_MODE_BITS_MASK;
+			uint maxParticles = uint(UnpackMaxParticles(ParticleSetsBuffer[i]));
 
 			if (bitfield == PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW)
 				lightModeIndex = 0;
@@ -117,36 +150,63 @@ void CS_MAIN()
 			else
 				lightModeIndex = 2;
 
-			uint isSetVisible = IsParticleSetVisible(GetParticleSet(i), ParticleConstantBuffer.ViewProjTransform, i) ? 1 : 0;
+			uint isSetVisible = IsParticleSetVisible(ParticleSetsBuffer[i]) ? 1 : 0;
+			uint isSetAllocated = ParticleSetsBuffer[i].Allocated;
 			// Change one set at a time
 			if (stateChanged == 0)
 			{
-				ParticleSetVisibility[i*2+PREV_VALUE] = ParticleSetVisibility[i*2+CURR_VALUE]; 
-				ParticleSetVisibility[i*2+CURR_VALUE] = isSetVisible;
+				ParticleSetVisibility[PREV_VISIBILITY(i)] = ParticleSetVisibility[CURR_VISIBILITY(i)]; 
+				ParticleSetVisibility[CURR_VISIBILITY(i)] = isSetVisible;
+				ParticleSetVisibility[PREV_ALLOCATION(i)] = ParticleSetVisibility[CURR_ALLOCATION(i)];
+				ParticleSetVisibility[CURR_ALLOCATION(i)] = isSetAllocated;
+
+				if (isSetAllocated > 0 && ParticleSetVisibility[PREV_ALLOCATION(i)] == 0)
+					ParticleBufferState[0].AllocationCounter = 0;
+
+				if (isSetAllocated > 0 || isSetAllocated != ParticleSetVisibility[PREV_ALLOCATION(i)])
+					ParticleBufferState[0].LastParticleSetIndex = max(ParticleBufferState[0].LastParticleSetIndex, i+1);
 			}
 
-			activeParticlesPerSection[lightModeIndex] += maxParticles * ParticleSetVisibility[i*2+CURR_VALUE];
-			stateChanged += (isSetVisible != ParticleSetVisibility[i*2+PREV_VALUE]) ? 1 : 0;
+			activeParticlesPerSection[lightModeIndex] += maxParticles * ParticleSetVisibility[CURR_VISIBILITY(i)];
+			stateChanged += (isSetVisible != ParticleSetVisibility[PREV_VISIBILITY(i)]) ? 1 : 0;
+
+			if (isSetAllocated > 0 && stateChanged == 0)
+			{
+				int changedMaxParticles = int(ParticleBufferState[0].MaxParticles[i]) - int(UnpackMaxParticles(ParticleSetsBuffer[i]));
+				int changedLightBitfield = int(ParticleBufferState[0].PrevBitfield[i]) - int(bitfield);
+
+				if (changedMaxParticles != 0 || changedLightBitfield != 0)
+				{
+					stateChanged = 1;
+					ParticleBufferState[0].ChangedAttributesBitmask = PARTICLE_CHANGED_BITFIELD_PARTICLE_AMOUNT | i;
+					ParticleBufferState[0].AllocationCounter = 0;
+						
+					ParticleBufferState[0].PrevBitfield[i] = bitfield;
+					ParticleBufferState[0].MaxParticles[i] = uint(UnpackMaxParticles(ParticleSetsBuffer[i]));
+				}
+			}
 		}
 
-		uint3 inactiveStartIndices = uint3(activeParticlesPerSection[0], amountsPerMode[0] + activeParticlesPerSection[1], 
-			amountsPerMode[0] + amountsPerMode[1] + activeParticlesPerSection[2]);
+		uint3 inactiveStartIndices = uint3(activeParticlesPerSection[0], MAX_SHADOW_COUNT + activeParticlesPerSection[1], 
+			MAX_SHADOW_COUNT + MAX_LIGHT_COUNT + activeParticlesPerSection[2]);
 
 		// Store the new starting points for each section, the current ones become the previous ones
 		for (uint i=0; i<PARTICLE_BUFFER_SECTION_COUNT; i++)
 		{
-			ParticleSectionsIndices[i*2] = ParticleSectionsIndices[i*2+1];
-			ParticleSectionsIndices[i*2+1] = inactiveStartIndices[i];
+			ParticleBufferState[0].ParticleSectionsIndices[PREV_BOUND(i)] = ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(i)];
+			ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(i)] = inactiveStartIndices[i];
 		}
-	}
 
-	ParticleCountsBuffer[0] = uint4(amountsPerMode, 0);
+		amountsPerMode = GetAmountsOfParticlesPerLightingMode();
+	}
 
 	// Hardware rasterized particles indirect data
 	ParticleRenderIndirectData[0] = 6;	// Vertex count
 	ParticleRenderIndirectData[1] = 0;	// Instance count
 	ParticleRenderIndirectData[2] = 0;	// Start vertex
 	ParticleRenderIndirectData[3] = 0;	// Start instance
-	
+
+	for (uint i=0; i<3; i++)
+		ParticleBufferState[0].ParticleCounts[i] = amountsPerMode[i];
 	RETURN();
 }

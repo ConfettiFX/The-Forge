@@ -921,7 +921,7 @@ int main(int argCount, char** args)
         return EXIT_FAILURE;
 
     FileSystemInitDesc fsInfo = { 0 };
-    fsInfo.pResourceMounts[0] = ".";
+    fsInfo.mIsTool = true;
 
     if (!initFileSystem(&fsInfo))
     {
@@ -929,7 +929,7 @@ int main(int argCount, char** args)
         return -1;
     }
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, TF_RD, "");
+    fsSetPathForResourceDir(pSystemFileIO, TF_RD, "");
 
     int res = bunyArTool(argCount, args);
 

@@ -25,7 +25,6 @@
 #pragma once
 
 #include "../../Application/Config.h"
-
 #include "../../Utilities/Math/MathTypes.h"
 
 typedef struct Texture                    Texture;
@@ -33,6 +32,7 @@ typedef struct Cmd                        Cmd;
 typedef struct Buffer                     Buffer;
 typedef struct Renderer                   Renderer;
 typedef struct ParticleConstantBufferData ParticleConstantBufferData;
+typedef struct ParticleSystemStats        ParticleSystemStats;
 
 typedef struct ParticleSystemInitDesc
 {
@@ -45,6 +45,8 @@ typedef struct ParticleSystemInitDesc
     uint32_t mSwapColorFormat = 0;
     uint32_t mDepthFormat = 0;
     uint32_t mColorSampleQuality = 0;
+    uint32_t mParticleTextureCount = 0;
+    uint32_t mDefaultParticleSetsCount = 0;
 
     Texture*  pColorBuffer = NULL;
     Texture*  pDepthBuffer = NULL;
@@ -52,14 +54,16 @@ typedef struct ParticleSystemInitDesc
 
     Buffer* pParticlesBuffer = NULL;
     Buffer* pBitfieldBuffer = NULL;
+    Buffer* pParticleSetsBuffer = NULL;
     Buffer* pTransparencyListBuffer = NULL;
     Buffer* pTransparencyListHeadsBuffer = NULL;
 
     Buffer** ppParticleConstantBuffer = NULL;
 } ParticleSystemInitDesc;
 
-FORGE_RENDERER_API bool particleSystemInit(const ParticleSystemInitDesc* pDesc);
-FORGE_RENDERER_API void particleSystemExit();
+FORGE_RENDERER_API bool                particleSystemInit(const ParticleSystemInitDesc* pDesc);
+FORGE_RENDERER_API ParticleSystemStats particleSystemGetStats();
+FORGE_RENDERER_API void                particleSystemExit();
 
 FORGE_RENDERER_API void particleSystemUpdateConstantBuffers(uint32_t frameIndex, ParticleConstantBufferData* cameraConstantBufferData);
 

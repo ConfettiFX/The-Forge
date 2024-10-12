@@ -32,6 +32,8 @@
 #ifndef DEBUG_H_12987983217
 #define DEBUG_H_12987983217
 
+#include "../../../../Interfaces/ILog.h"
+
 #if defined (__cplusplus)
 extern "C" {
 #endif
@@ -40,7 +42,7 @@ extern "C" {
 /* static assert is triggered at compile time, leaving no runtime artefact.
  * static assert only works with compile-time constants.
  * Also, this variant can only be used inside a function. */
-#define DEBUG_STATIC_ASSERT(c) (void)sizeof(char[(c) ? 1 : -1])
+#define DEBUG_STATIC_ASSERT(c) COMPILE_ASSERT(c)
 
 
 /* DEBUGLEVEL is expected to be defined externally,
@@ -67,8 +69,12 @@ extern "C" {
  */
 
 #if (DEBUGLEVEL>=1)
-#  define ZSTD_DEPS_NEED_ASSERT
-#  include "zstd_deps.h"
+// This is to support using comma operator with assert. i.e. int a = (assert(1), 0); a would be 0.
+static inline void assert_func(bool b) { ASSERT(b); }
+#  ifdef assert
+#    undef assert
+#    define assert(b) assert_func(b)
+#  endif
 #else
 #  ifndef assert   /* assert may be already defined, due to prior #include <assert.h> */
 #    define assert(condition) ((void)0)   /* disable assert (default) */
@@ -76,8 +82,6 @@ extern "C" {
 #endif
 
 #if (DEBUGLEVEL>=2)
-#  define ZSTD_DEPS_NEED_IO
-#  include "zstd_deps.h"
 extern int g_debuglevel; /* the variable is only declared,
                             it actually lives in debug.c,
                             and is shared by the whole process.
@@ -85,18 +89,17 @@ extern int g_debuglevel; /* the variable is only declared,
                             It's useful when enabling very verbose levels
                             on selective conditions (such as position in src) */
 
-#  define RAWLOG(l, ...) {                                       \
-                if (l<=g_debuglevel) {                           \
-                    ZSTD_DEBUG_PRINT(__VA_ARGS__);               \
-            }   }
-#  define DEBUGLOG(l, ...) {                                     \
-                if (l<=g_debuglevel) {                           \
-                    ZSTD_DEBUG_PRINT(__FILE__ ": " __VA_ARGS__); \
-                    ZSTD_DEBUG_PRINT(" \n");                     \
-            }   }
+#  define RAWLOG(l, ...) LOGF_IF(eINFO, l<=g_debuglevel, __VA_ARGS__)
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define LINE_AS_STRING TOSTRING(__LINE__)
+
+#  define DEBUGLOG(l, ...) LOGF_IF(eDEBUG, l<=g_debuglevel, __VA_ARGS__)                              
+
 #else
-#  define RAWLOG(l, ...)      {}    /* disabled */
-#  define DEBUGLOG(l, ...)    {}    /* disabled */
+#  define RAWLOG(l, ...)   do { } while (0)    /* disabled */
+#  define DEBUGLOG(l, ...) do { } while (0)    /* disabled */
 #endif
 
 

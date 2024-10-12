@@ -51,6 +51,9 @@
     <ClCompile Include="..\src\19_CodeHotReload\19_CodeHotReload_Main.cpp">
       <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\19_CodeHotReload\SystemRun.c">
+      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload</Filter>
+    </ClCompile>
     <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h">
       <Filter>Common_3\Game\ThirdParty\OpenSource\flecs</Filter>
     </ClInclude>

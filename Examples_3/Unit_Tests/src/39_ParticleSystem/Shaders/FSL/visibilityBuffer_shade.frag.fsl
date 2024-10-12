@@ -246,7 +246,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 					NoL, NoV, 
 					ViewVec, HalfVec, normal, 
 					DiffuseColor, F0, Roughness, Metallic, shadowFactor);
-	shadedColor *= PerFrameConstants.lightColor.rgb * PerFrameConstants.lightColor.a * NoL * ao * 0.2f * shadowFactor;
+	shadedColor *= PerFrameConstants.lightColor.rgb * PerFrameConstants.lightColor.a * NoL * ao * shadowFactor;
 
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((In.screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)));
@@ -262,7 +262,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		
 		uint Bitfield = BitfieldBuffer[lightId];
 		ParticleData particle = ParticlesDataBuffer[lightId];
-		currParticleSet = GetParticleSet(Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK);
+		currParticleSet = ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
 		bool castShadows = (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW) > 0;
 		
 		float3 pointLightPos = UnpackParticlePosition(currParticleSet, particle);

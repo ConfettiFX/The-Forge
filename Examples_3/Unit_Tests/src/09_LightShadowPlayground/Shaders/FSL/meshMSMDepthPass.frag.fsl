@@ -31,6 +31,10 @@ STRUCT(PsOut)
 	DATA(float4, moments, SV_Target0);
 };
 
+#if defined(ORBIS) || defined(PROSPERO)
+SET_OUTPUT_FORMAT(default, FMT_UNORM16_ABGR)
+#endif
+
 PsOut PS_MAIN( PsInOpaque In )
 {
 	INIT_MAIN;

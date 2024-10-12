@@ -44,7 +44,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 		RETURN();
 	}
 
-	int stepCount = 2;
+	int stepCount = 1;
 	float sigma = float(stepCount * 2 + 1) / 2.0;
 	
 	uint horizontal = RootConstant.Horizontal;

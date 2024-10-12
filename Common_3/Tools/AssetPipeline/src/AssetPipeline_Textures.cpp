@@ -40,7 +40,7 @@
 #include "../../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyktx/tinyktx.h"
 
 // ISPC texcomp
-#include "../../../../Data/Tools/ISPCTextureCompressor/ispc_texcomp/ispc_texcomp.h"
+#include "../../../../Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/ispc_texcomp/ispc_texcomp.h"
 
 // Nothings
 #define STBI_NO_STDIO

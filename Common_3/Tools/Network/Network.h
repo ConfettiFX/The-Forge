@@ -59,10 +59,8 @@ typedef int Socket;
     void exitNetwork(void);
 
     // Create a new socket address from host/port
-    bool socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port);
-#ifdef FORGE_TOOLS
-    bool socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port);
-#endif // FORGE_TOOLS
+    bool    socketAddrFromHostPort(SocketAddr* addr, const char* host, uint16_t port);
+    bool    socketAddrFromHostnamePort(SocketAddr* addr, const char* hostname, uint16_t port);
     // Get host/port from given socket address
     void    socketAddrToHostPort(const SocketAddr* addr, char* host, size_t hostSize, uint16_t* port);
     /// Create a new TCP server socket

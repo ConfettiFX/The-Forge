@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c" />
     <ClCompile Include="..\src\19_CodeHotReload\19_CodeHotReload_Main.cpp" />
+    <ClCompile Include="..\src\19_CodeHotReload\SystemRun.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
@@ -59,6 +60,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -66,6 +68,7 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -93,16 +96,8 @@
     </Manifest>
     <PostBuildEvent>
       <Command>
-        %(Command)        
-        xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\vswhere_args.txt" "$(OutDir)"
-        
-        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+        %(Command)
+        xcopy /Y /D "$(TheForgeArtDir)GPUCfg\19_CodeHotReload\gpu.cfg" "$(OutDir)"
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -119,8 +114,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>
@@ -156,15 +151,7 @@
     <PostBuildEvent>
       <Command>
         %(Command)
-        xcopy /Y /S /D "$(ProjectDir)..\src\19_CodeHotReload\vswhere_args.txt" "$(OutDir)"
-
-        if not exist "$(OutDir)Textures\" mklink /j "$(OutDir)Textures\" "$(TheForgeArtDir)Textures\dds\"
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
+        xcopy /Y /D "$(TheForgeArtDir)GPUCfg\19_CodeHotReload\gpu.cfg" "$(OutDir)"
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -181,8 +168,8 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>

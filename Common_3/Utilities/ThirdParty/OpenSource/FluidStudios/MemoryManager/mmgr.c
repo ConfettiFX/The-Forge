@@ -742,7 +742,7 @@ static void dumpAllocations(FileStream* fh)
 static void dumpLeakReport(void)
 {
     FileStream fh = { 0 };
-    char       outputFilePath[256] = { 0 };
+    char outputFileName[256] = { 0 };
 
     if (mAppName)
     {
@@ -750,28 +750,12 @@ static void dumpLeakReport(void)
         // NOTE: we can't use any allocating FileSystem functions here since
         // the FileSystem may have already been destroyed by the time we get
         // here.
-        char outputFileName[256] = { 0 };
-
-        const char* extension = ".memleaks";
-
-        tf_strcpyarr(outputFileName, mAppName);
-
-        // Minimum length check
-        if (outputFileName[0] == 0 || outputFileName[1] == 0)
-        {
-            tf_strcpyarr(outputFileName, "MemLeaks");
-        }
-        strcat(outputFileName, extension);
-
-        const char* resourceDir = fsGetResourceDirectory(RD_LOG);
-        tf_strcpyarr(outputFilePath, resourceDir);
-        strcat(outputFilePath, "/");
-        strcat(outputFilePath, outputFileName);
+        tf_sprintf(outputFileName, sizeof(outputFileName), "%s.memleaks", mAppName);
 
         if (!fsOpenStreamFromPath(RD_LOG, outputFileName, FM_WRITE, &fh))
         {
             memset(&fh, 0, sizeof fh);
-            tf_strcpyarr(outputFilePath, "Failed to write report to file");
+            tf_strcpyarr(outputFileName, "Failed to write report to file");
         }
     }
 
@@ -809,7 +793,7 @@ static void dumpLeakReport(void)
         dumpLine(&fh, " -------------------------------------------------------------------------------");
         dumpLine(&fh, "                Memory leak report %02d/%02d/%04d %02d:%02d:%02d:                  ", tme.tm_mon + 1, tme.tm_mday,
                  tme.tm_year + 1900, tme.tm_hour, tme.tm_min, tme.tm_sec);
-        dumpLine(&fh, "                %s                  ", outputFilePath);
+        dumpLine(&fh, "                %s                  ", outputFileName);
         // use LF instead of CRLF
         dumpLine(&fh, " -------------------------------------------------------------------------------");
         if (stats.totalAllocUnitCount)

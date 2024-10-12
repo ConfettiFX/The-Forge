@@ -121,7 +121,7 @@ extern "C"
     /// Note: "a/.." normalizes into ".", but "" is also normalized empty string
     ///
     /// Result is true when 'path' is normalized with custom 'separator'.
-    FORGE_API bool fsIsNormalizedPath(const char* path, char separator);
+    FORGE_TOOL_API bool fsIsNormalizedPath(const char* path, char separator);
 
     /// Appends string buffer 'outputBeg' with normalized version of 'nextPath'
     ///
@@ -137,8 +137,8 @@ extern "C"
     ///   On success, length is less than size of the buffer.
     ///   On failure, length is equal to size of the buffer.
     ///   Failure is when 'nextPath' insertion is unfinished.
-    FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, //
-                                             const char* outputBeg, char* outputCur, const char* outputEnd);
+    FORGE_TOOL_API size_t fsNormalizePathContinue(const char* nextPath, char separator, //
+                                                  const char* outputBeg, char* outputCur, const char* outputEnd);
 
     /// Normalize 'path' with custom 'separator' into 'buffer'
     ///
@@ -157,7 +157,7 @@ extern "C"
     /// same as fsAppendPathComponent but with extra options
     /// 'separator' must be '/', but '\' in WindowsFileSystem.cpp
     /// 'dstSize'   size of dst buffer
-    FORGE_API bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    FORGE_TOOL_API bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 
     /// Write normalized version of 'dir'+ 'separator' + 'path' to dst
     /// requires dst buffer size to be >= FS_MAX_PATH
@@ -172,26 +172,35 @@ extern "C"
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, `newExtension` will be appended to the end.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsAppendPathExtension(const char* basePath, const char* newExtension, char* output);
+    FORGE_TOOL_API void fsAppendPathExtension(const char* basePath, const char* newExtension, char* output);
 
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
+    FORGE_TOOL_API void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
 
     /// Get `path`'s parent path, excluding the end seperator.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetParentPath(const char* path, char* output);
+    FORGE_TOOL_API void fsGetParentPath(const char* path, char* output);
 
     /// Get `path`'s file name, without extension or parent path.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetPathFileName(const char* path, char* output);
+    FORGE_TOOL_API void fsGetPathFileName(const char* path, char* output);
 
     /// Returns `path`'s extension, excluding the '.'.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetPathExtension(const char* path, char* output);
+    FORGE_TOOL_API void fsGetPathExtension(const char* path, char* output);
 
     /************************************************************************/
+    /************************************************************************/
+
+    /************************************************************************/
+    // MARK: - File Queries
+    /************************************************************************/
+
+    /// Gets the time of last modification for the file at `fileName`, within 'resourceDir'.
+    FORGE_TOOL_API time_t      fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
+    FORGE_TOOL_API const char* fsGetResourceDirectory(ResourceDirectory resourceDi);
     /************************************************************************/
 
 #ifdef __cplusplus

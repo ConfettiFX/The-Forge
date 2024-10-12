@@ -51,13 +51,14 @@ struct ParticleSystemSettings
     uint32_t mResolutionWidth = 0;
     uint32_t mResolutionHeight = 0;
     uint32_t mFramesInFlight = 0;
+    uint32_t mParticleTextureCount = 0;
 
     Sampler* pNearestClampSampler = NULL;
     Sampler* pLinearClampSampler = NULL;
 
-    Texture* pColorBuffer = NULL;
-    Texture* pDepthBuffer = NULL;
-    Texture* ppParticleTextures[MAX_PARTICLE_SET_COUNT] = { 0 };
+    Texture*  pColorBuffer = NULL;
+    Texture*  pDepthBuffer = NULL;
+    Texture** ppParticleTextures = { 0 };
 
     Shader* pParticleRenderShader = NULL;
     Shader* pParticleSimulateShader = NULL;
@@ -74,15 +75,18 @@ struct ParticleSystemSettings
     Buffer** ppParticleConstantBuffer = NULL;
     Buffer*  pParticlesData = NULL;
     Buffer*  pBitfieldData = NULL;
+    Buffer*  pParticleSetsBuffer = NULL;
     Buffer*  pTransparencyListBuffer = NULL;
     Buffer*  pTransparencyListHeadsBuffer = NULL;
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    Buffer* pStatsBuffer = NULL;
+#endif
 
     // Managed by the PS
-    Buffer*  pParticlesSectionsIndicesBuffer = NULL;
-    Buffer*  pParticleSetVisibilityFlagBuffer = NULL;
-    Buffer*  pParticleCountsBuffer = NULL;
-    Buffer*  pParticlesToRasterize = NULL;
-    Buffer** pBufferParticleRenderIndirectData = NULL;
+    Buffer* pParticleSetVisibilityFlagBuffer = NULL;
+    Buffer* pParticleStateBuffer = NULL;
+    Buffer* pParticlesToRasterize = NULL;
+    Buffer* pBufferParticleRenderIndirectData = NULL;
 
     DescriptorSet* pParticleRenderDescriptorSet_PerFrame = NULL;
     DescriptorSet* pParticleRenderDescriptorSet_None = NULL;
@@ -101,18 +105,19 @@ bool particleSystemInit(const ParticleSystemInitDesc* pDesc)
     gPSSettings.mResolutionWidth = (uint32_t)pDesc->mSwapWidth;
     gPSSettings.mResolutionHeight = (uint32_t)pDesc->mSwapHeight;
     gPSSettings.mFramesInFlight = pDesc->mFramesInFlight;
+    gPSSettings.mParticleTextureCount = pDesc->mParticleTextureCount;
 
     gPSSettings.pColorBuffer = pDesc->pColorBuffer;
     gPSSettings.pDepthBuffer = pDesc->pDepthBuffer;
-    memcpy(gPSSettings.ppParticleTextures, pDesc->ppParticleTextures, sizeof(Texture*) * MAX_PARTICLE_SET_COUNT);
+    gPSSettings.ppParticleTextures = pDesc->ppParticleTextures;
 
     gPSSettings.pParticlesData = pDesc->pParticlesBuffer;
     gPSSettings.pBitfieldData = pDesc->pBitfieldBuffer;
+    gPSSettings.pParticleSetsBuffer = pDesc->pParticleSetsBuffer;
     gPSSettings.pTransparencyListBuffer = pDesc->pTransparencyListBuffer;
     gPSSettings.pTransparencyListHeadsBuffer = pDesc->pTransparencyListHeadsBuffer;
 
     gPSSettings.ppParticleConstantBuffer = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mFramesInFlight);
-    gPSSettings.pBufferParticleRenderIndirectData = (Buffer**)tf_malloc(sizeof(Buffer*) * pDesc->mFramesInFlight);
     for (uint i = 0; i < pDesc->mFramesInFlight; i++)
         gPSSettings.ppParticleConstantBuffer[i] = pDesc->ppParticleConstantBuffer[i];
 
@@ -120,50 +125,52 @@ bool particleSystemInit(const ParticleSystemInitDesc* pDesc)
     bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
     bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
     bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-    bufferLoadDesc.mDesc.mStructStride = sizeof(uint4);
+    bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleBufferStateData);
     bufferLoadDesc.mDesc.mElementCount = 1;
-    bufferLoadDesc.mDesc.mSize = sizeof(uint4);
-    bufferLoadDesc.mDesc.pName = "ParticleCountsBuffer";
+    bufferLoadDesc.mDesc.mSize = sizeof(ParticleBufferStateData);
+    bufferLoadDesc.mDesc.pName = "ParticleBufferState";
     bufferLoadDesc.pData = NULL;
-    bufferLoadDesc.ppBuffer = &gPSSettings.pParticleCountsBuffer;
+    bufferLoadDesc.ppBuffer = &gPSSettings.pParticleStateBuffer;
     addResource(&bufferLoadDesc, NULL);
 
     bufferLoadDesc.mDesc.mStructStride = sizeof(uint);
-    // We have a value for the current frame and another for the previous one
-    bufferLoadDesc.mDesc.mElementCount = PARTICLE_BUFFER_SECTION_COUNT * 2;
-    bufferLoadDesc.mDesc.mSize = sizeof(uint) * bufferLoadDesc.mDesc.mElementCount;
-    bufferLoadDesc.mDesc.pName = "ParticleSectionsIndices";
-    bufferLoadDesc.ppBuffer = &gPSSettings.pParticlesSectionsIndicesBuffer;
-    addResource(&bufferLoadDesc, NULL);
-
-    bufferLoadDesc.mDesc.mStructStride = sizeof(uint);
-    // One element for the previous state, one for the current
-    bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLE_SET_COUNT * 2;
+    // 2 elements for visibility, one for the previous frame, one for the current frame
+    // 2 elements for allocation, one for the previous frame, one for the current frame
+    bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLE_SET_COUNT * 4;
     bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * bufferLoadDesc.mDesc.mElementCount;
     bufferLoadDesc.mDesc.pName = "ParticleSetVisibility";
     bufferLoadDesc.ppBuffer = &gPSSettings.pParticleSetVisibilityFlagBuffer;
     addResource(&bufferLoadDesc, NULL);
 
     bufferLoadDesc.mDesc.mStructStride = sizeof(uint);
-    bufferLoadDesc.mDesc.mElementCount = PARTICLE_COUNT / 10;
+    bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLES_COUNT / 10;
     bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * bufferLoadDesc.mDesc.mElementCount;
     bufferLoadDesc.mDesc.pName = "ParticlesToRasterize";
     bufferLoadDesc.ppBuffer = &gPSSettings.pParticlesToRasterize;
     addResource(&bufferLoadDesc, NULL);
 
-    for (uint32_t i = 0; i < gPSSettings.mFramesInFlight; i++)
-    {
-        bufferLoadDesc.mDesc.mStructStride = sizeof(uint32_t);
-        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
-        bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-        bufferLoadDesc.mDesc.mElementCount = 4;
-        bufferLoadDesc.mForceReset = true;
-        bufferLoadDesc.mDesc.mSize = sizeof(uint32_t) * bufferLoadDesc.mDesc.mElementCount;
-        bufferLoadDesc.mDesc.pName = "ParticleRenderIndirectData";
-        bufferLoadDesc.ppBuffer = &gPSSettings.pBufferParticleRenderIndirectData[i];
-        addResource(&bufferLoadDesc, NULL);
-    }
+    bufferLoadDesc.mDesc.mStructStride = sizeof(uint32_t);
+    bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
+    bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+    bufferLoadDesc.mDesc.mElementCount = 4;
+    bufferLoadDesc.mForceReset = true;
+    bufferLoadDesc.mDesc.mSize = sizeof(uint32_t) * bufferLoadDesc.mDesc.mElementCount;
+    bufferLoadDesc.mDesc.pName = "ParticleRenderIndirectData";
+    bufferLoadDesc.ppBuffer = &gPSSettings.pBufferParticleRenderIndirectData;
+    addResource(&bufferLoadDesc, NULL);
+
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleSystemStats);
+    bufferLoadDesc.mDesc.mElementCount = 1;
+    bufferLoadDesc.mDesc.mSize = sizeof(ParticleSystemStats);
+    bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
+    bufferLoadDesc.mForceReset = true;
+    bufferLoadDesc.mDesc.pName = "ParticleSystemStats";
+    bufferLoadDesc.ppBuffer = &gPSSettings.pStatsBuffer;
+    addResource(&bufferLoadDesc, NULL);
+#endif
 
     // Samplers
     {
@@ -269,10 +276,10 @@ bool particleSystemInit(const ParticleSystemInitDesc* pDesc)
         descriptorSetDesc = { gPSSettings.pParticleRenderRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
         addDescriptorSet(gPSSettings.pRenderer, &descriptorSetDesc, &gPSSettings.pParticleRenderDescriptorSet_None);
         {
-            DescriptorData params[6] = {};
+            DescriptorData params[7] = {};
             params[0].pName = "ParticleTextures";
             params[0].ppTextures = gPSSettings.ppParticleTextures;
-            params[0].mCount = MAX_PARTICLE_SET_COUNT;
+            params[0].mCount = gPSSettings.mParticleTextureCount;
             params[1].pName = "ParticlesDataBuffer";
             params[1].ppBuffers = &gPSSettings.pParticlesData;
             params[2].pName = "BitfieldBuffer";
@@ -283,7 +290,9 @@ bool particleSystemInit(const ParticleSystemInitDesc* pDesc)
             params[4].ppBuffers = &gPSSettings.pTransparencyListHeadsBuffer;
             params[5].pName = "ParticlesToRasterize";
             params[5].ppBuffers = &gPSSettings.pParticlesToRasterize;
-            updateDescriptorSet(gPSSettings.pRenderer, 0, gPSSettings.pParticleRenderDescriptorSet_None, 6, params);
+            params[6].pName = "ParticleSetsBuffer";
+            params[6].ppBuffers = &gPSSettings.pParticleSetsBuffer;
+            updateDescriptorSet(gPSSettings.pRenderer, 0, gPSSettings.pParticleRenderDescriptorSet_None, 7, params);
         }
 
         descriptorSetDesc = { gPSSettings.pParticleSimulateRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gPSSettings.mFramesInFlight };
@@ -293,42 +302,60 @@ bool particleSystemInit(const ParticleSystemInitDesc* pDesc)
             DescriptorData params[2] = {};
             params[0].pName = "ParticleConstantBuffer";
             params[0].ppBuffers = &gPSSettings.ppParticleConstantBuffer[i];
-            params[1].pName = "ParticleRenderIndirectData";
-            params[1].ppBuffers = &gPSSettings.pBufferParticleRenderIndirectData[i];
-            updateDescriptorSet(gPSSettings.pRenderer, i, gPSSettings.pParticleSimulateDescriptorSet_PerFrame, 2, params);
+            updateDescriptorSet(gPSSettings.pRenderer, i, gPSSettings.pParticleSimulateDescriptorSet_PerFrame, 1, params);
         }
 
         descriptorSetDesc = { gPSSettings.pParticleSimulateRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
         addDescriptorSet(gPSSettings.pRenderer, &descriptorSetDesc, &gPSSettings.pParticleSimulateDescriptorSet_None);
 
         {
-            DescriptorData params[11] = {};
-            params[0].pName = "ParticleTextures";
-            params[0].ppTextures = gPSSettings.ppParticleTextures;
-            params[0].mCount = MAX_PARTICLE_SET_COUNT;
-            params[1].pName = "DepthBuffer";
-            params[1].ppTextures = &gPSSettings.pDepthBuffer;
-            params[2].pName = "ParticlesDataBuffer";
-            params[2].ppBuffers = &gPSSettings.pParticlesData;
-            params[3].pName = "ParticleCountsBuffer";
-            params[3].ppBuffers = &gPSSettings.pParticleCountsBuffer;
-            params[4].pName = "TransparencyList";
-            params[4].ppBuffers = &gPSSettings.pTransparencyListBuffer;
-            params[5].pName = "BitfieldBuffer";
-            params[5].ppBuffers = &gPSSettings.pBitfieldData;
-            params[6].pName = "ParticleSectionsIndices";
-            params[6].ppBuffers = &gPSSettings.pParticlesSectionsIndicesBuffer;
-            params[7].pName = "ParticleSetVisibility";
-            params[7].ppBuffers = &gPSSettings.pParticleSetVisibilityFlagBuffer;
-            params[8].pName = "ParticlesToRasterize";
-            params[8].ppBuffers = &gPSSettings.pParticlesToRasterize;
-            params[9].pName = "TransparencyListHeads";
-            params[9].ppBuffers = &gPSSettings.pTransparencyListHeadsBuffer;
-            updateDescriptorSet(gPSSettings.pRenderer, 0, gPSSettings.pParticleSimulateDescriptorSet_None, 10, params);
+            uint32_t       descriptorCount = 0;
+            DescriptorData params[12] = {};
+            params[descriptorCount].pName = "ParticleTextures";
+            params[descriptorCount].ppTextures = gPSSettings.ppParticleTextures;
+            params[descriptorCount++].mCount = gPSSettings.mParticleTextureCount;
+            params[descriptorCount].pName = "DepthBuffer";
+            params[descriptorCount++].ppTextures = &gPSSettings.pDepthBuffer;
+            params[descriptorCount].pName = "ParticlesDataBuffer";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pParticlesData;
+            params[descriptorCount].pName = "ParticleBufferState";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pParticleStateBuffer;
+            params[descriptorCount].pName = "TransparencyList";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pTransparencyListBuffer;
+            params[descriptorCount].pName = "BitfieldBuffer";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pBitfieldData;
+            params[descriptorCount].pName = "ParticleSetsBuffer";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pParticleSetsBuffer;
+            params[descriptorCount].pName = "ParticleSetVisibility";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pParticleSetVisibilityFlagBuffer;
+            params[descriptorCount].pName = "ParticlesToRasterize";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pParticlesToRasterize;
+            params[descriptorCount].pName = "TransparencyListHeads";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pTransparencyListHeadsBuffer;
+            params[descriptorCount].pName = "ParticleRenderIndirectData";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pBufferParticleRenderIndirectData;
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+            params[descriptorCount].pName = "StatsBuffer";
+            params[descriptorCount++].ppBuffers = &gPSSettings.pStatsBuffer;
+#endif
+            updateDescriptorSet(gPSSettings.pRenderer, 0, gPSSettings.pParticleSimulateDescriptorSet_None, descriptorCount, params);
         }
     }
 
     return true;
+}
+
+ParticleSystemStats particleSystemGetStats()
+{
+    ParticleSystemStats ret = {};
+
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    mapBuffer(gPSSettings.pRenderer, gPSSettings.pStatsBuffer, 0);
+    memcpy(&ret, gPSSettings.pStatsBuffer->pCpuMappedAddress, sizeof(ParticleSystemStats));
+    unmapBuffer(gPSSettings.pRenderer, gPSSettings.pStatsBuffer);
+#endif
+
+    return ret;
 }
 
 void particleSystemExit()
@@ -352,16 +379,14 @@ void particleSystemExit()
     removeSampler(gPSSettings.pRenderer, gPSSettings.pNearestClampSampler);
     removeSampler(gPSSettings.pRenderer, gPSSettings.pLinearClampSampler);
 
-    removeResource(gPSSettings.pParticleCountsBuffer);
+    removeResource(gPSSettings.pParticleStateBuffer);
     removeResource(gPSSettings.pParticleSetVisibilityFlagBuffer);
-    removeResource(gPSSettings.pParticlesSectionsIndicesBuffer);
-    for (uint32_t i = 0; i < gPSSettings.mFramesInFlight; i++)
-    {
-        removeResource(gPSSettings.pBufferParticleRenderIndirectData[i]);
-    }
+    removeResource(gPSSettings.pBufferParticleRenderIndirectData);
     removeResource(gPSSettings.pParticlesToRasterize);
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    removeResource(gPSSettings.pStatsBuffer);
+#endif
 
-    tf_free(gPSSettings.pBufferParticleRenderIndirectData);
     tf_free(gPSSettings.ppParticleConstantBuffer);
 }
 
@@ -369,8 +394,6 @@ void particleSystemUpdateConstantBuffers(uint32_t frameIndex, ParticleConstantBu
 {
     ASSERT(cameraData);
 
-    uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)PARTICLE_COUNT / (PARTICLES_BATCH_X * PARTICLES_BATCH_Y)));
-    cameraData->SimulationDispatchSize = dispatchCount;
     BufferUpdateDesc bufferUpdateDesc = { gPSSettings.ppParticleConstantBuffer[frameIndex] };
     beginUpdateResource(&bufferUpdateDesc);
     memcpy(bufferUpdateDesc.pMappedData, cameraData, sizeof(*cameraData));
@@ -382,6 +405,10 @@ void particleSystemCmdBegin(Cmd* pCmd, uint32_t frameIndex)
     ASSERT(pCmd);
     ASSERT(frameIndex < gPSSettings.mFramesInFlight);
 
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    BufferBarrier bb = { gPSSettings.pStatsBuffer, RESOURCE_STATE_GENERIC_READ, RESOURCE_STATE_UNORDERED_ACCESS };
+    cmdResourceBarrier(pCmd, 1, &bb, 0, NULL, 0, NULL);
+#endif
     cmdBindPipeline(pCmd, gPSSettings.pResetSortingPipeline);
     cmdBindDescriptorSet(pCmd, 0, gPSSettings.pParticleSimulateDescriptorSet_None);
     cmdBindDescriptorSet(pCmd, frameIndex, gPSSettings.pParticleSimulateDescriptorSet_PerFrame);
@@ -392,25 +419,31 @@ void particleSystemCmdSimulate(Cmd* pCmd, uint32_t frameIndex)
 {
     ASSERT(pCmd);
 
-    BufferBarrier resetBarriers[] = {
-        { gPSSettings.pParticlesSectionsIndicesBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS },
-        { gPSSettings.pParticlesToRasterize, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS },
-    };
-    cmdResourceBarrier(pCmd, 2, resetBarriers, 0, NULL, 0, NULL);
+    BufferBarrier resetBarriers[] = { { gPSSettings.pParticlesToRasterize, RESOURCE_STATE_UNORDERED_ACCESS,
+                                        RESOURCE_STATE_UNORDERED_ACCESS } };
+    cmdResourceBarrier(pCmd, 1, resetBarriers, 0, NULL, 0, NULL);
 
-    uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)PARTICLE_COUNT / (PARTICLES_BATCH_X * PARTICLES_BATCH_Y)));
+    uint32_t threadCount = (uint32_t)ceil(sqrt((float)MAX_PARTICLES_COUNT / (PARTICLES_BATCH_X * PARTICLES_BATCH_Y)));
 
     cmdBindPipeline(pCmd, gPSSettings.pParticleSimulatePipeline);
     cmdBindDescriptorSet(pCmd, 0, gPSSettings.pParticleSimulateDescriptorSet_None);
     cmdBindDescriptorSet(pCmd, frameIndex, gPSSettings.pParticleSimulateDescriptorSet_PerFrame);
-    cmdDispatch(pCmd, dispatchCount, dispatchCount, 1);
+    cmdDispatch(pCmd, threadCount, threadCount, 1);
 
     BufferBarrier bufferBarriers[] = {
         { gPSSettings.pParticlesData, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS },
-        { gPSSettings.pBufferParticleRenderIndirectData[frameIndex], RESOURCE_STATE_UNORDERED_ACCESS,
+        { gPSSettings.pBufferParticleRenderIndirectData, RESOURCE_STATE_UNORDERED_ACCESS,
           RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE },
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+        { gPSSettings.pStatsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_GENERIC_READ}
+#endif
     };
+
+#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
+    cmdResourceBarrier(pCmd, 3, bufferBarriers, 0, NULL, 0, NULL);
+#else
     cmdResourceBarrier(pCmd, 2, bufferBarriers, 0, NULL, 0, NULL);
+#endif
 }
 
 void particleSystemCmdRender(Cmd* pCmd, uint32_t frameIndex)
@@ -420,10 +453,10 @@ void particleSystemCmdRender(Cmd* pCmd, uint32_t frameIndex)
     cmdBindPipeline(pCmd, gPSSettings.pParticleRenderPipeline);
     cmdBindDescriptorSet(pCmd, frameIndex, gPSSettings.pParticleRenderDescriptorSet_PerFrame);
     cmdBindDescriptorSet(pCmd, 0, gPSSettings.pParticleRenderDescriptorSet_None);
-    cmdExecuteIndirect(pCmd, INDIRECT_DRAW, 1, gPSSettings.pBufferParticleRenderIndirectData[frameIndex], 0, NULL, 0);
+    cmdExecuteIndirect(pCmd, INDIRECT_DRAW, 1, gPSSettings.pBufferParticleRenderIndirectData, 0, NULL, 0);
     cmdBindRenderTargets(pCmd, NULL);
 
-    BufferBarrier barrier = { gPSSettings.pBufferParticleRenderIndirectData[frameIndex],
+    BufferBarrier barrier = { gPSSettings.pBufferParticleRenderIndirectData,
                               RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
     cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
 }

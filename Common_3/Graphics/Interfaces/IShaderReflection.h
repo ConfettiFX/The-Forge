@@ -28,8 +28,6 @@
 
 #include <ctype.h>
 
-static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
-
 typedef enum TextureDimension
 {
     TEXTURE_DIM_1D,
@@ -136,9 +134,10 @@ struct ShaderReflection
     ShaderStage mShaderStage;
 
     uint32_t mNamePoolSize;
-    uint32_t mVertexInputsCount;
     uint32_t mShaderResourceCount;
     uint32_t mVariableCount;
+
+    uint32_t mVertexInputsCount;
 
     // Thread group size for compute shader
     uint32_t mNumThreadsPerGroup[3];
@@ -149,17 +148,23 @@ struct ShaderReflection
     uint32_t mNumControlPoint;
 
 #if defined(DIRECT3D12)
-    bool mCbvHeapIndexing;
+    bool mResourceHeapIndexing;
     bool mSamplerHeapIndexing;
 #endif
 };
 
 struct PipelineReflection
 {
-    ShaderStage      mShaderStages;
+    ShaderResource* pShaderResources;
+    ShaderVariable* pVariables;
+    char*           pNamePool;
+
+    ShaderStage mShaderStages;
     // the individual stages reflection data.
-    ShaderReflection mStageReflections[MAX_SHADER_STAGE_COUNT];
-    uint32_t         mStageReflectionCount;
+    uint32_t    mStageReflectionCount;
+    uint32_t    mNamePoolSize;
+    uint32_t    mShaderResourceCount;
+    uint32_t    mVariableCount;
 
     uint32_t mVertexStageIndex;
     uint32_t mHullStageIndex;
@@ -167,11 +172,17 @@ struct PipelineReflection
     uint32_t mGeometryStageIndex;
     uint32_t mPixelStageIndex;
 
-    ShaderResource* pShaderResources;
-    uint32_t        mShaderResourceCount;
-
-    ShaderVariable* pVariables;
-    uint32_t        mVariableCount;
+    uint32_t mVertexInputsCount;
+    // Thread group size for compute shader
+    uint32_t mNumThreadsPerGroup[3];
+    // Pixel shader
+    uint32_t mOutputRenderTargetTypesMask;
+    // number of tessellation control point
+    uint32_t mNumControlPoint;
+#if defined(DIRECT3D12)
+    bool mResourceHeapIndexing;
+    bool mSamplerHeapIndexing;
+#endif
 };
 
 FORGE_RENDERER_API void removeShaderReflection(ShaderReflection* pReflection);

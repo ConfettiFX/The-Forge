@@ -33,6 +33,7 @@
 #else
 #define FS_MAX_PATH 512
 #endif
+#define PATHSTATEMENT_FILE_NAME "PathStatement.txt"
 
 struct bstring;
 
@@ -40,27 +41,6 @@ struct bstring;
 extern "C"
 {
 #endif
-
-    typedef enum ResourceMount
-    {
-        /// Installed game directory / bundle resource directory
-        RM_CONTENT = 0,
-        /// For storing debug data such as log files. To be used only during development
-        RM_DEBUG,
-        /// Documents directory
-        RM_DOCUMENTS,
-#if defined(ANDROID)
-        // System level files (/proc/ or equivalent if available)
-        RM_SYSTEM,
-#endif
-        /// Save game data mount 0
-        RM_SAVE_0,
-#ifdef ENABLE_FS_EMPTY_MOUNT
-        /// Empty mount for absolute paths
-        RM_EMPTY,
-#endif
-        RM_COUNT,
-    } ResourceMount;
 
     typedef enum ResourceDirectory
     {
@@ -161,6 +141,13 @@ extern "C"
         uintptr_t data[6];
     };
 
+    typedef struct ResourceDirectoryInfo
+    {
+        IFileSystem* pIO;
+        char         mPath[FS_MAX_PATH];
+        bool         mBundled;
+    } ResourceDirectoryInfo;
+
     /// After stream is opened, only FileStream::pIO must be used for this stream.
     /// Example:
     ///   io->Open(&stream); // stream is opened
@@ -174,7 +161,6 @@ extern "C"
     {
         IFileSystem*              pIO;
         FileMode                  mMode;
-        ResourceMount             mMount;
         struct FileStreamUserData mUser; // access to this field is IO exclusive
     } FileStream;
 
@@ -182,7 +168,11 @@ extern "C"
     {
         const char* pAppName;
         void*       pPlatformData;
-        const char* pResourceMounts[RM_COUNT];
+        // should be true for tools it will skip using
+        // PathStatement file and set resource dirs manually
+        // using fsSetResourceDirectory
+        // in Consoles and Phones it will be ignored
+        bool        mIsTool;
     } FileSystemInitDesc;
 
     struct IFileSystem
@@ -214,8 +204,6 @@ extern "C"
         /// Returns whether the current seek position is at the end of the file stream.
         bool (*IsAtEnd)(FileStream* pFile);
 
-        const char* (*GetResourceMount)(ResourceMount mount);
-
         // Acquire unique file identifier.
         // Only Archive FS supports it currently.
         bool (*GetFileUid)(IFileSystem* pIO, ResourceDirectory rd, const char* name, uint64_t* outUid);
@@ -231,6 +219,9 @@ extern "C"
         // This function does read-only memory map.
         bool (*MemoryMap)(FileStream* fs, size_t* outSize, void const** outData);
 
+        // getSystemHandle
+        void* (*GetSystemHandle)(FileStream* fs);
+
         void* pUser;
     };
 
@@ -240,6 +231,8 @@ extern "C"
     // MARK: - Initialization
     /************************************************************************/
     /// Initializes the FileSystem API
+    /// utlize PathStatement.txt file in Art directory
+    /// unless FileSystemInitDesc::toolsFilesystem = true
     FORGE_API bool                initFileSystem(FileSystemInitDesc* pDesc);
 
     /// Frees resources associated with the FileSystem API
@@ -348,15 +341,10 @@ extern "C"
     /// So checking return value is optional.
     FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs);
 
+    FORGE_API void* fsGetSystemHandle(FileStream* fs);
     /************************************************************************/
     // MARK: - IFileSystem IO shortcuts
     /************************************************************************/
-
-    static inline bool fsIoOpenStreamFromPath(IFileSystem* pIO, const ResourceDirectory rd, const char* fileName, FileMode mode,
-                                              FileStream* pOut)
-    {
-        return pIO->Open(pIO, rd, fileName, mode, pOut);
-    }
 
     /// Closes and invalidates the file stream.
     static inline bool fsCloseStream(FileStream* fs)
@@ -406,13 +394,6 @@ extern "C"
     /// Returns whether the current seek position is at the end of the file stream.
     static inline bool fsStreamAtEnd(FileStream* fs) { return fs->pIO->IsAtEnd(fs); }
 
-    static inline const char* fsIoGetResourceMount(IFileSystem* pIO, ResourceMount mount)
-    {
-        if (!pIO->GetResourceMount)
-            return "";
-        return pIO->GetResourceMount(mount);
-    }
-
     static inline bool fsIoGetFileUid(IFileSystem* pIO, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
     {
         if (!pIO->GetFileUid)
@@ -437,30 +418,13 @@ extern "C"
     /************************************************************************/
     // MARK: - Directory queries
     /************************************************************************/
-    /// Returns location set for resource directory in fsSetPathForResourceDir.
-    FORGE_API const char*   fsGetResourceDirectory(ResourceDirectory resourceDir);
-    /// Returns Resource Mount point for resource directory
-    FORGE_API ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir);
 
     /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
     /// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
     /// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// NOTE: A `resourceDir` can only be set once.
-    FORGE_API void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
-
-    /************************************************************************/
-    // MARK: - File Queries
-    /************************************************************************/
-
-    /// Gets the time of last modification for the file at `fileName`, within 'resourceDir'.
-    FORGE_API time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
-
-    /************************************************************************/
-    // MARK: - Platform-dependent function definitions
-    /************************************************************************/
-
-    bool fsCreateResourceDirectory(ResourceDirectory resourceDir);
+    FORGE_API void fsSetPathForResourceDir(IFileSystem* pIO, ResourceDirectory resourceDir, const char* bundledFolder);
 
     /************************************************************************/
     // MARK: - Buny Archive format definitions

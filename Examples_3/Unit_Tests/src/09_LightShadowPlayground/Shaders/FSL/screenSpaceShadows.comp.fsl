@@ -248,5 +248,22 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 		uint write_coord = write_xy.x + uint(SSSUniform.mScreenSize.x) * write_xy.y;
 		AtomicMin(OutputTexture[write_coord], mappedResult);
 	#endif
+
+#ifdef GPU_CRASH
+	// Causing a GPU hang...
+    float counter = 1.0;
+    while (counter > 0.0)
+    {
+        mappedResult += 1;
+        counter += float(mappedResult);
+		counter -= 0.0000001;
+	#if TEXTURE_ATOMIC_SUPPORTED
+		AtomicMin2D(OutputTexture, write_coord, mappedResult, temp);
+	#else
+		AtomicMin(OutputTexture[write_coord], mappedResult);
+	#endif
+    }
+#endif
+
 	RETURN();
 }

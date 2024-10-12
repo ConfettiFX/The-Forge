@@ -33,6 +33,7 @@
 #include <ctime>
 #include <gtk/gtk.h>
 #include <sys/utsname.h>
+#include <libgen.h>
 
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Application/Interfaces/IFont.h"
@@ -249,7 +250,7 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
+    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -291,7 +292,7 @@ void togglePlatformUI()
 // APP ENTRY POINT
 //------------------------------------------------------------------------
 
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
 static bool strreplace(char* s, const char* s1, const char* s2)
 {
     char* p = strstr(s, s1);
@@ -322,12 +323,12 @@ int LinuxMain(int argc, char** argv, IApp* app)
     if (!initFileSystem(&fsDesc))
         return EXIT_FAILURE;
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-
-#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
+#if defined(ENABLE_GRAPHICS_VALIDATION) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
     // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
     // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
-    const char* debugPath = pSystemFileIO->GetResourceMount(RM_DEBUG);
+    char tmpPath[FS_MAX_PATH] = { 0 };
+    readlink("/proc/self/exe", tmpPath, FS_MAX_PATH);
+    const char* debugPath = dirname(tmpPath);
     VERIFY(!setenv("VK_LAYER_PATH", debugPath, true));
     // HACK: we can't simply specify LD_LIBRARY_PATH at runtime,
     // so we have to patch the .json file to use the full path for the shared library.
@@ -412,8 +413,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
         pSettings->mHeight = getRectHeight(&rect);
     }
 
-    gWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
-    gWindow.clientRect = rect;
+    gWindow.windowedRect = {};
+    gWindow.clientRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
     gWindow.fullScreen = pSettings->mFullScreen;
     gWindow.cursorCaptured = false;
     openWindow(pApp->GetName(), &gWindow);

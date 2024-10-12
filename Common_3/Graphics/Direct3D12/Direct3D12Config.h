@@ -36,8 +36,8 @@
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 
-#include "../../../Data/Libraries/Direct3d12Agility/include/d3d12.h"
-#include "../../../Data/Libraries/DirectXShaderCompiler/inc/dxcapi.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/Direct3d12Agility/include/d3d12.h"
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
 #endif
 
 //////////////////////////////////////////////
@@ -49,6 +49,6 @@
 #define D3D12_RAYTRACING_AVAILABLE
 #endif
 
-#if defined(_WINDOWS)
-#define NSIGHT_AFTERMATH_AVAILABLE
+#if defined(D3D12_WORK_GRAPHS_BACKING_MEMORY_ALIGNMENT_IN_BYTES)
+#define D3D12_WORKGRAPH_AVAILABLE
 #endif

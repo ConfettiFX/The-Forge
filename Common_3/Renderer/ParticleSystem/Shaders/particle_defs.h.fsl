@@ -25,52 +25,56 @@
 #ifndef _PARTICLE_DEFS_H
 #define _PARTICLE_DEFS_H
 
-#define LIGHT_SIZE		0.5
-#define SHADOW_PARTICLE_RADIUS	3
+#define MAX_SHADOW_COUNT		8
+#define MAX_LIGHT_COUNT			20000
+#define MAX_STANDARD_COUNT		8000000
+#define MAX_PARTICLES_COUNT		(MAX_SHADOW_COUNT + MAX_LIGHT_COUNT + MAX_STANDARD_COUNT)
 
-#define SHADOW_COUNT		8
-#define LIGHT_ONLY_COUNT	15000
-
-#define LIGHT_COUNT		(LIGHT_ONLY_COUNT + SHADOW_COUNT)
-#define STANDARD_COUNT	4002000
-#define PARTICLE_COUNT	(STANDARD_COUNT + LIGHT_COUNT)
 #define PARTICLE_TYPES_COUNT	3
 
-#define PARTICLES_BATCH_X		32
-#define PARTICLES_BATCH_Y		1
-#define MAX_PARTICLE_SET_COUNT	8
+#define PARTICLES_BATCH_X			32
+#define PARTICLES_BATCH_Y			1
+#define MAX_PARTICLE_SET_COUNT		128
+#define MAX_PARTICLE_TEXTURES_COUNT	3
 
 // Pixels with a transparency lower than this value are discarded
 #define TRANSPARENCY_CONTRIBUTION_THRESHOLD	0.0
+// Threshold used to check whether or not a particle collided with the depth buffer
+#define PARTICLE_COLLISION_THRESHOLD		0.5
 
 // The particle buffer is divided in 3 sections, one for each light mode
 #define PARTICLE_BUFFER_SECTION_COUNT	3
-// Each section is divided in 3 subsections: alive, dead, inactive
-#define SUBSECTION_COUNT				3
 // When swapping particles, we might receive a particle that has to be swapped as well. To reduce the 
 // probability that a single thread gets to perform too many memory accesses, we try PARTICLE_SWAP_ATTEMPTS_COUNT
 // times. Then we wait for the other threads to swap particles and finally we insert the particle.
 #define PARTICLE_SWAP_ATTEMPTS_COUNT    2048
 #define PARTICLE_SWAP_FAILURE_ATTEMPTS_COUNT	PARTICLE_SWAP_ATTEMPTS_COUNT
 // Maximum amount of threads that failed swapping in a group needed to trigger the help system
-#define PARTICLE_SWAP_HELP_THRESHOLD			4
+#define PARTICLE_SWAP_HELP_THRESHOLD			6
 // If PARTICLE_SWAP_SELF_RESOLVE_THRESHOLD threads failed swapping, they can continue trying safely
 #define PARTICLE_SWAP_SELF_RESOLVE_THRESHOLD	8
 
 // Maximum screen space area that allows for software rasterization. Bigger particles are forwarded to the hardware rasterizer
 #define PARTICLE_HW_RASTERIZATION_THRESHOLD	1024
 // Max particle set size, used to clamp position values between 0 and 1
-#define PARTICLE_PACKING_SCALE	64.0
-// Scale factor used to keep precision for AI behaviour
-#define PARTICLE_BOIDS_PACKING_SCALE	100000
+#define PARTICLE_PACKING_SCALE		64.0
 // Max distance between particles to be considered neighbors
-#define PARTICLE_NEIGHBOR_THRESHOLD	0.5
+#define PARTICLE_NEIGHBOR_THRESHOLD	0.25
 // Modifier to make color over speed more noticeable
-#define PARTICLE_COLOR_OVER_SPEED_STRENGTH	8
+#define PARTICLE_COLOR_OVER_SPEED_STRENGTH	1
+
+#define QUAD_VERTEX_COUNT	4
 
 // Used to access previous/current values
-#define PREV_VALUE	0
-#define CURR_VALUE	1
+#define PARTICLE_SET_VISIBILITY_FLAG_AMOUNT	4
+#define PREV_VISIBILITY(i)	((i) * PARTICLE_SET_VISIBILITY_FLAG_AMOUNT)
+#define CURR_VISIBILITY(i)	((i) * PARTICLE_SET_VISIBILITY_FLAG_AMOUNT + 1)
+#define PREV_ALLOCATION(i)	((i) * PARTICLE_SET_VISIBILITY_FLAG_AMOUNT + 2)
+#define CURR_ALLOCATION(i)	((i) * PARTICLE_SET_VISIBILITY_FLAG_AMOUNT + 3)
+
+#define PARTICLE_BUFFER_SECTION_BOUNDS_AMOUNT	2
+#define PREV_BOUND(i)	((i) * PARTICLE_BUFFER_SECTION_BOUNDS_AMOUNT)
+#define CURR_BOUND(i)	((i) * PARTICLE_BUFFER_SECTION_BOUNDS_AMOUNT + 1)
 
 #if defined(NO_FSL_DEFINITIONS) && !defined(CBUFFER)
     #define STATIC static
@@ -81,18 +85,20 @@
 	#define RES(Type, Name, Frequency, u, b)
 #endif
 
-#define PARTICLE_BITFIELD_ALLOCATION_BITS_MASK 0x1FFFFU
-#define PARTICLE_BITFIELD_SET_INDEX_MASK 0xFFFFU
+#define PARTICLE_BITFIELD_SET_INDEX_MASK 0xFFFU
 
-#define PARTICLE_BITFIELD_STATE_BITS_MASK 0x70000U
-#define PARTICLE_BITFIELD_IS_ALIVE 0x10000U
-#define PARTICLE_BITFIELD_IS_MOVING 0x20000U
-#define PARTICLE_BITFIELD_IS_ACCELERATING 0x40000U
+#define PARTICLE_BITFIELD_STATE_BITS_MASK		0x1F000U
+#define PARTICLE_BITFIELD_IS_ALIVE				0x1000U
+#define PARTICLE_BITFIELD_IS_ALLOCATED			0x2000U
+#define PARTICLE_BITFIELD_IS_ACCELERATING		0x4000U
+#define PARTICLE_BITFIELD_HAS_COLLIDED			0x10000U
 
-#define PARTICLE_BITFIELD_TYPE_BITS_MASK		0x380000U
-#define PARTICLE_BITFIELD_TYPE_RAIN				0x0U
-#define PARTICLE_BITFIELD_TYPE_FIREFLIES		0x80000U
-#define PARTICLE_BITFIELD_TYPE_FIREFLIES_BOIDS	0x100000U
+#define PARTICLE_BITFIELD_LOOP_ANIMATION		0x20000U
+
+#define PARTICLE_BITFIELD_TYPE_BITS_MASK		0x180000U
+#define PARTICLE_BITFIELD_TYPE_NONE				0x0U
+#define PARTICLE_BITFIELD_TYPE_RAIN				0x80000U
+#define PARTICLE_BITFIELD_TYPE_BOIDS			0x100000U
 #define PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER 0x200000U
 
 #define PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK 0xC00000U
@@ -106,19 +112,25 @@
 #define PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW	0x2000000U
 
 #define PARTICLE_BITFIELD_LIGHT_CULLED					0x4000000U
-#define PARTICLE_MODULATION_TYPE_LIFETIME				0x8000000U
-#define PARTICLE_MODULATION_TYPE_SPEED					0x0000000U
+#define PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME		0x8000000U
+#define PARTICLE_BITFIELD_MODULATION_TYPE_SPEED			0x0000000U
+
+
+#define PARTICLE_CHANGED_BITFIELD_PARTICLE_AMOUNT		0x10000
+#define PARTICLE_CHANGED_BITFIELD_LIGHT_BITFIELD		0x20000
 
 STRUCT(ParticleData)
 {
 	DATA(uint2, VelocityAndAge, None);
 	DATA(uint2, Position, None);
+	DATA(float, AnimationTime, None);
+	DATA(uint, Pad, None);
 };
 
 STRUCT(ParticleSet)
 {
 	// float4 packed into a uint2. X,Y,Z: volume of the particle set, W: min scale of its particles (see MaxSizeAndSpeed for more info)
-	DATA(uint2, Size, None);
+	DATA(uint2, SpawnVolume, None);
 	// Start and End color can be used for different purposes. They can be modulated over the lifetime of the particle or over the speed of the particle.
 	// In the first case the particle spwans with StartColor and dies with EndColor. In the second case its colour is StartColor at low velocities and it is
 	// EndColor at high velocities.
@@ -127,21 +139,24 @@ STRUCT(ParticleSet)
 	// Ending color of all particles in the set. float4 packed into a uint: X, Y, Z = color. W = time to begin linear fade out
 	DATA(uint,	EndColor, None);
 
-	// Position of the particle set
-	DATA(float3, Position, None);
-	// Amount of particles to be spawned per second
-	DATA(float, ParticlesPerSecond, None);
+	DATA(uint, AttractorIndex, None);
+	DATA(uint, Allocated, None);
+	// First 16 bits: primray texture index, last 16 bits: secondary texture index (used for animation on contact)
+	DATA(uint, TextureIndices, None);
+	// Includes type of particle, which establishes its behaviour (flocking, rain...) and light settings, which
+	// describe whether particles should cast shadows or emit lights
+	DATA(uint, ParticleSetBitfield, None);
 
+	// Position of the particle set
+	DATA(float4, Position, None);
+	
 	// Light radius and intensity of noise on trajectory (float2 packed in a uint)
 	DATA(uint, LightRadiusAndVelocityNoise, None);
 	// Light pulse speed and offset (float2 packed in a uint). Pulsing is implemented using a sin wave, the speed is the multiplier of
 	// the argument, while the offset is added to the result to alter the values
 	DATA(uint, LightPulseSpeedAndOffset, None);
-	// Includes type of particle, which establishes its behaviour (flocking, rain...) and light settings, which
-	// describe whether particles should cast shadows or emit lights
-	DATA(uint, ParticleSetBitfield, None);
-	// Maximum amount of particles to allocate
-	DATA(uint, MaxParticles, None);
+	DATA(uint, MinAndMaxAlpha, None);
+	DATA(float, VelocityStretch, None);
 
 	// Lifetime of the particle
 	DATA(float, InitialAge, None);
@@ -156,7 +171,14 @@ STRUCT(ParticleSet)
 	DATA(uint, BoidsAvoidSeekStrength, None);
 	DATA(uint, BoidsSeparationFleeStrength, None);
 	DATA(uint, BoidsCohesionAlignmentStrength, None);
-	DATA(uint, SteeringStrengthMaxSpeed, None);
+	DATA(uint, SteeringStrengthMinSpeed, None);
+
+	// float4 packed into a uint2. X,Y,Z: acceleration, W: animation speed
+	DATA(uint2, Acceleration, None);
+	// Amount of particles to be spawned per second
+	DATA(float, ParticlesPerSecond, None);
+	// First 16 bits: amount of horizontal tiles, last 16 bits: amount of vertical tiles
+	DATA(uint, AnimationTiling, None);
 };
 
 STRUCT(PackedParticleTransparencyNode)
@@ -175,30 +197,59 @@ STRUCT(ParticleTransparencyNode)
 
 STRUCT(ParticleConstantBufferData)
 {
-	// Seed used to generate random values
-	DATA(uint, Seed, None);
-	// Total amount of particle sets in the particle system
-	DATA(uint, ParticleSetCount, None);
-	
-	// Amount of dispatches in the Y direction
-	DATA(uint, SimulationDispatchSize, None);
-	// Reset particles (this is set to true when the app is loaded)
-	DATA(uint, ResetParticles, None);
-	// Time elapsed since the beginning of the app
-	DATA(float, Time, None);
-	// Delta time
-	DATA(float, TimeDelta, None);
-	
-	// Screen size
-	DATA(uint2, ScreenSize, None);
-	// Point to follow when flocking
-	DATA(float4, SeekPosition, None);
-	
 	DATA(float4x4, ViewTransform, None);
 	DATA(float4x4, ProjTransform, None);
 	DATA(float4x4, ViewProjTransform, None);
 	DATA(float4, CameraPosition, None);
+
+	// Point to follow when flocking
+	DATA(float4, SeekPosition, None);
+
+	// Seed used to generate random values
+	DATA(uint, Seed, None);
+	// Delta time
+	DATA(float, TimeDelta, None);
+	// Reset particles (this is set to true when the app is loaded)
+	DATA(uint, ResetParticles, None);
+	// Time elapsed since the beginning of the app
+	DATA(float, Time, None);
+	
+	// Screen size
+	DATA(uint2, ScreenSize, None);
+	// Camera planes
+	DATA(float2, CameraPlanes, None);
 };
 RES(CBUFFER(ParticleConstantBufferData), ParticleConstantBuffer, UPDATE_FREQ_PER_FRAME, b10, binding = 2);
+
+STRUCT(ParticleBufferStateData)
+{
+	// Amount of particles for each section: LightNShadow - Light - Standard
+	DATA(uint, ParticleCounts[3], None);
+	// Counter used to allocate new particles and make their age uniform
+	DATA(uint, AllocationCounter, None);
+
+	// Attributes that changed in the last frame
+	DATA(uint, ChangedAttributesBitmask, None);
+	// Index of the last allocated particle set. We keep track of the previous one so that the simulation shader can detect changes.
+	DATA(uint, LastParticleSetIndex, None);
+	DATA(uint, PrevLastParticleSetIndex, None);
+	DATA(uint, Pad, None);
+
+	// Start indices of inactive particles. The first element contains the value of the previous frame, 
+	// the second one contains the value of the current frame
+	DATA(uint, ParticleSectionsIndices[PARTICLE_BUFFER_SECTION_COUNT * 2], None);
+	DATA(uint, MaxParticles[MAX_PARTICLE_SET_COUNT], None);
+	DATA(uint, PrevBitfield[MAX_PARTICLE_SET_COUNT], None);
+};
+
+STRUCT(ParticleSystemStats)
+{
+	// One uint per particle type
+	DATA(uint, AliveCount[PARTICLE_BUFFER_SECTION_COUNT], None);
+	DATA(uint, VisibleLightsCount, None);
+
+	DATA(uint, AllocatedCount[PARTICLE_BUFFER_SECTION_COUNT], None);
+	DATA(uint, VisibleParticlesCount, None);
+};
 
 #endif

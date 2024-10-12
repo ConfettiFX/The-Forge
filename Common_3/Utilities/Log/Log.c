@@ -175,9 +175,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
         FileStream* user = (FileStream*)tf_malloc(sizeof(FileStream));
         *user = fh;
         // AddCallback will try to acquire mutex
-        char path[FS_MAX_PATH] = { 0 };
-        fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
-        addLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
+        addLogCallback(filename, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
         acquireMutex(&gLogger.mLogMutex);
         {

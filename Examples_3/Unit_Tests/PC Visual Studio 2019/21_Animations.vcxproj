@@ -41,12 +41,14 @@
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -83,18 +85,11 @@
     <PostBuildEvent>
       <Command>
         %(Command)
-        if not exist "$(OutDir)Animation\" mklink /j "$(OutDir)Animation\" "$(TheForgeArtDir)Animation\"
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
     </FSLShader>
@@ -132,18 +127,11 @@
     <PostBuildEvent>
       <Command>
         %(Command)
-        if not exist "$(OutDir)Animation\" mklink /j "$(OutDir)Animation\" "$(TheForgeArtDir)Animation\"
-        if not exist "$(OutDir)Fonts\" mklink /j "$(OutDir)Fonts\" "$(TheForgeArtDir)Fonts\"
-        if not exist "$(OutDir)Scripts\" mklink /j "$(OutDir)Scripts\" "$(TheForgeArtDir)Scripts\"
-        if not exist "$(OutDir)GPUCfg\" mklink /j "$(OutDir)GPUCfg\" "$(TheForgeArtDir)GPUCfg\$(ProjectName)\"
-
-        if not exist "$(OutDir)CompiledShaders\" mklink /j "$(OutDir)CompiledShaders\" "$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)\"
-        if not exist "$(OutDir)PipelineCaches\" mklink /j "$(OutDir)PipelineCaches\" "$(TheForgeArtDir)PipelineCaches\$(ProjectName)\$(Configuration)\"
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(TheForgeArtDir)CompiledShaders\$(ProjectName)\$(Configuration)</BinaryOutDir>
+      <OutDir>$(OutDir)Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
     </FSLShader>

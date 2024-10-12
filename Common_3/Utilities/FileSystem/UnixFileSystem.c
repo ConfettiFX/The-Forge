@@ -31,60 +31,11 @@
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
 
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-void fsGetParentPath(const char* path, char* output);
+extern ResourceDirectoryInfo gResourceDirectories[RD_COUNT];
 
 #if defined(__APPLE__)
 #include <sys/param.h>
 #endif
-
-static bool fsDirectoryExists(const char* path)
-{
-    struct stat s;
-    if (stat(path, &s))
-    {
-        return false;
-    }
-
-    return (s.st_mode & S_IFDIR) != 0;
-}
-
-static bool fsUnixCreateDirectory(const char* path)
-{
-    if (fsDirectoryExists(path)) // Check if directory already exists
-    {
-        return true;
-    }
-
-    char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
-
-    // Recursively create all parent directories.
-    if (parentPath[0] != 0)
-    {
-        fsUnixCreateDirectory(parentPath);
-    }
-
-    if (mkdir(path, 0777) != 0)
-    {
-        LOGF(eINFO, "Unable to create directory at %s: %s", path, strerror(errno));
-        return false;
-    }
-
-    return true;
-}
-
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsUnixCreateDirectory(fsGetResourceDirectory(resourceDir)); }
-
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
-{
-    char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
-
-    struct stat fileInfo = { 0 };
-    stat(filePath, &fileInfo);
-    return fileInfo.st_mtime;
-}
 
 struct UnixFileStream
 {
@@ -126,8 +77,13 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
 {
     memset(fs, 0, sizeof *fs);
 
-    char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+#if !defined(ANDROID)
+    char filePath[FS_MAX_PATH] = { 0 };
+    strcat(filePath, gResourceDirectories[rd].mPath);
+    strcat(filePath, fileName);
+#else
+    const char* filePath = fileName;
+#endif
 
     int oflags = 0;
 
@@ -186,7 +142,6 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
 
     fs->mMode = mode;
     fs->pIO = io;
-    fs->mMount = fsGetResourceDirectoryMount(rd);
 
     if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
     {
@@ -393,12 +348,17 @@ static ssize_t ioUnixFsGetSize(FileStream* fs)
     return stream->size;
 }
 
+static void* ioUnixGetSystemHandle(FileStream* fs)
+{
+    USD(stream, fs);
+    return (void*)(ssize_t)stream->descriptor;
+}
+
 static bool ioUnixFsIsAtEnd(FileStream* fs) { return ioUnixFsGetPosition(fs) >= ioUnixFsGetSize(fs); }
 
-IFileSystem gUnixSystemFileIO = {
-    ioUnixFsOpen,  ioUnixFsClose,   ioUnixFsRead, ioUnixFsWrite, ioUnixFsSeek, ioUnixFsGetPosition, ioUnixFsGetSize,
-    ioUnixFsFlush, ioUnixFsIsAtEnd, NULL,         NULL,          NULL,         ioUnixFsMemoryMap,   NULL,
-};
+IFileSystem gUnixSystemFileIO = { ioUnixFsOpen,          ioUnixFsClose, ioUnixFsRead,    ioUnixFsWrite, ioUnixFsSeek, ioUnixFsGetPosition,
+                                  ioUnixFsGetSize,       ioUnixFsFlush, ioUnixFsIsAtEnd, NULL,          NULL,         ioUnixFsMemoryMap,
+                                  ioUnixGetSystemHandle, NULL };
 
 #if !defined(ANDROID)
 IFileSystem* pSystemFileIO = &gUnixSystemFileIO;

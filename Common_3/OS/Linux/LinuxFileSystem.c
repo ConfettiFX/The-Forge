@@ -34,16 +34,10 @@
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
 
-static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
+static bool gInitialized = false;
 
-static const char* getResourceMount(ResourceMount mount) { return gResourceMounts[mount]; }
-
-static char gApplicationPath[FS_MAX_PATH] = { 0 };
-
-static const char* gHomedir;
-
-void fsGetParentPath(const char* path, char* output);
+extern ResourceDirectoryInfo gResourceDirectories[RD_COUNT];
+void                         parse_path_statement(char* PathStatment, size_t size);
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
@@ -55,44 +49,29 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     ASSERT(pDesc);
 
     // Get application directory
-    char applicationFilePath[FS_MAX_PATH] = { 0 };
-    if (readlink("/proc/self/exe", applicationFilePath, FS_MAX_PATH) < 0)
+    if (!pDesc->mIsTool)
     {
-        LOGF(eERROR, "Failed to acquire self directory.");
-        return false;
+        const char* pathStatementPath = PATHSTATEMENT_FILE_NAME;
+
+        FILE* pathStatments = fopen(pathStatementPath, "r");
+        if (!pathStatments)
+        {
+            ASSERT(false);
+            return false;
+        }
+
+        fseek(pathStatments, 0, SEEK_END);
+        size_t fileSize = ftell(pathStatments);
+        rewind(pathStatments);
+
+        char* buffer = (char*)tf_malloc(fileSize);
+        // size may change after converting \r\n into \n
+        fileSize = fread(buffer, 1, fileSize, pathStatments);
+        fclose(pathStatments);
+
+        parse_path_statement(buffer, fileSize);
+        tf_free(buffer);
     }
-
-    pSystemFileIO->GetResourceMount = getResourceMount;
-
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-        gResourceMounts[i] = "";
-
-    fsGetParentPath(applicationFilePath, gApplicationPath);
-    gResourceMounts[RM_CONTENT] = gApplicationPath;
-    gResourceMounts[RM_DEBUG] = gApplicationPath;
-    gResourceMounts[RM_SAVE_0] = gApplicationPath;
-
-    // Get user directory
-    if ((gHomedir = getenv("HOME")) == NULL)
-    {
-        gHomedir = getpwuid(getuid())->pw_dir;
-    }
-    gResourceMounts[RM_DOCUMENTS] = gHomedir;
-
-    // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
-    {
-        if (pDesc->pResourceMounts[i])
-            gResourceMounts[i] = pDesc->pResourceMounts[i];
-    }
-
-    // Get temp directory
-    // const char* tempdir;
-    // if ((tempdir = getenv("TMPDIR")) == NULL)
-    //{
-    //	tempdir = getpwuid(getuid())->pw_dir;
-    //}
-    // fsAppendPathComponent(tempdir, "tmp", gTempDirectory);
 
     gInitialized = true;
     return true;

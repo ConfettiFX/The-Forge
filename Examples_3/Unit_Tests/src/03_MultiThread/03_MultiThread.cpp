@@ -24,8 +24,6 @@
 
 #define _USE_MATH_DEFINES
 
-#include "../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
-
 // Interfaces
 #include "../../../../Common_3/Application/Interfaces/IApp.h"
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
@@ -227,16 +225,6 @@ public:
 
     bool Init() override
     {
-        // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "Debug");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
-
         if (InitCpuUsage())
             gPerformanceStatsInited = true;
 
@@ -1122,10 +1110,7 @@ public:
         vertexLayout.mBindingCount = 1;
         vertexLayout.mAttribCount = 2;
         vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertexLayout.mAttribs[0].mFormat =
-            (sizeof(GraphVertex) > 24 ? TinyImageFormat_R32G32B32A32_SFLOAT
-                                      : TinyImageFormat_R32G32_SFLOAT); // Handle the case when padding is added to the struct (yielding 32
-                                                                        // bytes instead of 24) on macOS
+        vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
         vertexLayout.mAttribs[0].mBinding = 0;
         vertexLayout.mAttribs[0].mLocation = 0;
         vertexLayout.mAttribs[0].mOffset = 0;
@@ -1133,7 +1118,7 @@ public:
         vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
         vertexLayout.mAttribs[1].mBinding = 0;
         vertexLayout.mAttribs[1].mLocation = 1;
-        vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(vertexLayout.mAttribs[0].mFormat) / 8;
+        vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
 
         pipelineSettings = { 0 };
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
