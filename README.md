@@ -26,12 +26,12 @@ The Forge Framework (TM) (TF) provides building blocks to
 - extend 
    * Existing game engines so that they support more platforms (Starfield ...)
    * Old games (e.g. 20+ years) can be brought back to modern gaming platforms
-   * … and/or write custom game engines from scratch (most notable Supergiant Hades, Hypixel Game Engine)
+   * … and/or write custom game engines from scratch (most notably Supergiant Hades, Hypixel Game Engine)
 - write SDKs (Adreno SDK, Oculus / Qualcomm VR SDKs, Dolby AR SDK, Dolby Vision etc.), enable new technology (Google Stadia, Dolby Vision, Meta App framework etc.)
 - Supports most of the gaming platforms
 As such it is a core part of our service business.
 
-We offer many platforms (PC, macOS / iOS, Android, Steamdeck, Quest) under the Apacke License Version 2.0 here on Github. 
+We offer many platforms (PC, macOS / iOS, Android, Steamdeck, Quest) under the Apache License Version 2.0 here on Github. 
 We offer a commercial license for game consoles (Playstation, XBOX, and Switch). 
 
 
@@ -49,14 +49,14 @@ The "lego" High-Level Features supported on all platforms are at the moment:
 - [Lua Scripting System](https://www.lua.org/) - currently used for automatic testing and in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms. It also supports now Double precision.
-- Consistent Memory Managament: 
+- Consistent Memory Management: 
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Custom Input system library with Gestures for Touch devices written in C
 - Fast Entity Component System based on [flecs](https://github.com/SanderMertens/flecs) 
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [Dear imGui](https://github.com/ocornut/imgui) extended for touch input devices
-- Shader Translator using a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
+- Shader Translator uses a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
 - Various implementations of high-end Graphics Effects and game engine sub-systems as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
@@ -88,10 +88,10 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 We are testing GPU Work Graphs now for a while. We see opportunities to implement more complex compute driven interactions, which helps us to move towards GPU-driven rendering more and more. The current example runs the clear buffers and triangle culling in a GPU Work Graph if GPU Work Graphs are supported. Otherwise it takes the old path. So visually there is no change.
 
 ### Filesystem Refactor
-We data drive the everything in a game engine. For the file system, we finally managed to implement that too in the public repository. We also removed unnecessary copies and symlinks. Please note our file system consists of "two" file systems. One for the run-time and one for tools. You can't ship a tools file system in a game :-) I know that this is well known but people always want to check if a path is right, a directory exists, a file exists, before they load this one file ... yeaahh ... so our run-time file system prevents that from happening.
+We data drive everything in a game engine. For the file system, we finally managed to implement that too in the public repository. We also removed unnecessary copies and symlinks. Please note our file system consists of "two" file systems. One for the run-time and one for tools. You can't ship a tools file system in a game :-) I know that this is well known but people always want to check if a path is right, a directory exists, a file exists, before they load this one file ... yeaahh ... so our run-time file system prevents that from happening.
 
 ### Window System Refactor Phase 1
-With the on-going challenges in the area of upscaling and general window management on Operating systems that support windows, we decided to refactor our window system to bring it up to existing standards and allow us to integrate upscalers easier. Currently most upscalers do not consider the pixel center, they were written by people who never studied Bresenham's algorithm. We wanted to make sure our upscaler actually works without introducing Moire patterns or strong staircase effects like the ones currently promoted by hardware vendors.
+With the on-going challenges in the area of upscaling and general window management on Operating systems that support windows, we decided to refactor our window system to bring it up to existing standards and allow us to integrate upscalers easier. Currently, most upscalers do not consider the pixel center, they were written by people who never studied Bresenham's algorithm. We wanted to make sure our upscaler actually works without introducing Moire patterns or strong staircase effects like the ones currently promoted by hardware vendors.
 We will add more functionality in Phase 2 ... 
 
 ### Steamdeck 
@@ -109,7 +109,7 @@ Bounty Hunter was ported with the help of The Forge Framework to all the platfor
 We wrote a new input library from scratch in C. Its design follows the architecture of the rendering API. So one high-level interface file IInput.h and then platform specific files for each of the target devices. It has less lines of code compared to gainput and is easier to maintain for a small team. We are still testing it as we speak. Let us know if you see any bugs.
 
 ### Removed Vulkan from Windows Run-time
-Over the last couple of years in many of our projects, it became apparent that the best option to ship a PC / Windows game is DirectX 12. The main reason is the reduced QA effort and reliability. The other reason is that we constantly get forced to upgrade on PC to a newer version, while mobile -which is the more important platform- stays far behind. So we are not officially supporting the Vulkan run-time on Windows anymore. We have an internal version that we test and obviously we support Vulkan on Android, Switch and Steamdeck (native support).
+Over the last couple of years in many of our projects, it became apparent that the best option to ship a PC / Windows game is DirectX 12. The main reason is the reduced QA effort and reliability. The other reason is that we constantly get forced to upgrade on PC to a newer version, while mobile -which is the more important platform- stays far behind. So we are not officially supporting the Vulkan run-time on Windows anymore. We have an internal version that we test and obviously, we support Vulkan on Android, Switch and Steamdeck (native support).
 
 ### Removed API Switch from the Run-time
 Concluding that Vulkan is not a good API for PC anymore, we removed the switching functionality we had in there before to switch between DirectX 12 and Vulkan on PC and OpenGL ES 2.0 and Vulkan on Android.
@@ -136,13 +136,13 @@ We are improving our Third-Party Library integration substantially by making the
 ## Release 1.58 - June 17th, 2024 Behemoth | Compute-Driven Mega Particle System | Triangle Visibility Buffer 2.0 Update
 
 ### Announce trailer for Behemoth
-We helped Skydance Interactive to optimize Behemoth last year. Click on the image below to see the announce trailer:
+We helped Skydance Interactive to optimize Behemoth last year. Click on the image below to see the announcement trailer:
 
 [![Behemoth Trailer from June 2024](Screenshots/Behemoth/Behemoth.png)](https://youtu.be/hTmjjzwSp-E?si=rj0G6yrqv5Cr6Gn9)
 
 
 ### Compute-Based Mega Particle System
-This unit test was based on some of our research into software rasterization and GPU-driven rendering. A particle system completely running in very few compute shaders with one large buffer holding most of the data. Like with all things GPU-Driven, the trick is to execute one compute shader once on one buffer to reduce read / write memory bandwidth. Although this is not new wisdom, you will be surprised how many particle systems get this still wrong ... having compute shaders for each stage of the particle life time or even worse doing most of the particle work on the CPU.
+This unit test was based on some of our research into software rasterization and GPU-driven rendering. A particle system completely running in very few compute shaders with one large buffer holding most of the data. Like with all things GPU-Driven, the trick is to execute one compute shader once on one buffer to reduce read / write memory bandwidth. Although this is not new wisdom, you will be surprised how many particle systems get this still wrong ... having to compute shaders for each stage of the particle life time or even worse doing most of the particle work on the CPU.
 This particle system was demoed last year in a few talks in September on a Samsung S22. Here are the slides:
 
 http://www.conffx.com/WolfgangEngelParticleSystem.pptx 
@@ -191,7 +191,7 @@ By having removed overdraw in the Visibility Buffer and Depth Buffer, we run a s
 We described all this in several talks at game industry conferences, for example on GDCE 2016 [engel16] and during XFest 2018, showing considerable performance gains due to reduced memory bandwidth compared to traditional G-buffer based rendering architectures. 
 A blog post that was updated over the years for what we call now Triangle Visibility Buffer 1.0 (TVB 1.0) can be found here [engel18]. 
 
-Over the last years we extended this original idea with a Order-Independent Transparency approach (it is more efficient to sort triangle IDs in a per-pixel linked list compared to storing layers of a G-Buffer), software VRS and then we developed a Visibility Buffer approach that doesn't require draw calls to fill the depth and Visibility Buffer and one that requires much less draw calls in parallel. 
+Over the last years we extended this original idea with an Order-Independent Transparency approach (it is more efficient to sort triangle IDs in a per-pixel linked list compared to storing layers of a G-Buffer), software VRS and then we developed a Visibility Buffer approach that doesn't require draw calls to fill the depth and Visibility Buffer and one that requires much less draw calls in parallel. 
 This release offers -what we call- an updated Triangle Visibility Buffer 1.0 (TVB 1.0) and a prototype for the Triangle Visibility Buffer 2.0 (TVB 2.0).
 
 The changes to TVB 1.0 are evolutionary. We used to map each mesh to an indirect draw element. This reuqired the use of DrawID to map back to the per-mesh data. When working on a game engine with a very high amount of draw calls, it imposed a limitation on the number of "draws" we could do, due to having only a limited number of bits available in the VB.
@@ -255,14 +255,14 @@ We work on Warzone Mobile since August 2020. The game launched on March 21, 2024
 ![Warzone Mobile](Screenshots/Warzone%20Mobile/WZM-LIMITEDRELEASE-1128-TOUT.jpg) 
 
 ### Visibility Buffer
-We removed CPU cluster culling and simplified the animation data usage. Now traingle filtering only takes one dispatch each frame again.
+We removed CPU cluster culling and simplified the animation data usage. Now triangle filtering only takes one dispatch each frame again.
 
-### Swappy frame pacer is now vailable in Android/Vulkan
+### Swappy frame pacer is now available in Android/Vulkan
 We integrated the [Swappy](https://developer.android.com/games/sdk/frame-pacing) frame pacer into the Android / Vulkan eco system. 
 
 
-### GPUCfg system improved with more ids and less string compares
-we did another pass on the GPUCfg system and now we can generate the vendor Ids and model Ids with a python script to keep the *_gpu.data list easily up to date for each platform. 
+### GPUCfg system improved with more IDs and fewer strings compared
+we did another pass on the GPUCfg system and now we can generate the vendor IDs and model IDs with a Python script to keep the *_gpu.data list easily up to date for each platform. 
 We removed most of the name comparisons and replaced them with the id comparisons which should speed up parsing time and is more specific.
 
 ### Screen-Space Shadows in UT9
@@ -335,7 +335,7 @@ Instead of a long list of parameters we now provide a struct that gives us enoug
 ### Variable Rate Shading
 We added Variable Rate Shading to the Visibility Buffer OIT example test 15a. This way we have a better looking test scene with St. Miguel.
 
-VRS allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://research.activision.com/publications/2020-09/software-based-variable-rate-shading-in-call-of-duty--modern-war
+VRS allows rendering parts of the render target at different resolutions based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://research.activision.com/publications/2020-09/software-based-variable-rate-shading-in-call-of-duty--modern-war
 
 The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
 It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
@@ -404,7 +404,7 @@ Various bug fixes to make this more stable. Still alpha ... will crash.
 
 
 ## Release 1.54 - February 2nd, 2024 - Remote UI Control | Shader Server | Visibility Buffer | Asset Pipeline | GPU Config System | macOS/iOS | Lots more ...
-Our last release was in October 2022. We were so busy that we lost track of time. In March 2023 we planned to make the next release. We started testing and fixing and improving code up until today. The amount of improvements coming back from the -most of the time- 8 - 10 projects we are working on where so many, it was hard to integrate all this, test it and then maintain it. To a certain degree our business has higher priority than making GitHub releases but we realize that letting a lot of time pass makes it substantially harder for us to get the whole code base back in shape, even with a company size of nearly 40 graphics programmers. So we cut down functional or unit tests, so that we have less variables. We also restructured large parts of our code base so that it is easier to maintain. One of the constant maintenance challenges were the macOS / iOS run-time (More about that below). 
+Our last release was in October 2022. We were so busy that we lost track of time. In March 2023 we planned to make the next release. We started testing and fixing and improving the code up until today. The amount of improvements coming back from the -most of the time- 8 - 10 projects we are working on where so many, it was hard to integrate all this, test it and then maintain it. To a certain degree our business has higher priority than making GitHub releases but we realize that letting a lot of time pass makes it substantially harder for us to get the whole code base back in shape, even with a company size of nearly 40 graphics programmers. So we cut down functional or unit tests, so that we have fewer variables. We also restructured large parts of our code base so that it is easier to maintain. One of the constant maintenance challenges was the macOS / iOS run-time (More about that below). 
 We invested a lot in our testing environment. We have more consoles now for testing and we also have a much needed screenshot testing system. We outsource testing to external service providers more. We removed Linux as a stand-alone target but the native Steamdeck support should make up for this. 
 We tried to be conservative about increasing API versions because we know on many platforms our target group will use older OS or API implementations. Nevertheless we were more adventurous this year then before. So we bumped up with a larger step than in previous years.
 Our next release is planned for in about four weeks time. We still have work to do to bring up a few source code parts but now the increments are much smaller. 
@@ -437,7 +437,7 @@ No Man Sky has launched on macOS:
 
 ### Software Variable Rate Shading
 
-This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
+This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolutions based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
 
 PC Windows (2560x1080):
 ![Variable Rate Shading on PC](Screenshots/35_VariableRateShading_Win10_RX7600_2560x1080.png)
@@ -466,7 +466,7 @@ UI description:
 - Toggle VRS – enable/disable VRS
 - Draw Cubes – enable/disable dynamic objects in the scene
 - Toggle Debug View – shows auto-generated VRS map if VRS is enabled
-- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
+- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight the performance benefits of the solution by making the fragment shader heavy enough.
 Limitations:
 	Relies on programmable sample locations support – not widely supported on Android devices.
 
@@ -481,12 +481,12 @@ To enable re-compilation of shaders during run-time we implemented a cross-platf
 You can find the documentation in the Wiki in the FSL section.
 
 ### Remote UI Control
-When working remotely, on mobile or console  it can cumbersome to control the development UI.
+When working remotely, on mobile or console, it can be cumbersome to control the development UI.
 We added a remote control application in Common_3\Tools\UIRemoteControl which allows control of all UI elements on all platforms.
 It works as follows:
 - Build and Launch the Remote Control App located in Common_3/Tools/UIRemoteControl
 - When a unit test is started on the target application (i.e. consoles), it starts listening for connections on a part (8889 by default)
-- In the Remote Control App, enter the target ip address and click connect
+- In the Remote Control App, enter the target IP address and click connect
 
 ![Remote UI Control](Screenshots/Remote%20UI.jpg)
 
