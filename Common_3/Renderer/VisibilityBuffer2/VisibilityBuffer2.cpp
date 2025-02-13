@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -80,19 +80,19 @@ typedef struct FilterBatchChunk
 GPURingBuffer gFilterBatchDataBuffer = {};
 GPURingBuffer gPreSkinBatchDataBuffer = {};
 
-static void DispatchPreSkinVertexes(Cmd* pCmd, PreSkinBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetPreSkinVertexes,
-                                    GPURingBufferOffset* ringBufferOffset, uint32_t batchDataOffsetBytes)
+static void DispatchPreSkinVertexes(Cmd* pCmd, PreSkinBatchChunk* pBatchChunk, GPURingBufferOffset* ringBufferOffset,
+                                    uint32_t batchDataOffsetBytes, const PreSkinVertexesPassDesc* pDesc)
 {
     ASSERT(pBatchChunk->mCurrentBatchCount > 0);
     ASSERT(ringBufferOffset);
-
     DescriptorDataRange range = { (uint32_t)ringBufferOffset->mOffset + batchDataOffsetBytes,
                                   gVBSettings.mPreSkinBatchCount * (uint32_t)sizeof(PreSkinBatchData) };
     DescriptorData      params[1] = {};
-    params[0].pName = "batchData_rootcbv";
-    params[0].pRanges = &range;
+    params[0].mIndex = pDesc->mPreSkinBatchIndex;
     params[0].ppBuffers = &ringBufferOffset->pBuffer;
-    cmdBindDescriptorSetWithRootCbvs(pCmd, 0, pDescriptorSetPreSkinVertexes, 1, params);
+    params[0].pRanges = &range;
+    updateDescriptorSet(pCmd->pRenderer, pDesc->mFrameIndex, pDesc->pDescriptorSetPreSkinVertexesPerDraw, 1, params);
+    cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetPreSkinVertexesPerDraw);
     cmdDispatch(pCmd, pBatchChunk->mCurrentBatchCount, 1, 1);
 
     // Reset batch chunk to start adding vertexes to it
@@ -159,8 +159,7 @@ PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pV
                 const uint32_t batchDataOffset = (uint32_t)(batches - origin);
                 ASSERT(batchDataOffset + batchChunk.mCurrentBatchCount <= maxTotalPreSkinBatches);
                 const uint32_t dispatchedBatchCount = batchChunk.mCurrentBatchCount;
-                DispatchPreSkinVertexes(pCmd, &batchChunk, pDesc->pDescriptorSetPreSkinVertexes, &offset,
-                                        batchDataOffset * sizeof(PreSkinBatchData));
+                DispatchPreSkinVertexes(pCmd, &batchChunk, &offset, batchDataOffset * sizeof(PreSkinBatchData), pDesc);
 
                 ASSERT(round_up(dispatchedBatchCount, gVBSettings.mUniformBufferAlignment) == dispatchedBatchCount &&
                        "batches pointer will end up with wrong alignment expected by the GPU");
@@ -175,8 +174,7 @@ PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pV
 
         const uint32_t batchDataOffset = (uint32_t)(batches - origin);
         ASSERT(batchDataOffset + batchChunk.mCurrentBatchCount <= maxTotalPreSkinBatches);
-        DispatchPreSkinVertexes(pCmd, &batchChunk, pDesc->pDescriptorSetPreSkinVertexes, &offset,
-                                batchDataOffset * sizeof(PreSkinBatchData));
+        DispatchPreSkinVertexes(pCmd, &batchChunk, &offset, batchDataOffset * sizeof(PreSkinBatchData), pDesc);
     }
 
     endUpdateResource(&updateDesc);
@@ -185,8 +183,8 @@ PreSkinVertexesStats cmdVisibilityBufferPreSkinVertexesPass(VisibilityBuffer* pV
     return stats;
 }
 
-static void DispatchFilterTriangles(Cmd* pCmd, FilterBatchChunk* pBatchChunk, DescriptorSet* pDescriptorSetTriangleFiltering,
-                                    GPURingBufferOffset* ringBufferOffset, uint32_t batchDataOffsetBytes)
+static void DispatchFilterTriangles(Cmd* pCmd, FilterBatchChunk* pBatchChunk, GPURingBufferOffset* ringBufferOffset,
+                                    uint32_t batchDataOffsetBytes, uint32_t disptachIndex, TriangleFilteringPassDesc* pDesc)
 {
     ASSERT(pBatchChunk->mCurrentBatchCount > 0);
     ASSERT(ringBufferOffset);
@@ -194,10 +192,14 @@ static void DispatchFilterTriangles(Cmd* pCmd, FilterBatchChunk* pBatchChunk, De
     DescriptorDataRange range = { (uint32_t)ringBufferOffset->mOffset + batchDataOffsetBytes,
                                   gVBSettings.mFilterBatchCount * (uint32_t)sizeof(FilterBatchData) };
     DescriptorData      params[1] = {};
-    params[0].pName = "batchData_rootcbv";
-    params[0].pRanges = &range;
+    params[0].mIndex = pDesc->mTriangleFilteringBatchIndex;
     params[0].ppBuffers = &ringBufferOffset->pBuffer;
-    cmdBindDescriptorSetWithRootCbvs(pCmd, 0, pDescriptorSetTriangleFiltering, 1, params);
+    params[0].pRanges = &range;
+
+    uint32_t bufferIndex = disptachIndex + pDesc->mFrameIndex * 2048;
+    updateDescriptorSet(pCmd->pRenderer, bufferIndex, pDesc->pDescriptorSetTriangleFilteringPerBatch, 1, params);
+    cmdBindDescriptorSet(pCmd, bufferIndex, pDesc->pDescriptorSetTriangleFilteringPerBatch);
+    cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerDraw);
     cmdDispatch(pCmd, pBatchChunk->mCurrentBatchCount, 1, 1);
 
     // Reset batch chunk to start adding triangles to it
@@ -229,6 +231,7 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Bin Buffer");
     cmdBindPipeline(pCmd, pDesc->pPipelineClearBuffers);
     cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
+    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetTriangleFilteringPerDraw);
     cmdDispatch(pCmd, 1, 1, 1);
     bufferIndex = 0;
     barrier[bufferIndex++] = { pVisibilityBuffer->ppBinBuffer[pDesc->mBuffersIndex], RESOURCE_STATE_UNORDERED_ACCESS,
@@ -243,6 +246,7 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
     cmdBindPipeline(pCmd, pDesc->pPipelineTriangleFiltering);
     cmdBindDescriptorSet(pCmd, 0, pDesc->pDescriptorSetTriangleFiltering);
     cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
+    cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerDraw);
 
     const uint32_t      maxTotalFilterBatches = gVBSettings.mFilterBatchCount * gVBSettings.mNumFilterBatchChunks;
     const uint64_t      size = maxTotalFilterBatches * sizeof(FilterBatchData);
@@ -311,8 +315,8 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
 
                     const uint32_t batchDataOffset = (uint32_t)(batches - origin);
                     ASSERT(batchDataOffset + batchChunk.mCurrentBatchCount <= maxTotalFilterBatches);
-                    DispatchFilterTriangles(pCmd, &batchChunk, pDesc->pDescriptorSetTriangleFiltering, &offset,
-                                            batchDataOffset * sizeof(FilterBatchData));
+                    DispatchFilterTriangles(pCmd, &batchChunk, &offset, batchDataOffset * sizeof(FilterBatchData),
+                                            stats.mTotalShaderDispatches, pDesc);
                 }
 
                 // Make sure we advance to a proper aligned batch count so that the next dispatch call has the memory properly aligned.
@@ -347,8 +351,7 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
 
         const uint32_t batchDataOffset = (uint32_t)(batches - origin);
         ASSERT(batchDataOffset + batchChunk.mCurrentBatchCount <= maxTotalFilterBatches);
-        DispatchFilterTriangles(pCmd, &batchChunk, pDesc->pDescriptorSetTriangleFiltering, &offset,
-                                batchDataOffset * sizeof(FilterBatchData));
+        DispatchFilterTriangles(pCmd, &batchChunk, &offset, batchDataOffset * sizeof(FilterBatchData), stats.mTotalShaderDispatches, pDesc);
     }
 
     endUpdateResource(&updateDesc);

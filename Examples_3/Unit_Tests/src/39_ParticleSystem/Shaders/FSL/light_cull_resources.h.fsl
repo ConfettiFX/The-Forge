@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,15 +25,6 @@
 #define INT_MAX	2147483647
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_defs.h.fsl"
 
-// cluster lights
-RES(RWBuffer(uint), lightClustersCount, UPDATE_FREQ_NONE, u0, binding = 2);
-RES(RWBuffer(uint), lightClusters, UPDATE_FREQ_NONE, u1, binding=3);
-RES(RWBuffer(uint), DepthBoundsBuffer, UPDATE_FREQ_NONE, u4, binding=6);
-
-RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, t52, binding = 11);
-RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, t53, binding = 10);
-RES(Tex2D(float), DepthBuffer, UPDATE_FREQ_NONE, t69, binding = 20);
-RES(Tex2D(float2), DownsampledDepthBuffer, UPDATE_FREQ_NONE, t70, binding = 21);
 
 uint GetDepthBitmaskIndex(float minDepth, float maxDepth, float currDepth)
 {

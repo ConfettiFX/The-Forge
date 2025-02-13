@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,6 +21,8 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 STRUCT(PsIn)
 {
@@ -28,22 +30,21 @@ STRUCT(PsIn)
     DATA(float2, texCoord, TEXCOORD);
 };
 
-RES(Tex2D(float4), SceneTex,  UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 1);
-RES(Tex2D(float4), GodRayTex, UPDATE_FREQ_NONE, s1, binding = 2);
+
 
 STRUCT(FSOutput)
 {
 	DATA(float4, FragmentOutput, SV_Target);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
     FSOutput Out;
 
-	float4 sceneColor = SampleTex2D(SceneTex, uSampler0, In.texCoord);
-	sceneColor.rgb += SampleTex2D(GodRayTex, uSampler0, In.texCoord).rgb;
+	float4 sceneColor = SampleTex2D(gSceneTex, gSamplerTrilinearClamp, In.texCoord);
+	sceneColor.rgb += SampleTex2D(gGodRayTex, gSamplerTrilinearClamp, In.texCoord).rgb;
     Out.FragmentOutput = float4(sceneColor.rgb, 1.0);
 
     RETURN(Out);

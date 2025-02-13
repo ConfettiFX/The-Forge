@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -231,16 +231,11 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         stream->handle = (HANDLE)_get_osfhandle(_fileno(fp));
         if (stream->handle == INVALID_HANDLE_VALUE)
         {
-            LOGF(LogLevel::eERROR, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
             fclose(fp);
             return false;
         }
 
         return true;
-    }
-    else
-    {
-        LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
     }
 
     return false;

@@ -1,35 +1,49 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{b835283c-8ddc-4354-b36f-337ea10bdb1c}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{8bde3048-db88-4096-b075-c9a253851149}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{47b43160-e6e5-49db-97f8-a559a4f46e9a}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{e247673e-226c-4c13-8d66-53c957743069}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{ddafd88d-25fe-4109-bc93-facc63d3904f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{7ae10628-71f5-43a5-a6d7-01b8169333f5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\28_Skinning\28_Skinning.cpp" />
+    <ClCompile Include="..\src\28_Skinning\28_Skinning.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClInclude Include="..\src\28_Skinning\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\resources.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
+    <None Include="..\src\28_Skinning\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
+    </None>
   </ItemGroup>
 </Project>

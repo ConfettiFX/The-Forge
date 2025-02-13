@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,23 +23,16 @@
 */
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "shadow_filtering.srt.h"
 
-RES(RWTex2D(float), Textures[2], UPDATE_FREQ_NONE, u0, binding = 0);
-
-STRUCT(RootConstantData)
-{
-	DATA(uint2, ShadowmapSize, None);
-	DATA(uint, Horizontal, None);
-	DATA(uint, Pad, None);
-};
-RES(ROOT_CONSTANT(RootConstantData), RootConstant, UPDATE_FREQ_NONE, b5, binding = 0);
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(SHADOWMAP_BLUR_THREAD_COUNT, SHADOWMAP_BLUR_THREAD_COUNT, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint3) threadInGroup, SV_GroupID(uint3) groupID )
 {
 	INIT_MAIN;
 
-	if (threadInDispatch.x >= RootConstant.ShadowmapSize.x || threadInDispatch.y >= RootConstant.ShadowmapSize.y)
+	if (threadInDispatch.x >= gShadowFilteringConstants.ShadowmapSize.x || threadInDispatch.y >= gShadowFilteringConstants.ShadowmapSize.y)
 	{
 		RETURN();
 	}
@@ -47,14 +40,14 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 	int stepCount = 1;
 	float sigma = float(stepCount * 2 + 1) / 2.0;
 	
-	uint horizontal = RootConstant.Horizontal;
+	uint horizontal = gShadowFilteringConstants.Horizontal;
 	uint readIdx = horizontal == 1 ? 0 : 1;
 	uint writeIdx = 1 - readIdx;
 
 	float currSample;
 
 	BeginNonUniformResourceIndex(readIdx, 2);
-	currSample = LoadRWTex2D(Textures[readIdx], threadInDispatch.xy).x;
+	currSample = LoadRWTex2D(gShadowTexturesRW[readIdx], threadInDispatch.xy).x;
 	EndNonUniformResourceIndex();
 
 	float anisoSize = currSample * 5;
@@ -73,11 +66,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 	{
 		int intOffset = int(round(currOffset));
 		int2 coords = int2(threadInDispatch.xy) + int2(intOffset * uint(horizontal == 1), intOffset * uint(horizontal == 0));
-		coords = clamp(coords, int2(0,0), int2(RootConstant.ShadowmapSize - 1));
+		coords = clamp(coords, int2(0,0), int2(gShadowFilteringConstants.ShadowmapSize - 1));
 
 		float shadow;
 		BeginNonUniformResourceIndex(readIdx, 2);
-		shadow = LoadRWTex2D(Textures[readIdx], coords).x;
+		shadow = LoadRWTex2D(gShadowTexturesRW[readIdx], coords).x;
 		EndNonUniformResourceIndex();
 
 		float a = float(abs(i)) / sigma;
@@ -92,7 +85,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 
 	val /= totWeight;
 
-	Write2D(Textures[writeIdx], threadInDispatch.xy, val);
+	Write2D(gShadowTexturesRW[writeIdx], threadInDispatch.xy, val);
 	
 	RETURN();
 }

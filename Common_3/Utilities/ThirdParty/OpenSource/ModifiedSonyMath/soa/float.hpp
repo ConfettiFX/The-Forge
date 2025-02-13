@@ -2,7 +2,7 @@
 //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).

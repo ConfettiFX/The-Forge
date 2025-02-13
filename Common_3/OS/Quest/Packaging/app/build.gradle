@@ -29,7 +29,7 @@ android {
     }
 
     aaptOptions {
-        noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip'
+        noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip', '.buny'
     }
 
     signingConfigs {

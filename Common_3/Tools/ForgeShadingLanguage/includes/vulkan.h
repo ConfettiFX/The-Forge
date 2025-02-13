@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -91,25 +91,6 @@
 #define CAT(a, b) a ## b
 #define XCAT(a, b) CAT(a, b)
 
-#ifndef UPDATE_FREQ_NONE
-    #define UPDATE_FREQ_NONE      set = 0
-#endif
-#ifndef UPDATE_FREQ_PER_FRAME
-    #define UPDATE_FREQ_PER_FRAME set = 1
-#endif
-#ifndef UPDATE_FREQ_PER_BATCH
-    #define UPDATE_FREQ_PER_BATCH set = 2
-#endif
-#ifndef UPDATE_FREQ_PER_DRAW
-    #define UPDATE_FREQ_PER_DRAW  set = 3
-#endif
-#define UPDATE_FREQ_USER      UPDATE_FREQ_NONE
-#define space4                UPDATE_FREQ_NONE
-#define space5                UPDATE_FREQ_NONE
-#define space6                UPDATE_FREQ_NONE
-#define space10                UPDATE_FREQ_NONE
-
-
 #define STRUCT(NAME) struct NAME
 #define DATA(TYPE, NAME, SEM) TYPE NAME
 
@@ -138,12 +119,22 @@ bvec3 LessThanEqual(in(vec3) X, in(float) Y) { return lessThanEqual(X, f3(Y)); }
 bvec2 LessThanEqual(in(vec2) a, in(vec2) b)  { return lessThanEqual(a, b);}
 
 bvec2 GreaterThan(in(vec2) a, in(float) b)      { return greaterThan(a, vec2(b)); }
-bvec3 GreaterThan(in(vec3) a, in(float) b)      { return greaterThan(a, f3(b)); }
 bvec2 GreaterThan(in(uvec2) a, in(uint) b)      { return greaterThan(a, uvec2(b)); }
 bvec2 GreaterThan(in(vec2) a, in(vec2) b)       { return greaterThan(a, b);}
+bvec2 GreaterThanEqual(in(vec2) a, in(float) b) { return greaterThanEqual(a, vec2(b)); }
 bvec2 GreaterThanEqual(in(vec2) a, in(vec2) b)  { return greaterThanEqual(a, b);}
-bvec4 GreaterThan(in(vec4) a, in(vec4) b)       { return greaterThan(a, b); }
+
+bvec3 GreaterThan(in(vec3) a, in(float) b)      { return greaterThan(a, f3(b)); }
+bvec3 GreaterThan(in(uvec3) a, in(uint) b)      { return greaterThan(a, uvec3(b)); }
+bvec3 GreaterThan(in(vec3) a, in(vec3) b)       { return greaterThan(a, b);}
 bvec3 GreaterThanEqual(in(vec3) a, in(float) b) { return greaterThanEqual(a, vec3(b)); }
+bvec3 GreaterThanEqual(in(vec3) a, in(vec3) b)  { return greaterThanEqual(a, b);}
+
+bvec4 GreaterThan(in(vec4) a, in(float) b)      { return greaterThan(a, vec4(b)); }
+bvec4 GreaterThan(in(uvec4) a, in(uint) b)      { return greaterThan(a, uvec4(b)); }
+bvec4 GreaterThan(in(vec4) a, in(vec4) b)       { return greaterThan(a, b);}
+bvec4 GreaterThanEqual(in(vec4) a, in(float) b) { return greaterThanEqual(a, vec4(b)); }
+bvec4 GreaterThanEqual(in(vec4) a, in(vec4) b)  { return greaterThanEqual(a, b);}
 
 bvec2 And(in(bvec2) a, in(bvec2) b)
 { return bvec2(a.x && b.x, a.y && b.y); }
@@ -191,7 +182,9 @@ bool allGreaterThan(const vec4 a, const vec4 b)
 #define AtomicCompareExchange(DEST, COMPARE_VALUE, VALUE, ORIGINAL_VALUE) \
     ORIGINAL_VALUE = atomicCompSwap((DEST), (COMPARE_VALUE), (VALUE))
 
-#define CBUFFER(T)
+#define CBUFFER(T) T
+#define Buffer(T) T
+#define RWBuffer(T) T
 #define PUSH_CONSTANT(NAME, REG) layout(push_constant) uniform NAME##Block
 
 // #define mul(a, b) (a * b)

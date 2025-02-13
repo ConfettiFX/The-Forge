@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidInput.cpp" />
@@ -21,7 +22,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\CPUConfig.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\StbDs.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\lz4\lz4.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\debug.c" />
@@ -152,13 +152,15 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash2D.vert.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash3D.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\Fonts_ShaderList.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\font_shaders.list" />
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\screenshot_shaders.list" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UI_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Animation_ShaderList.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ui_shaders.list" />
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_shaders.list" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.vert.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl" />

@@ -1,0 +1,203 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#define DEBUG_BIN_TRIANGLE_COUNT_DIGITS 5
+
+bool isBinBoundary(int2 screenCoord, uint binSize)
+{
+    return abs(frac(float(screenCoord.x) / binSize)) < 0.0075 || abs(frac(float(screenCoord.y) / binSize)) < 0.0075;
+}
+
+bool isTriangleBoundary(float3 bary, float duv)
+{
+    float scale = 0.5 - 0.005;
+	return AnyGreaterThan(abs(bary - float3(0.5f, 0.5f, 0.5f)), float3(scale, scale, scale));
+}
+
+bool isOutOfTriangle(float3 bary)
+{
+	return AnyGreaterThan(-bary, float3(0, 0, 0));
+}
+
+int visualizeNumber(float2 uv, int n)
+{
+    float2 scale = float2(0.25, 0.2);
+
+    int ix = int(floor(uv.x * 4));
+    int iy = int(floor(uv.y * 5));
+
+    if (uv.x < -scale.x || uv.y < -scale.y || uv.x > 1 + scale.x || uv.y > 1 + scale.y)
+    {
+        return -1;
+    }
+
+    if (ix == 3 || uv.x < 0 || uv.y < 0 || uv.x > 1 || uv.y > 1)
+    {
+        return 0;
+    }
+
+    switch (n)
+    {
+    case 0:
+        return int(!(ix == 1 && abs(iy - 2) <= 1));
+    case 1:
+        return int(ix == 2);
+    case 2:
+        return int(!((iy == 1 && ix <= 1) || (iy == 3 && ix >= 1)));
+    case 3:
+        return int(!((iy == 1 || iy ==3) && (ix <= 1)));
+    case 4:
+        return int(!((ix == 1 && abs(iy - 2) > 0) || (ix == 0 && iy > 2)));
+    case 5:
+        return int(!((iy == 1 && ix >= 1) || (iy == 3 && ix <= 1)));
+    case 6:
+        return int(!((iy == 1 && ix >= 1) || (ix == 1 && iy == 3)));
+    case 7:
+        return int(ix == 2 || iy == 0);
+    case 8:
+        return int(!((ix == 1 && iy == 1) || (ix == 1 && iy == 3)));
+    case 9:
+        return int(!((ix == 1 && iy == 1) || (iy == 3 && ix <= 1)));
+    }
+    return -1;
+}
+
+float3 visualizeBinCount(float2 uv, uint n, uint digits, float3 colorIn)
+{
+    float2 scale = float2(1.0, 1.0) * 12.8;
+    int2   iuv = int2(floor(uv * scale - float2(0.5, 0.5)));
+
+    if (iuv.y < 2 && iuv.x < digits)
+    {
+        int result = visualizeNumber(uv * scale - float2(iuv.x + 0.5, 0.5), int((n / int(pow(10.0f, digits - iuv.x - 1.0f))) % 10));
+
+        switch (result)
+        {
+        case -1:
+            return colorIn;
+        case 0:
+            return float3(1, 1, 1);
+        case 1:
+            return float3(0, 0, 0);
+        }
+    }
+    return colorIn;
+}
+
+float3 heatmap(float x)
+{
+    const float Div = 1.0 / 4.0;
+    if (x < Div)
+        return float3(0.0, x / Div, 1.0);
+    else if (x < Div * 2)
+        return float3(0.0, 1.0, 2.0 - x / Div);
+    else if (x < Div * 3)
+        return float3(x / Div - 2.0, 1.0, 0.0);
+    else
+        return float3(1.0, 4.0 - x / Div, 0.0);
+}
+
+float3 triangleColor(uint index, uint div)
+{
+    float x = float((index / div / div) % div) / div;
+    float y = float((index / div) % div) / div;
+    float z = float(index % div) / div;
+    return float3(x, y, z);
+}
+
+float3 triangleColorWithUV(uint index, uint div, float2 uv, uint grid)
+{
+    float  x = float((index / div / div) % div) / div;
+    float  y = float((index / div) % div) / div;
+    float  z = float(index % div) / div;
+    float3 triColor = float3(x, y, z);
+    float3 uvColor = float3(float(abs(frac(uv.x * grid)) > 0.2 / grid), float(abs(frac(uv.y * grid)) > 0.2 / grid), 1.0);
+    return triColor * uvColor;
+}
+
+float3 debugVisualize(
+    float3 color, int2 screenPos, uint triangleIndex, float2 texCoord, float3 bary, float NoV, float duv,
+    float2 binCoord, uint binTriangleCount, float binOccupancy, uint binSize,
+    bool visualizeGeometry, bool visualizeBinTriangleCount, bool visualizeBinOccupancy)
+{
+    if (visualizeGeometry)
+    {
+        color = triangleColorWithUV(triangleIndex, 100, texCoord, 10) * abs(NoV);
+
+        if (isTriangleBoundary(bary, duv))
+        {
+            color = float3(0, 0, 0);
+        }
+
+        if (isOutOfTriangle(bary))
+        {
+            color = float3(1, 0, 0);
+        }
+    }
+
+    if (visualizeBinTriangleCount || visualizeBinOccupancy)
+    {
+        if (visualizeBinOccupancy)
+        {
+            color = lerp(color, heatmap(binOccupancy), binOccupancy);
+        }
+
+        if (visualizeBinTriangleCount)
+        {
+            color = visualizeBinCount(frac(binCoord), binTriangleCount, DEBUG_BIN_TRIANGLE_COUNT_DIGITS, color);
+        }
+
+        if (isBinBoundary(screenPos, binSize))
+        {
+            color = 1.0 - color;
+        }
+    }
+    return color;
+}
+
+float3 debugVisualizeSimple(
+    int2 screenPos, float2 binCoord, uint binTriangleCount, float binOccupancy, uint binSize,
+    bool visualizeBinTriangleCount, bool visualizeBinOccupancy)
+{
+    float3 color = float3(0, 0, 0);
+
+    if (visualizeBinTriangleCount || visualizeBinOccupancy)
+    {
+        if (visualizeBinOccupancy)
+        {
+            color = lerp(color, heatmap(binOccupancy), binOccupancy);
+        }
+
+        if (visualizeBinTriangleCount)
+        {
+            color = visualizeBinCount(frac(binCoord), binTriangleCount, DEBUG_BIN_TRIANGLE_COUNT_DIGITS, color);
+        }
+
+        if (isBinBoundary(screenPos, binSize))
+        {
+            color = 1.0 - color;
+        }
+    }
+    return color;
+}

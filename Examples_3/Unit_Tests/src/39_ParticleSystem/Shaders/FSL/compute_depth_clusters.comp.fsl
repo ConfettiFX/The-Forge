@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,17 +23,19 @@
 */
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "cluster_lights.srt.h"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-
 #include "light_cull_resources.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(DEPTH_BOUNDS_GROUP_AMOUNT_X, DEPTH_BOUNDS_GROUP_AMOUNT_Y, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 {
 	INIT_MAIN;
 
-	float2 windowSize = PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
+	float2 windowSize = gPerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
 	uint2 coords;
 	uint clusterId = 0, depthBitmask = 0;
 
@@ -67,7 +69,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 			{
 				uint tmp;
 				if (depthBitmask != 0)
-					AtomicOr(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
+					AtomicOr(gDepthBoundsBufferRW[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
 				
 				depthBitmask = 0;
 			}
@@ -75,19 +77,19 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch )
 			clusterId = currClusterId;
 
 			float2 minMaxDepth;
-			minMaxDepth.x = float(DepthBoundsBuffer[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE]);
-			minMaxDepth.y = float(DepthBoundsBuffer[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1]);
+			minMaxDepth.x = float(gDepthBoundsBufferRW[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE]);
+			minMaxDepth.y = float(gDepthBoundsBufferRW[currClusterId * DEPTH_BOUNDS_ENTRY_SIZE + 1]);
 			minMaxDepth = (minMaxDepth / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
 	
 			// Build bitmask
-			float depth = linearizeDepthReverseZ(LoadTex2D(DepthBuffer, NO_SAMPLER, coords, 0).x, CAMERA_NEAR, CAMERA_FAR);
+			float depth = linearizeDepthReverseZ(LoadTex2D(gDepthBuffer, NO_SAMPLER, coords, 0).x, CAMERA_NEAR, CAMERA_FAR);
 			depthBitmask = depthBitmask | (1 << GetDepthBitmaskIndex(minMaxDepth.x, minMaxDepth.y, depth));
 		}
 	}
 	
 	uint tmp;
 	if (depthBitmask != 0)
-		AtomicOr(DepthBoundsBuffer[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
+		AtomicOr(gDepthBoundsBufferRW[clusterId * DEPTH_BOUNDS_ENTRY_SIZE+2], depthBitmask, tmp);
 	
 	RETURN();
 }

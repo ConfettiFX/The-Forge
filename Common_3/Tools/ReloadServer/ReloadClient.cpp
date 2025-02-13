@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,9 +30,9 @@ How ReloadServer works:
     4. ReloadServer daemon loads the cached `fsl.py` args from the directories sent by App
     5. ReloadServer daemon recompiles shaders using cached args and uploads modified shaders back to App
     6. App caches uploaded shaders and sets `gClient.mDidReload`
-    7. On next call to `App.update`, `platformReloadClientShouldQuit` calls `requestReload(ReloadDesc{ RELOAD_TYPE_SHADER })` (and
+    7. On next call to `App.update`, `platformUpdateReloadClient` calls `requestReload(ReloadDesc{ RELOAD_TYPE_SHADER })` (and
 shader-reloading is enabled again)
-    8. When shaders are reloaded, `platformReloadClientGetShaderBinary` checks if the given path was updated and provides the new shader
+    8. When shaders are reloaded, `platformGetReloadBinary` checks if the given path was updated and provides the new shader
 bytecode
     9. Shader changes are now visible in App
 
@@ -154,10 +154,6 @@ typedef struct ReloadClient
 static ReloadClient gClient{};
 
 static InputEnum gReloadKey;
-
-#if defined(AUTOMATED_TESTING)
-uint32_t gReloadServerRequestRecompileAfter = 0;
-#endif
 
 static uint32_t decodeU32LE(uint8_t** pBuffer)
 {
@@ -456,7 +452,7 @@ static void requestRecompileThreadFunc(void* userdata)
     bool   success = false;
     while (!success && tryCount < 5)
     {
-        LOGF(eDEBUG, "Connecting to ReloadServer...");
+        LOGF(eDEBUG, "Connecting to ReloadServer on port %u...", (uint32_t)gClient.mPort);
         success = socketCreateClient(&sock, &gClient.mAddr);
         if (!success)
         {
@@ -593,7 +589,7 @@ void platformExitReloadClient()
     memset((void*)&gClient, 0, sizeof(ReloadClient));
 }
 
-void platformReloadClientRequestShaderRecompile()
+void platformRequestReload()
 {
     if (tfrg_atomic32_cas_relaxed(&gClient.mIsReloading, 0, 1) == 1)
     {
@@ -610,9 +606,17 @@ void platformReloadClientRequestShaderRecompile()
         LOGF(eERROR, "Failed to start ShaderRequestRecompile thread - this is likely an internal bug.");
         ASSERT(false);
     }
+
+#ifdef AUTOMATED_TESTING
+    joinThread(gClient.mThread);
+    gClient.mThread = INVALID_THREAD_ID;
+    tfrg_atomic32_store_relaxed(&gClient.mIsReloading, 0);
+    gClient.mIsButtonActiveState = true;
+    tfrg_atomic32_store_relaxed(&gClient.mShouldReenableButton, 0);
+#endif
 }
 
-bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize)
+bool platformGetReloadBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize)
 {
     if (!gClient.mDidInit)
     {
@@ -637,16 +641,8 @@ bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uin
 // NOTE: Since `requestReload` is not thread safe, this function allows us to
 // call `requestReload` on the main thread when shaders have been uploaded,
 // and exit the application when testing (by returning true).
-bool platformReloadClientShouldQuit(void)
+void platformUpdateReloadClient(void)
 {
-#if defined(AUTOMATED_TESTING)
-    static uint32_t nFrames = 0;
-    if (gReloadServerRequestRecompileAfter != 0 && ++nFrames == gReloadServerRequestRecompileAfter)
-    {
-        platformReloadClientRequestShaderRecompile();
-    }
-#endif
-
     // TODO: Should we re-enable `Reload shaders` button after X time has passed, even if the thread might still be running?
     // This could be problematic but might be a good fallback for the recompile thread dying for strange reasons.
     if (tfrg_atomic32_store_release(&gClient.mShouldReenableButton, 0) == 1)
@@ -684,23 +680,17 @@ bool platformReloadClientShouldQuit(void)
 
     if (tfrg_atomic32_store_release(&gClient.mDidReload, 0) == 1)
     {
-#if defined(AUTOMATED_TESTING)
-        return true;
-#else
         ReloadDesc desc{ RELOAD_TYPE_SHADER };
         requestReload(&desc);
-#endif
     }
 
     if (inputGetValue(0, gReloadKey))
     {
-        platformReloadClientRequestShaderRecompile();
+        platformRequestReload();
     }
-
-    return false;
 }
 
-void platformReloadClientAddReloadShadersWidgets(UIComponent* pReloadShaderComponent)
+void platformSetupReloadClientUI(UIComponent* pReloadShaderComponent)
 {
     if (!gClient.mDidInit)
     {
@@ -713,7 +703,7 @@ void platformReloadClientAddReloadShadersWidgets(UIComponent* pReloadShaderCompo
                                 [](void* pUserData)
                                 {
                                     UNREF_PARAM(pUserData);
-                                    platformReloadClientRequestShaderRecompile();
+                                    platformRequestReload();
                                 });
     REGISTER_LUA_WIDGET(pShaderReload);
 

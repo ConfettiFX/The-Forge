@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -342,7 +342,7 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
+    platformSetupReloadClientUI(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -630,12 +630,6 @@ char     benchmarkOutput[1024] = { "\0" };
                 if (i + 1 < pApp->argc && isdigit(*(pApp->argv[i + 1])))
                     targetFrameCount = min(max(atoi(pApp->argv[i + 1]), 32), 512);
             }
-            else if (strcmp(pApp->argv[i], "--request-recompile-after") == 0)
-            {
-                extern uint32_t gReloadServerRequestRecompileAfter;
-                if (i + 1 < pApp->argc && isdigit(*pApp->argv[i + 1]))
-                    gReloadServerRequestRecompileAfter = atoi(pApp->argv[i + 1]);
-            }
             else if (strcmp(pApp->argv[i], "--no-auto-exit") == 0)
             {
                 targetFrameCount = UINT32_MAX;
@@ -773,15 +767,7 @@ char     benchmarkOutput[1024] = { "\0" };
     }
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
-    if (platformReloadClientShouldQuit())
-    {
-        for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
-        {
-            [window close];
-        }
-
-        [NSApp terminate:nil];
-    }
+    platformUpdateReloadClient();
 #endif
 
     extern void platformResetInputState();

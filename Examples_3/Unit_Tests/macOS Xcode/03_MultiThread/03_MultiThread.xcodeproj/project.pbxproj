@@ -34,6 +34,8 @@
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 		EC2460D12C950DE20002AE10 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EADF9D661EFD160E00B2008B /* Info.plist */; };
 		EC2460D22C950DEA0002AE10 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC2460CD2C950D830002AE10 /* iOSAppDelegate.m */; };
+		F25E312D2D4924D50002574A /* Test_TurnOffPlots.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E312B2D4924D50002574A /* Test_TurnOffPlots.lua */; };
+		F25E312E2D4924D50002574A /* Test_TurnOffPlots.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E312B2D4924D50002574A /* Test_TurnOffPlots.lua */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,8 +102,8 @@
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/MacOS/Info.plist; sourceTree = SOURCE_ROOT; };
 		EC2460CD2C950D830002AE10 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		EC2460CE2C950D830002AE10 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
-		EC66B85B2C926C3F0004DC3B /* 03_MultiThread */ = {isa = PBXFileReference; lastKnownFileType = folder; path = 03_MultiThread; sourceTree = "<group>"; };
 		EC66B8622C926D570004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
+		F25E312B2D4924D50002574A /* Test_TurnOffPlots.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_TurnOffPlots.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -196,7 +198,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				EC66B8582C926BD50004DC3B /* Art */,
 				EC66B85D2C926C590004DC3B /* Examples_3 */,
 				7F6EFFE12A93D92300981E7B /* BuildConfigs */,
 				5C172F58214148D40074EE71 /* The-Forge.xcodeproj */,
@@ -204,6 +205,7 @@
 				28A5AC01201F58BF000E571F /* 03_MultiThread_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5AC6C201F5ECA000E571F /* Frameworks */,
+				F25E312C2D4924D50002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -227,23 +229,6 @@
 			);
 			name = 03_MultiThread;
 			sourceTree = SOURCE_ROOT;
-		};
-		EC66B8582C926BD50004DC3B /* Art */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B8592C926C180004DC3B /* Scripts */,
-			);
-			name = Art;
-			path = ../../../../Art;
-			sourceTree = "<group>";
-		};
-		EC66B8592C926C180004DC3B /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B85B2C926C3F0004DC3B /* 03_MultiThread */,
-			);
-			path = Scripts;
-			sourceTree = "<group>";
 		};
 		EC66B85D2C926C590004DC3B /* Examples_3 */ = {
 			isa = PBXGroup;
@@ -278,6 +263,15 @@
 			);
 			path = 03_MultiThread;
 			sourceTree = "<group>";
+		};
+		F25E312C2D4924D50002574A /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				F25E312B2D4924D50002574A /* Test_TurnOffPlots.lua */,
+			);
+			name = Scripts;
+			path = ../../src/03_MultiThread/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -389,6 +383,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				28A5AC15201F58BF000E571F /* LaunchScreen.storyboard in Resources */,
+				F25E312E2D4924D50002574A /* Test_TurnOffPlots.lua in Resources */,
 				28A5AC12201F58BF000E571F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -399,6 +394,7 @@
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
 				EC2460D12C950DE20002AE10 /* Info.plist in Resources */,
+				F25E312D2D4924D50002574A /* Test_TurnOffPlots.lua in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -422,7 +418,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09934173284E8B1100215997 /* ShellScript */ = {
@@ -441,7 +437,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C13A4D624D1A5410023D339 /* ShellScript */ = {

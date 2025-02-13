@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "copy.comp.srt.h"
+
+float linearToSrgbf(float val)
+{
+	if( val < 0.0031308f )
+        return val *= 12.92f;
+    return 1.055f * pow(val,1.0f/2.4f) - 0.055f;
+}
+
+float4 linear4ToSrgb4(float4 v)
+{
+	v.x = linearToSrgbf(saturate(v.x));
+	v.y = linearToSrgbf(saturate(v.y));
+	v.z = linearToSrgbf(saturate(v.z));
+	v.w = saturate(v.w);
+	return v;
+}
+
+ROOT_SIGNATURE(ComputeRootSignature)
+NUM_THREADS(8, 8, 1)
+void CS_MAIN( SV_DispatchThreadID(uint3) DTid) 
+{
+	INIT_MAIN;
+
+	uint2 srcXY = DTid.xy;
+	uint2 inputDims = uint2(GetDimensions(gInputTexture, NO_SAMPLER));
+
+#if defined(TARGET_QUEST)
+	// For VR we will be rendering both eye RTs into the output buffer as a single image.
+	// The dispatch size will be the size of the output buffer, so when the dispatch id.x
+	// is greater than the width, that means we need to read from the second eye RT.
+	uint eyeIndex = 0;
+	if (srcXY.x > inputDims.x)
+	{
+		srcXY.x -= inputDims.x;
+		eyeIndex = 1;
+	}
+#endif
+
+	if (srcXY.x >= inputDims.x || srcXY.y >= inputDims.y)
+	{
+		RETURN();
+	}
+	// To be optimized, should improve cache usage by swizzling
+	// Use a sampler to ensure we always have linear color
+	float2 uv = float2(float(srcXY.x + 0.5f) / inputDims.x, float(srcXY.y + 0.5f) / inputDims.y);
+#if defined(TARGET_QUEST)
+	float4 color = SampleLvlTex2DArray(gInputTexture, gSamplerPointClamp, float3(uv, eyeIndex), 0);
+	uint offset = DTid.x + DTid.y * inputDims.x * 2;
+#else
+	float4 color = SampleLvlTex2D(gInputTexture, gSamplerPointClamp, uv, 0);
+	uint offset = srcXY.x + srcXY.y * inputDims.x;
+#endif
+
+	if (gScreenShotConstants.flipRedBlue > 0)
+	{
+		float temp = color.r;
+		color.r = color.b;
+		color.b = temp;
+	}
+
+	if (gScreenShotConstants.convertToSrgb > 0) 
+	{
+		color = linear4ToSrgb4(color);
+	}
+
+	if (gScreenShotConstants.saveAsHDR > 0)
+	{
+		uint4 uintColor = asuint(color);
+		StoreByte(gOutputBuffer, (offset * 4 + 0) << 2, uintColor.r);
+		StoreByte(gOutputBuffer, (offset * 4 + 1) << 2, uintColor.g);
+		StoreByte(gOutputBuffer, (offset * 4 + 2) << 2, uintColor.b);
+		StoreByte(gOutputBuffer, (offset * 4 + 3) << 2, uintColor.a);
+	}
+	else
+	{
+		uint packedColor = packUnorm4x8(color);
+		StoreByte(gOutputBuffer, offset << 2, packedColor);
+	}
+	
+	RETURN();
+}

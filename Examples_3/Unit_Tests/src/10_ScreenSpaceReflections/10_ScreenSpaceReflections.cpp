@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -55,10 +55,22 @@
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 #define NO_FSL_DEFINITIONS
+#include "../../../../Common_3/Graphics/FSL/fsl_srt.h"
 #include "Shaders/FSL/Shader_Defs.h.fsl"
 
 // Geometry
 #include "../../../Visibility_Buffer/src/SanMiguel.h"
+
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+#include "./Shaders/FSL/SSSR.srt.h"
+#include "./Shaders/FSL/PPR.srt.h"
+#include "./Shaders/FSL/computeSpecularMap.srt.h"
+#include "./Shaders/FSL/generateMips.srt.h"
+#include "./Shaders/FSL/DepthDownsample.srt.h"
+#include "./Shaders/FSL/copydepth.srt.h"
+#include "./Shaders/FSL/triangle_filtering.srt.h"
 
 #define MAX_PLANES  4
 #define SCENE_SCALE 10.0f
@@ -67,11 +79,13 @@
     X(AddGeometryPassThrough, 0) \
     X(BindlessSupported, 1)
 
-#define GENERATE_ENUM(x, y)   x,
-#define GENERATE_STRING(x, y) #x,
-#define GENERATE_STRUCT(x, y) uint32_t m##x;
-#define GENERATE_VALUE(x, y)  y,
-#define INIT_STRUCT(s)        s = { FOREACH_SETTING(GENERATE_VALUE) }
+#define GENERATE_ENUM(x, y)    x,
+#define GENERATE_STRING(x, y)  #x,
+#define GENERATE_STRUCT(x, y)  uint32_t m##x;
+#define GENERATE_VALUE(x, y)   y,
+#define INIT_STRUCT(s)         s = { FOREACH_SETTING(GENERATE_VALUE) }
+
+#define GENERATE_MIPS_MAX_MIPS 16
 
 typedef enum ESettings
 {
@@ -329,106 +343,77 @@ RenderTarget* pMotionVectorsBuffers[gDataBufferCount] = { NULL };
 RenderTarget* pReflectionBuffer = NULL;
 RenderTarget* pDepthBuffer = NULL;
 
+DescriptorSet* pDescriptorSetPersistent = NULL;
+DescriptorSet* pDescriptorSetPerFrame = NULL;
+DescriptorSet* pDescriptorSetDepthDownSamplePerBatch = NULL;
+DescriptorSet* pDescriptorSetSSSR = NULL;
+DescriptorSet* pDescriptorSetPPR = NULL;
+DescriptorSet* pDescriptorSetCopyDepth = NULL;
+DescriptorSet* pDescriptorSetTriangleFilteringPerBatch = NULL;
+
 // Clear buffers pipeline
-Shader*        pShaderClearBuffers = NULL;
-Pipeline*      pPipelineClearBuffers = NULL;
-RootSignature* pRootSignatureClearBuffers = NULL;
-DescriptorSet* pDescriptorSetClearBuffers = NULL;
+Shader*   pShaderClearBuffers = NULL;
+Pipeline* pPipelineClearBuffers = NULL;
 
 // Triangle filtering pipeline
-Shader*        pShaderTriangleFiltering = NULL;
-Pipeline*      pPipelineTriangleFiltering = NULL;
-RootSignature* pRootSignatureTriangleFiltering = NULL;
-DescriptorSet* pDescriptorSetTriangleFiltering[2] = { NULL };
+Shader*   pShaderTriangleFiltering = NULL;
+Pipeline* pPipelineTriangleFiltering = NULL;
 
 // VB pass pipeline
-Shader*        pShaderVBBufferPass[gNumGeomSets] = {};
-Pipeline*      pPipelineVBBufferPass[gNumGeomSets] = {};
-RootSignature* pRootSignatureVBPass = NULL;
-DescriptorSet* pDescriptorSetVBPass[2] = { NULL };
+Shader*   pShaderVBBufferPass[gNumGeomSets] = {};
+Pipeline* pPipelineVBBufferPass[gNumGeomSets] = {};
 
 // VB shade pipeline
-Shader*        pShaderVBShade = NULL;
-Pipeline*      pPipelineVBShadeSrgb = NULL;
-RootSignature* pRootSignatureVBShade = NULL;
-DescriptorSet* pDescriptorSetVBShade[2] = { NULL };
+Shader*   pShaderVBShade = NULL;
+Pipeline* pPipelineVBShadeSrgb = NULL;
 
-Buffer*        pSkyboxVertexBuffer = NULL;
-Shader*        pSkyboxShader = NULL;
-Pipeline*      pSkyboxPipeline = NULL;
-RootSignature* pSkyboxRootSignature = NULL;
-DescriptorSet* pDescriptorSetSkybox[2] = { NULL };
+Buffer*   pSkyboxVertexBuffer = NULL;
+Shader*   pSkyboxShader = NULL;
+Pipeline* pSkyboxPipeline = NULL;
 
-Shader*        pPPR_ProjectionShader = NULL;
-RootSignature* pPPR_ProjectionRootSignature = NULL;
-Pipeline*      pPPR_ProjectionPipeline = NULL;
-DescriptorSet* pDescriptorSetPPR_Projection[2] = { NULL };
+Shader*   pPPR_ProjectionShader = NULL;
+Pipeline* pPPR_ProjectionPipeline = NULL;
 
-Shader*        pPPR_ReflectionShader = NULL;
-RootSignature* pPPR_ReflectionRootSignature = NULL;
-Pipeline*      pPPR_ReflectionPipeline = NULL;
-DescriptorSet* pDescriptorSetPPR_Reflection[2] = { NULL };
+Shader*   pPPR_ReflectionShader = NULL;
+Pipeline* pPPR_ReflectionPipeline = NULL;
 
-Shader*        pPPR_HolePatchingShader = NULL;
-RootSignature* pPPR_HolePatchingRootSignature = NULL;
-Pipeline*      pPPR_HolePatchingPipeline = NULL;
-DescriptorSet* pDescriptorSetPPR__HolePatching[2] = { NULL };
+Shader*   pPPR_HolePatchingShader = NULL;
+Pipeline* pPPR_HolePatchingPipeline = NULL;
 
-Shader*        pCopyDepthShader = NULL;
-RootSignature* pCopyDepthRootSignature = NULL;
-Pipeline*      pCopyDepthPipeline = NULL;
-DescriptorSet* pDescriptorCopyDepth = NULL;
+Shader*   pCopyDepthShader = NULL;
+Pipeline* pCopyDepthPipeline = NULL;
 
 Shader*        pGenerateMipShader = NULL;
-RootSignature* pGenerateMipRootSignature = NULL;
 Pipeline*      pGenerateMipPipeline = NULL;
 DescriptorSet* pDescriptorGenerateMip = NULL;
 uint32_t       gMipSizeRootConstantIndex = 0;
 
-Shader*        pSPDShader = NULL;
-RootSignature* pSPDRootSignature = NULL;
-Pipeline*      pSPDPipeline = NULL;
-DescriptorSet* pDescriptorSPD = NULL;
+Shader*   pSPDShader = NULL;
+Pipeline* pSPDPipeline = NULL;
 
-Shader*        pSSSR_ClassifyTilesShader = NULL;
-RootSignature* pSSSR_ClassifyTilesRootSignature = NULL;
-Pipeline*      pSSSR_ClassifyTilesPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ClassifyTiles = NULL;
+Shader*   pSSSR_ClassifyTilesShader = NULL;
+Pipeline* pSSSR_ClassifyTilesPipeline = NULL;
 
-Shader*        pSSSR_PrepareIndirectArgsShader = NULL;
-RootSignature* pSSSR_PrepareIndirectArgsRootSignature = NULL;
-Pipeline*      pSSSR_PrepareIndirectArgsPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_PrepareIndirectArgs = NULL;
+Shader*   pSSSR_PrepareIndirectArgsShader = NULL;
+Pipeline* pSSSR_PrepareIndirectArgsPipeline = NULL;
 
-Shader*        pSSSR_IntersectShader = NULL;
-RootSignature* pSSSR_IntersectRootSignature = NULL;
-Pipeline*      pSSSR_IntersectPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_Intersect = NULL;
+Shader*   pSSSR_IntersectShader = NULL;
+Pipeline* pSSSR_IntersectPipeline = NULL;
 
-Shader*        pSSSR_ResolveSpatialShader = NULL;
-RootSignature* pSSSR_ResolveSpatialRootSignature = NULL;
-Pipeline*      pSSSR_ResolveSpatialPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ResolveSpatial = NULL;
+Shader*   pSSSR_ResolveSpatialShader = NULL;
+Pipeline* pSSSR_ResolveSpatialPipeline = NULL;
 
-Shader*        pSSSR_ResolveTemporalShader = NULL;
-RootSignature* pSSSR_ResolveTemporalRootSignature = NULL;
-Pipeline*      pSSSR_ResolveTemporalPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ResolveTemporal = NULL;
+Shader*   pSSSR_ResolveTemporalShader = NULL;
+Pipeline* pSSSR_ResolveTemporalPipeline = NULL;
 
-Shader*        pSSSR_ResolveEAWShader = NULL;
-RootSignature* pSSSR_ResolveEAWRootSignature = NULL;
-Pipeline*      pSSSR_ResolveEAWPipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ResolveEAW = NULL;
+Shader*   pSSSR_ResolveEAWShader = NULL;
+Pipeline* pSSSR_ResolveEAWPipeline = NULL;
 
-Shader*        pSSSR_ResolveEAWStride2Shader = NULL;
-RootSignature* pSSSR_ResolveEAWStride2RootSignature = NULL;
-Pipeline*      pSSSR_ResolveEAWStride2Pipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ResolveEAWStride2 = NULL;
+Shader*   pSSSR_ResolveEAWStride2Shader = NULL;
+Pipeline* pSSSR_ResolveEAWStride2Pipeline = NULL;
 
-Shader*        pSSSR_ResolveEAWStride4Shader = NULL;
-RootSignature* pSSSR_ResolveEAWStride4RootSignature = NULL;
-Pipeline*      pSSSR_ResolveEAWStride4Pipeline = NULL;
-DescriptorSet* pDescriptorSetSSSR_ResolveEAWStride4 = NULL;
+Shader*   pSSSR_ResolveEAWStride4Shader = NULL;
+Pipeline* pSSSR_ResolveEAWStride4Pipeline = NULL;
 
 Buffer*                  pSSSR_ConstantsBuffer[gDataBufferCount] = { NULL };
 UniformSSSRConstantsData gUniformSSSRConstantsData;
@@ -451,6 +436,7 @@ Texture*      pSSSR_DepthHierarchy = NULL;
 
 Buffer* pScreenQuadVertexBuffer = NULL;
 
+Buffer*  pSSSR_GenMipsBuffers[GENERATE_MIPS_MAX_MIPS] = { NULL };
 Texture* pSkybox = NULL;
 Texture* pBRDFIntegrationMap = NULL;
 Texture* pIrradianceMap = NULL;
@@ -493,9 +479,7 @@ Pipeline* pPipelinePostProc = NULL;
 
 Sampler* pDefaultSampler = NULL;
 Sampler* pSamplerBilinear = NULL;
-Sampler* pSamplerNearestRepeat = NULL;
 Sampler* pSamplerNearestClampToEdge = NULL;
-Sampler* pSamplerLinearClampToEdge = NULL;
 
 uint32_t gFrameIndex = 0;
 uint32_t gFrameCount = 0;
@@ -525,9 +509,8 @@ uint32_t  gMeshCount = 0;
 uint32_t  gMaterialCount = 0;
 mat4      gSanMiguelModelMat;
 
-const char* gTestScripts[] = { "10_ScreenSpaceReflections/Test_RenderScene.lua", "10_ScreenSpaceReflections/Test_RenderReflections.lua",
-                               "10_ScreenSpaceReflections/Test_RenderSceneReflections.lua",
-                               "10_ScreenSpaceReflections/Test_RenderSceneExReflections.lua" };
+const char* gTestScripts[] = { "Test_RenderScene.lua", "Test_RenderReflections.lua", "Test_RenderSceneReflections.lua",
+                               "Test_RenderSceneExReflections.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
@@ -613,6 +596,10 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
         // Load fonts
         FontDesc font = {};
         font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -679,28 +666,10 @@ public:
         samplerDesc.mMinFilter = FILTER_NEAREST;
         samplerDesc.mMagFilter = FILTER_NEAREST;
         samplerDesc.mMipMapMode = MIPMAP_MODE_NEAREST;
-        samplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
-        samplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
-        samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
-        addSampler(pRenderer, &samplerDesc, &pSamplerNearestRepeat);
-
-        samplerDesc = {};
-        samplerDesc.mMinFilter = FILTER_NEAREST;
-        samplerDesc.mMagFilter = FILTER_NEAREST;
-        samplerDesc.mMipMapMode = MIPMAP_MODE_NEAREST;
         samplerDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerDesc.mAddressW = ADDRESS_MODE_CLAMP_TO_EDGE;
         addSampler(pRenderer, &samplerDesc, &pSamplerNearestClampToEdge);
-
-        samplerDesc = {};
-        samplerDesc.mMinFilter = FILTER_LINEAR;
-        samplerDesc.mMagFilter = FILTER_LINEAR;
-        samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-        samplerDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerDesc.mAddressW = ADDRESS_MODE_CLAMP_TO_EDGE;
-        addSampler(pRenderer, &samplerDesc, &pSamplerLinearClampToEdge);
 
         // Generate sky box vertex buffer
         float skyBoxPoints[] = {
@@ -775,7 +744,7 @@ public:
             vbConstantUBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
             vbConstantUBDesc.mDesc.mSize = sizeof(PerFrameVBConstantsData);
             vbConstantUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-            vbConstantUBDesc.mDesc.pName = "PerFrameVBConstants Buffer Desc";
+            vbConstantUBDesc.mDesc.pName = "gVBConstantsPerFrame Buffer Desc";
             vbConstantUBDesc.pData = NULL;
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
@@ -1132,13 +1101,13 @@ public:
         waitForToken(&token);
 
         tf_free(meshConstants);
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         return true;
     }
 
     void Exit()
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         exitCameraController(pCameraController);
         tf_free(gInitializeVal);
         gInitializeVal = NULL;
@@ -1207,9 +1176,7 @@ public:
 
         removeSampler(pRenderer, pSamplerBilinear);
         removeSampler(pRenderer, pDefaultSampler);
-        removeSampler(pRenderer, pSamplerNearestRepeat);
         removeSampler(pRenderer, pSamplerNearestClampToEdge);
-        removeSampler(pRenderer, pSamplerLinearClampToEdge);
 
         exitVisibilityBuffer(pVisibilityBuffer);
 
@@ -1217,7 +1184,7 @@ public:
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
         exitQueue(pRenderer, pGraphicsQueue);
-
+        exitRootSignature(pRenderer);
         // Remove resource loader and renderer
         exitResourceLoaderInterface(pRenderer);
         exitRenderer(pRenderer);
@@ -1229,18 +1196,15 @@ public:
     void ComputePBRMaps()
     {
         Shader*        pBRDFIntegrationShader = NULL;
-        RootSignature* pBRDFIntegrationRootSignature = NULL;
         Pipeline*      pBRDFIntegrationPipeline = NULL;
         Shader*        pIrradianceShader = NULL;
-        RootSignature* pIrradianceRootSignature = NULL;
         Pipeline*      pIrradiancePipeline = NULL;
         Shader*        pSpecularShader = NULL;
-        RootSignature* pSpecularRootSignature = NULL;
         Pipeline*      pSpecularPipeline = NULL;
         Sampler*       pSkyboxSampler = NULL;
-        DescriptorSet* pDescriptorSetBRDF = { NULL };
-        DescriptorSet* pDescriptorSetIrradiance = { NULL };
-        DescriptorSet* pDescriptorSetSpecular[2] = { NULL };
+        DescriptorSet* pDescriptorSetPBRPersistent = { NULL };
+        DescriptorSet* pDescriptorSetPBRPerFrame = { NULL };
+        DescriptorSet* pDescriptorSetPBRPerBatch = { NULL };
 
         static const int skyboxIndex = 0;
         const char*      skyboxNames[] = {
@@ -1293,7 +1257,7 @@ public:
         TextureLoadDesc irrLoadDesc = {};
         irrLoadDesc.pDesc = &irrImgDesc;
         irrLoadDesc.ppTexture = &pIrradianceMap;
-        addResource(&irrLoadDesc, NULL);
+        addResource(&irrLoadDesc, &token);
 
         TextureDesc specImgDesc = {};
         specImgDesc.mArraySize = 6;
@@ -1310,7 +1274,7 @@ public:
         TextureLoadDesc specImgLoadDesc = {};
         specImgLoadDesc.pDesc = &specImgDesc;
         specImgLoadDesc.ppTexture = &pSpecularMap;
-        addResource(&specImgLoadDesc, NULL);
+        addResource(&specImgLoadDesc, &token);
 
         // Create empty texture for BRDF integration map.
         TextureLoadDesc brdfIntegrationLoadDesc = {};
@@ -1326,7 +1290,7 @@ public:
         brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
         brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
         brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
-        addResource(&brdfIntegrationLoadDesc, NULL);
+        addResource(&brdfIntegrationLoadDesc, &token);
 
         GPUPresetLevel presetLevel = pRenderer->pGpu->mGpuVendorPreset.mPresetLevel;
 
@@ -1373,43 +1337,25 @@ public:
         addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
         addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 
-        const char*       pStaticSamplerNames[] = { "skyboxSampler" };
-        RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
-        brdfRootDesc.mStaticSamplerCount = 1;
-        brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-        brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
-        RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
-        irradianceRootDesc.mStaticSamplerCount = 1;
-        irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-        irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
-        RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
-        specularRootDesc.mStaticSamplerCount = 1;
-        specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-        specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
-        addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-        addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-        addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
+        DescriptorSetDesc setDesc = SRT_SET_DESC(ComputeSpecularSrtData, Persistent, 1, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPBRPersistent);
+        setDesc = SRT_SET_DESC(ComputeSpecularSrtData, PerBatch, gSkyboxMips, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPBRPerBatch);
 
-        DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF);
-        setDesc = { pIrradianceRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIrradiance);
-        setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[0]);
-        setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[1]);
+        setDesc = SRT_SET_DESC(ComputeSpecularSrtData, PerFrame, gSkyboxMips, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPBRPerFrame);
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(ComputeSpecularSrtData, Persistent), SRT_LAYOUT_DESC(ComputeSpecularSrtData, PerFrame),
+                             SRT_LAYOUT_DESC(ComputeSpecularSrtData, PerBatch), NULL);
         desc.mType = PIPELINE_TYPE_COMPUTE;
         ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
         pipelineSettings.pShaderProgram = pIrradianceShader;
-        pipelineSettings.pRootSignature = pIrradianceRootSignature;
         addPipeline(pRenderer, &desc, &pIrradiancePipeline);
         pipelineSettings.pShaderProgram = pSpecularShader;
-        pipelineSettings.pRootSignature = pSpecularRootSignature;
+
         addPipeline(pRenderer, &desc, &pSpecularPipeline);
         pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
-        pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
         addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
 
         waitForToken(&token);
@@ -1417,16 +1363,57 @@ public:
         GpuCmdRingElement elem = getNextGpuCmdRingElement(&gGraphicsCmdRing, true, 1);
         Cmd*              pCmd = elem.pCmds[0];
 
+        DescriptorData params[2] = {};
+        params[0].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, Persistent, gSrcTexture);
+        params[0].ppTextures = &pSkybox;
+        params[1].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, Persistent, gSkyboxSampler);
+        params[1].ppSamplers = &pSkyboxSampler;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPBRPersistent, 2, params);
+
+        params[0].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, PerBatch, gDstTextureRW);
+        params[0].ppTextures = &pBRDFIntegrationMap;
+        params[1].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, PerBatch, gDstTextureArrayRW);
+        params[1].ppTextures = &pIrradianceMap;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPBRPerBatch, 2, params);
+        struct PrecomputeSkySpecularData
+        {
+            uint  mipSize;
+            float roughness;
+        };
+        PrecomputeSkySpecularData data[8] = {};
+        Buffer*                   pUniformBufferSpecularConfig[8] = { NULL };
+        for (uint32_t i = 0; i < gSpecularMips; i++)
+        {
+            data[i].roughness = (float)i / (float)(gSpecularMips - 1);
+            data[i].mipSize = gSpecularSize >> i;
+            BufferLoadDesc specularDataBufferDesc = {};
+            specularDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            specularDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+            specularDataBufferDesc.mDesc.mSize = sizeof(PrecomputeSkySpecularData);
+            specularDataBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+            specularDataBufferDesc.pData = &data[i];
+            specularDataBufferDesc.ppBuffer = &pUniformBufferSpecularConfig[i];
+            addResource(&specularDataBufferDesc, NULL);
+        }
+
+        for (uint32_t i = 0; i < gSpecularMips; i++)
+        {
+            params[0].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, PerFrame, gComputeSpecularParams);
+            params[0].ppBuffers = &pUniformBufferSpecularConfig[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPBRPerFrame, 1, params);
+            params[0].mIndex = SRT_RES_IDX(ComputeSpecularSrtData, PerBatch, gDstTexturePerDraw);
+            params[0].ppTextures = &pSpecularMap;
+            params[0].mUAVMipSlice = (uint16_t)i;
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPBRPerBatch, 1, params);
+        }
+
         // Compute the BRDF Integration map.
         resetCmdPool(pRenderer, elem.pCmdPool);
         beginCmd(pCmd);
 
         cmdBindPipeline(pCmd, pBRDFIntegrationPipeline);
-        DescriptorData params[2] = {};
-        params[0].pName = "dstTexture";
-        params[0].ppTextures = &pBRDFIntegrationMap;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF, 1, params);
-        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetBRDF);
+        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPBRPersistent);
+        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPBRPerBatch);
         const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
@@ -1440,12 +1427,7 @@ public:
         params[0] = {};
         params[1] = {};
         cmdBindPipeline(pCmd, pIrradiancePipeline);
-        params[0].pName = "srcTexture";
-        params[0].ppTextures = &pSkybox;
-        params[1].pName = "dstTexture";
-        params[1].ppTextures = &pIrradianceMap;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetIrradiance, 2, params);
-        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetIrradiance);
+        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPBRPersistent);
         pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
         cmdDispatch(pCmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
 
@@ -1453,28 +1435,11 @@ public:
         // Compute specular sky
         /************************************************************************/
         cmdBindPipeline(pCmd, pSpecularPipeline);
-        params[0].pName = "srcTexture";
-        params[0].ppTextures = &pSkybox;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetSpecular[0], 1, params);
-        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetSpecular[0]);
-
-        struct PrecomputeSkySpecularData
-        {
-            uint  mipSize;
-            float roughness;
-        };
-
+        cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPBRPersistent);
         for (uint32_t i = 0; i < gSpecularMips; i++)
         {
-            PrecomputeSkySpecularData data = {};
-            data.roughness = (float)i / (float)(gSpecularMips - 1);
-            data.mipSize = gSpecularSize >> i;
-            cmdBindPushConstants(pCmd, pSpecularRootSignature, getDescriptorIndexFromName(pSpecularRootSignature, "RootConstant"), &data);
-            params[0].pName = "dstTexture";
-            params[0].ppTextures = &pSpecularMap;
-            params[0].mUAVMipSlice = (uint16_t)i;
-            updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
-            cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
+            cmdBindDescriptorSet(pCmd, i, pDescriptorSetPBRPerBatch);
+            cmdBindDescriptorSet(pCmd, i, pDescriptorSetPBRPerFrame);
             pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
             cmdDispatch(pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
         }
@@ -1498,19 +1463,20 @@ public:
         queueSubmit(pGraphicsQueue, &submitDesc);
         waitForFences(pRenderer, 1, &elem.pFence);
 
-        removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
-        removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
-        removeDescriptorSet(pRenderer, pDescriptorSetSpecular[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetSpecular[1]);
+        removeDescriptorSet(pRenderer, pDescriptorSetPBRPerFrame);
+        removeDescriptorSet(pRenderer, pDescriptorSetPBRPersistent);
+        removeDescriptorSet(pRenderer, pDescriptorSetPBRPerBatch);
         removePipeline(pRenderer, pSpecularPipeline);
-        removeRootSignature(pRenderer, pSpecularRootSignature);
         removeShader(pRenderer, pSpecularShader);
         removePipeline(pRenderer, pIrradiancePipeline);
-        removeRootSignature(pRenderer, pIrradianceRootSignature);
         removeShader(pRenderer, pIrradianceShader);
 
+        for (uint32_t i = 0; i < gSpecularMips; i++)
+        {
+            removeResource(pUniformBufferSpecularConfig[i]);
+        }
+
         removePipeline(pRenderer, pBRDFIntegrationPipeline);
-        removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
         removeShader(pRenderer, pBRDFIntegrationShader);
         removeSampler(pRenderer, pSkyboxSampler);
     }
@@ -1522,7 +1488,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
         }
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
@@ -1781,7 +1746,6 @@ public:
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -1952,8 +1916,8 @@ public:
         {
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, profileNames[i]);
             cmdBindPipeline(cmd, pPipelineVBBufferPass[i]);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
@@ -1989,8 +1953,8 @@ public:
         cmdSetScissor(cmd, 0, 0, pSceneBuffer->mWidth, pSceneBuffer->mHeight);
 
         cmdBindPipeline(cmd, pPipelineVBShadeSrgb);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBShade[0]);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetVBShade[1]);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
 
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -2011,8 +1975,8 @@ public:
             // Draw the skybox
             const uint32_t skyboxStride = sizeof(float) * 4;
             cmdBindPipeline(cmd, pSkyboxPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
             cmdDraw(cmd, 36, 0);
 
@@ -2096,10 +2060,10 @@ public:
         TriangleFilteringPassDesc triangleFilteringDesc = {};
         triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
         triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
-
-        triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetClearBuffers;
-        triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetTriangleFiltering[0];
-        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetTriangleFiltering[1];
+        triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPersistent;
+        triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
+        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
+        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
 
         triangleFilteringDesc.mFrameIndex = gFrameIndex;
         triangleFilteringDesc.mBuffersIndex = 0; // We don't use Async Compute for triangle filtering, we just have 1 buffer
@@ -2143,8 +2107,9 @@ public:
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "ProjectionPass");
 
             cmdBindPipeline(cmd, pPPR_ProjectionPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR_Projection[0]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPPR_Projection[1]);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mNumThreadsPerGroup;
             cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
@@ -2166,8 +2131,9 @@ public:
             cmdSetScissor(cmd, 0, 0, pReflectionBuffer->mWidth, pReflectionBuffer->mHeight);
 
             cmdBindPipeline(cmd, pPPR_ReflectionPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR_Reflection[0]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPPR_Reflection[1]);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
             cmdDraw(cmd, 3, 0);
 
@@ -2194,7 +2160,8 @@ public:
 
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Depth mips generation");
 
-            cmdBindDescriptorSet(cmd, 0, pDescriptorCopyDepth);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetCopyDepth);
             cmdDispatch(cmd, dim_x, dim_y, 1);
 
             if (gUseSPD)
@@ -2203,7 +2170,7 @@ public:
                 cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
                 cmdBindPipeline(cmd, pSPDPipeline);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSPD);
+                cmdBindDescriptorSet(cmd, 0, pDescriptorSetDepthDownSamplePerBatch);
                 cmdDispatch(cmd, (pDepthBuffer->mWidth + 63) / 64, (pDepthBuffer->mHeight + 63) / 64, pSceneBuffer->mArraySize);
             }
             else
@@ -2215,8 +2182,6 @@ public:
                 {
                     mipSizeX >>= 1;
                     mipSizeY >>= 1;
-                    uint mipSize[2] = { mipSizeX, mipSizeY };
-                    cmdBindPushConstants(cmd, pGenerateMipRootSignature, gMipSizeRootConstantIndex, mipSize);
                     cmdBindDescriptorSet(cmd, i - 1, pDescriptorGenerateMip);
                     textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
                     cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
@@ -2250,7 +2215,9 @@ public:
             cmdResourceBarrier(cmd, 4, bufferBarriers, 3, textureBarriers, 3, rtBarriers);
 
             cmdBindPipeline(cmd, pSSSR_ClassifyTilesPipeline);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ClassifyTiles);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdDispatch(cmd, dim_x, dim_y, pSceneBuffer->mArraySize);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2265,7 +2232,8 @@ public:
             cmdResourceBarrier(cmd, 4, bufferBarriers, 0, NULL, 0, NULL);
 
             cmdBindPipeline(cmd, pSSSR_PrepareIndirectArgsPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR_PrepareIndirectArgs);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
             cmdDispatch(cmd, 1, 1, 1);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2284,7 +2252,10 @@ public:
             cmdResourceBarrier(cmd, 3, bufferBarriers, 3, textureBarriers, 2, rtBarriers);
 
             cmdBindPipeline(cmd, pSSSR_IntersectPipeline);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_Intersect);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
             cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_IntersectArgsBuffer, 0, NULL, 0);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2302,7 +2273,10 @@ public:
                 cmdResourceBarrier(cmd, 1, bufferBarriers, 3, textureBarriers, 1, rtBarriers);
 
                 cmdBindPipeline(cmd, pSSSR_ResolveSpatialPipeline);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ResolveSpatial);
+                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
+                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
                 cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                 cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2321,7 +2295,10 @@ public:
                     cmdResourceBarrier(cmd, 0, NULL, 4, textureBarriers, 1, rtBarriers);
 
                     cmdBindPipeline(cmd, pSSSR_ResolveTemporalPipeline);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ResolveTemporal);
+                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
+                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                     cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2335,7 +2312,9 @@ public:
                 cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 
                 cmdBindPipeline(cmd, pSSSR_ResolveEAWPipeline);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ResolveEAW);
+                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
+
                 cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                 cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2350,7 +2329,10 @@ public:
                     cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 
                     cmdBindPipeline(cmd, pSSSR_ResolveEAWStride2Pipeline);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ResolveEAWStride2);
+
+                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR);
+                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                     cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2363,7 +2345,9 @@ public:
                     cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 
                     cmdBindPipeline(cmd, pSSSR_ResolveEAWStride4Pipeline);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR_ResolveEAWStride4);
+                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR);
+                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                     cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2386,8 +2370,9 @@ public:
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPPR_HolePatchingPipeline);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR__HolePatching[0]);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPPR__HolePatching[1]);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
         cmdDraw(cmd, 3, 0);
 
@@ -2468,404 +2453,189 @@ public:
 
     void prepareDescriptorSets()
     {
-        DescriptorData skyParams[1] = {};
-        skyParams[0].pName = "skyboxTex";
-        skyParams[0].ppTextures = &pSkybox;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 1, skyParams);
+        DescriptorData persistentSetParams[32] = {};
+
+        persistentSetParams[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gVBPassTexture);
+        persistentSetParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
+        persistentSetParams[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gDiffuseMaps);
+        persistentSetParams[1].mCount = gMaterialCount;
+        persistentSetParams[1].ppTextures = gDiffuseMapsStorage;
+        persistentSetParams[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gNormalMaps);
+        persistentSetParams[2].mCount = gMaterialCount;
+        persistentSetParams[2].ppTextures = gNormalMapsStorage;
+        persistentSetParams[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gSpecularMaps);
+        persistentSetParams[3].mCount = gMaterialCount;
+        persistentSetParams[3].ppTextures = gSpecularMapsStorage;
+        persistentSetParams[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexPositionBuffer);
+        persistentSetParams[4].ppBuffers = &pSanMiguelModel->pVertexBuffers[0];
+        persistentSetParams[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexTexCoordBuffer);
+        persistentSetParams[5].ppBuffers = &pSanMiguelModel->pVertexBuffers[1];
+        persistentSetParams[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexNormalBuffer);
+        persistentSetParams[6].ppBuffers = &pSanMiguelModel->pVertexBuffers[2];
+        persistentSetParams[7].mIndex = SRT_RES_IDX(SrtData, Persistent, gMeshConstantsBuffer);
+        persistentSetParams[7].ppBuffers = &pBufferMeshConstants;
+        persistentSetParams[8].mIndex = SRT_RES_IDX(SrtData, Persistent, gCBLights);
+        persistentSetParams[8].ppBuffers = &pBufferUniformLights;
+        persistentSetParams[9].mIndex = SRT_RES_IDX(SrtData, Persistent, gCBDLights);
+        persistentSetParams[9].ppBuffers = &pBufferUniformDirectionalLights;
+        persistentSetParams[10].mIndex = SRT_RES_IDX(SrtData, Persistent, gBRDFIntegrationMap);
+        persistentSetParams[10].ppTextures = &pBRDFIntegrationMap;
+        persistentSetParams[11].mIndex = SRT_RES_IDX(SrtData, Persistent, gIrradianceMap);
+        persistentSetParams[11].ppTextures = &pIrradianceMap;
+        persistentSetParams[12].mIndex = SRT_RES_IDX(SrtData, Persistent, gSpecularMap);
+        persistentSetParams[12].ppTextures = &pSpecularMap;
+        persistentSetParams[13].mIndex = SRT_RES_IDX(SrtData, Persistent, gVBConstantBuffer);
+        persistentSetParams[13].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
+        persistentSetParams[14].mIndex = SRT_RES_IDX(SrtData, Persistent, gDefaultSampler);
+        persistentSetParams[14].ppSamplers = &pDefaultSampler;
+        persistentSetParams[15].mIndex = SRT_RES_IDX(SrtData, Persistent, gEnvSampler);
+        persistentSetParams[15].ppSamplers = &pSamplerBilinear;
+        persistentSetParams[16].mIndex = SRT_RES_IDX(SrtData, Persistent, gDepthSampler);
+        persistentSetParams[16].ppSamplers = &pSamplerBilinear;
+        persistentSetParams[17].mIndex = SRT_RES_IDX(SrtData, Persistent, gSkyboxSampler);
+        persistentSetParams[17].ppSamplers = &pSamplerBilinear;
+        persistentSetParams[18].mIndex = SRT_RES_IDX(SrtData, Persistent, gBilinearSampler);
+        persistentSetParams[18].ppSamplers = &pSamplerBilinear;
+        persistentSetParams[19].mIndex = SRT_RES_IDX(SrtData, Persistent, gSkyboxTex);
+        persistentSetParams[19].ppTextures = &pSkybox;
+        persistentSetParams[20].mIndex = SRT_RES_IDX(SrtData, Persistent, gIndexDataBuffer);
+        persistentSetParams[20].ppBuffers = &pSanMiguelModel->pIndexBuffer;
+        persistentSetParams[21].mIndex = SRT_RES_IDX(SrtData, Persistent, gDepthTexture);
+        persistentSetParams[21].ppTextures = &pDepthBuffer->pTexture;
+        persistentSetParams[22].mIndex = SRT_RES_IDX(SrtData, Persistent, gSceneTexture);
+        persistentSetParams[22].ppTextures = &pSceneBuffer->pTexture;
+        persistentSetParams[23].mIndex = SRT_RES_IDX(SrtData, Persistent, gSSRTexture);
+        persistentSetParams[23].ppTextures = &pReflectionBuffer->pTexture;
+        persistentSetParams[24].mIndex = SRT_RES_IDX(SrtData, Persistent, gDepthBuffer);
+        persistentSetParams[24].ppTextures = &pDepthBuffer->pTexture;
+        persistentSetParams[25].mIndex = SRT_RES_IDX(SrtData, Persistent, gSourceDepth);
+        persistentSetParams[25].ppTextures = &pDepthBuffer->pTexture;
+        persistentSetParams[25].mUAVMipSlice = 0;
+        persistentSetParams[26].mIndex = SRT_RES_IDX(SrtData, Persistent, gLitScene);
+        persistentSetParams[26].ppTextures = &pSceneBuffer->pTexture;
+        persistentSetParams[27].mIndex = SRT_RES_IDX(SrtData, Persistent, gDepthBufferHierarchy);
+        persistentSetParams[27].ppTextures = &pSSSR_DepthHierarchy;
+        persistentSetParams[28].mIndex = SRT_RES_IDX(SrtData, Persistent, gSobolBuffer);
+        persistentSetParams[28].ppBuffers = &pSSSR_SobolBuffer;
+        persistentSetParams[29].mIndex = SRT_RES_IDX(SrtData, Persistent, gRankingTileBuffer);
+        persistentSetParams[29].ppBuffers = &pSSSR_RankingTileBuffer;
+        persistentSetParams[30].mIndex = SRT_RES_IDX(SrtData, Persistent, gScramblingTileBuffer);
+        persistentSetParams[30].ppBuffers = &pSSSR_ScramblingTileBuffer;
+
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 31, persistentSetParams);
+
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            skyParams[0].pName = "uniformBlock";
-            skyParams[0].ppBuffers = &pBufferUniformCameraSky[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyParams);
+            uint8_t        prevIndex = (i + gDataBufferCount - 1) % gDataBufferCount;
+            DescriptorData SSSRParams[14] = {};
+            SSSRParams[0].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gTileList);
+            SSSRParams[0].ppBuffers = &pSSSR_TileListBuffer;
+            SSSRParams[1].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gRayList);
+            SSSRParams[1].ppBuffers = &pSSSR_RayListBuffer;
+            SSSRParams[2].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gRayCounter);
+            SSSRParams[2].ppBuffers = &pSSSR_RayCounterBuffer;
+            SSSRParams[3].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gTileCounter);
+            SSSRParams[3].ppBuffers = &pSSSR_TileCounterBuffer;
+            SSSRParams[4].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gIntersectArgs);
+            SSSRParams[4].ppBuffers = &pSSSR_IntersectArgsBuffer;
+            SSSRParams[5].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gDenoiserArgs);
+            SSSRParams[5].ppBuffers = &pSSSR_DenoiserArgsBuffer;
+            SSSRParams[6].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gRayLengths);
+            SSSRParams[6].ppTextures = &pSSSR_RayLength->pTexture;
+            SSSRParams[7].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gHasRay);
+            SSSRParams[7].ppTextures = &pSSSR_TemporalVariance;
+            SSSRParams[8].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gTemporalVariance);
+            SSSRParams[8].ppTextures = &pSSSR_TemporalVariance;
+            SSSRParams[9].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gDenoisedReflections);
+            SSSRParams[9].ppTextures = &pReflectionBuffer->pTexture;
+            SSSRParams[10].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gTemporallyDenoisedReflections);
+            SSSRParams[10].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
+            SSSRParams[11].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gIntersectionResult);
+            SSSRParams[11].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
+            SSSRParams[12].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gSpatiallyDenoisedReflections);
+            SSSRParams[12].ppTextures = &pReflectionBuffer->pTexture;
+            SSSRParams[13].mIndex = SRT_RES_IDX(SSSRSrtData, PerBatch, gTemporallyDenoisedReflectionsHistory);
+            SSSRParams[13].ppTextures = &pSSSR_TemporalResults[prevIndex]->pTexture;
+            updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR, 14, SSSRParams);
         }
 
-        // Clear Buffers
-        {
-            DescriptorData clearParams[2] = {};
-            clearParams[0].pName = "indirectDrawArgs";
-            clearParams[0].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-            clearParams[1].pName = "VBConstantBuffer";
-            clearParams[1].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetClearBuffers, 2, clearParams);
-        }
-        // Triangle Filtering
-        {
-            DescriptorData filterParams[4] = {};
-            filterParams[0].pName = "vertexPositionBuffer";
-            filterParams[0].ppBuffers = &pSanMiguelModel->pVertexBuffers[0];
-            filterParams[1].pName = "indexDataBuffer";
-            filterParams[1].ppBuffers = &pSanMiguelModel->pIndexBuffer;
-            filterParams[2].pName = "meshConstantsBuffer";
-            filterParams[2].ppBuffers = &pBufferMeshConstants;
-            filterParams[3].pName = "VBConstantBuffer";
-            filterParams[3].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                DescriptorData filterParamsIdx[5] = {};
-                filterParamsIdx[0].pName = "filteredIndicesBuffer";
-                filterParamsIdx[0].mCount = NUM_CULLING_VIEWPORTS;
-                filterParamsIdx[0].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
-                filterParamsIdx[1].pName = "indirectDataBuffer";
-                filterParamsIdx[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                filterParamsIdx[2].pName = "PerFrameVBConstants";
-                filterParamsIdx[2].ppBuffers = &pBufferVBConstants[i];
-                filterParamsIdx[3].pName = "filterDispatchGroupDataBuffer";
-                filterParamsIdx[3].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
-                filterParamsIdx[4].pName = "indirectDrawArgs";
-                filterParamsIdx[4].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFiltering[1], 5, filterParamsIdx);
-            }
-        }
-        // VB Pass
-        {
-            DescriptorData objectParams[3] = {};
+        DescriptorData PPRParams[2] = {};
+        PPRParams[0].mIndex = SRT_RES_IDX(PPRSrtData, PerBatch, gIntermediateBuffer);
+        PPRParams[0].ppBuffers = &pIntermediateBuffer;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPPR, 1, PPRParams);
 
-            objectParams[0].pName = "diffuseMaps";
-            objectParams[0].mCount = gMaterialCount;
-            objectParams[0].ppTextures = gDiffuseMapsStorage;
-            objectParams[1].pName = "vertexPositionBuffer";
-            objectParams[1].ppBuffers = &pSanMiguelModel->pVertexBuffers[0];
-            objectParams[2].pName = "vertexTexCoordBuffer";
-            objectParams[2].ppBuffers = &pSanMiguelModel->pVertexBuffers[1];
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 3, objectParams);
+        DescriptorData copyDepthParams[2] = {};
+        copyDepthParams[0].mIndex = SRT_RES_IDX(CopyDepthSrtData, PerBatch, gDestinationDepth);
+        copyDepthParams[0].ppTextures = &pSSSR_DepthHierarchy;
+        copyDepthParams[0].mUAVMipSlice = 0;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetCopyDepth, 1, copyDepthParams);
 
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                DescriptorData objectParamsUniform[2] = {};
-                objectParamsUniform[0].pName = "objectUniformBlock";
-                objectParamsUniform[0].ppBuffers = &pBufferMeshTransforms[i];
-                objectParamsUniform[1].pName = "indirectDataBuffer";
-                objectParamsUniform[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBPass[1], 2, objectParamsUniform);
-            }
+        DescriptorData depthDownsampleParams[2] = {};
+        depthDownsampleParams[0].mIndex = SRT_RES_IDX(DepthDownSampleSrtData, PerBatch, gGlobalAtomic);
+        depthDownsampleParams[0].ppBuffers = &pSPD_AtomicCounterBuffer;
+        depthDownsampleParams[1].mIndex = SRT_RES_IDX(DepthDownSampleSrtData, PerBatch, gDownsampledDepthBuffer);
+        depthDownsampleParams[1].ppTextures = &pSSSR_DepthHierarchy;
+        depthDownsampleParams[1].mBindMipChain = true;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetDepthDownSamplePerBatch, 2, depthDownsampleParams);
+
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
+        {
+            DescriptorData indirectDrawClearParams[4] = {};
+            indirectDrawClearParams[0].mIndex = SRT_RES_IDX(TriangleFilteringSrtData, PerBatch, gIndirectDrawClearArgsRW);
+            indirectDrawClearParams[0].ppBuffers = &pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
+            indirectDrawClearParams[1].mIndex = SRT_RES_IDX(TriangleFilteringSrtData, PerBatch, gIndirectDataBufferRW);
+            indirectDrawClearParams[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+            indirectDrawClearParams[2].mIndex = SRT_RES_IDX(TriangleFilteringSrtData, PerBatch, gFilteredIndicesBufferRW);
+            indirectDrawClearParams[2].mCount = NUM_CULLING_VIEWPORTS;
+            indirectDrawClearParams[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[0];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFilteringPerBatch, 3, indirectDrawClearParams);
         }
 
-        // VB Shade
+        DescriptorData perFrameSetParams[13] = {};
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData vbShadeParams[14] = {};
-            vbShadeParams[0].pName = "vbPassTexture";
-            vbShadeParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
-            vbShadeParams[1].pName = "diffuseMaps";
-            vbShadeParams[1].mCount = gMaterialCount;
-            vbShadeParams[1].ppTextures = gDiffuseMapsStorage;
-            vbShadeParams[2].pName = "normalMaps";
-            vbShadeParams[2].mCount = gMaterialCount;
-            vbShadeParams[2].ppTextures = gNormalMapsStorage;
-            vbShadeParams[3].pName = "specularMaps";
-            vbShadeParams[3].mCount = gMaterialCount;
-            vbShadeParams[3].ppTextures = gSpecularMapsStorage;
-            vbShadeParams[4].pName = "vertexPos";
-            vbShadeParams[4].ppBuffers = &pSanMiguelModel->pVertexBuffers[0];
-            vbShadeParams[5].pName = "vertexTexCoord";
-            vbShadeParams[5].ppBuffers = &pSanMiguelModel->pVertexBuffers[1];
-            vbShadeParams[6].pName = "vertexNormal";
-            vbShadeParams[6].ppBuffers = &pSanMiguelModel->pVertexBuffers[2];
-            vbShadeParams[7].pName = "meshConstantsBuffer";
-            vbShadeParams[7].ppBuffers = &pBufferMeshConstants;
-            vbShadeParams[8].pName = "cbLights";
-            vbShadeParams[8].ppBuffers = &pBufferUniformLights;
-            vbShadeParams[9].pName = "cbDLights";
-            vbShadeParams[9].ppBuffers = &pBufferUniformDirectionalLights;
-            vbShadeParams[10].pName = "brdfIntegrationMap";
-            vbShadeParams[10].ppTextures = &pBRDFIntegrationMap;
-            vbShadeParams[11].pName = "irradianceMap";
-            vbShadeParams[11].ppTextures = &pIrradianceMap;
-            vbShadeParams[12].pName = "specularMap";
-            vbShadeParams[12].ppTextures = &pSpecularMap;
-            vbShadeParams[13].pName = "VBConstantBuffer";
-            vbShadeParams[13].ppBuffers = &pVisibilityBuffer->pVBConstantBuffer;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetVBShade[0], TF_ARRAY_COUNT(vbShadeParams), vbShadeParams);
-
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                DescriptorData vbShadeParamsObj[4] = {};
-                vbShadeParamsObj[0].pName = "objectUniformBlock";
-                vbShadeParamsObj[0].ppBuffers = &pBufferMeshTransforms[i];
-                vbShadeParamsObj[1].pName = "indirectDataBuffer";
-                vbShadeParamsObj[1].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
-                vbShadeParamsObj[2].pName = "filteredIndexBuffer";
-                vbShadeParamsObj[2].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
-                vbShadeParamsObj[3].pName = "cbExtendCamera";
-                vbShadeParamsObj[3].ppBuffers = &pBufferUniformExtendedCamera[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetVBShade[1], TF_ARRAY_COUNT(vbShadeParamsObj), vbShadeParamsObj);
-            }
-        }
-
-        // PPR Projection
-        {
-            DescriptorData PPR_ProjectionParams[2] = {};
-            PPR_ProjectionParams[0].pName = "IntermediateBuffer";
-            PPR_ProjectionParams[0].ppBuffers = &pIntermediateBuffer;
-            PPR_ProjectionParams[1].pName = "DepthTexture";
-            PPR_ProjectionParams[1].ppTextures = &pDepthBuffer->pTexture;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetPPR_Projection[0], 2, PPR_ProjectionParams);
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                PPR_ProjectionParams[0].pName = "cbExtendCamera";
-                PPR_ProjectionParams[0].ppBuffers = &pBufferUniformExtendedCamera[i];
-                PPR_ProjectionParams[1].pName = "planeInfoBuffer";
-                PPR_ProjectionParams[1].ppBuffers = &pBufferUniformPlaneInfo[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetPPR_Projection[1], 2, PPR_ProjectionParams);
-            }
-        }
-        // PPR Reflection
-        {
-            DescriptorData PPR_ReflectionParams[3] = {};
-            PPR_ReflectionParams[0].pName = "SceneTexture";
-            PPR_ReflectionParams[0].ppTextures = &pSceneBuffer->pTexture;
-            PPR_ReflectionParams[1].pName = "IntermediateBuffer";
-            PPR_ReflectionParams[1].ppBuffers = &pIntermediateBuffer;
-            PPR_ReflectionParams[2].pName = "DepthTexture";
-            PPR_ReflectionParams[2].ppTextures = &pDepthBuffer->pTexture;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetPPR_Reflection[0], 3, PPR_ReflectionParams);
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                PPR_ReflectionParams[0].pName = "cbExtendCamera";
-                PPR_ReflectionParams[0].ppBuffers = &pBufferUniformExtendedCamera[i];
-                PPR_ReflectionParams[1].pName = "planeInfoBuffer";
-                PPR_ReflectionParams[1].ppBuffers = &pBufferUniformPlaneInfo[i];
-                PPR_ReflectionParams[2].pName = "cbProperties";
-                PPR_ReflectionParams[2].ppBuffers = &pBufferUniformPPRPro[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetPPR_Reflection[1], 3, PPR_ReflectionParams);
-            }
-        }
-        // PPR Hole Patching
-        {
-            DescriptorData PPR_HolePatchingParams[2] = {};
-            PPR_HolePatchingParams[0].pName = "SceneTexture";
-            PPR_HolePatchingParams[0].ppTextures = &pSceneBuffer->pTexture;
-            PPR_HolePatchingParams[1].pName = "SSRTexture";
-            PPR_HolePatchingParams[1].ppTextures = &pReflectionBuffer->pTexture;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetPPR__HolePatching[0], 2, PPR_HolePatchingParams);
-            for (uint32_t i = 0; i < gDataBufferCount; ++i)
-            {
-                PPR_HolePatchingParams[0].pName = "cbExtendCamera";
-                PPR_HolePatchingParams[0].ppBuffers = &pBufferUniformExtendedCamera[i];
-                PPR_HolePatchingParams[1].pName = "cbProperties";
-                PPR_HolePatchingParams[1].ppBuffers = &pBufferUniformPPRPro[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetPPR__HolePatching[1], 2, PPR_HolePatchingParams);
-            }
+            uint8_t prevIndex = (i + gDataBufferCount - 1) % gDataBufferCount;
+            perFrameSetParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlockPerFrame);
+            perFrameSetParams[0].ppBuffers = &pBufferUniformCameraSky[i];
+            perFrameSetParams[1].mIndex = SRT_RES_IDX(SrtData, PerFrame, gVBConstantsPerFrame);
+            perFrameSetParams[1].ppBuffers = &pBufferVBConstants[i];
+            perFrameSetParams[2].mIndex = SRT_RES_IDX(SrtData, PerFrame, gFilterDispatchGroupDataBuffer);
+            perFrameSetParams[2].ppBuffers = &pVisibilityBuffer->ppFilterDispatchGroupDataBuffer[i];
+            perFrameSetParams[3].mIndex = SRT_RES_IDX(SrtData, PerFrame, gObjectUniformBlockPerFrame);
+            perFrameSetParams[3].ppBuffers = &pBufferMeshTransforms[i];
+            perFrameSetParams[4].mIndex = SRT_RES_IDX(SrtData, PerFrame, gIndirectDataBuffer);
+            perFrameSetParams[4].ppBuffers = &pVisibilityBuffer->ppIndirectDataBuffer[i];
+            perFrameSetParams[5].mIndex = SRT_RES_IDX(SrtData, PerFrame, gFilteredIndexBuffer);
+            perFrameSetParams[5].ppBuffers = &pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
+            perFrameSetParams[6].mIndex = SRT_RES_IDX(SrtData, PerFrame, gCBExtendCamera);
+            perFrameSetParams[6].ppBuffers = &pBufferUniformExtendedCamera[i];
+            perFrameSetParams[7].mIndex = SRT_RES_IDX(SrtData, PerFrame, gPlaneInfoBuffer);
+            perFrameSetParams[7].ppBuffers = &pBufferUniformPlaneInfo[i];
+            perFrameSetParams[8].mIndex = SRT_RES_IDX(SrtData, PerFrame, gCBProperties);
+            perFrameSetParams[8].ppBuffers = &pBufferUniformPPRPro[i];
+            perFrameSetParams[9].mIndex = SRT_RES_IDX(SrtData, PerFrame, gNormalRoughness);
+            perFrameSetParams[9].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
+            perFrameSetParams[10].mIndex = SRT_RES_IDX(SrtData, PerFrame, gConstants);
+            perFrameSetParams[10].ppBuffers = &pSSSR_ConstantsBuffer[i];
+            perFrameSetParams[11].mIndex = SRT_RES_IDX(SrtData, PerFrame, gNormalRoughnessHistory);
+            perFrameSetParams[11].ppTextures = &pNormalRoughnessBuffers[prevIndex]->pTexture;
+            perFrameSetParams[12].mIndex = SRT_RES_IDX(SrtData, PerFrame, gMotionVectors);
+            perFrameSetParams[12].ppTextures = &pMotionVectorsBuffers[i]->pTexture;
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 13, perFrameSetParams);
         }
         if (gSSSRSupported)
         {
+            for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
             {
-                DescriptorData params[3] = {};
-                params[0].pName = "g_depth_buffer";
-                params[0].ppTextures = &pDepthBuffer->pTexture;
-                params[1].pName = "g_downsampled_depth_buffer";
-                params[1].ppTextures = &pSSSR_DepthHierarchy;
-                params[1].mBindMipChain = true;
-                params[2].pName = "g_global_atomic";
-                params[2].ppBuffers = &pSPD_AtomicCounterBuffer;
-                updateDescriptorSet(pRenderer, 0, pDescriptorSPD, 3, params);
-            }
-            {
-                DescriptorData params[2] = {};
-                params[0].pName = "Source";
-                params[0].ppTextures = &pDepthBuffer->pTexture;
-                params[0].mUAVMipSlice = 0;
-                params[1].pName = "Destination";
-                params[1].ppTextures = &pSSSR_DepthHierarchy;
-                params[1].mUAVMipSlice = 0;
-                updateDescriptorSet(pRenderer, 0, pDescriptorCopyDepth, 2, params);
-            }
-            // Depth downsample
-            {
-                for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
-                {
-                    DescriptorData params[2] = {};
-                    params[0].pName = "Source";
-                    params[0].ppTextures = &pSSSR_DepthHierarchy;
-                    params[0].mUAVMipSlice = (uint16_t)(i - 1);
-                    params[1].pName = "Destination";
-                    params[1].ppTextures = &pSSSR_DepthHierarchy;
-                    params[1].mUAVMipSlice = (uint16_t)i;
-                    updateDescriptorSet(pRenderer, i - 1, pDescriptorGenerateMip, 2, params);
-                }
-            }
-            //  SSSR Classify Tiles
-            {
-                DescriptorData SSSR_ClassifyTilesParams[10] = {};
-                SSSR_ClassifyTilesParams[0].pName = "g_ray_list";
-                SSSR_ClassifyTilesParams[0].ppBuffers = &pSSSR_RayListBuffer;
-                SSSR_ClassifyTilesParams[1].pName = "g_tile_list";
-                SSSR_ClassifyTilesParams[1].ppBuffers = &pSSSR_TileListBuffer;
-                SSSR_ClassifyTilesParams[2].pName = "g_ray_counter";
-                SSSR_ClassifyTilesParams[2].ppBuffers = &pSSSR_RayCounterBuffer;
-                SSSR_ClassifyTilesParams[3].pName = "g_tile_counter";
-                SSSR_ClassifyTilesParams[3].ppBuffers = &pSSSR_TileCounterBuffer;
-                SSSR_ClassifyTilesParams[4].pName = "g_ray_lengths";
-                SSSR_ClassifyTilesParams[4].ppTextures = &pSSSR_RayLength->pTexture;
-                SSSR_ClassifyTilesParams[5].pName = "g_temporal_variance";
-                SSSR_ClassifyTilesParams[5].ppTextures = &pSSSR_TemporalVariance;
-                SSSR_ClassifyTilesParams[6].pName = "g_denoised_reflections";
-                SSSR_ClassifyTilesParams[6].ppTextures = &pReflectionBuffer->pTexture;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_ClassifyTilesParams[7].pName = "g_temporally_denoised_reflections";
-                    SSSR_ClassifyTilesParams[7].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ClassifyTilesParams[8].pName = "g_normal_roughness";
-                    SSSR_ClassifyTilesParams[8].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ClassifyTilesParams[9].pName = "Constants";
-                    SSSR_ClassifyTilesParams[9].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ClassifyTiles, TF_ARRAY_COUNT(SSSR_ClassifyTilesParams),
-                                        SSSR_ClassifyTilesParams);
-                }
-            }
-            // SSSR Prepare
-            {
-                DescriptorData SSSR_PrepareIndirectArgsParams[4] = {};
-                SSSR_PrepareIndirectArgsParams[0].pName = "g_tile_counter";
-                SSSR_PrepareIndirectArgsParams[0].ppBuffers = &pSSSR_TileCounterBuffer;
-                SSSR_PrepareIndirectArgsParams[1].pName = "g_ray_counter";
-                SSSR_PrepareIndirectArgsParams[1].ppBuffers = &pSSSR_RayCounterBuffer;
-                SSSR_PrepareIndirectArgsParams[2].pName = "g_intersect_args";
-                SSSR_PrepareIndirectArgsParams[2].ppBuffers = &pSSSR_IntersectArgsBuffer;
-                SSSR_PrepareIndirectArgsParams[3].pName = "g_denoiser_args";
-                SSSR_PrepareIndirectArgsParams[3].ppBuffers = &pSSSR_DenoiserArgsBuffer;
-                updateDescriptorSet(pRenderer, 0, pDescriptorSetSSSR_PrepareIndirectArgs, TF_ARRAY_COUNT(SSSR_PrepareIndirectArgsParams),
-                                    SSSR_PrepareIndirectArgsParams);
-            }
-            {
-                DescriptorData SSSR_IntersectParams[11] = {};
-                SSSR_IntersectParams[0].pName = "g_lit_scene";
-                SSSR_IntersectParams[0].ppTextures = &pSceneBuffer->pTexture;
-                SSSR_IntersectParams[1].pName = "g_depth_buffer_hierarchy";
-                SSSR_IntersectParams[1].ppTextures = &pSSSR_DepthHierarchy;
-                SSSR_IntersectParams[2].pName = "g_sobol_buffer";
-                SSSR_IntersectParams[2].ppBuffers = &pSSSR_SobolBuffer;
-                SSSR_IntersectParams[3].pName = "g_ranking_tile_buffer";
-                SSSR_IntersectParams[3].ppBuffers = &pSSSR_RankingTileBuffer;
-                SSSR_IntersectParams[4].pName = "g_scrambling_tile_buffer";
-                SSSR_IntersectParams[4].ppBuffers = &pSSSR_ScramblingTileBuffer;
-                SSSR_IntersectParams[5].pName = "g_ray_lengths";
-                SSSR_IntersectParams[5].ppTextures = &pSSSR_RayLength->pTexture;
-                SSSR_IntersectParams[6].pName = "g_denoised_reflections";
-                SSSR_IntersectParams[6].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_IntersectParams[7].pName = "g_ray_list";
-                SSSR_IntersectParams[7].ppBuffers = &pSSSR_RayListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_IntersectParams[8].pName = "g_intersection_result";
-                    SSSR_IntersectParams[8].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_IntersectParams[9].pName = "g_normal_roughness";
-                    SSSR_IntersectParams[9].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_IntersectParams[10].pName = "Constants";
-                    SSSR_IntersectParams[10].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_Intersect, TF_ARRAY_COUNT(SSSR_IntersectParams),
-                                        SSSR_IntersectParams);
-                }
-            }
-            {
-                DescriptorData SSSR_ResolveSpatialParams[8] = {};
-                SSSR_ResolveSpatialParams[0].pName = "g_depth_buffer";
-                SSSR_ResolveSpatialParams[0].ppTextures = &pSSSR_DepthHierarchy;
-                SSSR_ResolveSpatialParams[1].pName = "g_spatially_denoised_reflections";
-                SSSR_ResolveSpatialParams[1].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_ResolveSpatialParams[2].pName = "g_ray_lengths";
-                SSSR_ResolveSpatialParams[2].ppTextures = &pSSSR_RayLength->pTexture;
-                SSSR_ResolveSpatialParams[3].pName = "g_has_ray";
-                SSSR_ResolveSpatialParams[3].ppTextures = &pSSSR_TemporalVariance;
-                SSSR_ResolveSpatialParams[4].pName = "g_tile_list";
-                SSSR_ResolveSpatialParams[4].ppBuffers = &pSSSR_TileListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_ResolveSpatialParams[5].pName = "g_intersection_result";
-                    SSSR_ResolveSpatialParams[5].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ResolveSpatialParams[6].pName = "g_normal_roughness";
-                    SSSR_ResolveSpatialParams[6].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ResolveSpatialParams[7].pName = "Constants";
-                    SSSR_ResolveSpatialParams[7].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ResolveSpatial, TF_ARRAY_COUNT(SSSR_ResolveSpatialParams),
-                                        SSSR_ResolveSpatialParams);
-                }
-            }
-            {
-                DescriptorData SSSR_ResolveTemporalParams[11] = {};
-                SSSR_ResolveTemporalParams[0].pName = "g_depth_buffer";
-                SSSR_ResolveTemporalParams[0].ppTextures = &pSSSR_DepthHierarchy;
-                SSSR_ResolveTemporalParams[1].pName = "g_spatially_denoised_reflections";
-                SSSR_ResolveTemporalParams[1].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_ResolveTemporalParams[2].pName = "g_temporal_variance";
-                SSSR_ResolveTemporalParams[2].ppTextures = &pSSSR_TemporalVariance;
-                SSSR_ResolveTemporalParams[3].pName = "g_ray_lengths";
-                SSSR_ResolveTemporalParams[3].ppTextures = &pSSSR_RayLength->pTexture;
-                SSSR_ResolveTemporalParams[4].pName = "g_tile_list";
-                SSSR_ResolveTemporalParams[4].ppBuffers = &pSSSR_TileListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    uint8_t prevIndex = (i + gDataBufferCount - 1) % gDataBufferCount;
-
-                    SSSR_ResolveTemporalParams[5].pName = "g_normal_roughness";
-                    SSSR_ResolveTemporalParams[5].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ResolveTemporalParams[6].pName = "g_normal_roughness_history";
-                    SSSR_ResolveTemporalParams[6].ppTextures = &pNormalRoughnessBuffers[prevIndex]->pTexture;
-                    SSSR_ResolveTemporalParams[7].pName = "g_motion_vectors";
-                    SSSR_ResolveTemporalParams[7].ppTextures = &pMotionVectorsBuffers[i]->pTexture;
-                    SSSR_ResolveTemporalParams[8].pName = "g_temporally_denoised_reflections";
-                    SSSR_ResolveTemporalParams[8].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ResolveTemporalParams[9].pName = "g_temporally_denoised_reflections_history";
-                    SSSR_ResolveTemporalParams[9].ppTextures = &pSSSR_TemporalResults[prevIndex]->pTexture;
-                    SSSR_ResolveTemporalParams[10].pName = "Constants";
-                    SSSR_ResolveTemporalParams[10].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ResolveTemporal, TF_ARRAY_COUNT(SSSR_ResolveTemporalParams),
-                                        SSSR_ResolveTemporalParams);
-                }
-            }
-            {
-                DescriptorData SSSR_ResolveEAWParams[5] = {};
-                SSSR_ResolveEAWParams[0].pName = "g_denoised_reflections";
-                SSSR_ResolveEAWParams[0].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_ResolveEAWParams[1].pName = "g_tile_list";
-                SSSR_ResolveEAWParams[1].ppBuffers = &pSSSR_TileListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_ResolveEAWParams[2].pName = "g_normal_roughness";
-                    SSSR_ResolveEAWParams[2].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ResolveEAWParams[3].pName = "g_temporally_denoised_reflections";
-                    SSSR_ResolveEAWParams[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ResolveEAWParams[4].pName = "Constants";
-                    SSSR_ResolveEAWParams[4].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ResolveEAW, TF_ARRAY_COUNT(SSSR_ResolveEAWParams),
-                                        SSSR_ResolveEAWParams);
-                }
-            }
-            {
-                DescriptorData SSSR_ResolveEAWStride2Params[5] = {};
-                SSSR_ResolveEAWStride2Params[0].pName = "g_temporally_denoised_reflections";
-                SSSR_ResolveEAWStride2Params[0].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_ResolveEAWStride2Params[1].pName = "g_tile_list";
-                SSSR_ResolveEAWStride2Params[1].ppBuffers = &pSSSR_TileListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_ResolveEAWStride2Params[2].pName = "g_normal_roughness";
-                    SSSR_ResolveEAWStride2Params[2].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ResolveEAWStride2Params[3].pName = "g_denoised_reflections";
-                    SSSR_ResolveEAWStride2Params[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ResolveEAWStride2Params[4].pName = "Constants";
-                    SSSR_ResolveEAWStride2Params[4].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ResolveEAWStride2, TF_ARRAY_COUNT(SSSR_ResolveEAWStride2Params),
-                                        SSSR_ResolveEAWStride2Params);
-                }
-            }
-            {
-                DescriptorData SSSR_ResolveEAWStride4Params[5] = {};
-                SSSR_ResolveEAWStride4Params[0].pName = "g_denoised_reflections";
-                SSSR_ResolveEAWStride4Params[0].ppTextures = &pReflectionBuffer->pTexture;
-                SSSR_ResolveEAWStride4Params[1].pName = "g_tile_list";
-                SSSR_ResolveEAWStride4Params[1].ppBuffers = &pSSSR_TileListBuffer;
-                for (uint32_t i = 0; i < gDataBufferCount; ++i)
-                {
-                    SSSR_ResolveEAWStride4Params[2].pName = "g_normal_roughness";
-                    SSSR_ResolveEAWStride4Params[2].ppTextures = &pNormalRoughnessBuffers[i]->pTexture;
-                    SSSR_ResolveEAWStride4Params[3].pName = "g_temporally_denoised_reflections";
-                    SSSR_ResolveEAWStride4Params[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
-                    SSSR_ResolveEAWStride4Params[4].pName = "Constants";
-                    SSSR_ResolveEAWStride4Params[4].ppBuffers = &pSSSR_ConstantsBuffer[i];
-                    updateDescriptorSet(pRenderer, i, pDescriptorSetSSSR_ResolveEAWStride4, TF_ARRAY_COUNT(SSSR_ResolveEAWStride4Params),
-                                        SSSR_ResolveEAWStride4Params);
-                }
+                perFrameSetParams[0].mIndex = SRT_RES_IDX(GenerateMipsSrtData, PerDraw, gSourceTexture);
+                perFrameSetParams[0].ppTextures = &pSSSR_DepthHierarchy;
+                perFrameSetParams[0].mUAVMipSlice = (uint16_t)(i - 1);
+                perFrameSetParams[1].mIndex = SRT_RES_IDX(GenerateMipsSrtData, PerDraw, gDestinationTexture);
+                perFrameSetParams[1].ppTextures = &pSSSR_DepthHierarchy;
+                perFrameSetParams[1].mUAVMipSlice = (uint16_t)i;
+                perFrameSetParams[2].mIndex = SRT_RES_IDX(GenerateMipsSrtData, PerDraw, gGenMipsConstants);
+                perFrameSetParams[2].ppBuffers = &pSSSR_GenMipsBuffers[i];
+                updateDescriptorSet(pRenderer, i - 1, pDescriptorGenerateMip, 3, perFrameSetParams);
             }
         }
     }
@@ -2889,250 +2659,56 @@ public:
 
     void addDescriptorSets()
     {
-        if (gSSSRSupported)
-        {
-            // This desc set contains mip level data which is dependent on window dimensions
-            DescriptorSetDesc setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
-        }
+        // none set
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent);
 
-        // Skybox
-        DescriptorSetDesc setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
-        setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
-
-        // Clear buffers
-        setDesc = { pRootSignatureClearBuffers, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetClearBuffers);
-        // Triangle filtering
-        setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[0]);
-        setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[1]);
-        // VB pass
-        setDesc = { pRootSignatureVBPass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVBPass[0]);
-        setDesc = { pRootSignatureVBPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVBPass[1]);
-        // VB Shade
-        setDesc = { pRootSignatureVBShade, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVBShade[0]);
-        setDesc = { pRootSignatureVBShade, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVBShade[1]);
-
-        // PPR Projection
-        setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[0]);
-        setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[1]);
-        // PPR Reflection
-        setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[0]);
-        setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[1]);
-        // PPR Hole Patching
-        setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[0]);
-        setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[1]);
+        // per frame set
+        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerFrame);
 
         if (gSSSRSupported)
         {
-            // Copy depth
-            setDesc = { pCopyDepthRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorCopyDepth);
             // DepthDownsample
-            setDesc = { pGenerateMipRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 13 };
+            setDesc = SRT_SET_DESC(GenerateMipsSrtData, PerDraw, 13, 0);
             addDescriptorSet(pRenderer, &setDesc, &pDescriptorGenerateMip);
-            // SSSR
-            setDesc = { pSSSR_ClassifyTilesRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ClassifyTiles);
-            setDesc = { pSSSR_PrepareIndirectArgsRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_PrepareIndirectArgs);
-            setDesc = { pSSSR_IntersectRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_Intersect);
-            setDesc = { pSSSR_ResolveSpatialRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveSpatial);
-            setDesc = { pSSSR_ResolveTemporalRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveTemporal);
-            setDesc = { pSSSR_ResolveEAWRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAW);
-            setDesc = { pSSSR_ResolveEAWStride2RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride2);
-            setDesc = { pSSSR_ResolveEAWStride4RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride4);
         }
+
+        // Depth Downsample
+        setDesc = SRT_SET_DESC_LARGE_RW(DepthDownSampleSrtData, PerBatch, 1, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDepthDownSamplePerBatch);
+
+        // SSSR
+        setDesc = SRT_SET_DESC(SSSRSrtData, PerBatch, gDataBufferCount, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR);
+
+        // PPR
+        setDesc = SRT_SET_DESC(PPRSrtData, PerBatch, 1, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR);
+
+        // copy depth
+        setDesc = SRT_SET_DESC(CopyDepthSrtData, PerBatch, 1, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCopyDepth);
+
+        // indirect draw clear
+        setDesc = SRT_SET_DESC(TriangleFilteringSrtData, PerBatch, gDataBufferCount, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFilteringPerBatch);
     }
 
     void removeDescriptorSets()
     {
-        if (gSSSRSupported)
-            removeDescriptorSet(pRenderer, pDescriptorSPD);
-
-        removeDescriptorSet(pRenderer, pDescriptorSetClearBuffers);
-        removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[1]);
-
-        removeDescriptorSet(pRenderer, pDescriptorSetVBPass[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetVBPass[1]);
-        removeDescriptorSet(pRenderer, pDescriptorSetVBShade[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetVBShade[1]);
-
-        removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[1]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[1]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[1]);
+        removeDescriptorSet(pRenderer, pDescriptorSetTriangleFilteringPerBatch);
+        removeDescriptorSet(pRenderer, pDescriptorSetCopyDepth);
+        removeDescriptorSet(pRenderer, pDescriptorSetPPR);
+        removeDescriptorSet(pRenderer, pDescriptorSetSSSR);
+        removeDescriptorSet(pRenderer, pDescriptorSetDepthDownSamplePerBatch);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
 
         if (gSSSRSupported)
         {
-            removeDescriptorSet(pRenderer, pDescriptorCopyDepth);
             removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ClassifyTiles);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_PrepareIndirectArgs);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_Intersect);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveSpatial);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveTemporal);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAW);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride2);
-            removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride4);
         }
-    }
-
-    void addRootSignatures()
-    {
-        RootSignatureDesc clearBuffersRootDesc = { &pShaderClearBuffers, 1 };
-        addRootSignature(pRenderer, &clearBuffersRootDesc, &pRootSignatureClearBuffers);
-
-        RootSignatureDesc triangleFilteringRootDesc = { &pShaderTriangleFiltering, 1 };
-        addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
-
-        const char*       vbPassSamplerNames[] = { "nearClampSampler" };
-        Sampler*          vbPassSamplers[] = { pSamplerNearestClampToEdge };
-        RootSignatureDesc vbPassRootDesc = { pShaderVBBufferPass, gNumGeomSets };
-        vbPassRootDesc.mMaxBindlessTextures = gMaterialCount;
-        vbPassRootDesc.ppStaticSamplerNames = vbPassSamplerNames;
-        vbPassRootDesc.mStaticSamplerCount = TF_ARRAY_COUNT(vbPassSamplers);
-        vbPassRootDesc.ppStaticSamplers = vbPassSamplers;
-        addRootSignature(pRenderer, &vbPassRootDesc, &pRootSignatureVBPass);
-
-        Sampler* vbShadeSceneSamplers[] = { pDefaultSampler, pSamplerBilinear, pSamplerLinearClampToEdge };
-
-        const char* vbShadeSceneSamplersNames[] = { "defaultSampler", "envSampler", "clampMiplessLinearSampler" };
-
-        RootSignatureDesc vbShadeRootDesc = {};
-        vbShadeRootDesc.mShaderCount = 1;
-        vbShadeRootDesc.ppShaders = &pShaderVBShade;
-        vbShadeRootDesc.mStaticSamplerCount = TF_ARRAY_COUNT(vbShadeSceneSamplers);
-        vbShadeRootDesc.ppStaticSamplers = vbShadeSceneSamplers;
-        vbShadeRootDesc.ppStaticSamplerNames = vbShadeSceneSamplersNames;
-        vbShadeRootDesc.mMaxBindlessTextures = gMaterialCount;
-        addRootSignature(pRenderer, &vbShadeRootDesc, &pRootSignatureVBShade);
-
-        const char*       pSkyboxamplerName = "skyboxSampler";
-        RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
-        skyboxRootDesc.mStaticSamplerCount = 1;
-        skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
-        skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
-        addRootSignature(pRenderer, &skyboxRootDesc, &pSkyboxRootSignature);
-
-        const char* pPPRSamplerNames[] = { "defaultSampler", "depthSampler" };
-        Sampler*    pPPRSamplers[] = { pDefaultSampler, pSamplerBilinear };
-
-        // PPR_Projection
-        RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
-        PPR_PRootDesc.mStaticSamplerCount = 2;
-        PPR_PRootDesc.ppStaticSamplerNames = pPPRSamplerNames;
-        PPR_PRootDesc.ppStaticSamplers = pPPRSamplers;
-        addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
-
-        // PPR_Reflection
-        RootSignatureDesc PPR_RRootDesc = { &pPPR_ReflectionShader, 1 };
-        PPR_RRootDesc.mStaticSamplerCount = 2;
-        PPR_RRootDesc.ppStaticSamplerNames = pPPRSamplerNames;
-        PPR_RRootDesc.ppStaticSamplers = pPPRSamplers;
-        addRootSignature(pRenderer, &PPR_RRootDesc, &pPPR_ReflectionRootSignature);
-
-        // PPR_HolePatching
-        const char* pStaticSamplerforHolePatchingNames[] = { "nearestSampler", "bilinearSampler" };
-        Sampler*    pStaticSamplersforHolePatching[] = { pSamplerNearestRepeat, pSamplerBilinear };
-
-        RootSignatureDesc PPR_HolePatchingRootDesc = { &pPPR_HolePatchingShader, 1 };
-        PPR_HolePatchingRootDesc.mStaticSamplerCount = 2;
-        PPR_HolePatchingRootDesc.ppStaticSamplerNames = pStaticSamplerforHolePatchingNames;
-        PPR_HolePatchingRootDesc.ppStaticSamplers = pStaticSamplersforHolePatching;
-        addRootSignature(pRenderer, &PPR_HolePatchingRootDesc, &pPPR_HolePatchingRootSignature);
-
-        if (gSSSRSupported)
-        {
-            RootSignatureDesc SPDDescRootDesc = { &pSPDShader, 1 };
-            SPDDescRootDesc.mMaxBindlessTextures = 13;
-            addRootSignature(pRenderer, &SPDDescRootDesc, &pSPDRootSignature);
-
-            RootSignatureDesc CopyDepthShaderDescRootDesc = { &pCopyDepthShader, 1 };
-            addRootSignature(pRenderer, &CopyDepthShaderDescRootDesc, &pCopyDepthRootSignature);
-
-            RootSignatureDesc GenerateMipShaderDescRootDesc = { &pGenerateMipShader, 1 };
-            addRootSignature(pRenderer, &GenerateMipShaderDescRootDesc, &pGenerateMipRootSignature);
-            gMipSizeRootConstantIndex = getDescriptorIndexFromName(pGenerateMipRootSignature, "uRootConstant");
-
-            // SSSR
-            RootSignatureDesc SSSR_ClassifyTilesRootDesc = { &pSSSR_ClassifyTilesShader, 1 };
-            addRootSignature(pRenderer, &SSSR_ClassifyTilesRootDesc, &pSSSR_ClassifyTilesRootSignature);
-
-            RootSignatureDesc SSSR_PrepareIndirectArgsRootDesc = { &pSSSR_PrepareIndirectArgsShader, 1 };
-            addRootSignature(pRenderer, &SSSR_PrepareIndirectArgsRootDesc, &pSSSR_PrepareIndirectArgsRootSignature);
-
-            RootSignatureDesc SSSR_IntersectRootDesc = { &pSSSR_IntersectShader, 1 };
-            addRootSignature(pRenderer, &SSSR_IntersectRootDesc, &pSSSR_IntersectRootSignature);
-
-            RootSignatureDesc SSSR_ResolveSpatialRootDesc = { &pSSSR_ResolveSpatialShader, 1 };
-            addRootSignature(pRenderer, &SSSR_ResolveSpatialRootDesc, &pSSSR_ResolveSpatialRootSignature);
-
-            RootSignatureDesc SSSR_ResolveTemporalRootDesc = { &pSSSR_ResolveTemporalShader, 1 };
-            addRootSignature(pRenderer, &SSSR_ResolveTemporalRootDesc, &pSSSR_ResolveTemporalRootSignature);
-
-            RootSignatureDesc SSSR_ResolveEAWRootDesc = { &pSSSR_ResolveEAWShader, 1 };
-            addRootSignature(pRenderer, &SSSR_ResolveEAWRootDesc, &pSSSR_ResolveEAWRootSignature);
-
-            RootSignatureDesc SSSR_ResolveEAWStride2RootDesc = { &pSSSR_ResolveEAWStride2Shader, 1 };
-            addRootSignature(pRenderer, &SSSR_ResolveEAWStride2RootDesc, &pSSSR_ResolveEAWStride2RootSignature);
-
-            RootSignatureDesc SSSR_ResolveEAWStride4RootDesc = { &pSSSR_ResolveEAWStride4Shader, 1 };
-            addRootSignature(pRenderer, &SSSR_ResolveEAWStride4RootDesc, &pSSSR_ResolveEAWStride4RootSignature);
-        }
-    }
-
-    void removeRootSignatures()
-    {
-        removeRootSignature(pRenderer, pRootSignatureVBPass);
-        removeRootSignature(pRenderer, pRootSignatureVBShade);
-        removeRootSignature(pRenderer, pRootSignatureClearBuffers);
-        removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
-
-        if (gSSSRSupported)
-        {
-            removeRootSignature(pRenderer, pSSSR_ResolveEAWStride4RootSignature);
-            removeRootSignature(pRenderer, pSSSR_ResolveEAWStride2RootSignature);
-            removeRootSignature(pRenderer, pSSSR_ResolveEAWRootSignature);
-            removeRootSignature(pRenderer, pSSSR_ResolveTemporalRootSignature);
-            removeRootSignature(pRenderer, pSSSR_ResolveSpatialRootSignature);
-            removeRootSignature(pRenderer, pSSSR_IntersectRootSignature);
-            removeRootSignature(pRenderer, pSSSR_PrepareIndirectArgsRootSignature);
-            removeRootSignature(pRenderer, pSSSR_ClassifyTilesRootSignature);
-            removeRootSignature(pRenderer, pSPDRootSignature);
-            removeRootSignature(pRenderer, pGenerateMipRootSignature);
-            removeRootSignature(pRenderer, pCopyDepthRootSignature);
-        }
-
-        removeRootSignature(pRenderer, pPPR_HolePatchingRootSignature);
-        removeRootSignature(pRenderer, pPPR_ReflectionRootSignature);
-        removeRootSignature(pRenderer, pPPR_ProjectionRootSignature);
-        removeRootSignature(pRenderer, pSkyboxRootSignature);
     }
 
     void addShaders()
@@ -3297,6 +2873,7 @@ public:
             formats[1] = pMotionVectorsBuffers[0]->mFormat;
 
             PipelineDesc desc = {};
+            PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
             desc.mType = PIPELINE_TYPE_GRAPHICS;
             GraphicsPipelineDesc& vbPassPipelineSettings = desc.mGraphicsDesc;
             vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -3306,7 +2883,6 @@ public:
             vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mSampleCount;
             vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mSampleQuality;
             vbPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-            vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
             vbPassPipelineSettings.pVertexLayout = NULL;
             vbPassPipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 
@@ -3342,7 +2918,6 @@ public:
             vbShadePipelineSettings.mRenderTargetCount = TF_ARRAY_COUNT(formats);
             vbShadePipelineSettings.pDepthState = &depthStateDisabledDesc;
             vbShadePipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
-            vbShadePipelineSettings.pRootSignature = pRootSignatureVBShade;
             vbShadePipelineSettings.pShaderProgram = pShaderVBShade;
             vbShadePipelineSettings.mSampleCount = SAMPLE_COUNT_1;
             vbShadePipelineSettings.pColorFormats = formats;
@@ -3360,20 +2935,25 @@ public:
             desc.mExtensionCount = 2;
             desc.pPipelineExtensions = edescs;
 #endif
+            PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
             addPipeline(pRenderer, &desc, &pPipelineVBShadeSrgb);
 
+            PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(TriangleFilteringSrtData, Persistent),
+                                 SRT_LAYOUT_DESC(TriangleFilteringSrtData, PerFrame), SRT_LAYOUT_DESC(TriangleFilteringSrtData, PerBatch),
+                                 NULL);
             desc.mExtensionCount = 0;
             desc.mType = PIPELINE_TYPE_COMPUTE;
             desc.mComputeDesc = {};
             ComputePipelineDesc& clearBufferPipelineSettings = desc.mComputeDesc;
             clearBufferPipelineSettings.pShaderProgram = pShaderClearBuffers;
-            clearBufferPipelineSettings.pRootSignature = pRootSignatureClearBuffers;
             addPipeline(pRenderer, &desc, &pPipelineClearBuffers);
 
+            PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(TriangleFilteringSrtData, Persistent),
+                                 SRT_LAYOUT_DESC(TriangleFilteringSrtData, PerFrame), SRT_LAYOUT_DESC(TriangleFilteringSrtData, PerBatch),
+                                 NULL);
             desc.mComputeDesc = {};
             ComputePipelineDesc& triangleFilteringPipelineSettings = desc.mComputeDesc;
             triangleFilteringPipelineSettings.pShaderProgram = pShaderTriangleFiltering;
-            triangleFilteringPipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
             addPipeline(pRenderer, &desc, &pPipelineTriangleFiltering);
         }
 
@@ -3398,6 +2978,7 @@ public:
         vertexLayoutSkybox.mAttribs[0].mOffset = 0;
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& skyboxPipelineDesc = desc.mGraphicsDesc;
         skyboxPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -3408,7 +2989,6 @@ public:
         skyboxPipelineDesc.mSampleCount = pSceneBuffer->mSampleCount;
         skyboxPipelineDesc.mSampleQuality = pSceneBuffer->mSampleQuality;
         skyboxPipelineDesc.mDepthStencilFormat = pDepthBuffer->mFormat;
-        skyboxPipelineDesc.pRootSignature = pSkyboxRootSignature;
         skyboxPipelineDesc.pShaderProgram = pSkyboxShader;
         skyboxPipelineDesc.pVertexLayout = &vertexLayoutSkybox;
         skyboxPipelineDesc.pRasterizerState = &rasterizerStateCullNoneDesc;
@@ -3433,6 +3013,8 @@ public:
         vertexLayoutScreenQuad.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
 
         // PPR_Reflection
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(PPRSrtData, Persistent), SRT_LAYOUT_DESC(PPRSrtData, PerFrame),
+                             SRT_LAYOUT_DESC(PPRSrtData, PerBatch), NULL);
         desc.mGraphicsDesc = {};
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -3444,7 +3026,6 @@ public:
         pipelineSettings.mSampleQuality = pReflectionBuffer->mSampleQuality;
 
         pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-        pipelineSettings.pRootSignature = pPPR_ReflectionRootSignature;
         pipelineSettings.pShaderProgram = pPPR_ReflectionShader;
         pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
         pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
@@ -3461,7 +3042,6 @@ public:
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 
         pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-        pipelineSettings.pRootSignature = pPPR_HolePatchingRootSignature;
         pipelineSettings.pShaderProgram = pPPR_HolePatchingShader;
         pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
         pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
@@ -3469,68 +3049,67 @@ public:
 
         // PPR_Projection
         PipelineDesc computeDesc = {};
+        PIPELINE_LAYOUT_DESC(computeDesc, SRT_LAYOUT_DESC(PPRSrtData, Persistent), SRT_LAYOUT_DESC(PPRSrtData, PerFrame),
+                             SRT_LAYOUT_DESC(PPRSrtData, PerBatch), NULL);
         computeDesc.mType = PIPELINE_TYPE_COMPUTE;
         ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
         cpipelineSettings.pShaderProgram = pPPR_ProjectionShader;
-        cpipelineSettings.pRootSignature = pPPR_ProjectionRootSignature;
         addPipeline(pRenderer, &computeDesc, &pPPR_ProjectionPipeline);
 
         if (gSSSRSupported)
         {
+            PIPELINE_LAYOUT_DESC(computeDesc, SRT_LAYOUT_DESC(DepthDownSampleSrtData, Persistent),
+                                 SRT_LAYOUT_DESC(DepthDownSampleSrtData, PerFrame), SRT_LAYOUT_DESC(DepthDownSampleSrtData, PerBatch),
+                                 NULL);
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSPDShader;
-            cpipelineSettings.pRootSignature = pSPDRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSPDPipeline);
 
+            PIPELINE_LAYOUT_DESC(computeDesc, SRT_LAYOUT_DESC(CopyDepthSrtData, Persistent), SRT_LAYOUT_DESC(CopyDepthSrtData, PerFrame),
+                                 SRT_LAYOUT_DESC(CopyDepthSrtData, PerBatch), NULL);
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pCopyDepthShader;
-            cpipelineSettings.pRootSignature = pCopyDepthRootSignature;
             addPipeline(pRenderer, &computeDesc, &pCopyDepthPipeline);
 
+            PIPELINE_LAYOUT_DESC(computeDesc, SRT_LAYOUT_DESC(GenerateMipsSrtData, Persistent),
+                                 SRT_LAYOUT_DESC(GenerateMipsSrtData, PerFrame), NULL, SRT_LAYOUT_DESC(GenerateMipsSrtData, PerDraw));
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pGenerateMipShader;
-            cpipelineSettings.pRootSignature = pGenerateMipRootSignature;
             addPipeline(pRenderer, &computeDesc, &pGenerateMipPipeline);
 
             // SSSR
+            PIPELINE_LAYOUT_DESC(computeDesc, SRT_LAYOUT_DESC(SSSRSrtData, Persistent), SRT_LAYOUT_DESC(SSSRSrtData, PerFrame),
+                                 SRT_LAYOUT_DESC(SSSRSrtData, PerBatch), NULL);
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ClassifyTilesShader;
-            cpipelineSettings.pRootSignature = pSSSR_ClassifyTilesRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ClassifyTilesPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_PrepareIndirectArgsShader;
-            cpipelineSettings.pRootSignature = pSSSR_PrepareIndirectArgsRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_PrepareIndirectArgsPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_IntersectShader;
-            cpipelineSettings.pRootSignature = pSSSR_IntersectRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_IntersectPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ResolveSpatialShader;
-            cpipelineSettings.pRootSignature = pSSSR_ResolveSpatialRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveSpatialPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ResolveTemporalShader;
-            cpipelineSettings.pRootSignature = pSSSR_ResolveTemporalRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveTemporalPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWShader;
-            cpipelineSettings.pRootSignature = pSSSR_ResolveEAWRootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWPipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride2Shader;
-            cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride2RootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride2Pipeline);
 
             cpipelineSettings = { 0 };
             cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride4Shader;
-            cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride4RootSignature;
             addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride4Pipeline);
         }
     }
@@ -3579,6 +3158,10 @@ public:
 
     void removeRenderTargets()
     {
+        for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
+        {
+            removeResource(pSSSR_GenMipsBuffers[i]);
+        }
         removeRenderTarget(pRenderer, pRenderTargetVBPass);
         removeRenderTarget(pRenderer, pDepthBuffer);
         removeRenderTarget(pRenderer, pSceneBuffer);
@@ -3783,6 +3366,26 @@ public:
 
         if (pSSSR_DepthHierarchy == NULL)
             return false;
+
+        uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mWidth));
+        uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mHeight));
+        uint     mipSizes[GENERATE_MIPS_MAX_MIPS][2] = {};
+        for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
+        {
+            mipSizeX >>= 1;
+            mipSizeY >>= 1;
+            mipSizes[i][0] = mipSizeX;
+            mipSizes[i][1] = mipSizeY;
+            BufferLoadDesc bufferDesc = {};
+            bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+            bufferDesc.mDesc.mSize = sizeof(uint32_t) * 2;
+            bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+            bufferDesc.mDesc.pName = "Mip generations uniforms";
+            bufferDesc.pData = mipSizes[i];
+            bufferDesc.ppBuffer = &pSSSR_GenMipsBuffers[i];
+            addResource(&bufferDesc, NULL);
+        }
 
         RenderTargetDesc intersectResultsDesc = {};
         intersectResultsDesc.mArraySize = 1;

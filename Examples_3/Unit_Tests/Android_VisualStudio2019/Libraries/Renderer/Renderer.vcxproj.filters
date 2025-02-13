@@ -111,13 +111,10 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
       <Filter>Tools\ReloadServer</Filter>
     </ClInclude>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl">
@@ -127,9 +124,6 @@
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl">

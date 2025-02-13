@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,9 +22,11 @@
  * under the License.
 */
 
-#include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
+#include "srt.h"
+#include "vb_resources_util.h.fsl"
 
+ROOT_SIGNATURE(DefaultRootSignature)
 PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
@@ -33,14 +35,14 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
     float4 vertexPos = LoadVertex(vertexID);
 
     #if FT_MULTIVIEW
-        Out.position = mul(PerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat[VR_VIEW_ID], vertexPos);
+        Out.position = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat[VR_VIEW_ID], vertexPos);
     #else
-        Out.position = mul(PerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, vertexPos);
+        Out.position = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, vertexPos);
     #endif
 
     Out.texCoord = LoadTexCoord(vertexID);
     // IndirectDataBuffer stores mesh index, which in this case is the same as material ID
-	Out.materialID = indirectDataBuffer[vertexID]; 
+	Out.materialID = gIndirectDataBuffer[vertexID]; 
 
     RETURN(Out);
 }

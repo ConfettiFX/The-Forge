@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,21 +22,10 @@
  * under the License.
 */
 
-STRUCT(UniformBlock)
-{
-#if FT_MULTIVIEW
-	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
-	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
-#else
-	DATA(float4x4, projView, None);
-	DATA(float4x4, invProjView, None);
-#endif
-	DATA(float3, camPos, None);
-};
-RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+#include "resources.h.fsl"
+#include "srt.h"
 
-RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s2, binding = 2);
+
 
 STRUCT(VSInput)
 {
@@ -49,14 +38,15 @@ STRUCT(VSOutput)
 	DATA(float3, pos,    POSITION);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-	Out.Position = mul(uniformBlock.projView[VR_VIEW_ID], In.Position);
+	Out.Position = mul(gUniformBlock.projView[VR_VIEW_ID], In.Position);
 #else
-	Out.Position = mul(uniformBlock.projView, In.Position);
+	Out.Position = mul(gUniformBlock.projView, In.Position);
 #endif
 	Out.pos = In.Position.xyz;
     RETURN(Out);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,14 +22,9 @@
 * under the License.
 */
 
-RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
-STRUCT(RootConstants)
-{
-	DATA(float4, color, None);
-	DATA(float2, scaleBias, None);
-};
-RES(ROOT_CONSTANT(RootConstants), uRootConstants, UPDATE_FREQ_NONE, b1, binding = 1);
+#include "textured_resources.h"
+
+
 
 STRUCT(VsIn)
 {
@@ -43,11 +38,12 @@ STRUCT(VsOut)
 	DATA(float2, texcoord, TEXCOORD0);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VsOut VS_MAIN( VsIn In )
 {
 	INIT_MAIN;
 	VsOut Out;
-	Out.position = float4(In.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+	Out.position = float4(In.position.xy * gUniformBlock.scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 	Out.texcoord = In.texcoord;
 	RETURN(Out);
 }

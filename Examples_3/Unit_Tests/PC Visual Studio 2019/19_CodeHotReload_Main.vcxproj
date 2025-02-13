@@ -12,20 +12,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c" />
+    <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsToolsFileSystem.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Utilities\FileSystem\ToolFileSystem.c" />
     <ClCompile Include="..\src\19_CodeHotReload\19_CodeHotReload_Main.cpp" />
     <ClCompile Include="..\src\19_CodeHotReload\SystemRun.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
     <ClInclude Include="..\src\19_CodeHotReload\IGamePlugin.h" />
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\structs.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\shaders.list" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\19_CodeHotReload\Test_HotReload.lua" />
+    <None Include="..\src\19_CodeHotReload\GPUCfg\gpu.cfg" />
+    <None Include="..\src\19_CodeHotReload\Scripts\Test_HotReload.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{28DEB3EA-DDBA-4F84-BF3E-D5A210989BE4}</ProjectGuid>
@@ -94,12 +99,7 @@
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>
-        %(Command)
-        xcopy /Y /D "$(TheForgeArtDir)GPUCfg\19_CodeHotReload\gpu.cfg" "$(OutDir)"
-      </Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <CustomBuildStep>
       <Command>
         %(Command)
@@ -119,6 +119,10 @@
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>
+    <PreBuildEvent>
+      <Command>        xcopy /Y /D "..\src\19_CodeHotReload\GPUCfg\gpu.cfg" "$(OutDir)"
+        xcopy /Y /D "..\src\19_CodeHotReload\Scripts\*.*" "$(OutDir)Scripts\"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -148,12 +152,7 @@
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpi-aware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>
-        %(Command)
-        xcopy /Y /D "$(TheForgeArtDir)GPUCfg\19_CodeHotReload\gpu.cfg" "$(OutDir)"
-      </Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <CustomBuildStep>
       <Command>
         %(Command)
@@ -173,6 +172,11 @@
       <Compile>true</Compile>
       <Language>DIRECT3D12</Language>
     </FSLShader>
+    <PreBuildEvent>
+      <Command>        xcopy /Y /D "..\src\19_CodeHotReload\GPUCfg\gpu.cfg" "$(OutDir)"
+        xcopy /Y /D "..\src\19_CodeHotReload\Scripts\*.*" "$(OutDir)Scripts\"
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

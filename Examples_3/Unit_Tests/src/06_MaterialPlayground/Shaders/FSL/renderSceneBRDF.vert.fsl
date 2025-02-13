@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,6 +32,8 @@ STRUCT(VSInput)
 	DATA(uint, Uv,       TEXCOORD0);
 };
 
+
+
 STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
@@ -40,19 +42,21 @@ STRUCT(VSOutput)
 	DATA(float2, uv,	 TEXCOORD0);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
+
 VSOutput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;
 	VSOutput Out;
 #if FT_MULTIVIEW
-	float4x4 tempMat = mul(cbCamera.projView[VR_VIEW_ID], cbObject.worldMat);
+	float4x4 tempMat = mul(gCamera.projView[VR_VIEW_ID], gObject.worldMat);
 #else
-	float4x4 tempMat = mul(cbCamera.projView, cbObject.worldMat);
+	float4x4 tempMat = mul(gCamera.projView, gObject.worldMat);
 #endif
 	Out.Position = mul(tempMat, float4(In.Position.xyz, 1.0f));
 
-	Out.pos = float3(mul(cbObject.worldMat, float4(In.Position.xyz, 1.0f)).rgb);
-	Out.normal = mul(cbObject.worldMat, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f)).rgb;
+	Out.pos = float3(mul(gObject.worldMat, float4(In.Position.xyz, 1.0f)).rgb);
+	Out.normal = mul(gObject.worldMat, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f)).rgb;
 	Out.uv = unpack2Floats(In.Uv);
 	RETURN(Out);
 }

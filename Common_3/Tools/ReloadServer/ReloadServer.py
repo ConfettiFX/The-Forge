@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 #
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -41,7 +41,7 @@ MAX_CLIENT_MESSAGE_LENGTH = 1024 + 64  # FS_MAX_PATH + ShaderPlatformMaxLength
 LOG_PREFIX = "ReloadServer [HOST]"
 CURRENT_SCRIPT = Path(__file__).absolute()
 FSL = CURRENT_SCRIPT.parent.parent / 'ForgeShadingLanguage' / 'fsl.py'
-GLOBAL_MUTEX_NAME = 'ReloadServerGlobalMutex'
+GLOBAL_MUTEX_NAME_PREFIX = 'ReloadServerGlobalMutex'
 LOGGER = None
 
 
@@ -444,7 +444,7 @@ def enable_adb_port_reversal(port: int):
 def server(port: int):
     setup_logging()
     
-    mutex = GlobalMutex(GLOBAL_MUTEX_NAME)
+    mutex = GlobalMutex(f'{GLOBAL_MUTEX_NAME_PREFIX}_{port}')
     # We need to check again if the server is running since one could have been started since the
     # check performed in `main` (which is done before starting the daemon to avoid doing that if not required).
     already_running = not mutex.acquire()
@@ -535,7 +535,7 @@ def main():
             print(f'{LOG_PREFIX}: there are no servers running on port {args.port}')
         return
 
-    mutex = GlobalMutex(GLOBAL_MUTEX_NAME)
+    mutex = GlobalMutex(f'{GLOBAL_MUTEX_NAME_PREFIX}_{args.port}')
     if mutex.acquire():
         already_running = False
         mutex.release()

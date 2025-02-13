@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,46 +49,41 @@
 // Multi-viewport culling
 // Mesh Instances: reuse the same mesh with different world transforms
 
-#include "shader_defs.h.fsl"
-#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
 
-RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Buffer(MeshData), MeshDataBuffer, UPDATE_FREQ_PER_FRAME, t4, binding = 4);
-
-void FilterTriangles( uint3 threadId, uint3 groupId)
+void FilterTriangles(uint3 threadId, uint3 groupId)
 {
-	if (threadId.x == 0)
-	{
+    if (threadId.x == 0)
+    {
         UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+        for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
             AtomicStore(workGroupIndexCount[i], 0u);
 
-		filterDispatchGroupData = filterDispatchGroupDataBuffer[groupId.x];
-	}
+        filterDispatchGroupData = gFilterDispatchGroupDataBuffer[groupId.x];
+    }
 
     GroupMemoryBarrier();
 
-	bool cull[NUM_CULLING_VIEWPORTS];
-	uint threadOutputSlot[NUM_CULLING_VIEWPORTS];
-	
-	// Scope to suppressed 'uint i' variable redefinition in following loops (due to unrolling)
-	{
-		UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-		{
-			threadOutputSlot[i] = 0;
-			cull[i] = true;
-		}
-	}
+    bool cull[NUM_CULLING_VIEWPORTS];
+    uint threadOutputSlot[NUM_CULLING_VIEWPORTS];
 
-	uint batchMeshIndex = filterDispatchGroupData.meshIndex;
-	uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
-	uint batchInputIndexOffset = (MeshDataBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
-	uint vertexOffset = MeshDataBuffer[batchMeshIndex].vertexOffset;
-	uint indirectVertexOffset = MeshDataBuffer[batchMeshIndex].indirectVertexOffset;
-	bool twoSided = bool(((MeshDataBuffer[batchMeshIndex].materialID_flags >> FLAG_LOW_BIT) & FLAG_MASK) & MESH_CONSTANT_FLAG_TWO_SIDED);
-    
-	uint preSkinnedVtxOffset = MeshDataBuffer[batchMeshIndex].preSkinnedVertexOffset;
+    // Scope to suppressed 'uint i' variable redefinition in following loops (due to unrolling)
+    {
+        UNROLL_N(NUM_CULLING_VIEWPORTS)
+        for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+        {
+            threadOutputSlot[i] = 0;
+            cull[i] = true;
+        }
+    }
+
+    uint batchMeshIndex = filterDispatchGroupData.meshIndex;
+    uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
+    uint batchInputIndexOffset = (gMeshDataBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
+    uint vertexOffset = gMeshDataBuffer[batchMeshIndex].vertexOffset;
+    uint indirectVertexOffset = gMeshDataBuffer[batchMeshIndex].indirectVertexOffset;
+    bool twoSided = bool(((gMeshDataBuffer[batchMeshIndex].materialID_flags >> FLAG_LOW_BIT) & FLAG_MASK) & MESH_CONSTANT_FLAG_TWO_SIDED);
+
+    uint preSkinnedVtxOffset = gMeshDataBuffer[batchMeshIndex].preSkinnedVertexOffset;
     if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
     {
         // If this is an animated instance we don't use the offset in MeshData, that offset points to the mesh
@@ -96,77 +91,77 @@ void FilterTriangles( uint3 threadId, uint3 groupId)
         vertexOffset = preSkinnedVtxOffset;
     }
 
-	float4x4 mvp[NUM_CULLING_VIEWPORTS];
+    float4x4 mvp[NUM_CULLING_VIEWPORTS];
 
-	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-	{
-		mvp[i] = mul(PerFrameVBConstants.transform[i].mvp.mat, MeshDataBuffer[batchMeshIndex].modelMtx);
-	}
+    for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+    {
+        mvp[i] = mul(gPerFrameConstantsComp.transform[i].mvp.mat, gMeshDataBuffer[batchMeshIndex].modelMtx);
+    }
 
-	uint indices[3] = { 0, 0, 0 };
-	uint batchFaceCount =  ((filterDispatchGroupData.geometrySet_faceCount & BATCH_FACE_COUNT_MASK) >> BATCH_FACE_COUNT_LOW_BIT);
-	if (threadId.x < batchFaceCount)
-	{
-		indices[0] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
-		indices[1] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
-		indices[2] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
+    uint indices[3] = { 0, 0, 0 };
+    uint batchFaceCount = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_FACE_COUNT_MASK) >> BATCH_FACE_COUNT_LOW_BIT);
+    if (threadId.x < batchFaceCount)
+    {
+        indices[0] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
+        indices[1] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
+        indices[2] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
 
-		// TODO: move to VisibilityBuffer.cpp 
-		indirectDataBuffer[indices[0] + indirectVertexOffset] = batchMeshIndex;
-		indirectDataBuffer[indices[1] + indirectVertexOffset] = batchMeshIndex;
-		indirectDataBuffer[indices[2] + indirectVertexOffset] = batchMeshIndex;
+        // TODO: move to VisibilityBuffer.cpp
+        gIndirectDataBufferRW[indices[0] + indirectVertexOffset] = batchMeshIndex;
+        gIndirectDataBufferRW[indices[1] + indirectVertexOffset] = batchMeshIndex;
+        gIndirectDataBufferRW[indices[2] + indirectVertexOffset] = batchMeshIndex;
 
-		float4 vert[3] =
-		{
-			LoadVertex(indices[0]),
-			LoadVertex(indices[1]),
-			LoadVertex(indices[2])
-		};
+        float4 vert[3] =
+        {
+            LoadVertex(indices[0]),
+            LoadVertex(indices[1]),
+            LoadVertex(indices[2])
+        };
 
         UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-		{
-			float4 vertices[3] =
-			{
-				mul(mvp[i], vert[0]),
-				mul(mvp[i], vert[1]),
-				mul(mvp[i], vert[2])
-			};
+        for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+        {
+            float4 vertices[3] = { mul(mvp[i], vert[0]), mul(mvp[i], vert[1]), mul(mvp[i], vert[2]) };
 
-			CullingViewPort viewport = PerFrameVBConstants.cullingViewports[i];
-			cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
-			if (!cull[i])
-			{
+            CullingViewPort viewport = gPerFrameConstantsComp.cullingViewports[i];
+            cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
+            if (!cull[i])
+            {
                 AtomicAdd(workGroupIndexCount[i], 3, threadOutputSlot[i]);
-			}
-		}
-	}
+            }
+        }
+    }
 
     GroupMemoryBarrier();
 
-	if (threadId.x == 0)
-	{
+    if (threadId.x == 0)
+    {
         UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-		{
-			uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(i, batchGeomSet, 0);
-            AtomicAdd(indirectDrawArgs[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);		
-		}
-	}
+        for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+        {
+            uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(i, batchGeomSet, 0);
+            AtomicAdd(gIndirectDrawClearArgsRW[indirectDrawIndex], workGroupIndexCount[i], workGroupOutputSlot[i]);
+        }
+    }
 
     GroupMemoryBarrier();
 
     UNROLL_N(NUM_CULLING_VIEWPORTS)
-	for (uint j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
-	{
-		if (!cull[j])
-		{
-			uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
-            
-			// Write index
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0] + indirectVertexOffset);
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1] + indirectVertexOffset);
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2] + indirectVertexOffset);
-		}
-	}
+    for (uint j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
+    {
+        if (!cull[j])
+        {
+            uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
+
+            // Write index
+            StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2,
+                      indices[0] + indirectVertexOffset);
+            StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2,
+                      indices[1] + indirectVertexOffset);
+            StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2,
+                      indices[2] + indirectVertexOffset);
+        }
+    }
 }
+
+

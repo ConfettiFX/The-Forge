@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -42,6 +42,10 @@
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
+#include "../../Graphics/FSL/fsl_srt.h"
+#include "../../Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/resources.h"
+
 #ifdef ENABLE_FORGE_FONTS
 
 struct Fontstash
@@ -59,13 +63,13 @@ struct Fontstash
     Renderer*      pRenderer;
     Texture*       pAtlasTexture;
     Shader*        pShaders[2];
-    RootSignature* pRootSignature;
-    DescriptorSet* pDescriptorSets;
+    DescriptorSet* pDescriptorSet;
     Pipeline*      pPipelines[2];
-    Sampler*       pDefaultSampler;
     GPURingBuffer  mUniformRingBuffer;
     GPURingBuffer  mMeshRingBuffer;
-    uint32_t       mRootConstantIndex;
+
+    static const uint32_t gMaxPerDrawSets = 512;
+    uint32_t              mPerDrawSetIndex;
 
     // Fontstash generation
     const uint8_t* pPixels;
@@ -159,58 +163,54 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     // extract color
     float4 color = unpackA8B8G8R8_SRGB(*colors);
 
-    uint32_t  pipelineIndex = draw->mText3D ? 1 : 0;
-    Pipeline* pPipeline = gFontstash.pPipelines[pipelineIndex];
+    Pipeline* pPipeline = gFontstash.pPipelines[draw->mText3D];
     ASSERT(pPipeline);
 
     cmdBindPipeline(pCmd, pPipeline);
 
-    struct UniformData
-    {
-        float4 color;
-        float2 scaleBias;
-#ifdef METAL
-        float _pad0;
-        float _pad1;
-#endif
-    } data;
+    CameraMatrix mvp;
 
-    data.color = color;
-    data.scaleBias = gFontstash.mScaleBias;
-
+    UniformBlock        uniformBlockData = {};
+    const uint32_t      size = sizeof(UniformBlock);
+    GPURingBufferOffset uniformBlock = getGPURingBufferOffset(&gFontstash.mUniformRingBuffer, size);
+    BufferUpdateDesc    updateDesc = { uniformBlock.pBuffer, uniformBlock.mOffset };
+    beginUpdateResource(&updateDesc);
+    uniformBlockData.color = color;
+    uniformBlockData.scaleBias = gFontstash.mScaleBias;
     if (draw->mText3D)
     {
-        CameraMatrix mvp = (draw->mProjView * draw->mWorldMat);
-        data.color = color;
-        data.scaleBias.x = -data.scaleBias.x;
-
-        GPURingBufferOffset uniformBlock = getGPURingBufferOffset(&gFontstash.mUniformRingBuffer, sizeof(mvp));
-        BufferUpdateDesc    updateDesc = { uniformBlock.pBuffer, uniformBlock.mOffset };
-        beginUpdateResource(&updateDesc);
-        memcpy(updateDesc.pMappedData, &mvp, sizeof(mvp));
-        endUpdateResource(&updateDesc);
-
-        const uint32_t size = sizeof(mvp);
-        const uint32_t stride = sizeof(float4);
-
-        DescriptorDataRange range = { (uint32_t)uniformBlock.mOffset, size };
-        DescriptorData      params[1] = {};
-        params[0].pName = "uniformBlock_rootcbv";
-        params[0].ppBuffers = &uniformBlock.pBuffer;
-        params[0].pRanges = &range;
-        cmdBindDescriptorSetWithRootCbvs(pCmd, 0, gFontstash.pDescriptorSets, 1, params);
-        cmdBindPushConstants(pCmd, gFontstash.pRootSignature, gFontstash.mRootConstantIndex, &data);
-        cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
-        cmdDraw(pCmd, nverts, 0);
+        mvp = (draw->mProjView * draw->mWorldMat);
+        uniformBlockData.scaleBias.x = -uniformBlockData.scaleBias.x;
     }
-    else
+#if defined(QUEST_VR)
+    uniformBlockData.mvp[0] = mvp.mLeftEye;
+    uniformBlockData.mvp[1] = mvp.mRightEye;
+#else
+    uniformBlockData.mvp = mvp.mLeftEye;
+#endif
+
+    memcpy(updateDesc.pMappedData, &uniformBlockData, size);
+    endUpdateResource(&updateDesc);
+
+    if (gFontstash.mPerDrawSetIndex >= gFontstash.gMaxPerDrawSets)
     {
-        const uint32_t stride = sizeof(float4);
-        cmdBindDescriptorSet(pCmd, 0, gFontstash.pDescriptorSets);
-        cmdBindPushConstants(pCmd, gFontstash.pRootSignature, gFontstash.mRootConstantIndex, &data);
-        cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
-        cmdDraw(pCmd, nverts, 0);
+        gFontstash.mPerDrawSetIndex = 0;
     }
+
+    DescriptorDataRange range = { (uint32_t)uniformBlock.mOffset, size };
+    DescriptorData      params[2] = {};
+    params[0].mIndex = SRT_RES_IDX(FontSrtData, PerDraw, gUniformBlock);
+    params[0].ppBuffers = &uniformBlock.pBuffer;
+    params[0].pRanges = &range;
+    params[1].mIndex = SRT_RES_IDX(FontSrtData, PerDraw, gFontAtlas);
+    params[1].ppTextures = &gFontstash.pAtlasTexture;
+    updateDescriptorSet(gFontstash.pRenderer, gFontstash.mPerDrawSetIndex, gFontstash.pDescriptorSet, 2, params);
+    const uint32_t stride = sizeof(float4);
+    cmdBindDescriptorSet(pCmd, gFontstash.mPerDrawSetIndex, gFontstash.pDescriptorSet);
+    cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
+    cmdDraw(pCmd, nverts, 0);
+
+    ++gFontstash.mPerDrawSetIndex;
 }
 
 void fonsImplementationRemoveTexture(void*) {}
@@ -323,14 +323,6 @@ bool initFontSystem(FontSystemDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                FILTER_LINEAR,
-                                MIPMAP_MODE_NEAREST,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE };
-    addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
-
     addUniformGPURingBuffer(gFontstash.pRenderer, 65536, &gFontstash.mUniformRingBuffer, true);
 
     BufferDesc vbDesc = {};
@@ -342,6 +334,8 @@ bool initFontSystem(FontSystemDesc* pDesc)
     /************************************************************************/
     /************************************************************************/
     gFontstash.mRenderInitialized = true;
+#else
+    (void)pDesc;
 #endif
     return true;
 }
@@ -355,7 +349,6 @@ void exitFontSystem()
 
     removeGPURingBuffer(&gFontstash.mMeshRingBuffer);
     removeGPURingBuffer(&gFontstash.mUniformRingBuffer);
-    removeSampler(gFontstash.pRenderer, gFontstash.pDefaultSampler);
 
     gFontstash.mRenderInitialized = false;
 #endif
@@ -378,20 +371,13 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
             addShader(gFontstash.pRenderer, &text2DShaderDesc, &gFontstash.pShaders[0]);
             addShader(gFontstash.pRenderer, &text3DShaderDesc, &gFontstash.pShaders[1]);
 
-            RootSignatureDesc textureRootDesc = { gFontstash.pShaders, 2 };
-            const char*       pStaticSamplers[] = { "uSampler0" };
-            textureRootDesc.mStaticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
-            textureRootDesc.ppStaticSamplers = &gFontstash.pDefaultSampler;
-            addRootSignature(gFontstash.pRenderer, &textureRootDesc, &gFontstash.pRootSignature);
-            gFontstash.mRootConstantIndex = getDescriptorIndexFromName(gFontstash.pRootSignature, "uRootConstants");
+            DescriptorSetDesc setDesc = SRT_SET_DESC(FontSrtData, PerDraw, gFontstash.gMaxPerDrawSets, 0);
+            addDescriptorSet(gFontstash.pRenderer, &setDesc, &gFontstash.pDescriptorSet);
 
-            DescriptorSetDesc setDesc = { gFontstash.pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(gFontstash.pRenderer, &setDesc, &gFontstash.pDescriptorSets);
             DescriptorData setParams[1] = {};
-            setParams[0].pName = "uTex0";
+            setParams[0].mIndex = SRT_RES_IDX(FontSrtData, PerDraw, gFontAtlas);
             setParams[0].ppTextures = &gFontstash.pAtlasTexture;
-            updateDescriptorSet(gFontstash.pRenderer, 0, gFontstash.pDescriptorSets, 1, setParams);
+            updateDescriptorSet(gFontstash.pRenderer, 0, gFontstash.pDescriptorSet, 1, setParams);
         }
 
         VertexLayout vertexLayout = {};
@@ -434,6 +420,7 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         rasterizerStateDesc[1].mScissor = true;
 
         PipelineDesc pipelineDesc = {};
+        PIPELINE_LAYOUT_DESC(pipelineDesc, NULL, NULL, NULL, SRT_LAYOUT_DESC(FontSrtData, PerDraw))
         pipelineDesc.pCache = pDesc->pCache;
         pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
         pipelineDesc.mGraphicsDesc.mVRFoveatedRendering = true;
@@ -441,7 +428,6 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
         pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
         pipelineDesc.mGraphicsDesc.pBlendState = &blendStateDesc;
-        pipelineDesc.mGraphicsDesc.pRootSignature = gFontstash.pRootSignature;
         pipelineDesc.mGraphicsDesc.pVertexLayout = &vertexLayout;
         pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
         pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -464,6 +450,8 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         gFontstash.mScaleBias = { 2.0f / (float)pDesc->mWidth, -2.0f / (float)pDesc->mHeight };
     }
 
+#else
+    UNREF_PARAM(pDesc);
 #endif
 }
 
@@ -483,15 +471,15 @@ void unloadFontSystem(ReloadType unloadType)
 
         if (unloadType & RELOAD_TYPE_SHADER)
         {
-            removeDescriptorSet(gFontstash.pRenderer, gFontstash.pDescriptorSets);
-            removeRootSignature(gFontstash.pRenderer, gFontstash.pRootSignature);
-
+            removeDescriptorSet(gFontstash.pRenderer, gFontstash.pDescriptorSet);
             for (uint32_t i = 0; i < 2; ++i)
             {
                 removeShader(gFontstash.pRenderer, gFontstash.pShaders[i]);
             }
         }
     }
+#else
+    UNREF_PARAM(unloadType);
 #endif
 }
 
@@ -532,6 +520,10 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
     // the render target is already scaled up (w/ retina) and the (x,y) position given to this function
     // is expected to be in the render target's area. Hence, we don't scale up the position again.
     fonsDrawText(fs, x /** gFontstash.mDpiScale.x*/, y /** gFontstash.mDpiScale.y*/, message, NULL);
+#else
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(screenCoordsInPx);
+    UNREF_PARAM(pDesc);
 #endif
 }
 
@@ -573,6 +565,11 @@ void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const Camer
     fonsSetBlur(fs, blur);
     fonsSetAlign(fs, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
     fonsDrawText(fs, 0.0f, 0.0f, message, NULL);
+#else
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(pMatWorld);
+    UNREF_PARAM(pMatProjView);
+    UNREF_PARAM(pDesc);
 #endif
 }
 
@@ -588,6 +585,9 @@ void cmdDrawDebugFontAtlas(Cmd* pCmd, float2 screenCoordInPx)
     FONScontext* fs = gFontstash.pContext;
     fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
     fonsDrawDebug(fs, screenCoordInPx.x, screenCoordInPx.y);
+#else
+    UNREF_PARAM(pCmd);
+    UNREF_PARAM(screenCoordInPx);
 #endif
 }
 
@@ -624,6 +624,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
         }
         else
         {
+            LOGF(LogLevel::eERROR, "Failed to open font file.");
             id = UINT32_MAX;
         }
 
@@ -631,6 +632,10 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
 
         pOutIDs[i] = id;
     }
+#else
+    UNREF_PARAM(pDescs);
+    UNREF_PARAM(count);
+    UNREF_PARAM(pOutIDs);
 #endif
 }
 
@@ -664,6 +669,8 @@ void fntResetFontAtlas(int2 newAtlasSize)
     }
     FONScontext* fs = gFontstash.pContext;
     fonsResetAtlas(fs, newAtlasSize.x, newAtlasSize.y);
+#else
+    UNREF_PARAM(newAtlasSize);
 #endif
 }
 
@@ -674,6 +681,8 @@ void fntExpandAtlas(int2 additionalSize)
 
     FONScontext* fs = gFontstash.pContext;
     fonsExpandAtlas(fs, additionalSize.x, additionalSize.y);
+#else
+    UNREF_PARAM(additionalSize);
 #endif
 }
 
@@ -685,6 +694,7 @@ void* fntGetRawFontData(uint32_t fontID)
     else
         return NULL;
 #else
+    UNREF_PARAM(fontID);
     return NULL;
 #endif
 }
@@ -697,6 +707,7 @@ uint32_t fntGetRawFontDataSize(uint32_t fontID)
     else
         return UINT_MAX;
 #else
+    UNREF_PARAM(fontID);
     return 0;
 #endif
 }
@@ -723,6 +734,8 @@ float2 fntMeasureFontText(const char* pText, const FontDrawDesc* pDrawDesc)
 
     return float2(textBounds[2] - textBounds[0], textBounds[3] - textBounds[1]);
 #else
+    UNREF_PARAM(pText);
+    UNREF_PARAM(pDrawDesc);
     return float2(0, 0);
 #endif
 }

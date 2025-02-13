@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,29 +46,30 @@
 
 #include "hair.comp.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(THREAD_GROUP_SIZE, 1, 1)
 void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 {
 	INIT_MAIN;
 	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x);
 
-	float stiffness = cbSimulation.LocalStiffness;
+	float stiffness = gHairSimulation.LocalStiffness;
 	stiffness = 0.5f * min(stiffness, 0.95f);
 
 	uint globalVertexIndex = 0;
-	float4 position = HairVertexPositions[indices.globalRootVertexIndex + 1];
+	float4 position = gHairVertexPositions[indices.globalRootVertexIndex + 1];
 	float4 nextPosition;
-	float4 globalRotation = HairGlobalRotations[indices.globalRootVertexIndex];
+	float4 globalRotation = gHairGlobalRotations[indices.globalRootVertexIndex];
 	float4 worldRotation;
 
-	for (uint localVertexIndex = 1; localVertexIndex < cbSimulation.NumVerticesPerStrand - 1; ++localVertexIndex)
+	for (uint localVertexIndex = 1; localVertexIndex < gHairSimulation.NumVerticesPerStrand - 1; ++localVertexIndex)
 	{
 		globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
-		nextPosition = HairVertexPositions[globalVertexIndex + 1];
+		nextPosition = gHairVertexPositions[globalVertexIndex + 1];
 
-		worldRotation = MultQuaternionAndQuaternion(cbSimulation.QuatRotation, globalRotation);
+		worldRotation = MultQuaternionAndQuaternion(gHairSimulation.QuatRotation, globalRotation);
 
-		float3 localNextPositionRest = HairRefsInLocalFrame[globalVertexIndex + 1].xyz * cbSimulation.Scale;
+		float3 localNextPositionRest = gHairRefsInLocalFrame[globalVertexIndex + 1].xyz * gHairSimulation.Scale;
 		float3 globalNextPosition = RotateVec(worldRotation, localNextPositionRest) + position.xyz;
 
 		float3 weighted = stiffness * (globalNextPosition - nextPosition.xyz);
@@ -94,8 +95,8 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 			globalRotation = MultQuaternionAndQuaternion(globalRotation, localRotation);
 		}
 
-		HairVertexPositions[globalVertexIndex] = position;
-		HairVertexPositions[globalVertexIndex + 1] = nextPosition;
+		gHairVertexPositions[globalVertexIndex] = position;
+		gHairVertexPositions[globalVertexIndex + 1] = nextPosition;
 
 		position = nextPosition;
 	} 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -424,17 +424,25 @@ FORGE_TOOL_API void fsGetPathExtension(const char* path, char* output)
     const char* dotLocation = strrchr(path, '.');
     if (dotLocation == NULL)
     {
+        output[0] = 0;
         return;
     }
-    dotLocation += 1;
-    const size_t extensionLength = strlen(dotLocation);
+    const char* sepLocation = strrchr(path, '/');
+    const char* altSepLocation = strrchr(path, '\\');
 
-    // Make sure it is not "../"
-    if (extensionLength == 0 || isDirectorySeparator(dotLocation[0]))
+    const char* lastSepLocation = (sepLocation > altSepLocation) ? sepLocation : altSepLocation;
+
+    // Extension does not exist in the last path component.
+    if (lastSepLocation > dotLocation)
     {
+        output[0] = 0;
         return;
     }
 
+    // Skip '.'
+    dotLocation++;
+    const size_t extensionLength = strlen(dotLocation);
+    ASSERT(extensionLength < FS_MAX_PATH);
     strncpy(output, dotLocation, FS_MAX_PATH - 1);
     output[FS_MAX_PATH - 1] = 0;
 }
@@ -694,6 +702,60 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
     }
 
     return success;
+}
+
+void fsSplitPath(const char* path, char* output, char** outParentDir, char** outBaseName, char** outExt)
+{
+    ASSERT(path);
+    size_t pathLen = strlen(path);
+    *outParentDir = NULL;
+    *outBaseName = NULL;
+    *outExt = NULL;
+    if (!pathLen)
+    {
+        output[0] = 0;
+
+        return;
+    }
+
+    size_t sepPos = pathLen;
+    size_t dotPos = pathLen;
+    char   sep = 0;
+
+    for (size_t i = 0; i < pathLen; i++)
+    {
+        output[i] = path[i];
+        if (isDirectorySeparator(output[i]))
+        {
+            if (sep == 0)
+            {
+                sep = output[i];
+            }
+            output[i] = sep;
+            sepPos = i;
+            dotPos = pathLen;
+        }
+        else if (output[i] == '.')
+        {
+            dotPos = i;
+        }
+    }
+    output[pathLen] = 0;
+
+    *outBaseName = output;
+
+    if (sepPos != pathLen)
+    {
+        output[sepPos] = 0;
+        *outParentDir = output;
+        *outBaseName += sepPos + 1;
+    }
+
+    if (dotPos != pathLen)
+    {
+        output[dotPos] = 0;
+        *outExt = output + dotPos + 1;
+    }
 }
 
 // Windows version implemented in WindowsToolsFileSystem.cpp

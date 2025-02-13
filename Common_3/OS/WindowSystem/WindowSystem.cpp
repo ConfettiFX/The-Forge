@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -61,12 +61,6 @@ static uint32_t gPrevActiveMonitor;
 static int32_t gMonitorResolution[MAX_MONITOR_COUNT] = {};
 static int32_t gMonitorLastResolution[MAX_MONITOR_COUNT] = {};
 
-#endif
-
-#if defined(AUTOMATED_TESTING)
-char           gAppName[64];
-static char    gScriptNameBuffer[64];
-static bstring gScriptName = bemptyfromarr(gScriptNameBuffer);
 #endif
 
 #if !defined(TARGET_IOS) && !defined(TARGET_IOS_SIMULATOR)
@@ -196,22 +190,18 @@ void getRecommendedResolution(RectDesc* rect)
 
 #if defined(WINDOW_UI_ENABLED)
 
-static bool wndValidateWindowPos(int32_t x, int32_t y)
+static bool wndValidateClientRectPos(int32_t x, int32_t y)
 {
     WindowDesc* winDesc = pWindowRef;
-    int         clientWidthStart = (getRectWidth(&winDesc->windowedRect) - getRectWidth(&winDesc->clientRect)) >> 1;
-    int         clientHeightStart = getRectHeight(&winDesc->windowedRect) - getRectHeight(&winDesc->clientRect) - clientWidthStart;
-
-    if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
+    if ((abs(x - winDesc->clientRect.left) > 1) || (abs(y - winDesc->clientRect.top) > 1))
         return false;
 
     return true;
 }
 
-static bool wndValidateWindowSize(int32_t width, int32_t height)
+static bool wndValidateClientRectSize(int32_t width, int32_t height)
 {
-    RectDesc windowRect = pWindowRef->windowedRect;
-    if ((abs(getRectWidth(&windowRect) - width) > 1) || (abs(getRectHeight(&windowRect) - height) > 1))
+    if ((abs(getRectWidth(&pWindowRef->clientRect) - width) > 1) || (abs(getRectHeight(&pWindowRef->clientRect) - height) > 1))
         return false;
     return true;
 }
@@ -261,6 +251,8 @@ static void wndUpdateResolutionsList(void* pWindowResWidget)
 
     *pDropdown->pData = activeResIdx;
 }
+
+#ifdef ENABLE_FORGE_UI
 
 static void wndUpdateResolution(void* pUserData)
 {
@@ -317,6 +309,28 @@ static void wndSelectRecommendedWindowResolution(void* pUserData, const MonitorD
     wndUpdateResolution(pWidget);
 }
 
+static void monitorUpdateResolutionUICallback(void* pUserData)
+{
+    UNREF_PARAM(pUserData);
+    uint32_t monitorCount = getMonitorCount();
+    for (uint32_t i = 0; i < monitorCount; ++i)
+    {
+        if (gMonitorResolution[i] != gMonitorLastResolution[i])
+        {
+            MonitorDesc* pMonitor = getMonitor(i);
+            setResolution(pMonitor, &pMonitor->resolutions[gMonitorResolution[i]]);
+
+            gMonitorLastResolution[i] = gMonitorResolution[i];
+            if (i == getActiveMonitorIdx() && !pWindowRef->fullScreen)
+            {
+                wndUpdateResolutionsList(pUserData);
+                wndSelectRecommendedWindowResolution(pUserData, getMonitor(i));
+            }
+        }
+    }
+}
+#endif
+
 void wndSetWindowed(void* pUserData)
 {
     setWindowed(pWindowRef);
@@ -368,39 +382,25 @@ void wndShowWindow()
     showWindow(pWindow);
 }
 
-static void monitorUpdateResolution(void* pUserData)
-{
-    UNREF_PARAM(pUserData);
-    uint32_t monitorCount = getMonitorCount();
-    for (uint32_t i = 0; i < monitorCount; ++i)
-    {
-        if (gMonitorResolution[i] != gMonitorLastResolution[i])
-        {
-            MonitorDesc* pMonitor = getMonitor(i);
-            setResolution(pMonitor, &pMonitor->resolutions[gMonitorResolution[i]]);
-
-            gMonitorLastResolution[i] = gMonitorResolution[i];
-            if (i == getActiveMonitorIdx() && !pWindowRef->fullScreen)
-            {
-                wndUpdateResolutionsList(pUserData);
-                wndSelectRecommendedWindowResolution(pUserData, getMonitor(i));
-            }
-        }
-    }
-}
-
 void wndMoveWindow(void* pUserData)
 {
     WindowDesc* pWindow = pWindowRef;
+    int32_t     expectedClientWidth = pWindowRef->mWndW;
+    int32_t     expectedClientHeight = pWindowRef->mWndH;
+    int32_t     expectedClientX = pWindowRef->mWndX;
+    int32_t     expectedClientY = pWindowRef->mWndY;
 
-    wndSetWindowed(pUserData);
-    int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
-        clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
+    if (pWindow->mWindowMode == WM_FULLSCREEN)
+    {
+        setWindowed(pWindow);
+    }
+    wndUpdateResolutionsList(pUserData);
     RectDesc rectDesc{ pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndX + pWindowRef->mWndW, pWindowRef->mWndY + pWindowRef->mWndH };
-    setWindowRect(pWindow, &rectDesc);
+    setWindowClientRect(pWindow, &rectDesc);
     LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s",
-         wndValidateWindowPos(pWindowRef->mWndX + clientWidthStart, pWindowRef->mWndY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->mWndW, pWindowRef->mWndH) ? "SUCCESS" : "FAIL");
+         wndValidateClientRectPos(expectedClientX, expectedClientY) ? "SUCCESS" : "FAIL");
+    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s",
+         wndValidateClientRectSize(expectedClientWidth, expectedClientHeight) ? "SUCCESS" : "FAIL");
 }
 
 void wndSetRecommendedWindowSize(void* pUserData)
@@ -435,17 +435,6 @@ void wndUpdateCaptureCursor(void* pUserData)
 #endif
 }
 
-#endif
-
-#if defined(AUTOMATED_TESTING)
-void wndTakeScreenshot(void* pUserData)
-{
-    UNREF_PARAM(pUserData);
-    char screenShotName[256];
-    snprintf(screenShotName, sizeof(screenShotName), "%s_%s", gAppName, gScriptNameBuffer);
-
-    setCaptureScreenshot(screenShotName);
-}
 #endif
 
 void platformInitWindowSystem(WindowDesc* pData)
@@ -630,35 +619,37 @@ void platformSetupWindowSystemUI(IApp* pApp)
     setRectSliderX.pData = &pWindowRef->mWndX;
     setRectSliderX.mMin = 0;
     setRectSliderX.mMax = recWidth;
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(
+        uiAddComponentWidget(pWindowControlsComponent, "Client Rectangle X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderY;
     setRectSliderY.pData = &pWindowRef->mWndY;
     setRectSliderY.mMin = 0;
     setRectSliderY.mMax = recHeight;
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(
+        uiAddComponentWidget(pWindowControlsComponent, "Client Rectangle Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderW;
     setRectSliderW.pData = &pWindowRef->mWndW;
     setRectSliderW.mMin = 144;
     setRectSliderW.mMax = getRectWidth(&pWindowRef->fullscreenRect);
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Client Rectangle Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderH;
     setRectSliderH.pData = &pWindowRef->mWndH;
     setRectSliderH.mMin = 144;
     setRectSliderH.mMax = getRectHeight(&pWindowRef->fullscreenRect);
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
+    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Client Rectangle Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
 
     ButtonWidget bSetRect;
-    UIWidget*    pSetRect = uiAddComponentWidget(pWindowControlsComponent, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
+    UIWidget*    pSetRect = uiAddComponentWidget(pWindowControlsComponent, "Set client rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
     // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pSetRect, nullptr, wndMoveWindow);
     uiSetWidgetDeferred(pSetRect, true);
 
     ButtonWidget bRecWndSize;
     UIWidget*    pRecWndSize =
-        uiAddComponentWidget(pWindowControlsComponent, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
+        uiAddComponentWidget(pWindowControlsComponent, "Set recommended client rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
     // Note: user pointer is set after "Window resolution" creation
     uiSetWidgetOnEditedCallback(pRecWndSize, nullptr, wndSetRecommendedWindowSize);
     uiSetWidgetDeferred(pRecWndSize, true);
@@ -900,7 +891,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
                 gMonitorLastResolution[i] = (int32_t)j;
             }
 
-            uiSetWidgetOnEditedCallback(monitorWidgets[j], pWindowResDropdown, monitorUpdateResolution);
+            uiSetWidgetOnEditedCallback(monitorWidgets[j], pWindowResDropdown, monitorUpdateResolutionUICallback);
             uiSetWidgetDeferred(monitorWidgets[j], false);
         }
 
@@ -965,26 +956,8 @@ void platformSetupWindowSystemUI(IApp* pApp)
 
     REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
 #endif
-
-#if defined(AUTOMATED_TESTING)
-    LabelWidget lScreenshotName;
-    REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Screenshot Name", &lScreenshotName, WIDGET_TYPE_LABEL));
-
-    snprintf(gAppName, sizeof(gAppName), "%s", pApp->GetName());
-
-    TextboxWidget bTakeScreenshotName;
-    bTakeScreenshotName.pText = &gScriptName;
-    UIWidget* pTakeScreenshotName =
-        uiAddComponentWidget(pWindowControlsComponent, "Screenshot Name", &bTakeScreenshotName, WIDGET_TYPE_TEXTBOX);
-    REGISTER_LUA_WIDGET(pTakeScreenshotName);
-
-    ButtonWidget bTakeScreenshot;
-    UIWidget*    pTakeScreenshot = uiAddComponentWidget(pWindowControlsComponent, "Take Screenshot", &bTakeScreenshot, WIDGET_TYPE_BUTTON);
-    uiSetWidgetOnEditedCallback(pTakeScreenshot, nullptr, wndTakeScreenshot);
-    uiSetWidgetDeferred(pTakeScreenshot, true);
-    REGISTER_LUA_WIDGET(pTakeScreenshot);
-#endif
-
+#else
+    (void)pApp;
 #endif
 }
 
@@ -992,5 +965,7 @@ void platformToggleWindowSystemUI(bool active)
 {
 #ifdef ENABLE_FORGE_UI
     uiSetComponentActive(pWindowControlsComponent, active);
+#else
+    (void)active;
 #endif
 }

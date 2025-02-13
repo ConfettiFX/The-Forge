@@ -223,7 +223,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 #endif
 
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -1546,14 +1546,22 @@ inline unsigned int toBGRA(const Vector4 &u)
 // Mesh generation helpers
 //----------------------------------------------------------------------------
 // Generates an array of vertices and normals for a sphere
-inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int numberOfDivisions, float radius = 1.0f)
+// If pPoints is NULL or pNumberOfPoints is less than computed number of floats required - 
+//    only writes number of floats required for pPoints into pNumberOfPoints
+inline void generateSpherePoints(float *pPoints, int *pNumberOfPoints, int numberOfDivisions, float radius = 1.0f)
 {
+	ASSERT(pNumberOfPoints);
+	int pointsSize = *pNumberOfPoints;
 	float numStacks = (float)numberOfDivisions;
 	float numSlices = (float)numberOfDivisions;
 
-	uint32_t numberOfPoints = numberOfDivisions * numberOfDivisions * 6;
-	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
+	int numberOfPoints = numberOfDivisions * numberOfDivisions * 6;
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	if (pPoints == NULL || pointsSize < *pNumberOfPoints)
+		return;
+	
 	uint32_t vertexCounter = 0;
+	float3* pPoints3 = (float3*)pPoints;
 
 	for (int i = 0; i < numberOfDivisions; i++)
 	{
@@ -1574,31 +1582,36 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 				(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)) } * radius;
 
 			// Top right triangle
-			pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
-			pPoints[vertexCounter++] = v3ToF3(botRightPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
-			pPoints[vertexCounter++] = v3ToF3(topRightPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(topRightPoint));
+			pPoints3[vertexCounter++] = v3ToF3(topLeftPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+			pPoints3[vertexCounter++] = v3ToF3(botRightPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(botRightPoint));
+			pPoints3[vertexCounter++] = v3ToF3(topRightPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(topRightPoint));
 
 			// Bot left triangle
-			pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
-			pPoints[vertexCounter++] = v3ToF3(botLeftPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
-			pPoints[vertexCounter++] = v3ToF3(botRightPoint);
-			pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
+			pPoints3[vertexCounter++] = v3ToF3(topLeftPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+			pPoints3[vertexCounter++] = v3ToF3(botLeftPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
+			pPoints3[vertexCounter++] = v3ToF3(botRightPoint);
+			pPoints3[vertexCounter++] = v3ToF3(normalize(botRightPoint));
 		}
 	}
-
-	*pNumberOfPoints = numberOfPoints * 3 * 2;
-	(*ppPoints) = (float*)pPoints;
 }
 
-inline void generateQuad(float **ppPoints, int *pNumberOfPoints, float sideLength = 1.0f)
+// Generates an array of vertices and normals for a quad
+// If pPoints is NULL or pNumberOfPoints is less than computed number of floats required -
+//    only writes number of floats required for pPoints into pNumberOfPoints
+inline void generateQuad(float *pPoints, int *pNumberOfPoints, float sideLength = 1.0f)
 {
-	uint32_t numberOfPoints = 4;
-	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
+	int numberOfPoints = 4;
+	int pointsSize = *pNumberOfPoints;
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	if (pPoints == NULL || pointsSize < *pNumberOfPoints)
+		return;
+
+	float3* pPoints3 = (float3*)pPoints;
 	uint32_t vertexCounter = 0;
 
 	// Single quad
@@ -1607,25 +1620,32 @@ inline void generateQuad(float **ppPoints, int *pNumberOfPoints, float sideLengt
 	Vector3 botLeftPoint = Vector3{ -1.0f, -1.0f, 0.0f } * sideLength;
 	Vector3 botRightPoint = Vector3{ 1.0f, -1.0f, 0.0f } * sideLength;
 
-	pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
-	pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
-	pPoints[vertexCounter++] = v3ToF3(topRightPoint);
-	pPoints[vertexCounter++] = v3ToF3(normalize(topRightPoint));
-	pPoints[vertexCounter++] = v3ToF3(botLeftPoint);
-	pPoints[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
-	pPoints[vertexCounter++] = v3ToF3(botRightPoint);
-	pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
-
-	*pNumberOfPoints = numberOfPoints * 3 * 2;
-	(*ppPoints) = (float*)pPoints;
+	pPoints3[vertexCounter++] = v3ToF3(topLeftPoint);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+	pPoints3[vertexCounter++] = v3ToF3(topRightPoint);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(topRightPoint));
+	pPoints3[vertexCounter++] = v3ToF3(botLeftPoint);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
+	pPoints3[vertexCounter++] = v3ToF3(botRightPoint);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(botRightPoint));
 }
 
 
 // Generates an array of vertices and normals for a 3D rectangle (cuboid)
-inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float width = 1.f, float height = 1.f, float depth = 1.f, Vector3 center = Vector3{ 0.f,0.f,0.f })
+// If pPoints is NULL or pNumberOfPoints is less than computed number of floats required -
+//    only writes number of floats required for pPoints into pNumberOfPoints
+inline void generateCuboidPoints(float *pPoints, int *pNumberOfPoints, float width = 1.f, float height = 1.f, float depth = 1.f, Vector3 center = Vector3{ 0.f,0.f,0.f })
 {
-	uint32_t numberOfPoints = 6 * 6;
-	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
+    ASSERT(pNumberOfPoints);
+
+	int numberOfPoints = 6 * 6;
+	int pointsSize = *pNumberOfPoints;
+
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	if (pPoints == NULL || pointsSize < *pNumberOfPoints)
+		return;
+
+	float3* pPoints3 = (float3*)pPoints;
 	uint32_t vertexCounter = 0;
 
 	Vector3 topLeftFrontPoint = Vector3{ -width / 2, height / 2, depth / 2 } +center;
@@ -1647,115 +1667,120 @@ inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float w
 
 	//Front Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(frontNormal);
 
 	//Back Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(backNormal);
 
 	//Left Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
-	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(leftNormal);
 
 	//Right Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(rightNormal);
 
 	//Top Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
-	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
-	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
+	pPoints3[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(topNormal);
 
 	//Bottom Face
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
-	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
-	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
-	pPoints[vertexCounter++] = v3ToF3(botNormal);
-
-	*pNumberOfPoints = numberOfPoints * 3 * 2;
-	(*ppPoints) = (float*)pPoints;
+	pPoints3[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
+	pPoints3[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints3[vertexCounter++] = v3ToF3(botNormal);
 }
 
 
 // Generates an array of vertices and normals for a bone of length = 1.f and width = widthRatio
-inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float widthRatio)
+// If pPoints is NULL or pNumberOfPoints is less than computed number of floats required -
+//    only writes number of floats required for pPoints into pNumberOfPoints
+inline void generateBonePoints(float *pPoints, int *pNumberOfPoints, float widthRatio)
 {
-	uint32_t numberOfPoints = 8 * 3;
-	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
+	ASSERT(pNumberOfPoints);
+	int numberOfPoints = 8 * 3;
+	int pointsSize = *pNumberOfPoints;
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	if (pPoints == NULL || pointsSize < *pNumberOfPoints)
+		return;
+
+	float3* pPoints3 = (float3*)pPoints;
 	uint32_t vertexCounter = 0;
 
 	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
@@ -1790,78 +1815,76 @@ inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float wid
 
 	//Front
 	// Top left triangle
-	pPoints[vertexCounter++] = v3ToF3(origin);
-	pPoints[vertexCounter++] = v3ToF3(normalize(originNorm));
-	pPoints[vertexCounter++] = v3ToF3(frontWidth);
-	pPoints[vertexCounter++] = v3ToF3(normalize(frontWidthNorm));
-	pPoints[vertexCounter++] = v3ToF3(topWidth);
-	pPoints[vertexCounter++] = v3ToF3(normalize(topWidthNorm));
+	pPoints3[vertexCounter++] = v3ToF3(origin);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(originNorm));
+	pPoints3[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(frontWidthNorm));
+	pPoints3[vertexCounter++] = v3ToF3(topWidth);
+	pPoints3[vertexCounter++] = v3ToF3(normalize(topWidthNorm));
 
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topWidth);
-	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(frontWidth);
-	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(boneLength);
-	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(topWidth);
+	pPoints3[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(boneLength);
+	pPoints3[vertexCounter++] = v3ToF3(boneLengthNorm);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(origin);
-	pPoints[vertexCounter++] = v3ToF3(originNorm);
-	pPoints[vertexCounter++] = v3ToF3(botWidth);
-	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(frontWidth);
-	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(origin);
+	pPoints3[vertexCounter++] = v3ToF3(originNorm);
+	pPoints3[vertexCounter++] = v3ToF3(botWidth);
+	pPoints3[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidthNorm);
 
 	// Bot right triangle
-	pPoints[vertexCounter++] = v3ToF3(frontWidth);
-	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(botWidth);
-	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(boneLength);
-	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints3[vertexCounter++] = v3ToF3(frontWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(botWidth);
+	pPoints3[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(boneLength);
+	pPoints3[vertexCounter++] = v3ToF3(boneLengthNorm);
 
 	//Back
 	// Top left triangle
-	pPoints[vertexCounter++] = v3ToF3(origin);
-	pPoints[vertexCounter++] = v3ToF3(originNorm);
-	pPoints[vertexCounter++] = v3ToF3(topWidth);
-	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(backWidth);
-	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(origin);
+	pPoints3[vertexCounter++] = v3ToF3(originNorm);
+	pPoints3[vertexCounter++] = v3ToF3(topWidth);
+	pPoints3[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(backWidth);
+	pPoints3[vertexCounter++] = v3ToF3(backWidthNorm);
 
 	// Top right triangle
-	pPoints[vertexCounter++] = v3ToF3(topWidth);
-	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(boneLength);
-	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
-	pPoints[vertexCounter++] = v3ToF3(backWidth);
-	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(topWidth);
+	pPoints3[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(boneLength);
+	pPoints3[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(backWidth);
+	pPoints3[vertexCounter++] = v3ToF3(backWidthNorm);
 
 	// Bot left triangle
-	pPoints[vertexCounter++] = v3ToF3(origin);
-	pPoints[vertexCounter++] = v3ToF3(originNorm);
-	pPoints[vertexCounter++] = v3ToF3(backWidth);
-	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(botWidth);
-	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(origin);
+	pPoints3[vertexCounter++] = v3ToF3(originNorm);
+	pPoints3[vertexCounter++] = v3ToF3(backWidth);
+	pPoints3[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(botWidth);
+	pPoints3[vertexCounter++] = v3ToF3(botWidthNorm);
 
 	// Bot right triangle
-	pPoints[vertexCounter++] = v3ToF3(backWidth);
-	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
-	pPoints[vertexCounter++] = v3ToF3(boneLength);
-	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
-	pPoints[vertexCounter++] = v3ToF3(botWidth);
-	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(backWidth);
+	pPoints3[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(boneLength);
+	pPoints3[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints3[vertexCounter++] = v3ToF3(botWidth);
+	pPoints3[vertexCounter++] = v3ToF3(botWidthNorm);
 
-
-
-	*pNumberOfPoints = numberOfPoints * 3 * 2;
-	(*ppPoints) = (float*)pPoints;
 }
 
 // Generates an array of vertices and normals for a bone of length = 1.f and width = widthRatio 
-inline void generateIndexedBonePoints(float **ppPoints, int *pNumberOfPoints, float widthRatio, uint32_t boneCount, const int16_t* parentIndices)
+// If pPoints is NULL or pNumberOfPoints is less than computed number of floats required -
+//    only writes number of floats required for pPoints into pNumberOfPoints
+inline void generateIndexedBonePoints(float *pPoints, int *pNumberOfPoints, float widthRatio, uint32_t boneCount, const int16_t* parentIndices)
 {
 	struct indexBonePoint
 	{
@@ -1869,12 +1892,19 @@ inline void generateIndexedBonePoints(float **ppPoints, int *pNumberOfPoints, fl
 		float3 normal;
 		uint16_t jointIndices[4];
 	};
-	uint32_t vertexSize = sizeof(indexBonePoint);
+	
+	int pointsSize = *pNumberOfPoints;
 
 	uint32_t numberOfPoints = 8 * 3 * boneCount;
-	indexBonePoint* pPoints = (indexBonePoint*)tf_malloc(numberOfPoints * vertexSize);
-	uint32_t vertexCounter = 0;
 
+	COMPILE_ASSERT(sizeof(indexBonePoint) % sizeof(float) == 0);
+	*pNumberOfPoints = numberOfPoints * sizeof(indexBonePoint) / sizeof(float);
+
+	if (pPoints == NULL || pointsSize < *pNumberOfPoints)
+		return;
+
+	indexBonePoint* pPointsStruct = (indexBonePoint*)pPoints;
+	uint32_t vertexCounter = 0;
 
 
 	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
@@ -1918,146 +1948,143 @@ inline void generateIndexedBonePoints(float **ppPoints, int *pNumberOfPoints, fl
 		}
 		//Front
 		// Top left triangle
-		pPoints[vertexCounter].position = v3ToF3( origin );
-		pPoints[vertexCounter].normal   = v3ToF3( normalize( originNorm ) );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( origin );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( normalize( originNorm ) );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( frontWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( normalize( frontWidthNorm ) );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( frontWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( normalize( frontWidthNorm ) );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( topWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( normalize( topWidthNorm ) );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( topWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( normalize( topWidthNorm ) );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Top right triangle
-		pPoints[vertexCounter].position = v3ToF3( topWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( topWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( frontWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( frontWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( boneLength );
-		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( boneLength );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Bot left triangle
-		pPoints[vertexCounter].position = v3ToF3( origin );
-		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( origin );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( originNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( botWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( botWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( frontWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( frontWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Bot right triangle
-		pPoints[vertexCounter].position = v3ToF3( frontWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( frontWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( botWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( botWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( boneLength );
-		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( boneLength );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		//Back
 		// Top left triangle
-		pPoints[vertexCounter].position = v3ToF3( origin );
-		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( origin );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( originNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( topWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( topWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( backWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( backWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Top right triangle
-		pPoints[vertexCounter].position = v3ToF3( topWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( topWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( boneLength );
-		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( boneLength );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( backWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( backWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Bot left triangle
-		pPoints[vertexCounter].position = v3ToF3( origin );
-		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( origin );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( originNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( backWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( backWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( botWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( botWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 
 		// Bot right triangle
-		pPoints[vertexCounter].position = v3ToF3( backWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( backWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( boneLength );
-		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( boneLength );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
-		pPoints[vertexCounter].position = v3ToF3( botWidth );
-		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
-		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
-		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		pPointsStruct[vertexCounter].position = v3ToF3( botWidth );
+		pPointsStruct[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPointsStruct[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPointsStruct[vertexCounter].jointIndices[1]  = currParentIndex;
 		vertexCounter++;
 	}
 
-
-	*pNumberOfPoints = numberOfPoints * 8;
-	(*ppPoints) = (float*)pPoints;
 }
 
 
@@ -2468,7 +2495,7 @@ struct Frustum
 
 // Frustum to AABB intersection
 // false if aabb is completely outside frustum, true otherwise
-// Based on Íñigo Quílez' "Correct Frustum Culling" article
+// Based on ????igo Qu??lez' "Correct Frustum Culling" article
 // http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
 // If fast is true, function will do extra frustum-in-box checks using the frustum's corner vertices.
 inline bool aabbInsideOrIntersectsFrustum(const AABB& aabb, const Frustum& frustum, const bool& fast = false)

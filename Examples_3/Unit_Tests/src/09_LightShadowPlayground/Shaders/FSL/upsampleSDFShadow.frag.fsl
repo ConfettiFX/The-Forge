@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,36 +27,11 @@
 #endif
 
 #include "SDF_Constant.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
-RES(Tex2D(float2), SDFShadowTexture, UPDATE_FREQ_NONE, t0, binding = 0);
 
-#if SAMPLE_COUNT > 1
-RES(Tex2DMS(float, SAMPLE_COUNT), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 1);
-#else
-RES(Tex2D(float), DepthTexture, UPDATE_FREQ_NONE, t1, binding = 1);
-#endif
 
-RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s0, binding = 2);
-RES(SamplerState, clampMiplessNearSampler, UPDATE_FREQ_NONE, s1, binding = 3);
-
-STRUCT(CameraUniformBlock)
-{
-    DATA(float4x4, View, None);
-    DATA(float4x4, Project, None);
-    DATA(float4x4, ViewProject, None);
-    DATA(float4x4, InvView, None);
-	DATA(float4x4, InvProj, None);
-	DATA(float4x4, InvViewProject, None);
-	DATA(float4, mCameraPos, None);
-	DATA(float, mNear, None);
-	DATA(float, mFar, None);
-	DATA(float, mFarNearDiff, None);
-	DATA(float, mFarNear, None);
-	DATA(float2, mTwoOverRes, None);
-	DATA(float2, mWindowSize, None);
-	DATA(float4, mDeviceZToWorldZ, None);
-};
-RES(CBUFFER(CameraUniformBlock), cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 4);
 
 STRUCT(PsIn)
 {
@@ -71,23 +46,24 @@ STRUCT(PsOut)
 
 float ConvertFromDeviceZ(float deviceZ)
 {
-	const float4 deviceZToWorldZ = cameraUniformBlock.mDeviceZToWorldZ;
+	const float4 deviceZToWorldZ = gCameraUniformBlock.mDeviceZToWorldZ;
 	return deviceZ * deviceZToWorldZ.x + deviceZToWorldZ.y + 1.0f / (deviceZ * deviceZToWorldZ.z - deviceZToWorldZ.w);
 }
 
+ROOT_SIGNATURE(DefaultRootSignature)
 PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
 	PsOut Out;
 	float2 UV = In.TexCoord.xy;
 #if SAMPLE_COUNT > 1
-	float depthVal = LoadTex2DMS(DepthTexture, clampMiplessNearSampler, uint2(In.Position.xy), i).r;
+	float depthVal = LoadTex2DMS(gDepthTextureUpSample, gSamplerPointClamp, uint2(In.Position.xy), i).r;
 #else
-	float depthVal = SampleTex2D(DepthTexture, clampMiplessNearSampler, UV).r;
+	float depthVal = SampleTex2D(gDepthTextureUpSample, gSamplerPointClamp, UV).r;
 #endif
 	float worldDepth = ConvertFromDeviceZ(depthVal);
 	
-	float2 downSampledTextureSize = floor(cameraUniformBlock.mWindowSize.xy / SDF_SHADOW_DOWNSAMPLE_VALUE);
+	float2 downSampledTextureSize = floor(gCameraUniformBlock.mWindowSize.xy / SDF_SHADOW_DOWNSAMPLE_VALUE);
 	float2 downSampledTexelSize = 1.0f / downSampledTextureSize.xy;
 
 	//get the top left corner of this UV coord
@@ -96,14 +72,14 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	
 	float2 billinearWeights = (UV.xy - cornerUV.xy) * downSampledTextureSize;
 
-	float2 textureValues_00 = SampleTex2D(SDFShadowTexture, 
-		clampMiplessLinearSampler, cornerUV).xy;
-	float2 textureValues_10 = SampleTex2D(SDFShadowTexture, 
-		clampMiplessLinearSampler, cornerUV + float2(downSampledTexelSize.x, 0.f)).xy;
-	float2 textureValues_01 = SampleTex2D(SDFShadowTexture, 
-		clampMiplessLinearSampler, cornerUV + float2(0.f, downSampledTexelSize.y)).xy;
-	float2 textureValues_11 = SampleTex2D(SDFShadowTexture, 
-		clampMiplessLinearSampler, cornerUV + downSampledTexelSize).xy;
+	float2 textureValues_00 = SampleTex2D(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, cornerUV).xy;
+	float2 textureValues_10 = SampleTex2D(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, cornerUV + float2(downSampledTexelSize.x, 0.f)).xy;
+	float2 textureValues_01 = SampleTex2D(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, cornerUV + float2(0.f, downSampledTexelSize.y)).xy;
+	float2 textureValues_11 = SampleTex2D(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, cornerUV + downSampledTexelSize).xy;
 
 	float4 cornerWeights = float4(  ( (1.f - billinearWeights.y) * (1.f - billinearWeights.x) ),
 		(1.f - billinearWeights.y) * billinearWeights.x,

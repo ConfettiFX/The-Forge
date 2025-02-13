@@ -91,7 +91,7 @@
       <OutDir>$(OutDir)Shaders</OutDir>
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+      <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,7 +133,7 @@
       <OutDir>$(OutDir)Shaders</OutDir>
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+      <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -141,13 +141,17 @@
     <FSLShader Include="..\src\21_Animations\Shaders\FSL\cube.vert.fsl" />
     <FSLShader Include="..\src\21_Animations\Shaders\FSL\plane.frag.fsl" />
     <FSLShader Include="..\src\21_Animations\Shaders\FSL\plane.vert.fsl" />
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\shaders.list" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\21_Animations\21_Animations.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\21_Animations\Test0.lua" />
+    <None Include="..\src\21_Animations\GPUCfg\gpu.cfg" />
+    <None Include="..\src\21_Animations\Scripts\Test0.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\21_Animations\Shaders\FSL\srt.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -97,6 +97,10 @@ public:
     static inline const CameraMatrix transpose(const CameraMatrix& mat);
     static inline const CameraMatrix perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
     static inline const CameraMatrix perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
+#ifdef QUEST_VR
+    static inline const mat4 perspectiveCombinedVREyes(float zNear, float zFar);
+#endif
+
     static inline const CameraMatrix orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
     static inline const CameraMatrix orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar);
     static inline const CameraMatrix identity();
@@ -206,6 +210,25 @@ inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, f
 #endif
     return result;
 }
+
+#ifdef QUEST_VR
+inline const mat4 CameraMatrix::perspectiveCombinedVREyes(float zNear, float zFar)
+{
+    // Create a new projection matrix based on the left and right eye asymmetric FOV matrices. This combines the maximum
+    // field of view on each side (left, right, top, bottom). This will result in a new asymmetric matrix that will
+    // encompass both eyes. This is useful to run a single pass triangle culling algorithm.
+    float4 fovLeftEye;
+    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fovLeftEye.x, &fovLeftEye.y, &fovLeftEye.z,
+                           &fovLeftEye.w);
+
+    float4 fovRightEye;
+    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fovRightEye.x, &fovRightEye.y, &fovRightEye.z,
+                           &fovRightEye.w);
+
+    float4 fov = max(fovLeftEye, fovRightEye);
+    return mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+}
+#endif
 
 inline const CameraMatrix CameraMatrix::orthographic(float left, float right, float bottom, float top, float zNear, float zFar)
 {

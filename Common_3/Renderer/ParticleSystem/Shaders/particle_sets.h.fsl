@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,8 +25,8 @@
 #ifndef PARTICLE_SETS_H
 #define PARTICLE_SETS_H
 
-#include "particle_defs.h.fsl"
+#include "particle_shared.h.fsl"
+
 #include "../../../Graphics/ShaderUtilities.h.fsl"
-RES(Buffer(ParticleSet), ParticleSetsBuffer, UPDATE_FREQ_NONE, t15, binding = 15);
 
 #endif

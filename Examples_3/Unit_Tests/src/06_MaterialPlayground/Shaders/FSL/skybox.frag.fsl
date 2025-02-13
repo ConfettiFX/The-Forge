@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,8 +22,9 @@
  * under the License.
 */
 
-RES(TexCube(float4), skyboxTex,  UPDATE_FREQ_NONE, t1, binding = 1);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s2, binding = 2);
+#include "resources.h.fsl"
+#include "srt.h"
+
 
 STRUCT(VSOutput)
 {
@@ -31,10 +32,11 @@ STRUCT(VSOutput)
 	DATA(float3, pos,    POSITION);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
-	float3 texColor = SampleTexCube(skyboxTex, skyboxSampler, In.pos).rgb;
+	float3 texColor = SampleTexCube(gSkyboxTex, gSamplerBilinearWrap, In.pos).rgb;
 	// Tone mapping
 	texColor = texColor / (texColor + float3(1.0f, 1.0f, 1.0f));
 	RETURN(float4(texColor.r, texColor.g, texColor.b, 1.0f));

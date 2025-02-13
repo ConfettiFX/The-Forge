@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,18 +22,7 @@
  * under the License.
  */
 
-#if SAMPLE_COUNT == 1
-RES(Tex2D(float4), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
-#else
-RES(Tex2DMS(float4, SAMPLE_COUNT), uTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
-#endif
-RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
-
-STRUCT(UniformBlockVS)
-{
-	DATA(float4x4, ProjectionMatrix, None);
-};
-RES(CBUFFER(UniformBlockVS), uniformBlockVS, UPDATE_FREQ_NONE, b0, binding = 0);
+#include "imgui_resources.h"
 
 STRUCT(PS_INPUT)
 {
@@ -42,17 +31,20 @@ STRUCT(PS_INPUT)
 	DATA(float2, uv, TEXCOORD0);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PS_INPUT In )
 {
 	INIT_MAIN;
 	float4 Out = f4(0);
 #if SAMPLE_COUNT == 1
-	Out = In.col * SampleTex2D(uTex, uSampler, In.uv);
+	Out = In.col * SampleTex2D(gTexture, gSamplerBilinearClamp, In.uv);
 #else
-	GetDimensionsMS(uTex, texSize);
+	GetDimensionsMS(gTexture, texSize);
 	uint2 coord = uint2(float2(texSize) * In.uv);
-	for(int s = 0; s < SAMPLE_COUNT; ++s)
-		Out += LoadTex2DMS(uTex, uSampler, coord, s);
+	for (int s = 0; s < SAMPLE_COUNT; ++s)
+	{
+		Out += LoadTex2DMS(gTexture, gSamplerBilinearClamp, coord, s);
+	}
 	Out = In.col * (Out / SAMPLE_COUNT);
 #endif
 	RETURN(Out);

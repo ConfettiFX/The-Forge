@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,15 +24,6 @@
 
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
-
-#ifdef NO_FSL_DEFINITIONS
-    #define STATIC static
-    #define STRUCT(NAME) struct NAME
-    #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME) struct NAME
-	#define RES(RESOURCE, NANE, FREQ, REGISTER, BINDING) 
-	#define float4x4 mat4
-#endif
 
 #define LIGHT_COUNT 128
 #define LIGHT_SIZE 150.0f
@@ -68,7 +59,13 @@ STRUCT(PerFrameConstantsData)
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
 	DATA(uint, outputMode, None);
-	DATA(uint, _pad0, None);
+	DATA(float, mGodRayScatterFactor, None); // Godray scatter factor
+	//========================================
+    // CurveInfo
+    DATA(float, mLinearScale, None);
+    DATA(uint, mOutputMode, None);
+    DATA(uint, _pad0, None);
+    DATA(uint, _pad1, None);
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
@@ -81,8 +78,11 @@ STRUCT(PerFrameConstantsData)
 	DATA(uint, visualizeAo, None);
 	DATA(uint, smallScaleRaster, None);
 	DATA(uint, visualizeBinOccupancy, None);
+
+	DATA(uint, visualizeGeometry, None);
+	DATA(uint, visualizeBinTriangleCount, None);
 };
-RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+
 
 STRUCT(LightData)
 {
@@ -91,4 +91,6 @@ STRUCT(LightData)
 };
 
 #include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
+
+
 #endif

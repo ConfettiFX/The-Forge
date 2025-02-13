@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -680,12 +680,8 @@ void closeWindow(WindowDesc* winDesc)
 
 void setWindowClientRect(WindowDesc* winDesc, const RectDesc* pRect)
 {
-    if (winDesc->fullScreen)
-        return;
-
-    XResizeWindow(winDesc->handle.display, winDesc->handle.window, pRect->right - pRect->left, pRect->bottom - pRect->top);
-    XMoveWindow(winDesc->handle.display, winDesc->handle.window, pRect->left, pRect->top);
-    XFlush(winDesc->handle.display);
+    RectDesc windowRect = convertClientRectToWindowRect(*pRect, winDesc->handle.windowDecorations);
+    setWindowRect(winDesc, &windowRect);
 }
 
 void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
@@ -701,7 +697,18 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
 {
     const RectDesc decorations = winDesc->handle.windowDecorations;
     const RectDesc clientRect = convertWindowRectToClientRect(*pRect, decorations);
-    setWindowClientRect(winDesc, &clientRect);
+    XResizeWindow(winDesc->handle.display, winDesc->handle.window, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+    // XMoveWindow expects window rectangle. We choose the dimension by ourselves here b/c Xlib does not return {0, 0, 0, 0}, the correct
+    // border size, when the window is in borderless mode.
+    if (winDesc->borderlessWindow)
+    {
+        XMoveWindow(winDesc->handle.display, winDesc->handle.window, clientRect.left, clientRect.top);
+    }
+    else
+    {
+        XMoveWindow(winDesc->handle.display, winDesc->handle.window, pRect->left, pRect->top);
+    }
+    XFlush(winDesc->handle.display);
 }
 
 void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
@@ -812,8 +819,7 @@ RectDesc getCenteredWindowRect(WindowDesc* winDesc)
 void centerWindow(WindowDesc* winDesc)
 {
     RectDesc newRect = getCenteredWindowRect(winDesc);
-
-    setWindowClientRect(winDesc, &newRect);
+    setWindowRect(winDesc, &newRect);
 }
 
 //------------------------------------------------------------------------

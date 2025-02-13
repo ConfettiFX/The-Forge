@@ -17,6 +17,7 @@
       <File Name="../../src/12_ZipFileSystem/Shaders/FSL/zipTexture.frag.fsl"/>
       <File Name="../../src/12_ZipFileSystem/Shaders/FSL/zipTexture.vert.fsl"/>
       <File Name="../../src/12_ZipFileSystem/Shaders/FSL/ShaderList.fsl"/>
+      <File Name="../../src/12_ZipFileSystem/Shaders/FSL/shaders.list"/>
     </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">
@@ -74,7 +75,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="no"># GpuConfig</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/GPUCfg/$(ProjectName)/gpu.cfg $(ProjectPath)/$(ConfigurationName)/gpu.cfg</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/gpu.cfg $(ProjectPath)/$(ConfigurationName)/gpu.cfg</Command>
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/gpu.data</Command>
         <Command Enabled="no"># ZipFiles</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/ZipFiles/dds/ $(ProjectPath)/$(ConfigurationName)/ZipFiles/</Command>
@@ -96,10 +97,11 @@
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders -i $(DST) --cache-args --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose --debug -b $(DST)/CompiledShaders -i $(DST) --cache-args --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)
 </CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
@@ -146,14 +148,12 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="no"># GpuConfig</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/GPUCfg/$(ProjectName)/gpu.cfg $(ProjectPath)/$(ConfigurationName)/gpu.cfg</Command>
-
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/gpu.cfg $(ProjectPath)/$(ConfigurationName)/gpu.cfg</Command>
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/gpu.data</Command>
         <Command Enabled="no"># ZipFiles</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/ZipFiles/dds/ $(ProjectPath)/$(ConfigurationName)/ZipFiles/</Command>
         <Command Enabled="no"># Scripts</Command>
-        <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../../../Art/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
-        
+        <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../../../Common_3/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="no"># Misc</Command>
         <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
@@ -175,7 +175,8 @@ DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders -i $(DST) --cache-args --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

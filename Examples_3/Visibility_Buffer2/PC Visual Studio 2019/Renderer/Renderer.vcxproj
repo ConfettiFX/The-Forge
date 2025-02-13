@@ -12,8 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11ShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp" />
@@ -28,8 +26,6 @@
     <ClCompile Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11CapBuilder.h" />
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Config.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h" />

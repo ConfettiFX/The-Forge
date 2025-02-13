@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,9 +24,13 @@
 
 #define THREADX 16
 #define THREADY 16
-#include "blur_resources.h.fsl"
+#include "vb_resources.h.fsl"
+#include "gaussian_blur.srt.h"
 
-RES(RWTex2D(float4),  ShadowMapTextures[2], UPDATE_FREQ_NONE, u1, binding = 2);
+#define PASS_TYPE_HORIZONTAL 0
+#define PASS_TYPE_VERTICAL 1
+
+
 
 
 float4 Pass(int2 id, uint passType)
@@ -36,21 +40,21 @@ float4 Pass(int2 id, uint passType)
 	uint textureIndex = uint(passType != PASS_TYPE_HORIZONTAL);
 
 	float sum = 0.0f;
-	for (int i = - int(BlurRootConstants.mFilterRadius); i <= int(BlurRootConstants.mFilterRadius); i++)
+	for (int i = - int(gGaussianBlurConstants.mFilterRadius); i <= int(gGaussianBlurConstants.mFilterRadius); i++)
 	{
-		float weight = BlurWeights.mBlurWeights[abs(i)/4][abs(i)%4];
-		result += LoadRWTex2D(ShadowMapTextures[textureIndex], id + offsetDir * i).rgba * weight;
+		float weight = gBlurWeights.mBlurWeights[abs(i)/4][abs(i)%4];
+		result += LoadRWTex2D(gShadowMapTextures[textureIndex], id + offsetDir * i).rgba * weight;
 		sum += weight;
 	}
 	return result / sum;
 }
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(THREADX, THREADY, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;
-	float4 result = Pass(int2(threadID.xy), BlurRootConstants.mBlurPassType);
-	uint textureIndex = uint(BlurRootConstants.mBlurPassType == PASS_TYPE_HORIZONTAL);
-	Write2D(ShadowMapTextures[textureIndex], threadID.xy, result);
+	float4 result = Pass(int2(threadID.xy), gGaussianBlurConstants.mBlurPassType);
+	uint textureIndex = uint(gGaussianBlurConstants.mBlurPassType == PASS_TYPE_HORIZONTAL);
+	Write2D(gShadowMapTextures[textureIndex], threadID.xy, result);
 	RETURN();
 }

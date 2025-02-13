@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -565,6 +565,12 @@ void profileDrawDetailedModeGrid(float startHeightPixels, float startWidthPixels
         REGISTER_LUA_WIDGET(pLineWidget);
         x += interLineDistance;
     }
+#else
+    (void)startHeightPixels;
+    (void)startWidthPixels;
+    (void)interLineDistance;
+    (void)totalLines;
+    (void)lineHeight;
 #endif
 }
 
@@ -894,6 +900,8 @@ void profileDrawDetailedMode(Profile& S)
     UIWidget* pTooltip = uiAddComponentWidget(pWidgetUIComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP);
     arrpush(gDetailedModeWidgets, pTooltip);
     REGISTER_LUA_WIDGET(pTooltip);
+#else
+    (void)S;
 #endif
 }
 
@@ -1036,6 +1044,8 @@ void profileDrawPlotMode(Profile& S)
             REGISTER_LUA_WIDGET(pSpace);
         }
     }
+#else
+    (void)S;
 #endif
 }
 
@@ -1140,6 +1150,8 @@ void profileDrawTimerMode(Profile& S)
 
         REGISTER_LUA_WIDGET(uiAddComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
     }
+#else
+    (void)S;
 #endif
 }
 
@@ -1273,7 +1285,6 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const F
         return;
 
     const GpuProfileDrawDesc* pGpuDrawDesc = &gDefaultGpuProfileDrawDesc;
-    float2                    pos(origin.x + pGpuDrawDesc->mChildIndent * pRoot->mDepth, origin.y);
     uint32_t                  nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
     float                     fsToMs = ProfileTickToMsMultiplier((uint64_t)pGpuProfiler->mGpuTimeStampFrequency);
     float                     fAverage = fsToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
@@ -1296,13 +1307,17 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const F
     drawDesc.mFontSize = pDrawDesc->mFontSize;
     drawDesc.mFontSpacing = pDrawDesc->mFontSpacing;
     drawDesc.mFontBlur = pDrawDesc->mFontBlur;
-    cmdDrawTextWithFont(pCmd, pos, &drawDesc);
 
-    float2 textSizePx = fntMeasureFontText(printableString, pDrawDesc);
-    origin.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
-    textSizePx.x += pGpuDrawDesc->mChildIndent * pRoot->mDepth;
-    curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
-    curTotalTxtSizePx.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+    if (fAverage > 0.0f)
+    {
+        float2 pos(origin.x + pGpuDrawDesc->mChildIndent * pRoot->mDepth, origin.y);
+        cmdDrawTextWithFont(pCmd, pos, &drawDesc);
+        float2 textSizePx = fntMeasureFontText(printableString, pDrawDesc);
+        origin.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+        textSizePx.x += pGpuDrawDesc->mChildIndent * pRoot->mDepth;
+        curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
+        curTotalTxtSizePx.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+    }
 
     for (uint32_t i = index + 1; i < pGpuProfiler->mCurrentPoolIndex; ++i)
     {
@@ -1336,11 +1351,35 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfi
     {
         return totalTextSizePx;
     }
+#if defined(METAL)
+    const char* pcDrawBoundaryOnlyTimersMessage = "This GPU does not support draw bounds timings";
+    const char* pcStageBoundaryOnlyTimersMessage = "This GPU does not support stage bounds timings";
+    pDrawDesc->pText = NULL;
+    if (g_Profile.pGpuDesc->mStageBoundarySamplingSupported)
+    {
+        pDrawDesc->pText = pcDrawBoundaryOnlyTimersMessage;
+    }
+    else if (g_Profile.pGpuDesc->mDrawBoundarySamplingSupported)
+    {
+        pDrawDesc->pText = pcStageBoundaryOnlyTimersMessage;
+    }
+    if (pDrawDesc->pText)
+    {
+        cmdDrawTextWithFont(pCmd, gScreenPos, pDrawDesc);
+        float2 totalTextSizePx = fntMeasureFontText(gGpuProfileTitleText, pDrawDesc);
+        gScreenPos.y += totalTextSizePx.y + gDefaultGpuProfileDrawDesc.mHeightOffset;
+    }
+
+#endif
 
     drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, gScreenPos, 0, totalTextSizePx);
 
     return totalTextSizePx;
 #else
+    (void)pCmd;
+    (void)screenCoordsInPx;
+    (void)nProfileToken;
+    (void)pDrawDesc;
     return float2(0.f, 0.f);
 #endif
 }
@@ -1450,6 +1489,9 @@ float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDraw
     totalTextSizePx.y -= gDefaultGpuProfileDrawDesc.mHeightOffset;
     return totalTextSizePx;
 #else
+    (void)pCmd;
+    (void)screenCoordsInPx;
+    (void)pDrawDesc;
     return float2(0.f, 0.f);
 #endif
 }
@@ -1631,6 +1673,8 @@ void profileLoadWidgetUI(Profile& S)
 
         profileDrawPlotMode(S);
     }
+#else
+    (void)S;
 #endif
 }
 
@@ -1731,6 +1775,8 @@ void profileUpdateWidgetUI(Profile& S)
             frameNumPlot = 0;
         }
     }
+#else
+    (void)S;
 #endif
 }
 
@@ -2061,6 +2107,9 @@ void loadProfilerUI(uint32_t widthUI, uint32_t heightUI)
     memset(sliderFloat.mFormat, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(sliderFloat.mFormat, "%.2f");
     REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+#else
+    (void)widthUI;
+    (void)heightUI;
 #endif
 }
 
@@ -5148,30 +5197,33 @@ const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32
 
 #else
 
-void  initProfiler(ProfilerDesc* pDesc) {}
+void  initProfiler(ProfilerDesc* /*pDesc*/) {}
 void  exitProfiler() {}
 void  flipProfiler() {}
-void  dumpProfileData(const char* appName, uint32_t nMaxFrames) {}
-void  dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char* appName) {}
-void  setAggregateFrames(uint32_t nFrames) {}
-float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
+void  dumpProfileData(const char* /*appName*/, uint32_t /*nMaxFrames*/) {}
+void  dumpBenchmarkData(IApp::Settings* /*pSettings*/, const char* /*outFilename*/, const char* /*appName*/) {}
+void  setAggregateFrames(uint32_t /*nFrames*/) {}
+float getCpuProfileTime(const char* /*pGroup*/, const char* /*pName*/, ThreadID* /*pThreadID*/) { return -1.0f; }
+float getCpuProfileAvgTime(const char* /*pGroup*/, const char* /*pName*/, ThreadID* /*pThreadID*/) { return -1.0f; }
+float getCpuProfileMinTime(const char* /*pGroup*/, const char* /*pName*/, ThreadID* /*pThreadID*/) { return -1.0f; }
+float getCpuProfileMaxTime(const char* /*pGroup*/, const char* /*pName*/, ThreadID* /*pThreadID*/) { return -1.0f; }
 
 float getCpuFrameTime() { return -1.0f; }
 float getCpuAvgFrameTime() { return -1.0f; }
 float getCpuMinFrameTime() { return -1.0f; }
 float getCpuMaxFrameTime() { return -1.0f; }
 
-uint64_t     cpuProfileEnter(ProfileToken nToken) { return 0; }
-void         cpuProfileLeave(ProfileToken nToken, uint64_t nTick) {}
-ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor) { return PROFILE_INVALID_TOKEN; }
+uint64_t     cpuProfileEnter(ProfileToken /*nToken*/) { return 0; }
+void         cpuProfileLeave(ProfileToken /*nToken*/, uint64_t /*nTick*/) {}
+ProfileToken getCpuProfileToken(const char* /*pGroup*/, const char* /*pName*/, uint32_t /*nColor*/) { return PROFILE_INVALID_TOKEN; }
 
-float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc) { return float2{}; }
-float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc) { return float2{}; }
+float2 cmdDrawGpuProfile(Cmd* /*pCmd*/, float2 /*screenCoordsInPx*/, ProfileToken /*nProfileToken*/, FontDrawDesc* /*pDrawDesc*/)
+{
+    return float2{};
+}
+float2 cmdDrawCpuProfile(Cmd* /*pCmd*/, float2 /*screenCoordsInPx*/, FontDrawDesc* /*pDrawDesc*/) { return float2{}; }
 void   updateProfilerUI() {}
-void   toggleProfilerUI(bool active) {}
-void   toggleProfilerMenuUI(bool active) {}
-void   toggleProfilerDrawing(bool active) {}
+void   toggleProfilerUI(bool /*active*/) {}
+void   toggleProfilerMenuUI(bool /*active*/) {}
+void   toggleProfilerDrawing(bool /*active*/) {}
 #endif

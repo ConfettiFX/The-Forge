@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,7 +33,7 @@ STRUCT(VSInput)
 	DATA(float3, position, POSITION);
 	DATA(float2, uv, TEXCOORD);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 PSInput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;

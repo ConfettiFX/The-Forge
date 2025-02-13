@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,70 +23,18 @@
 */
 
 #define NUM_SAMPLE 1
-#define MAX_PLANES 4
 
-#define PI 3.1415926535897932384626422832795028841971
 #define RADIAN 0.01745329251994329576923690768489
 
-STRUCT(cbExtendCameraData)
-{
-	DATA(float4x4, viewMat, None);
-	DATA(float4x4, invViewMat, None);
-	DATA(float4x4, projMat, None);
-	DATA(float4x4, viewProjMat, None);
-	DATA(float4x4, InvViewProjMat, None);
-
-	DATA(float4, cameraWorldPos, None);
-	DATA(float2, viewPortSize, None);
-	DATA(float,  mNear, None);
-	DATA(float,  mFar, None);
-};
-RES(CBUFFER(cbExtendCameraData), cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+#include "vb_resources.h.fsl"
+#include "PPR.srt.h"
 
 
-RES(Tex2D(float4), SceneTexture, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(RWBuffer(uint), IntermediateBuffer, UPDATE_FREQ_NONE, u2, binding = 2);
-
-RES(Tex2D(float4), DepthTexture, UPDATE_FREQ_NONE, t3, binding = 3);
-
-STRUCT(PlaneInfo)
-{
-	DATA(float4x4, rotMat, None);
-	DATA(float4, centerPoint, None);
-	DATA(float4, size, None);
-};
-
-STRUCT(planeInfoBufferData)
-{
-	DATA(PlaneInfo, planeInfo[MAX_PLANES], None);
-	DATA(uint, numPlanes, None);
-	DATA(uint, pad00, None);
-	DATA(uint, pad01, None);
-	DATA(uint, pad02, None);
-};
-RES(CBUFFER(planeInfoBufferData), planeInfoBuffer, UPDATE_FREQ_PER_FRAME, b4, binding = 4);
-
-STRUCT(cbPropertiesData)
-{
-	DATA(uint, renderMode, None);
-	DATA(float, useHolePatching, None);
-	DATA(float, useExpensiveHolePatching, None);
-	DATA(float, useNormalMap, None);
-
-	DATA(float, intensity, None);
-	DATA(float, useFadeEffect, None);
-	DATA(float, debugNonProjected, None);
-	DATA(float, padding01, None);
-};
-RES(CBUFFER(cbPropertiesData), cbProperties, UPDATE_FREQ_PER_FRAME, b5, binding = 5);
-
-RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s6, binding = 6);
-RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s7, binding = 7);
 
 bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(float4) hitPos, out(float2) relfectedUVonPlanar) 
 {
 
-	PlaneInfo thisPlane = planeInfoBuffer.planeInfo[index];
+	PlaneInfo thisPlane = gPlaneInfoBuffer.planeInfo[index];
 
 	// assuming vectors are all normalized
 	//float4x4 thisPlanesMat = thisPlane.rotMat;
@@ -94,9 +42,9 @@ bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(
 
 	float3 centerPoint = thisPlane.centerPoint.xyz;
 
-	float3 rO = cbExtendCamera.cameraWorldPos.xyz;
+	float3 rO = gCBExtendCamera.cameraWorldPos.xyz;
 	float3 rD = normalize(worldPos - rO);
-	float3 rD_VS = mul(to_f3x3(cbExtendCamera.viewMat), rD);
+	float3 rD_VS = mul(to_f3x3(gCBExtendCamera.viewMat), rD);
 	
 
 	//hitPos = float4(  normalVec, 0.0);
@@ -132,12 +80,12 @@ bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(
 		if( (abs(xGap) <= width) && (abs(yGap) <= height))
 		{
 			hitPos = float4(hitPoint, 1.0);
-			reflectedPos = mul(cbExtendCamera.viewProjMat, hitPos);
+			reflectedPos = mul(gCBExtendCamera.viewProjMat, hitPos);
 			reflectedPos /= reflectedPos.w;
 
 			reflectedPos.xy = float2( (reflectedPos.x + 1.0) * 0.5, (1.0 - reflectedPos.y) * 0.5);
 
-			float depth = SampleTex2D(DepthTexture, depthSampler, reflectedPos.xy).r;
+			float depth = SampleTex2D(gDepthTexture, gDepthSampler, reflectedPos.xy).r;
 
 			if(depth >= reflectedPos.z)
 				return false;
@@ -212,7 +160,7 @@ float4 unPacked(in(uint) unpacedInfo, in(float2) dividedViewSize, out(uint) Coor
 
 float4 getWorldPosition(float2 UV, float depth)
 {
-	float4 worldPos = mul( cbExtendCamera.InvViewProjMat, float4(UV.x*2.0 - 1.0, (1.0 - UV.y) * 2.0 - 1.0, depth, 1.0));
+	float4 worldPos = mul( gCBExtendCamera.InvViewProjMat, float4(UV.x*2.0 - 1.0, (1.0 - UV.y) * 2.0 - 1.0, depth, 1.0));
 	worldPos /= worldPos.w;
 
 	return worldPos;
@@ -231,30 +179,30 @@ STRUCT(VSOutput)
 	DATA(float2, uv, TEXCOORD0);
 };
 
-
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( VSOutput In )
 {	
 	INIT_MAIN;
 	float4 outColor;
 	outColor =  float4(0.0, 0.0, 0.0, 0.0);
 	
-	uint screenWidth = uint( cbExtendCamera.viewPortSize.x );
-	// uint screenHeight = uint( cbExtendCamera.viewPortSize.y );
+	uint screenWidth = uint( gCBExtendCamera.viewPortSize.x );
+	// uint screenHeight = uint( gCBExtendCamera.viewPortSize.y );
 	
-	uint indexY = uint( In.uv.y * cbExtendCamera.viewPortSize.y );
-	uint indexX = uint( In.uv.x * cbExtendCamera.viewPortSize.x );
+	uint indexY = uint( In.uv.y * gCBExtendCamera.viewPortSize.y );
+	uint indexX = uint( In.uv.x * gCBExtendCamera.viewPortSize.x );
 	
 	uint index = indexY * screenWidth +  indexX;
 
-	uint bufferInfo = IntermediateBuffer[index];	
-	//InterlockedAdd(IntermediateBuffer[index], 0, bufferInfo);
+	uint bufferInfo = gIntermediateBuffer[index];	
+	//InterlockedAdd(gIntermediateBuffer[index], 0, bufferInfo);
 
 	bool bIsInterect = false;
 
 	uint CoordSys;
-	float2 offset = unPacked( bufferInfo , cbExtendCamera.viewPortSize.xy, CoordSys).xy;
+	float2 offset = unPacked( bufferInfo , gCBExtendCamera.viewPortSize.xy, CoordSys).xy;
 
-	float depth =  SampleTex2D(DepthTexture, depthSampler, In.uv).r;
+	float depth =  SampleTex2D(gDepthTexture, gDepthSampler, In.uv).r;
 
 	float4 worldPos = getWorldPosition(In.uv, depth);
 
@@ -267,11 +215,11 @@ float4 PS_MAIN( VSOutput In )
 	float minDist = 1000000.0;
 
 	//Check if current pixel is in the bound of planars
-	for(uint i = 0; i < planeInfoBuffer.numPlanes; i++)
+	for(uint i = 0; i < gPlaneInfoBuffer.numPlanes; i++)
 	{	
 		if(intersectPlane( i, worldPos.xyz, In.uv, HitPos_WS, UVforNormalMap))
 		{
-			float localDist =  distance(HitPos_WS.xyz, cbExtendCamera.cameraWorldPos.xyz);
+			float localDist =  distance(HitPos_WS.xyz, gCBExtendCamera.cameraWorldPos.xyz);
 			if( localDist <  minDist )
 			{
 				minDist = localDist;
@@ -286,8 +234,8 @@ float4 PS_MAIN( VSOutput In )
 	//If is not in the boundary of planar, exit
 	if(!bIsInterect)
 	{
-		//clear IntermediateBuffer
-		AtomicMax(IntermediateBuffer[index] , UINT_MAX);
+		//clear gIntermediateBuffer
+		AtomicMax(gIntermediateBuffer[index] , UINT_MAX);
 		RETURN(outColor);
 	}	
 		
@@ -302,19 +250,19 @@ float4 PS_MAIN( VSOutput In )
 		float correctionPixel = 1.0;
 
 		if(CoordSys == 0)
-			relfectedUV = relfectedUV.xy + float2(0.0, correctionPixel / cbExtendCamera.viewPortSize.y);
+			relfectedUV = relfectedUV.xy + float2(0.0, correctionPixel / gCBExtendCamera.viewPortSize.y);
 		else if(CoordSys == 1)
-			relfectedUV = relfectedUV.xy + float2(correctionPixel / cbExtendCamera.viewPortSize.x, 0.0);
+			relfectedUV = relfectedUV.xy + float2(correctionPixel / gCBExtendCamera.viewPortSize.x, 0.0);
 		else if(CoordSys == 2)
-			relfectedUV = relfectedUV.xy - float2(0.0, correctionPixel / cbExtendCamera.viewPortSize.y);
+			relfectedUV = relfectedUV.xy - float2(0.0, correctionPixel / gCBExtendCamera.viewPortSize.y);
 		else if(CoordSys == 3)
-			relfectedUV = relfectedUV.xy - float2(correctionPixel / cbExtendCamera.viewPortSize.x, 0.0);
+			relfectedUV = relfectedUV.xy - float2(correctionPixel / gCBExtendCamera.viewPortSize.x, 0.0);
 
 		offsetLen = length(offset.xy);
 	
-		outColor = SampleLvlTex2D(SceneTexture, defaultSampler, relfectedUV, 0);
+		outColor = SampleLvlTex2D(gSceneTexture, gDefaultSampler, relfectedUV, 0);
 		
-		if(cbProperties.useFadeEffect > 0.5 )
+		if(gCBProperties.useFadeEffect > 0.5 )
 			outColor *= fade(relfectedUV);
 	
 		outColor.w = offsetLen;	
@@ -322,13 +270,13 @@ float4 PS_MAIN( VSOutput In )
 	}
 	else
 	{
-		if(cbProperties.debugNonProjected > 0.5)
+		if(gCBProperties.debugNonProjected > 0.5)
 			outColor = float4(0.5f, 0.0f, 0.5f, 0.0f);
 
 		outColor.w = FLT_MAX;
 	}
 
-	//clear IntermediateBuffer
-	AtomicMax(IntermediateBuffer[ index ] , UINT_MAX);
+	//clear gIntermediateBuffer
+	AtomicMax(gIntermediateBuffer[ index ] , UINT_MAX);
 	RETURN(outColor);
 }

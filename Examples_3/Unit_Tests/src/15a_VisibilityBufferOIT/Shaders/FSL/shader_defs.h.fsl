@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,17 +22,9 @@
  * under the License.
 */
 
+
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
-
-#ifdef NO_FSL_DEFINITIONS
-    #define STATIC static
-    #define STRUCT(NAME) struct NAME
-    #define DATA(TYPE, NAME, SEM) TYPE NAME
-    #define CBUFFER(NAME) struct NAME
-	#define RES(RESOURCE, NANE, FREQ, REGISTER, BINDING) 
-	#define float4x4 mat4
-#endif
 
 #define LIGHT_COUNT 128
 #define LIGHT_SIZE 30.0f
@@ -47,6 +39,8 @@
 
 #define MESH_CONSTANT_FLAG_TWO_SIDED (1u << 0)
 
+#define MAX_BLUR_KERNEL_SIZE 8
+
 STRUCT(MeshData)
 {
     DATA(float4x4, modelMtx, None);
@@ -60,6 +54,8 @@ STRUCT(MeshData)
     DATA(uint, pad2, None);
 };
 
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shader_defs.h.fsl"
+
 #define MATERIAL_ID_LOW_BIT 0   // 16 bits for materialID
 #define FLAG_LOW_BIT  16        // 16 bits for flags
 
@@ -71,24 +67,30 @@ STRUCT(PerFrameConstantsData)
 	DATA(float4, camPos, None);
 	DATA(float, nearPlane, None);
 	DATA(float, farPlane, None);
-	DATA(uint, _pad0, None);
-	DATA(uint, _pad1, None);
+	DATA(float, mGodRayScatterFactor, None); // Godray scatter factor
+	DATA(float, drawVRSDebug, None);  // debug draw VRS
+    // TonemapInfo
+    DATA(float, mLinearScale, None);
+    DATA(uint, mOutputMode, None);
+    DATA(uint, _pad0, None);
+    DATA(uint, _pad1, None);
 	//========================================
 	DATA(float4, lightDir, None);
 	//========================================
 	DATA(float4, lightColor, None);
 	//========================================
-	DATA(uint, _pad2, None);
+    DATA(uint, numViewports, None);
 	DATA(uint, outputMode, None);
 	DATA(float2, twoOverRes, None);
 	//========================================
 	DATA(float, esmControl, None);
 	DATA(uint, screenWidth, None); 
 	DATA(uint, screenHeight, None);
-	DATA(uint, _pad3, None);
+	DATA(uint, _pad2, None);
 	DATA(float4, transAlphaPerFlag, None); // TheForge UnitTest specific, stores the alpha of each of the flags in the SanMiguel scene
+	DATA(Transform, transform[NUM_CULLING_VIEWPORTS], None);
+	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);
 };
-RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(LightData)
 {
@@ -96,6 +98,18 @@ STRUCT(LightData)
 	DATA(float4, color, None);
 };
 
-#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shader_defs.h.fsl"
+STRUCT(BlurRootConstantData)
+{
+    DATA(uint, mBlurPassType, None);
+    DATA(uint, mFilterRadius, None);
+};
+
+STRUCT(BlurWeightsData)
+{
+	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4], None);
+};
+
+
+
 
 #endif

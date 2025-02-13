@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -22,11 +22,11 @@
 
 """ metal shader generation """
 
-from utils import WaveopsFlags, Stages, DescriptorSets, Features, Platforms, ShaderBinary
+from utils import WaveopsFlags, Stages, Features, Platforms, ShaderBinary
 from utils import getHeader, getShader, getMacro, getMacroName, iter_lines, isBaseType
 from utils import isArray, getArrayLen , getArrayBaseName, get_interpolation_modifier
 from utils import is_input_struct, get_input_struct_var, fsl_assert, get_whitespace, getArrayLenFlat
-from utils import get_array_decl, get_fn_table, is_groupshared_decl, collect_shader_decl
+from utils import get_array_decl, get_fn_table, is_groupshared_decl, collect_shader_decl, line_is_srt_declaration, get_srt_tuple
 import os, sys, re
 from shutil import copyfile
 
@@ -52,7 +52,6 @@ class Opts:
         self.includes = None
 
 def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
-
     fsl = binary.preprocessed_srcs[platform]
 
     shader = getShader(platform, binary, fsl, dst)
@@ -65,6 +64,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     if shader.waveops_flags != WaveopsFlags.WAVE_OPS_NONE:
         shader_src += ['#define ENABLE_WAVEOPS(flags)\n']
+    
 
     if Features.RAYTRACING in binary.features:
         shader_src += [
@@ -92,51 +92,17 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         return consumeIdAt(2, array_len)
 
     def is_cbuffer_embedded(binary, parsing_cbuffer):
-        if 'rootcbv' in parsing_cbuffer[0]:
-            return False
         return Features.ICB in binary.features or Features.RAYTRACING in binary.features
 
     def cleaneval(exp: str):
         exp = re.sub(r"[A-Za-z]"," ",exp)
         return eval(exp)
-        
-    # map dx register to main fn metal resource location
-    def dxRegisterToMSLBinding(res: str, reg: str) -> str:
-        register = int(reg[1:])
-
-        # [0,3] reserved for ABs
-        buffer_CBV_offset = 4
-        buffer_UAV_offset = buffer_CBV_offset + 8
-        buffer_SRV_offset = buffer_UAV_offset + 8
-        texture_SRV_offset = 16
-
-        if 's' == reg[0]: # samplers 1:1
-            return register
-
-        if 'b' == reg[0]: # CBV -> msl buffer 1:1
-            return register + buffer_CBV_offset
-
-        if "BUFFER" in res.upper():
-            if 'u' == reg[0]:
-                return register + buffer_UAV_offset
-            return register + buffer_SRV_offset
-        if 'u' == reg[0]: # SRV texture 1:1
-            return register
-        return register + texture_SRV_offset
-
-    # for metal only consider resource declared using the following frequencies
-    metal_ab_frequencies = [
-        'UPDATE_FREQ_NONE',
-        'UPDATE_FREQ_PER_FRAME',
-        'UPDATE_FREQ_PER_BATCH',
-        'UPDATE_FREQ_PER_DRAW',
-        'UPDATE_FREQ_USER',
+    # shader resource table sets
+    srt_sets = [
     ]
 
     # collect array resources
     ab_elements = {}
-    for freq in metal_ab_frequencies:
-        ab_elements[freq] = []
 
     global_references = {}
     global_reference_paths = {}
@@ -146,6 +112,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
     skip = False
     struct = None
     mainArgs = []
+    mainArgsNames = []
 
     # statements which need to be inserted into INIT_MAIN
     entry_declarations = []
@@ -153,19 +120,15 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     # reversed list of functions, used to determine where a resource is being accessed
     reversed_fns = list(reversed(list(global_fn_table.items())))
-
+    res_type_index = 0
+    res_name_index = 1
     parsing_main = False
     global_scope_count = 0
-    global_resources = [res[1] for res in shader.resources]
+    global_resources = [res[res_name_index] for res in shader.resources]
     reGlobalResources = []
 
     reFn = re.compile(r'\b\w+\s+(\w+)\s*\(([^\{;]*)\)\s*?\{', re.DOTALL)
-    for dtype in [res[0] for res in shader.resources]:
-        if not isBaseType(getMacro(dtype)):
-            if 'CBUFFER' in dtype or 'ROOT_CONSTANT' in dtype:
-                shader_src += [f'{dtype};\n']
-            elif 'Buffer' in dtype:
-                shader_src += [f'struct {dtype};\n']
+
     res = {}
     for m in reFn.finditer(''.join(shader.lines)):
         a = m.group(2).split(',')
@@ -233,35 +196,33 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         global_reference_paths['simd_lane_id'] = 'simd_lane_id'
         global_reference_args['simd_lane_id'] = 'const uint simd_lane_id'
 
-    def declare_argument_buffers(mainArgs):
+    def declare_argument_buffers(mainArgs, mainArgsNames):
         ab_decl = []
         # declare argument buffer structs
+        buffer_index = 0
         for freq, elements in ab_elements.items():
 
             # skip empty update frequencies
-            if not elements: continue
+            if not elements:
+                buffer_index = buffer_index + 1
+                continue
 
-            argBufType = 'AB_' + freq
+            argBufType = 'SRTSet' + freq
 
             # make AB declaration only active if any member is defined
             space = 'constant'
-            ifreq = metal_ab_frequencies.index(freq)
-            mainArgs += [[space, ' struct ', argBufType, '& ', argBufType, f'[[buffer({ifreq})]]']]
-
+            ifreq = srt_sets.index(freq)
+            mainArgs.insert(buffer_index, [space, ' struct ', argBufType, '& ', argBufType, f'[[buffer({buffer_index})]]'])
+            mainArgsNames.insert(buffer_index, argBufType)
+            buffer_index = buffer_index + 1
             ab_decl += ['struct ', argBufType, '\n{\n']
-            sorted_elements = sorted(elements, key=lambda x: x[0], reverse=False)
-            vkbinding = 0
-            for elem in sorted_elements:
+            for elem in elements:
                 binding = cleaneval(elem[0].split('=')[-1])
                 arr = 1 if not isArray(elem[1][2]) else cleaneval(getArrayLenFlat(elem[1][2]))
-                while vkbinding < binding:
-                    ab_decl += [f'\tconstant void* _dummy_{ifreq}_{vkbinding};\n']
-                    vkbinding += 1
                 ab_decl += ['\t', *elem[1], ';\n']
-                vkbinding += arr
 
-            if len(sorted_elements) == 1:
-                _, elem0 = sorted_elements[0]
+            if len(elements) == 1:
+                _, elem0 = elements[0]
                 if 'SamplerState' in elem0[0]:
                     print('WARN: Sampler-only AB not supported!')
 
@@ -271,16 +232,18 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
     last_res_decl = 0
     explicit_res_decl = None
     global_scope_count = 0
+    parsing_srt = False
+    
+    is_no_ab = False
+
+    main_entry_line_index = -1
+    main_body_line_index = -1
     for fi, line_index, line in iter_lines(shader.lines):
 
         if '{' in line: global_scope_count += 1
         if '}' in line: global_scope_count -= 1
         
         shader_src_len = len(shader_src)
-
-        if 'DECLARE_RESOURCES' in line:
-            explicit_res_decl = len(shader_src) + 1
-            line = '//' + line
 
         # TODO: improve this
         if '#ifdef NO_FSL_DEFINITIONS' in line:
@@ -386,52 +349,60 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['\t// End of GroupShared Declaration: ', basename, '\n']
             continue
 
+        if 'BEGIN_SRT_NO_AB' in line and parsing_srt is False:
+            is_no_ab = True
+        if 'BEGIN_SRT' in line and parsing_srt is False:
+            parsing_srt = True
+        if 'END_SRT(' in line:
+            parsing_srt = False
+            explicit_res_decl = len(shader_src)+1
+            
         # consume resources
-        if 'RES(' in line:
-            resource = tuple(getMacro(line))
-            resType, resName, freq, dxreg, vkbinding = resource[:5]
+        if line_is_srt_declaration(line):
+            resource = get_srt_tuple(line)
+            resType, resName, freq = resource[:3]
             baseName = getArrayBaseName(resName)
-
-            is_embedded = False
-
-            if 'CBUFFER' in resType and is_cbuffer_embedded(binary, resName):
+            is_embedded = True
+            # RW resources remain out og any Arguemnt buffers
+            if 'RW' in resType or resType.startswith('WTex') or resType.startswith('RTex3D'):
+                is_embedded = False
+            else:
                 is_embedded = True
             
-            if not Features.NO_AB in binary.features:
-                if 'SamplerState' == resType:
+            if is_no_ab:
+                is_embedded = False
+                #if isArray(resName):
+                #    is_embedded = True
+                if 'Buffer' in resType and resType.startswith('CBUFFER') is False and is_no_ab is False:
+                    is_embedded = True
+                if 'RW' in resType or resType.startswith('WTex') or resType.startswith('RTex3D'):
                     is_embedded = False
-                if isArray(resName):
-                    is_embedded = True
-                if 'RW' in resType:
-                    is_embedded = False
-                if 'COMMAND_BUFFER' == resType:
-                    is_embedded = True
-                if 'RasterizerOrderedTex2D' in resType:
-                    is_embedded = True
-            if 'USE_AB' == resource[-1]:
-                is_embedded = True
-
+                
+            # some cases when more than 8 RW buffers are needed , we enforce AB
             is_embedded = is_embedded or Features.ICB in binary.features or Features.RAYTRACING in binary.features
-
-            if freq not in metal_ab_frequencies:
-                shader_src += ['#line {}\n'.format(line_index)]
-                shader_src += ['\t// Ignored Resource Declaration: '+line+'\n']
-                continue
+            
+            # but samplers remain out of AB, for low end devices support
+            if 'SamplerState' in resType or 'SamplerComparisonState' in resType:
+                is_embedded = False
+                
+            if freq not in srt_sets:
+                srt_sets.append(freq)
+                ab_elements[freq] = []
 
             if not is_embedded: # regular resource
                 is_array = isArray(resName)
                 array_len = int(cleaneval(getArrayLenFlat(resName))) if is_array else 1
                 prefix = ''
                 postfix = ' '
-                is_buffer = 'Buffer' in resType or 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType
+                is_buffer = 'Buffer' in resType or 'CBUFFER' in resType
 
-                fr = metal_ab_frequencies.index(resource[2])
+                fr = srt_sets.index(resource[2])
                 nameWithFrequency = f'_fslF{fr}_{baseName}'
 
                 if is_buffer:
                     prefix = 'device ' if 'RW' in resType else 'const device '
                     postfix = '* '
-                    if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                    if 'CBUFFER' in resType:
                         postfix = '& '
                         prefix = 'constant '
                 if 'Sampler' in resType:
@@ -455,6 +426,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 if is_array and is_buffer: # unroll buffer array
                     main_arg = [prefix , mainArgType, postfix, f'_fslA{fr}{array_len}_' + baseName, binding, ' // main arg ', resource[2]]
                     mainArgs += [main_arg]
+                    mainArgsNames += [baseName]
                     declaration = [f'_fslA{fr}{array_len}_' + baseName]
                     for i in range(1, array_len):
                         binding = ' [[buffer({})]]'.format(location + i)
@@ -467,10 +439,11 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                         mainArgType = f'array<{resType}, {array_len}>'
                     main_arg = [prefix , mainArgType, postfix, nameWithFrequency, binding, ' // main arg ', resource[2]]
                     mainArgs += [main_arg]
-                    if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
-                        entry_declarations += [f'constant auto& {baseName} = {nameWithFrequency};']
+                    mainArgsNames += [resName]
+                    if 'CBUFFER' in resType:
+                        entry_declarations += [f'constant {mainArgType}& {baseName} = {nameWithFrequency};']
                     else:
-                        entry_declarations += [f'auto {baseName} = {nameWithFrequency};']
+                        entry_declarations += [f'{prefix}{mainArgType}{postfix} {baseName} = {nameWithFrequency};']
 
                 global_reference_paths[baseName] = baseName
                 
@@ -478,7 +451,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     space = 'device' if 'RW' in resType else 'const device'
                     if is_array:
                         ref_arg = f'{space} {resType} *(&{baseName})[{array_len}] '
-                    elif 'CBUFFER' in resType or "ROOT_CONSTANT" in resType:
+                    elif 'CBUFFER' in resType:
                         ref_arg = f'constant {resType}& {resName}'
                     else:
                         ref_arg = f'{space} {resType} *{resName}'
@@ -491,14 +464,13 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
             else: # resource is embedded in argbuf
 
-                shader_src += ['\n\t// Metal Embedded Resource Declaration: ', line, '\n']
-                argBufType = 'AB_' + freq
+                argBufType = 'SRTSet' + freq
                 basename = getArrayBaseName(resName)
 
-                if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
+                if 'CBUFFER' in resType:
                     ab_element = ['constant ', resType, '& ', resName]
                 elif 'Buffer' in resType:
-                    space = ' device ' if 'RW' in resType else ' const device '
+                    space = ' device ' if 'RW' in resType else 'const device '
                     ab_element = [space, resType, '* ', resName]
                 elif 'RasterizerOrderedTex2D' in resType:
                     _, group_index = getMacro(resType)
@@ -506,7 +478,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 else:
                     ab_element = [resType, ' ', resName]
 
-                ab_elements[freq] += [( vkbinding, ab_element )]
+                ab_elements[freq] += [( '0', ab_element )]
 
                 global_reference_paths[baseName] = argBufType
                 if not isArray(resName):
@@ -517,10 +489,8 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     array = resName[resName.find('['):]
                     global_reference_args[baseName] = 'constant ' + resType + '(&' + baseName+') ' + array
                 global_reference_args[baseName] = 'constant struct ' + argBufType + '& ' + argBufType
-                entry_declarations += [f'auto {baseName} = {argBufType}.{baseName};']
 
-                shader_src += ['\t//End of Resource Declaration: ', baseName, '\n']
-
+                
                 reGlobalResources += [ (f'{argBufType}.{baseName}', re.compile(fr'\b{baseName}\b', re.DOTALL)) ]
             last_res_decl = len(shader_src)+1
             shader_src += ['#line {}\n'.format(line_index)]
@@ -540,7 +510,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         if '_MAIN(' in line:
 
             parsing_main = len(shader_src)
-            ab_decl = declare_argument_buffers(mainArgs)
+            ab_decl = declare_argument_buffers(mainArgs, mainArgsNames)
             ab_decl_location = last_res_decl if not explicit_res_decl else explicit_res_decl
             shader_src = shader_src[:ab_decl_location] + ab_decl + shader_src[ab_decl_location:]
 
@@ -549,7 +519,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 mtl_returntype = getMacroName(shader.returnType)
 
             shader_src += [msl_target, ' ', mtl_returntype, ' ', binary.filename.replace('.', '_'),  '(\n']
-            
+            main_entry_line_index = len(shader_src)
             prefix = '\t'
             for dtype, var in shader.struct_args:
                 shader_src += [ prefix+dtype+' '+var+'[[stage_in]]\n']
@@ -566,8 +536,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                 shader_src += [prefix, 'uint simdgroup_size [[threads_per_simdgroup]]\n']
                 prefix = '\t,'
 
+            
             for arg in mainArgs:
-                shader_src += [prefix, *arg, '\n']
+                shader_src += [ "".join([ prefix, *arg, '\n'])]
                 prefix = '\t,'
 
             shader_src += [')\n']
@@ -580,8 +551,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         if 'INIT_MAIN' in line:
 
             for entry_declaration in entry_declarations:
-                shader_src += ['\t', *entry_declaration, '\n']
+                shader_src += [ "".join([ '\t', *entry_declaration, '\n'] ) ]
 
+            main_body_line_index = len(shader_src)
             shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
@@ -605,6 +577,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
 
         if shader_src_len != len(shader_src):
             shader_src += ['#line {}\n'.format(line_index)]
+            
+        if line.strip().startswith('BEGIN_SRT(') or line.strip().startswith('END_SRT(') or line.strip().startswith('BEGIN_SRT_NO_AB('):
+            continue;
 
         shader_src += [line]
 
@@ -656,5 +631,62 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     else:
                         line = line[:l2] + argument + ', ' + line[l2:]
                 shader_src[i] = line
+    
+    # optimization pass for generated code
+    # determine the unused and unreferenced main args, and remove
+    # them from main Args and internal delcarations
+    
+    def tokenize_line(line):
+        token_pattern = r'\s*(\w+|==|!=|<=|>=|->|\+\+|--|&&|\|\||[{}()\[\];,+*/%&|^~!=<>?:.-])\s*'
+        tokens = re.findall(token_pattern, line)
+        return tokens
+        
+    def line_contains_reference(line, argName):
+        tokens = tokenize_line(line)
+        return argName in tokens
+
+    def line_contains_res_reference(line, argName):
+        tokens = tokenize_line(line)
+        for curr_token in tokens:
+            if curr_token.endswith( argName ):
+                return True
+        return False
+
+
+    unused_arguments = []
+    for j, argName in enumerate(mainArgsNames):
+        ref_count = 0
+        for i, line in enumerate(shader_src):
+            stripped_line = line.strip()
+
+            if i < main_body_line_index: continue
+            if stripped_line.startswith('//'): continue
+            if stripped_line.startswith('#'): continue
+            if ( len( stripped_line ) == 0 ): continue
+            if ( line_contains_reference( stripped_line, argName)):
+                ref_count = ref_count + 1
+        if ref_count == 0:
+            unused_arguments += [argName]
+            
+
+    line_index = 0;
+    first_arg = True
+    for line in shader_src:
+        if line_index >= main_entry_line_index and line_index < main_body_line_index:
+            stripped_line = line.strip()
+            line_removed = False
+            #remove line with unused reference
+            for curr_arg in unused_arguments:
+                if line_contains_res_reference(stripped_line, curr_arg) is True:
+                    shader_src[line_index] = ''
+                    line_removed = True
+            # make sure first arg does not have a leading comma
+            if first_arg is True and line_removed is False:
+                if stripped_line.startswith(','):
+                    shader_src[line_index] = shader_src[line_index].replace(",","")
+                first_arg = False
+        line_index += 1
+
+
     open(dst, 'w').writelines(shader_src)
     return 0, []

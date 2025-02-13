@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,10 +24,10 @@
 
 #include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
 #include "triangle_binning.h.fsl"
+#include "vb_resources.h.fsl"
+#include "triangle_filtering.srt.h"
 
-
-RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_NONE, u4, binding = 8);
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(1, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
@@ -41,7 +41,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
            {
                for (uint ty = 0; ty < TILE_COUNTY; ++ty)
                {
-                   binBuffer[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
+                   gBinBufferRW[BinBufferViewOffset(view) + TIDX(tx, ty)] = 0u;
                }
            }
        }

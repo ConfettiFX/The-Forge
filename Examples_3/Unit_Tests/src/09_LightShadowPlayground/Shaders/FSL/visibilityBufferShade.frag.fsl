@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,6 +34,8 @@
 #include "Shader_Defs.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 #define SHADOW_TYPE_ESM				0
 #define SHADOW_TYPE_ASM				1
@@ -49,148 +51,9 @@
 
 #define SS_SHADOW_MAX_VALUE 0xFFFF
 
-STRUCT(LightUniformBlock)
-{
-    DATA(float4x4, mLightViewProj, None);
-    DATA(float4, lightPosition, None);
-    DATA(float4, lightColor, None);
-	DATA(float4, mLightUpVec, None);
-	DATA(float4, mTanLightAngleAndThresholdValue, None);
-	DATA(float3, mLightDir, None);
-};
-RES(CBUFFER(LightUniformBlock), lightUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 15);
-
-STRUCT(CameraUniformBlock)
-{
-    DATA(float4x4, View, None);
-    DATA(float4x4, Project, None);
-    DATA(float4x4, ViewProject, None);
-    DATA(float4x4, InvView, None);
-	DATA(float4x4, InvProj, None);
-	DATA(float4x4, InvViewProject, None);
-	DATA(float4, mCameraPos, None);
-	DATA(float, mNear, None);
-	DATA(float, mFar, None);
-	DATA(float, mFarNearDiff, None);
-	DATA(float, mFarNear, None);
-	DATA(float2, mTwoOverRes, None);
-	DATA(float2, mWindowSize, None);
-	DATA(float4, mDeviceZToWorldZ, None);
-};
-RES(CBUFFER(CameraUniformBlock), cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b3, binding = 14);
-
-STRUCT(ASMUniform)
-{
-	DATA(float4x4, mIndexTexMat, None);
-	DATA(float4x4, mPrerenderIndexTexMat, None);
-	DATA(float4,   mSearchVector, None);
-	DATA(float4,   mPrerenderSearchVector, None);
-	DATA(float4,   mWarpVector, None);
-	DATA(float4,   mPrerenderWarpVector, None);
-	DATA(float4,   mMiscBool, None);
-	DATA(float,    mPenumbraSize, None);
-};
-RES(CBUFFER(ASMUniform), ASMUniformBlock, UPDATE_FREQ_PER_FRAME, b2, binding = 17);
-
-STRUCT(ObjectUniform)
-{
-    DATA(float4x4, WorldViewProjMat, None);
-};
-RES(CBUFFER(ObjectUniform), objectUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 13);
-
-STRUCT(RenderSettingUniform)
-{
-    DATA(float4, WindowDimension, None);
-    DATA(int, ShadowType, None);
-};
-RES(CBUFFER(RenderSettingUniform), renderSettingUniformBlock, UPDATE_FREQ_PER_FRAME, b4, binding = 16);
-
-STRUCT(ESMInputConstantData)
-{
-    DATA(float, mEsmControl, None);
-};
-RES(CBUFFER(ESMInputConstantData), ESMInputConstants, UPDATE_FREQ_PER_FRAME, b5, binding = 30);
-
-STRUCT(VSMInputConstantData)
-{
-    DATA(float2, mBleedingReduction, None);
-    DATA(float, mMinVariance, None);
-};
-RES(CBUFFER(VSMInputConstantData), VSMInputConstants, UPDATE_FREQ_PER_FRAME, b6, binding = 31);
-
-STRUCT(MSMInputConstantData)
-{
-	DATA(float2, padding, None);
-    DATA(float, mRoundingErrorCorrection, None);
-    DATA(float, mBleedingReductionMultiplier, None);
-};
-RES(CBUFFER(MSMInputConstantData), MSMInputConstants, UPDATE_FREQ_PER_FRAME, b7, binding = 32);
-
-STRUCT(SSSConfig)
-{
-	DATA(uint, mEnabled, None);
-};
-RES(CBUFFER(SSSConfig), SSSEnabled, UPDATE_FREQ_PER_FRAME, b8, binding = 34);
-
-RES(Tex2D(float4), IndexTexture[10], UPDATE_FREQ_NONE, t20, binding = 20);
-RES(Depth2D(float), DepthAtlasTexture, UPDATE_FREQ_NONE, t30, binding = 21);
-RES(Tex2D(float), DEMTexture, UPDATE_FREQ_NONE, t31, binding = 22);
-RES(Tex2D(float), PrerenderLodClampTexture, UPDATE_FREQ_NONE, t32, binding = 23);
-RES(Tex2D(float), ESMShadowTexture, UPDATE_FREQ_NONE, t33, binding = 24);
-
-#ifdef USE_FLOAT4_VSM_RT
-RES(Tex2D(float4), VSMShadowTexture, UPDATE_FREQ_NONE, t34, binding = 28);
-#else
-RES(Tex2D(float2), VSMShadowTexture, UPDATE_FREQ_NONE, t34, binding = 28);
-#endif
-
-RES(Tex2D(float4), MSMShadowTexture, UPDATE_FREQ_NONE, t35, binding = 29);
-#if TEXTURE_ATOMIC_SUPPORTED
-	RES(Tex2D(uint), ScreenSpaceShadowTexture, UPDATE_FREQ_NONE, t36, binding = 33);
-#else
-	RES(Buffer(uint), ScreenSpaceShadowTexture, UPDATE_FREQ_NONE, t36, binding = 33);
-#endif
 
 
 
-RES(Tex2D(float2), SDFShadowTexture, UPDATE_FREQ_NONE, t19, binding = 19);
-
-#if SAMPLE_COUNT > 1
-RES(Tex2DMS(float4, SAMPLE_COUNT), vbPassTexture, UPDATE_FREQ_NONE, t18, binding = 18);
-#else
-RES(Tex2D(float4), vbPassTexture, UPDATE_FREQ_NONE, t18, binding = 18);
-#endif
-
-RES(ByteBuffer, vertexPos,                      UPDATE_FREQ_NONE, t0, binding = 35);
-RES(ByteBuffer, vertexTexCoord,                 UPDATE_FREQ_NONE, t1, binding = 36);
-RES(ByteBuffer, vertexNormal,                   UPDATE_FREQ_NONE, t2, binding = 37);
-RES(ByteBuffer, filteredIndexBuffer,            UPDATE_FREQ_PER_FRAME, t4, binding = 4);
-RES(Buffer(uint), indirectDataBuffer,         UPDATE_FREQ_PER_FRAME, t5, binding = 5);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t6, binding = 6);
-
-// Per frame descriptors
-
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t25, binding = 25);
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t26, binding = 26);
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t27, binding = 27);
-#else
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t40,  binding = 25); // 0   + 40
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t296, binding = 26); // 256 + 40
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t552, binding = 27); // 512 + 40
-#endif
-
-RES(SamplerComparisonState, ShadowCmpSampler, UPDATE_FREQ_NONE, s4, binding = 11);
-RES(SamplerState, clampBorderNearSampler, UPDATE_FREQ_NONE, s3, binding = 10);
-RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s2, binding = 8);
-RES(SamplerState, clampMiplessNearSampler, UPDATE_FREQ_NONE, s1, binding = 9);
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
-
-STRUCT(ASMFrustumDesc)
-{
-	DATA(float3, mIndexCoord, None);
-	DATA(int, mStartingMip, None);
-};
 
 STRUCT(PsIn)
 {
@@ -207,36 +70,36 @@ float2 calcVsmMoments(float2 depth)
 {
 	float2 moments = f2(0);
 	moments.x = depth.x;
-	moments.y = max(depth.y - depth.x*depth.x, VSMInputConstants.mMinVariance);
+	moments.y = max(depth.y - depth.x*depth.x, gCameraUniformBlock.mVSM.mMinVariance);
 	return moments;
 }
 
 float sampleScreenSpaceShadowValue(uint2 uv)
 {
 	#if TEXTURE_ATOMIC_SUPPORTED	
-		uint shadowDepthSample = LoadTex2D(ScreenSpaceShadowTexture, clampBorderNearSampler, uv, 0).r;
+		uint shadowDepthSample = LoadTex2D(gScreenSpaceShadowTexture, gClampBorderNearSampler, uv, 0).r;
 	#else
-		uint index = uv.x + uv.y * uint(renderSettingUniformBlock.WindowDimension.x);
-		uint shadowDepthSample = ScreenSpaceShadowTexture[index];
+		uint index = uv.x + uv.y * uint(gCameraUniformBlock.mWindowSize.x);
+		uint shadowDepthSample = gScreenSpaceShadowTexture[index];
 	#endif
 	return float(shadowDepthSample) / SS_SHADOW_MAX_VALUE;
 }
 
 float calcVSMShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(lightUniformBlock.mLightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(gCameraUniformBlock.mLight.mLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + f2(0.5);
 
-	float2 depth = SampleLvlTex2D(VSMShadowTexture, clampMiplessLinearSampler, posLS.xy, 0).rg;
+	float2 depth = SampleLvlTex2D(gVSMShadowTexture, gClampMiplessLinearSampler, posLS.xy, 0).rg;
 	
 	float2 moments = calcVsmMoments(depth);
 
 	float lit = float(1.0 - posLS.z <= moments.x);
 
 	float shadingFactor =  moments.y / (moments.y + (1.0 - posLS.z - moments.x) * (1.0 - posLS.z - moments.x));
-	shadingFactor = smoothstep(VSMInputConstants.mBleedingReduction.x, VSMInputConstants.mBleedingReduction.y, shadingFactor);
+	shadingFactor = smoothstep(gCameraUniformBlock.mVSM.mBleedingReduction.x, gCameraUniformBlock.mVSM.mBleedingReduction.y, shadingFactor);
 
 	return max(lit, shadingFactor);
 }
@@ -251,7 +114,7 @@ float4 UnpackMoments(float4 packedMoments)
 										0.0f,      -1.125f, 0.0f,               1.0f);
 
 	float4 unpackedMoments = mul(inv, packedMoments);
-	return lerp(unpackedMoments, float4(0.0f, 0.63f, 0.0f, 0.63f), MSMInputConstants.mRoundingErrorCorrection);
+	return lerp(unpackedMoments, float4(0.0f, 0.63f, 0.0f, 0.63f), gCameraUniformBlock.mMSM.mRoundingErrorCorrection);
 }
 
 float3x3 inverse3x3(float3x3 A)
@@ -299,17 +162,17 @@ float ComputeMSMShadowIntensity(float4 b, float zf)
 
 float calcMSMShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(lightUniformBlock.mLightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(gCameraUniformBlock.mLight.mLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + f2(0.5);
 
-	float4 depthSample = SampleLvlTex2D(MSMShadowTexture, clampMiplessLinearSampler, posLS.xy, 0);
+	float4 depthSample = SampleLvlTex2D(gMSMShadowTexture, gClampMiplessLinearSampler, posLS.xy, 0);
 	float4 moments = UnpackMoments(depthSample);
 
 	float depth = 1.0 - posLS.z;
 	float shadingFactor = ComputeMSMShadowIntensity(moments, depth);
-	return 1.0f - saturate(shadingFactor / MSMInputConstants.mBleedingReductionMultiplier);
+	return 1.0f - saturate(shadingFactor / gCameraUniformBlock.mMSM.mBleedingReductionMultiplier);
 }
 
 
@@ -351,8 +214,8 @@ float PCF(float3 shadowMapCoord, float2 kernelSize )
     {
         float2 sampleCoord = shadowMapCoord.xy + kernelSize * tapOffset[i];
 
-		// shadowFactor += tapWeight[i] * DepthAtlasTexture.SampleCmpLevelZero( ShadowCmpSampler, sampleCoord, shadowMapCoord.z + gs_ASMDepthBias );
-		shadowFactor += tapWeight[i] * CompareTex2D(DepthAtlasTexture, ShadowCmpSampler, float3(sampleCoord, shadowMapCoord.z + gs_ASMDepthBias));
+		// shadowFactor += tapWeight[i] * gDepthAtlasTexture.SampleCmpLevelZero( gShadowCmpSampler, sampleCoord, shadowMapCoord.z + gs_ASMDepthBias );
+		shadowFactor += tapWeight[i] * CompareTex2D(gDepthAtlasTexture, gShadowCmpSampler, float3(sampleCoord, shadowMapCoord.z + gs_ASMDepthBias));
     }
 	return shadowFactor;
 }
@@ -366,7 +229,7 @@ float4 SampleFrustumIndirectionTexture(ASMFrustumDesc frustumDesc, float mip)
 	uint index = frustumDesc.mStartingMip + floorMip;
 	float4 indirectionCoordData = f4(0);
 	BeginNonUniformResourceIndex(index, 10);
-		indirectionCoordData =  SampleLvlTex2D(IndexTexture[ index ], clampBorderNearSampler,  float2(frustumDesc.mIndexCoord.xy), 0);
+		indirectionCoordData =  SampleLvlTex2D(gIndexTextureArray[ index ], gClampBorderNearSampler,  float2(frustumDesc.mIndexCoord.xy), 0);
 	EndNonUniformResourceIndex();
 
 	if(lerpVal > 0.0)
@@ -374,7 +237,7 @@ float4 SampleFrustumIndirectionTexture(ASMFrustumDesc frustumDesc, float mip)
 		index += 1;
 		float4 upperIndirectionCoordData = f4(0);
 		BeginNonUniformResourceIndex(index, 10);
-			indirectionCoordData =  SampleLvlTex2D(IndexTexture[ index ], clampBorderNearSampler,  float2(frustumDesc.mIndexCoord.xy), 0);
+			indirectionCoordData =  SampleLvlTex2D(gIndexTextureArray[ index ], gClampBorderNearSampler,  float2(frustumDesc.mIndexCoord.xy), 0);
 		EndNonUniformResourceIndex();
 
 		indirectionCoordData = lerp(indirectionCoordData, upperIndirectionCoordData, lerpVal);
@@ -410,7 +273,7 @@ bool GetClampedDepthDifference(ASMFrustumDesc frustumDesc, out(float) depthDiff)
 	if(indirectionCoordData.w > 0)
 	{
 		float3 asmTileCoord = GetASMTileCoord(frustumDesc.mIndexCoord, indirectionCoordData);
-		float demDepth = SampleLvlTex2D(DEMTexture, clampMiplessLinearSampler, asmTileCoord.xy, 0).r;
+		float demDepth = SampleLvlTex2D(gDEMTexture, gClampMiplessLinearSampler, asmTileCoord.xy, 0).r;
 		depthDiff = saturate( demDepth  - asmTileCoord.z );
 		return true;
 	}
@@ -439,10 +302,10 @@ float GetASMShadowFactor(float mip, float kernelSize, ASMFrustumDesc frustumDesc
 	float shadowFactor = 1.0;
 	float fadeInFactor = 1.0;
 
-	if(ASMUniformBlock.mMiscBool.x == 1.0)
+	if(gASMUniformBlock.mMiscBool.x == 1.0)
 	{
-		float lodClamp = SampleLvlTex2D(PrerenderLodClampTexture, 
-			clampBorderNearSampler, preRenderFrustumDesc.mIndexCoord.xy, 0).r * gs_ASMMaxRefinement;
+		float lodClamp = SampleLvlTex2D(gPrerenderLodClampTexture, 
+			gClampBorderNearSampler, preRenderFrustumDesc.mIndexCoord.xy, 0).r * gs_ASMMaxRefinement;
 		
 		shadowFactor = SampleASMShadowMap(max(mip, lodClamp), kernelSize, preRenderFrustumDesc, fadeInFactor);
 	}
@@ -470,7 +333,7 @@ float GetBlockerDistance(ASMFrustumDesc frustumDesc, float3 worldPos,
 	uint index = frustumDesc.mStartingMip + absMip;
 	float4 indirectionData = f4(0);
 	BeginNonUniformResourceIndex(index, 10);
-		indirectionData = SampleLvlTex2D(IndexTexture[index], clampBorderNearSampler,	float2(indexCoord.xy), 0);
+		indirectionData = SampleLvlTex2D(gIndexTextureArray[index], gClampBorderNearSampler, float2(indexCoord.xy), 0);
 	EndNonUniformResourceIndex();
 
 	float3 tileCoord = GetASMTileCoord(indexCoord, indirectionData);
@@ -489,7 +352,7 @@ float GetBlockerDistance(ASMFrustumDesc frustumDesc, float3 worldPos,
 		LOOP
 		for(int i = 0; i < 9; ++i)
 		{
-			float demValue = SampleLvlTex2D(DEMTexture, clampMiplessLinearSampler, 
+			float demValue = SampleLvlTex2D(gDEMTexture, gClampMiplessLinearSampler, 
 				clamp(sampleCoord.xy, tileCoordBoundsMin, tileCoordBoundsMax), 0).r;
 
 			FLATTEN if(demValue >= sampleCoord.z)
@@ -514,32 +377,32 @@ float SampleShadowFactor(float3 worldPos)
 	ASMFrustumDesc frustumDesc;
 	ASMFrustumDesc preRenderFrustumDesc;
 
-	int swap = int(ASMUniformBlock.mMiscBool.z);
+	int swap = int(gASMUniformBlock.mMiscBool.z);
 	frustumDesc.mStartingMip = swap * 5;
 	preRenderFrustumDesc.mStartingMip = (1 - swap) * 5;
 
 	float blockerDistance = 0.0;
 	float preRenderBlockerDistance = 0.0;
 
-	if(ASMUniformBlock.mMiscBool.y == 1.0)
+	if(gASMUniformBlock.mMiscBool.y == 1.0)
 	{
 		blockerDistance = GetBlockerDistance(frustumDesc, worldPos, 
-			ASMUniformBlock.mIndexTexMat, ASMUniformBlock.mSearchVector.xyz, demLOD);
+			gASMUniformBlock.mIndexTexMat, gASMUniformBlock.mSearchVector.xyz, demLOD);
 
 		preRenderBlockerDistance = GetBlockerDistance(preRenderFrustumDesc, worldPos, 
-			ASMUniformBlock.mPrerenderIndexTexMat, ASMUniformBlock.mPrerenderSearchVector.xyz, demLOD);
+			gASMUniformBlock.mPrerenderIndexTexMat, gASMUniformBlock.mPrerenderSearchVector.xyz, demLOD);
 	}
 	
 	frustumDesc.mIndexCoord = GetIndirectionTextureCoord(
-		ASMUniformBlock.mIndexTexMat, worldPos + blockerDistance * ASMUniformBlock.mWarpVector.xyz);
+		gASMUniformBlock.mIndexTexMat, worldPos + blockerDistance * gASMUniformBlock.mWarpVector.xyz);
 	
 	preRenderFrustumDesc.mIndexCoord = GetIndirectionTextureCoord(
-		ASMUniformBlock.mPrerenderIndexTexMat, worldPos + preRenderBlockerDistance * ASMUniformBlock.mPrerenderWarpVector.xyz);
+		gASMUniformBlock.mPrerenderIndexTexMat, worldPos + preRenderBlockerDistance * gASMUniformBlock.mPrerenderWarpVector.xyz);
 
 	float depthDiff = 0.0;
 	if(GetClampedDepthDifference(frustumDesc, depthDiff))
 	{
-		float penumbraSizeFactor = saturate(ASMUniformBlock.mPenumbraSize * depthDiff - 0.05);
+		float penumbraSizeFactor = saturate(gASMUniformBlock.mMiscBool.w * depthDiff - 0.05);
 		float kernelSize = saturate(depthDiff * 10.0 + 0.5);
 
 		float lod = penumbraSizeFactor * gs_ASMMaxRefinement;
@@ -563,14 +426,15 @@ float SampleShadowFactor(float3 worldPos)
 }
 
 // Pixel shader
+ROOT_SIGNATURE(DefaultRootSignature)
 PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 {
 	INIT_MAIN;
 	PsOut Out;
 #if SAMPLE_COUNT > 1
-	float4 visRaw = LoadTex2DMS(vbPassTexture, clampMiplessLinearSampler, uint2(In.Position.xy), i);
+	float4 visRaw = LoadTex2DMS(gVBPassTexture, gClampMiplessLinearSampler, uint2(In.Position.xy), i);
 #else
-	float4 visRaw = LoadTex2D(vbPassTexture, clampMiplessLinearSampler, uint2(In.Position.xy), 0);
+	float4 visRaw = LoadTex2D(gVBPassTexture, gClampMiplessLinearSampler, uint2(In.Position.xy), 0);
 #endif
 
 	uint geomSetPrimID = packUnorm4x8(visRaw);
@@ -589,27 +453,27 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 1);
 	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 2);
 
-	uint index0 = LoadByte(filteredIndexBuffer, triIdx0 << 2);
-	uint index1 = LoadByte(filteredIndexBuffer, triIdx1 << 2);
-	uint index2 = LoadByte(filteredIndexBuffer, triIdx2 << 2);
+	uint index0 = LoadByte(gFilteredIndexBuffer, triIdx0 << 2);
+	uint index1 = LoadByte(gFilteredIndexBuffer, triIdx1 << 2);
+	uint index2 = LoadByte(gFilteredIndexBuffer, triIdx2 << 2);
 
-	float3 v0pos = asfloat(LoadByte4(vertexPos, index0 * 12)).xyz;
-	float3 v1pos = asfloat(LoadByte4(vertexPos, index1 * 12)).xyz;
-	float3 v2pos = asfloat(LoadByte4(vertexPos, index2 * 12)).xyz;
+	float3 v0pos = asfloat(LoadByte4(gVertexPositionBuffer, index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
 
-	float4 pos0 = mul(objectUniformBlock.WorldViewProjMat, float4(v0pos, 1));
-	float4 pos1 = mul(objectUniformBlock.WorldViewProjMat, float4(v1pos, 1));
-	float4 pos2 = mul(objectUniformBlock.WorldViewProjMat, float4(v2pos, 1));
+	float4 pos0 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v0pos, 1));
+	float4 pos1 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v1pos, 1));
+	float4 pos2 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v2pos, 1));
 
-	float4 wPos0 = mul(cameraUniformBlock.InvViewProject,pos0);
-	float4 wPos1 = mul(cameraUniformBlock.InvViewProject,pos1);
-	float4 wPos2 = mul(cameraUniformBlock.InvViewProject,pos2);
+	float4 wPos0 = mul(gCameraUniformBlock.InvViewProject,pos0);
+	float4 wPos1 = mul(gCameraUniformBlock.InvViewProject,pos1);
+	float4 wPos2 = mul(gCameraUniformBlock.InvViewProject,pos2);
 
-	float2 two_over_windowsize = cameraUniformBlock.mTwoOverRes;
+	float2 two_over_windowsize = gCameraUniformBlock.mTwoOverRes;
 
 	//Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
 #if defined(USE_RAY_DIFFERENTIALS)
-	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, In.ScreenPos, cameraUniformBlock.mCameraPos.xyz, cameraUniformBlock.InvView, cameraUniformBlock.InvProj, two_over_windowsize);
+	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, In.ScreenPos, gCameraUniformBlock.mCameraPos.xyz, gCameraUniformBlock.InvView, gCameraUniformBlock.InvProj, two_over_windowsize);
 #else
 	BarycentricDeriv derivativesOut = CalcFullBary(pos0, pos1, pos2, In.ScreenPos, two_over_windowsize);
 #endif /*USE_RAY_DIFFERENTIALS*/
@@ -619,22 +483,22 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float interpolatedW = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
 
 	//reconstruct the z value at this screen point
-	float zVal = interpolatedW * getElem(cameraUniformBlock.Project, 2, 2) + getElem(cameraUniformBlock.Project, 3, 2);
+	float zVal = interpolatedW * getElem(gCameraUniformBlock.Project, 2, 2) + getElem(gCameraUniformBlock.Project, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using Screen Position and the Z value
 	// Then by multiplying the perspective projected coordinates by the inverse view projection matrix, it produces world coord
-	float3 WorldPos = mul(cameraUniformBlock.InvViewProject, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
+	float3 WorldPos = mul(gCameraUniformBlock.InvViewProject, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
 
 	//Texture coord interpolation
 	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(vertexTexCoord, index0 << 2)) ,
-			unpack2Floats(LoadByte(vertexTexCoord, index1 << 2)) ,
-			unpack2Floats(LoadByte(vertexTexCoord, index2 << 2)) 
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index0 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index1 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index2 << 2)) 
 	);
 
 	/////////////LOAD///////////////////////////////
-	uint materialID = indirectDataBuffer[index0];
+	uint materialID = gIndirectDataBuffer[index0];
 
 	// Interpolate texture coordinates and calculate the gradients for 
 	// texture sampling with mipmapping support
@@ -651,9 +515,9 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float4 diffuseColor  = f4(0);
 	float4 specularColor = f4(0);
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		normalMapData = SampleGradTex2D(normalMaps[materialID],   textureSampler, texCoord, texCoordDX, texCoordDY);
-		diffuseColor  = SampleGradTex2D(diffuseMaps[materialID],  textureSampler, texCoord, texCoordDX, texCoordDY);
-		specularColor = SampleGradTex2D(specularMaps[materialID], textureSampler, texCoord, texCoordDX, texCoordDY);
+		normalMapData = SampleGradTex2D(gNormalMaps[materialID],   gTextureSampler, texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(gDiffuseMaps[materialID],  gTextureSampler, texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(gSpecularMaps[materialID], gTextureSampler, texCoord, texCoordDX, texCoordDY);
 	EndNonUniformResourceIndex();
 
 	// reconstruct encoded normals...
@@ -663,9 +527,9 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 
 	//Normal interpolation
 	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index0 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index1 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index2 << 2))) 
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index2 << 2))) 
 	);
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));;
 	
@@ -682,23 +546,23 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 
 	float shadowFactor = 1.0f;
 
-	if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ASM)
+	if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_ASM)
 	{
 		shadowFactor = SampleShadowFactor(WorldPos);
 	}
-	else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ESM)
+	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_ESM)
 	{
-		float4 posLS = mul(lightUniformBlock.mLightViewProj, float4(WorldPos.xyz, 1.0));
-		shadowFactor = calcESMShadowFactor(posLS, ESMShadowTexture, clampMiplessLinearSampler, ESMInputConstants.mEsmControl);
+		float4 posLS = mul(gCameraUniformBlock.mLight.mLightViewProj, float4(WorldPos.xyz, 1.0));
+		shadowFactor = calcESMShadowFactor(posLS, gESMShadowTexture, gClampMiplessLinearSampler, gCameraUniformBlock.mEsmControl);
 	}
-	else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
+	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
 	{
-		shadowFactor = LoadTex2D(SDFShadowTexture, clampMiplessNearSampler, uint2(In.Position.xy), 0).r;
+		shadowFactor = LoadTex2D(gSDFShadowTexture, gSamplerPointClamp, uint2(In.Position.xy), 0).r;
 	}
-	else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_VSM) {
+	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_VSM) {
 		shadowFactor = calcVSMShadowFactor(WorldPos);
 	}
-	else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_MSM)
+	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_MSM)
 	{
 		shadowFactor = calcMSMShadowFactor(WorldPos);
 	}
@@ -706,12 +570,12 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
 
-	float3 camPos = cameraUniformBlock.mCameraPos.xyz;
+	float3 camPos = gCameraUniformBlock.mCameraPos.xyz;
 
 	float3 ViewVec = normalize(camPos.xyz - WorldPos.xyz);
 	float NoV = dot(normal, ViewVec);
 
-	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && (meshConstantsBuffer[materialID].twoSided == 1);
+	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && (gMeshConstantsBuffer[materialID].twoSided == 1);
 	if(isTwoSided && NoV < 0.0)
 	{
 		//flip normal
@@ -719,9 +583,9 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 		NoV = dot(normal, ViewVec);
 	}
 
-	float3 lightDir = -lightUniformBlock.mLightDir;
+	float3 lightDir = -gCameraUniformBlock.mLight.mLightDir.xyz;
 
-	if (bool(SSSEnabled.mEnabled))
+	if (bool(gCameraUniformBlock.mSSSEnabled))
 	{
 		float screenSpaceShadowValue = sampleScreenSpaceShadowValue(uint2(In.Position.xy));
 		screenSpaceShadowValue = max(screenSpaceShadowValue, step(dot(lightDir, normal), 0.0f)); 
@@ -746,7 +610,7 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 					NoL, NoV, 
 					ViewVec, HalfVec, normal, 
 					DiffuseColor, SpecularColor, Roughness, Metallic, shadowFactor);
-	shadedColor *= lightUniformBlock.lightColor.rgb * lightUniformBlock.lightColor.a * NoL * shadowFactor;
+	shadedColor *= gCameraUniformBlock.mLight.lightColor.rgb * gCameraUniformBlock.mLight.lightColor.a * NoL * shadowFactor;
 
 	float ambientIntencity = 0.05f;
     float3 ambient = diffuseColor.rgb * ambientIntencity;

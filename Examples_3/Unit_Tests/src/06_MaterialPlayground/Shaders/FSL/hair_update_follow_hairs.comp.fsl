@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,24 +46,26 @@
 
 #include "hair.comp.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
+
 NUM_THREADS(THREAD_GROUP_SIZE, 1, 1)
 void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 {
 	INIT_MAIN;
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
 
-	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
-	sharedTangent[indices.indexSharedMem] = HairVertexTangents[indices.globalVertexIndex];
+	sharedPos[indices.indexSharedMem] = gHairVertexPositions[indices.globalVertexIndex];
+	sharedTangent[indices.indexSharedMem] = gHairVertexTangents[indices.globalVertexIndex];
 	GroupMemoryBarrier();
 
-	for (uint i = 0; i < cbSimulation.NumFollowHairsPerGuideHair; ++i)
+	for (uint i = 0; i < gHairSimulation.NumFollowHairsPerGuideHair; ++i)
 	{
-		uint globalFollowVertexIndex = indices.globalVertexIndex + cbSimulation.NumVerticesPerStrand * (i + 1);
+		uint globalFollowVertexIndex = indices.globalVertexIndex + gHairSimulation.NumVerticesPerStrand * (i + 1);
 		uint globalFollowStrandIndex = indices.globalStrandIndex + i + 1;
-		float factor = cbSimulation.TipSeperationFactor * (float(indices.localVertexIndex) / float(cbSimulation.NumVerticesPerStrand)) + 1.0f;
-		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * FollowHairRootOffsets[globalFollowStrandIndex].xyz * cbSimulation.Scale;
-		HairVertexPositions[globalFollowVertexIndex].xyz = followPosition;
-		HairVertexTangents[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
+		float factor = gHairSimulation.TipSeperationFactor * (float(indices.localVertexIndex) / float(gHairSimulation.NumVerticesPerStrand)) + 1.0f;
+		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * gFollowHairRootOffsets[globalFollowStrandIndex].xyz * gHairSimulation.Scale;
+		gHairVertexPositions[globalFollowVertexIndex].xyz = followPosition;
+		gHairVertexTangents[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
 	}
 	RETURN();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,16 +31,28 @@
 #define CAMERA_NEAR		0.1f
 #define CAMERA_FAR		200.0f
 
-#define LIGHT_CLUSTER_WIDTH			32
-#define LIGHT_CLUSTER_HEIGHT		32
+#ifndef USE_RELAXED_LOCAL_GROUP
+#define USE_RELAXED_LOCAL_GROUP 0
+#endif
+
+#if USE_RELAXED_LOCAL_GROUP
+#define THREADS_X 16
+#define THREADS_Y 16
+#else
+#define THREADS_X 32
+#define THREADS_Y 32
+#endif
+
+#define LIGHT_CLUSTER_WIDTH			THREADS_X
+#define LIGHT_CLUSTER_HEIGHT		THREADS_Y
 #define MAX_LIGHTS_PER_CLUSTER		(MAX_LIGHT_COUNT / 10)
 #define VERTICAL_SUBCLUSTER_COUNT	3
 #define HORIZONTAL_SUBCLUSTER_COUNT	2
 
 // 3 elements per depth bounds buffer entry: 0 = minDepth, 1 = maxDepth, 2 = bitmask
 #define DEPTH_BOUNDS_ENTRY_SIZE		3
-#define DEPTH_BOUNDS_GROUP_AMOUNT_X		32
-#define DEPTH_BOUNDS_GROUP_AMOUNT_Y		32
+#define DEPTH_BOUNDS_GROUP_AMOUNT_X		THREADS_X
+#define DEPTH_BOUNDS_GROUP_AMOUNT_Y		THREADS_Y
 #define DEPTH_ClUSTERS_KERNEL_SIZE		2
 
 #define LIGHT_CLUSTER_COUNT_POS(ix, iy) ( ((iy)*LIGHT_CLUSTER_WIDTH)+(ix) )
@@ -92,9 +104,12 @@ STRUCT(PerFrameConstantsData)
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
+	DATA(float, _pad1, None);
 	//========================================
+	DATA(uint2, downSampleSize, None); 
+	DATA(uint2, finalPresentSize, None); 
 };
-RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+
 
 STRUCT(LightData)
 {
@@ -102,5 +117,26 @@ STRUCT(LightData)
 	DATA(float4, color, None);
 };
 
+STRUCT(ShadowRootConstantsData)
+{
+	DATA(uint, CubeIndex, None);
+	DATA(uint, ParticleIndex, None);
+};
+
+STRUCT(downsampleRootConstantsData) 
+{ 
+	DATA(uint2, size, None); 
+};
+
+STRUCT(ShadowFilteringConstants)
+{
+	DATA(uint2, ShadowmapSize, None);
+	DATA(uint, Horizontal, None);
+	DATA(uint, Pad, None);
+};
+
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shader_defs.h.fsl"
+
+
+
 #endif

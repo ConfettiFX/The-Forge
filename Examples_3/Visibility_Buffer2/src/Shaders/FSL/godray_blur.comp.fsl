@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,27 +22,17 @@
 * under the License.
 */
 
+#include "vb_resources.h.fsl"
+#include "godray_blur.srt.h"
+
 #define THREADX 16
 #define THREADY 16
 
 #define PASS_TYPE_HORIZONTAL 0
 #define PASS_TYPE_VERTICAL 1
-#define MAX_BLUR_KERNEL_SIZE 8
 
-STRUCT(BlurRootConstantData)
-{
-	DATA(uint, mBlurPassType, None);
-	DATA(uint, mFilterRadius, None);
-};
-RES(ROOT_CONSTANT(BlurRootConstantData), BlurRootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
 
-STRUCT(BlurWeightData)
-{
-	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4], None);
-};
-RES(CBUFFER(BlurWeightData), BlurWeights, UPDATE_FREQ_NONE, b1, binding = 1);
 
-RES(RWTex2D(float4), godrayTextures[2], UPDATE_FREQ_NONE, u0, binding = 2);
 
 #if 1
 
@@ -59,11 +49,11 @@ float3 HorizontalPass(int2 id)
 
 	float3 temp;
 
-	temp = LoadRWTex2D(godrayTextures[PASS_TYPE_HORIZONTAL], id + int2(col - 8, 0)).rgb;
+	temp = LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_HORIZONTAL], id + int2(col - 8, 0)).rgb;
 	g_shared_r[row + 8][2 * col + 0] = temp.r;
 	g_shared_g[row + 8][2 * col + 0] = temp.g;
 	g_shared_b[row + 8][2 * col + 0] = temp.b;
-	temp = LoadRWTex2D(godrayTextures[PASS_TYPE_HORIZONTAL], id + int2(col - 7, 0)).rgb;
+	temp = LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_HORIZONTAL], id + int2(col - 7, 0)).rgb;
 	g_shared_r[row + 8][2 * col + 1] = temp.r;
 	g_shared_g[row + 8][2 * col + 1] = temp.g;
 	g_shared_b[row + 8][2 * col + 1] = temp.b;
@@ -71,9 +61,9 @@ float3 HorizontalPass(int2 id)
 	GroupMemoryBarrier();
 
 	float totalWeight = 0.0f;
-	for (int i = -int(BlurRootConstant.mFilterRadius); i <= int(BlurRootConstant.mFilterRadius); i++)
+	for (int i = -int(gBlurParams.mFilterRadius); i <= int(gBlurParams.mFilterRadius); i++)
 	{
-		float weight = BlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
+		float weight = gBlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
 		float color_r = g_shared_r[row + 8][col + 8 + i];
 		float color_g = g_shared_g[row + 8][col + 8 + i];
 		float color_b = g_shared_b[row + 8][col + 8 + i];
@@ -92,11 +82,11 @@ float3 VerticalPass(int2 id)
 
 	float3 temp;
 	
-	temp = LoadRWTex2D(godrayTextures[PASS_TYPE_VERTICAL], id + int2(0, row - 8)).rgb;
+	temp = LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_VERTICAL], id + int2(0, row - 8)).rgb;
 	g_shared_r[2 * row + 0][col + 8] = temp.r;
 	g_shared_g[2 * row + 0][col + 8] = temp.g;
 	g_shared_b[2 * row + 0][col + 8] = temp.b;
-	temp = LoadRWTex2D(godrayTextures[PASS_TYPE_VERTICAL], id + int2(0, row - 7)).rgb;
+	temp = LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_VERTICAL], id + int2(0, row - 7)).rgb;
 	g_shared_r[2 * row + 1][col + 8] = temp.r;
 	g_shared_g[2 * row + 1][col + 8] = temp.g;
 	g_shared_b[2 * row + 1][col + 8] = temp.b;
@@ -104,9 +94,9 @@ float3 VerticalPass(int2 id)
 	GroupMemoryBarrier();
 
 	float totalWeight = 0.0f;
-	for (int i = -int(BlurRootConstant.mFilterRadius); i <= int(BlurRootConstant.mFilterRadius); i++)
+	for (int i = -int(gBlurParams.mFilterRadius); i <= int(gBlurParams.mFilterRadius); i++)
 	{
-		float weight = BlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
+		float weight = gBlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
 		float color_r = g_shared_r[row + 8 + i][col + 8];
 		float color_g = g_shared_g[row + 8 + i][col + 8];
 		float color_b = g_shared_b[row + 8 + i][col + 8];
@@ -126,7 +116,7 @@ float3 HorizontalPass(int2 id)
 	for (int i = -int(BlurRootConstant.mFilterRadius); i <= int(BlurRootConstant.mFilterRadius); i++)
 	{
 		float weight = BlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
-		result += LoadRWTex2D(godrayTextures[PASS_TYPE_HORIZONTAL], id + int2(i, 0)).rgb * weight;
+		result += LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_HORIZONTAL], id + int2(i, 0)).rgb * weight;
 		totalWeight += weight;
 	}
 	return result / totalWeight;
@@ -140,7 +130,7 @@ float3 VerticalPass(int2 id)
 	for (int i = -int(BlurRootConstant.mFilterRadius); i <= int(BlurRootConstant.mFilterRadius); i++)
 	{
 		float weight = BlurWeights.mBlurWeights[abs(i / 4)][abs(i) % 4];
-		result += LoadRWTex2D(godrayTextures[PASS_TYPE_VERTICAL], id + int2(0, i)).rgb * weight;
+		result += LoadRWTex2D(gGodrayTexturesRW[PASS_TYPE_VERTICAL], id + int2(0, i)).rgb * weight;
 		totalWeight += weight;
 	}
 	return result / totalWeight;
@@ -148,19 +138,20 @@ float3 VerticalPass(int2 id)
 
 #endif
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(THREADX, THREADY, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
 	INIT_MAIN;
-	if(BlurRootConstant.mBlurPassType == PASS_TYPE_HORIZONTAL)
+	if(gBlurParams.mBlurPassType == PASS_TYPE_HORIZONTAL)
 	{
 		float3 result = HorizontalPass(int2(threadID.xy));
-		Write2D(godrayTextures[PASS_TYPE_VERTICAL], threadID.xy, float4(result, 1.0f));
+		Write2D(gGodrayTexturesRW[PASS_TYPE_VERTICAL], threadID.xy, float4(result, 1.0f));
 	}
 	else
 	{
 		float3 result = VerticalPass(int2(threadID.xy));
-		Write2D(godrayTextures[PASS_TYPE_HORIZONTAL], threadID.xy, float4(result, 1.0f));
+		Write2D(gGodrayTexturesRW[PASS_TYPE_HORIZONTAL], threadID.xy, float4(result, 1.0f));
 	}
 	
 	RETURN();

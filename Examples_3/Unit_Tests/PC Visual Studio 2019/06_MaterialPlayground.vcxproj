@@ -14,15 +14,16 @@
     <ClCompile Include="..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\loadGroundTextures.lua" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\loadModels.lua" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\loadTextures.lua" />
+    <None Include="..\src\06_MaterialPlayground\GPUCfg\gpu.cfg" />
     <None Include="..\src\06_MaterialPlayground\Materials\ball.fmat" />
     <None Include="..\src\06_MaterialPlayground\Materials\ground_and_nameplate.fmat" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\Test_Hair.lua" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\Test_Metal.lua" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\Test_Wood.lua" />
-    <None Include="..\..\..\Art\Scripts\06_MaterialPlayground\updateCamera.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\loadGroundTextures.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\loadModels.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\loadTextures.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\Test_Hair.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\Test_Metal.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\Test_Wood.lua" />
+    <None Include="..\src\06_MaterialPlayground\Scripts\updateCamera.lua" />
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.EndsWith('Dx11'))">
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\hair_length_constraints.comp.fsl" />
@@ -52,11 +53,21 @@
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF_resources.h.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.frag.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.vert.fsl" />
-    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\resources.comp.h.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.frag.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.vert.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\skybox.vert.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\persistent_set.h" />
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\capsules.srt.h" />
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\compute_specular_comp.srt.h" />
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\06_MaterialPlayground\Shaders\FSL\hair.srt.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{611831C0-6301-4DB2-A61E-2596129C9239}</ProjectGuid>

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,23 +22,9 @@
 * under the License.
 */
 
-#define QUADS_ARRAY_REGS 192
+#include "vb_resources.h.fsl"
+#include "quad_data.srt.h"
 
-RES(SamplerState, clampToEdgeNearSampler, UPDATE_FREQ_NONE, s0, binding = 1);
-RES(Tex2D(float4), DepthPassTexture, UPDATE_FREQ_NONE, t1, binding = 0);
-
-STRUCT(PackedAtlasQuads)
-{
-	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
-};
-RES(CBUFFER(PackedAtlasQuads), PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
-
-STRUCT(AtlasQuads)
-{
-	DATA(float4, mPosData, None);
-	DATA(float4, mMiscData, None);
-	DATA(float4, mTexCoordData, None);
-};
 
 STRUCT(VSOutput)
 {
@@ -52,6 +38,7 @@ float2 ScaleOffset(float2 a, float4 p)
 	return a * p.xy + p.zw;
 }
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
@@ -78,7 +65,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 
 	for(uint i = 0; i < registersPerQuad; ++i)
 	{
-		quadData[i] = PackedAtlasQuads_CB.mQuadsData[quadID * registersPerQuad + i];
+		quadData[i] = gPackedAtlasQuads_CB.mQuadsData[quadID * registersPerQuad + i];
 	}
 
 	AtlasQuads atlasQuad;

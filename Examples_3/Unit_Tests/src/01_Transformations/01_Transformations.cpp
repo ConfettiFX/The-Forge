@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,6 +50,10 @@
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+
 /// Demo structures
 struct PlanetInfoStruct
 {
@@ -67,6 +71,7 @@ struct PlanetInfoStruct
 struct UniformBlock
 {
     CameraMatrix mProjectView;
+    CameraMatrix mSkyProjectView;
     mat4         mToWorldMat[MAX_PLANETS];
     vec4         mColor[MAX_PLANETS];
     float        mGeometryWeight[MAX_PLANETS][4];
@@ -74,11 +79,6 @@ struct UniformBlock
     // Point Light Information
     vec4 mLightPosition;
     vec4 mLightColor;
-};
-
-struct UniformBlockSky
-{
-    CameraMatrix mProjectView;
 };
 
 // But we only need Two sets of resources (one in flight and one being used on CPU)
@@ -89,8 +89,7 @@ const float    gRotSelfScale = 0.0004f;
 const float    gRotOrbitYScale = 0.001f;
 const float    gRotOrbitZScale = 0.00001f;
 
-Renderer* pRenderer = NULL;
-
+Renderer*  pRenderer = NULL;
 Queue*     pGraphicsQueue = NULL;
 GpuCmdRing gGraphicsCmdRing = {};
 
@@ -109,21 +108,18 @@ uint32_t     gSphereLayoutType = 0;
 Shader*        pSkyBoxDrawShader = NULL;
 Buffer*        pSkyBoxVertexBuffer = NULL;
 Pipeline*      pSkyBoxDrawPipeline = NULL;
-RootSignature* pRootSignature = NULL;
-Sampler*       pSamplerSkyBox = NULL;
 Texture*       pSkyBoxTextures[6];
+Sampler*       pSkyBoxSampler = {};
 DescriptorSet* pDescriptorSetTexture = { NULL };
 DescriptorSet* pDescriptorSetUniforms = { NULL };
 
-Buffer* pProjViewUniformBuffer[gDataBufferCount] = { NULL };
-Buffer* pSkyboxUniformBuffer[gDataBufferCount] = { NULL };
+Buffer* pUniformBuffer[gDataBufferCount] = { NULL };
 
 uint32_t     gFrameIndex = 0;
 ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 
 int              gNumberOfSpherePoints;
 UniformBlock     gUniformData;
-UniformBlockSky  gUniformDataSky;
 PlanetInfoStruct gPlanetInfoData[gNumPlanets];
 
 ICameraController* pCameraController = NULL;
@@ -176,6 +172,8 @@ void reloadRequest(void*)
 }
 
 const char* gWindowTestScripts[] = { "TestFullScreen.lua", "TestCenteredWindow.lua", "TestNonCenteredWindow.lua", "TestBorderless.lua" };
+
+const char* gReloadServerTestScripts[] = { "TestReloadShader.lua", "TestReloadShaderCapture.lua" };
 
 static void add_attribute(VertexLayout* layout, ShaderSemantic semantic, TinyImageFormat format, uint32_t offset)
 {
@@ -473,6 +471,18 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
+        SamplerDesc samplerDesc = { FILTER_LINEAR,
+                                    FILTER_LINEAR,
+                                    MIPMAP_MODE_LINEAR,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE,
+                                    ADDRESS_MODE_CLAMP_TO_EDGE };
+        addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
+
         // Loads Skybox Textures
         for (int i = 0; i < 6; ++i)
         {
@@ -483,15 +493,6 @@ public:
             textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
             addResource(&textureDesc, NULL);
         }
-
-        // Dynamic sampler that is bound at runtime
-        SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                    FILTER_LINEAR,
-                                    MIPMAP_MODE_NEAREST,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE };
-        addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
 
         uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
         BufferLoadDesc skyboxVbDesc = {};
@@ -509,13 +510,9 @@ public:
         ubDesc.pData = NULL;
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            ubDesc.mDesc.pName = "ProjViewUniformBuffer";
+            ubDesc.mDesc.pName = "UniformBuffer";
             ubDesc.mDesc.mSize = sizeof(UniformBlock);
-            ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-            addResource(&ubDesc, NULL);
-            ubDesc.mDesc.pName = "SkyboxUniformBuffer";
-            ubDesc.mDesc.mSize = sizeof(UniformBlockSky);
-            ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+            ubDesc.ppBuffer = &pUniformBuffer[i];
             addResource(&ubDesc, NULL);
         }
 
@@ -544,9 +541,13 @@ public:
 
         const uint32_t numScripts = TF_ARRAY_COUNT(gWindowTestScripts);
         LuaScriptDesc  scriptDescs[numScripts] = {};
-        for (uint32_t i = 0; i < numScripts; ++i)
-            scriptDescs[i].pScriptFileName = gWindowTestScripts[i];
-        DEFINE_LUA_SCRIPTS(scriptDescs, numScripts);
+        uint32_t       numScriptsFinal = numScripts;
+        // For reload server test, use reload server test scripts
+        if (!mSettings.mBenchmarking)
+            numScriptsFinal = TF_ARRAY_COUNT(gReloadServerTestScripts);
+        for (uint32_t i = 0; i < numScriptsFinal; ++i)
+            scriptDescs[i].pScriptFileName = mSettings.mBenchmarking ? gWindowTestScripts[i] : gReloadServerTestScripts[i];
+        DEFINE_LUA_SCRIPTS(scriptDescs, numScriptsFinal);
 
         waitForAllResourceLoads();
 
@@ -670,7 +671,7 @@ public:
         pCameraController->setMotionParameters(cmp);
 
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         gFrameIndex = 0;
 
         return true;
@@ -678,7 +679,7 @@ public:
 
     void Exit()
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
 
         exitCameraController(pCameraController);
 
@@ -691,8 +692,7 @@ public:
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            removeResource(pProjViewUniformBuffer[i]);
-            removeResource(pSkyboxUniformBuffer[i]);
+            removeResource(pUniformBuffer[i]);
             if (pRenderer->pGpu->mPipelineStatsQueries)
             {
                 exitQueryPool(pRenderer, pPipelineStatsQueryPool[i]);
@@ -700,15 +700,15 @@ public:
         }
 
         removeResource(pSkyBoxVertexBuffer);
+        removeSampler(pRenderer, pSkyBoxSampler);
 
         for (uint i = 0; i < 6; ++i)
             removeResource(pSkyBoxTextures[i]);
 
-        removeSampler(pRenderer, pSamplerSkyBox);
-
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
 
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
 
         exitQueue(pRenderer, pGraphicsQueue);
@@ -723,7 +723,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -810,7 +809,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -899,8 +897,7 @@ public:
         }
 
         viewMat.setTranslation(vec3(0));
-        gUniformDataSky = {};
-        gUniformDataSky.mProjectView = projMat * viewMat;
+        gUniformData.mSkyProjectView = projMat * viewMat;
     }
 
     void Draw()
@@ -924,15 +921,10 @@ public:
             waitForFences(pRenderer, 1, &elem.pFence);
 
         // Update uniform buffers
-        BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+        BufferUpdateDesc viewProjCbv = { pUniformBuffer[gFrameIndex] };
         beginUpdateResource(&viewProjCbv);
         memcpy(viewProjCbv.pMappedData, &gUniformData, sizeof(gUniformData));
         endUpdateResource(&viewProjCbv);
-
-        BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
-        beginUpdateResource(&skyboxViewProjCbv);
-        memcpy(skyboxViewProjCbv.pMappedData, &gUniformDataSky, sizeof(gUniformDataSky));
-        endUpdateResource(&skyboxViewProjCbv);
 
         // Reset cmd pool for this frame
         resetCmdPool(pRenderer, elem.pCmdPool);
@@ -997,7 +989,7 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
         cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
-        cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxVbStride, NULL);
         cmdDraw(cmd, 36, 0);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1005,7 +997,6 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Planets");
         cmdBindPipeline(cmd, pSpherePipeline);
-        cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &gSphereVertexLayout.mBindings[0].mStride, nullptr);
         cmdBindIndexBuffer(cmd, pSphereIndexBuffer, INDEX_TYPE_UINT16, 0);
         cmdDrawIndexedInstanced(cmd, gSphereIndexCount, 0, gNumPlanets, 0, 0);
@@ -1126,32 +1117,17 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
-        desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount * 2 };
-        addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
+        DescriptorSetDesc descPersisent = SRT_SET_DESC(SrtData, Persistent, 1, 0);
+        addDescriptorSet(pRenderer, &descPersisent, &pDescriptorSetTexture);
+        DescriptorSetDesc descUniforms = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
+        addDescriptorSet(pRenderer, &descUniforms, &pDescriptorSetUniforms);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
         removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
     }
-
-    void addRootSignatures()
-    {
-        Shader*  shaders[2];
-        uint32_t shadersCount = 0;
-        shaders[shadersCount++] = pSphereShader;
-        shaders[shadersCount++] = pSkyBoxDrawShader;
-
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mShaderCount = shadersCount;
-        rootDesc.ppShaders = shaders;
-        addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-    }
-
-    void removeRootSignatures() { removeRootSignature(pRenderer, pRootSignature); }
 
     void addShaders()
     {
@@ -1188,6 +1164,7 @@ public:
 
         PipelineDesc desc = {};
         desc.mType = PIPELINE_TYPE_GRAPHICS;
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 1;
@@ -1196,7 +1173,6 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pSphereShader;
         pipelineSettings.pVertexLayout = &gSphereVertexLayout;
         pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
@@ -1231,32 +1207,28 @@ public:
     {
         // Prepare descriptor sets
         DescriptorData params[7] = {};
-        params[0].pName = "RightText";
+        params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gRightTexture);
         params[0].ppTextures = &pSkyBoxTextures[0];
-        params[1].pName = "LeftText";
+        params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gLeftTexture);
         params[1].ppTextures = &pSkyBoxTextures[1];
-        params[2].pName = "TopText";
+        params[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gTopTexture);
         params[2].ppTextures = &pSkyBoxTextures[2];
-        params[3].pName = "BotText";
+        params[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gBotTexture);
         params[3].ppTextures = &pSkyBoxTextures[3];
-        params[4].pName = "FrontText";
+        params[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gFrontTexture);
         params[4].ppTextures = &pSkyBoxTextures[4];
-        params[5].pName = "BackText";
+        params[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gBackTexture);
         params[5].ppTextures = &pSkyBoxTextures[5];
-        params[6].pName = "uSampler0";
-        params[6].ppSamplers = &pSamplerSkyBox;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 7, params);
+        params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
+        params[6].ppSamplers = &pSkyBoxSampler;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, TF_ARRAY_COUNT(params), params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData uParams[1] = {};
-            uParams[0].pName = "uniformBlock";
-            uParams[0].ppBuffers = &pSkyboxUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, uParams);
-
-            uParams[0].pName = "uniformBlock";
-            uParams[0].ppBuffers = &pProjViewUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, uParams);
+            uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
+            uParams[0].ppBuffers = &pUniformBuffer[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, uParams);
         }
     }
 };

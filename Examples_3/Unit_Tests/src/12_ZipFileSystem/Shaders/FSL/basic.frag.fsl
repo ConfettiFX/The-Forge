@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,14 +22,8 @@
  * under the License.
 */
 
-RES(SamplerState,  uSampler0,  UPDATE_FREQ_NONE, s8, binding = 8);
-RES(Tex2D(float4), RightText,  UPDATE_FREQ_NONE, t1, binding = 1);
-RES(Tex2D(float4), LeftText,   UPDATE_FREQ_NONE, t2, binding = 2);
-RES(Tex2D(float4), TopText,    UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Tex2D(float4), BotText,    UPDATE_FREQ_NONE, t4, binding = 4);
-RES(Tex2D(float4), FrontText,  UPDATE_FREQ_NONE, t5, binding = 5);
-RES(Tex2D(float4), BackText,   UPDATE_FREQ_NONE, t6, binding = 6);
-RES(Tex2D(float4), ZipTexture, UPDATE_FREQ_NONE, t7, binding = 7);
+#include "structs.h"
+#include "srt.h"
 
 STRUCT(VSOutput)
 {
@@ -37,11 +31,11 @@ STRUCT(VSOutput)
 	DATA(float4, Diffuse, COLOR);
 	DATA(float2, texcoords, TEXCOORD);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	Out = SampleTex2D(ZipTexture, uSampler0, In.texcoords);
+	Out = SampleTex2D(gZipTexture, gSampler, In.texcoords);
 	RETURN(Out);
 }

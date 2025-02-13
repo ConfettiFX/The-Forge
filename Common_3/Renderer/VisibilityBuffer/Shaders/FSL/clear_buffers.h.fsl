@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,7 +26,13 @@
 #define _VB_CLEAR_BUFFERS_H
 
 
+
 #include "vb_resources.h.fsl"
+
+
+
+#if !defined(_VB_TRIANGLE_FILTERING_H)
+
 
 void ClearIndirectDrawArgsBuffers(const uint dispatchThreadIdX)
 {
@@ -45,14 +51,47 @@ void ClearIndirectDrawArgsBuffers(const uint dispatchThreadIdX)
                //    uint32_t mVertexOffset;
                //    uint32_t mStartInstance;
                //} IndirectDrawIndexArguments;
-               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,0)] = 0;
-               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,1)] = 1;
-               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,2)] = INDEXBUFFER_OFFSET(geom);
-               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,3)] = 0;
-               indirectDrawArgs[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,4)] = 0;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,0)] = 0;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,1)] = 1;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,2)] = INDEXBUFFER_OFFSET(geom);
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,3)] = 0;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,4)] = 0;
             }
          }
     }
 }
+
+#else
+
+void ClearIndirectDrawArgsBuffers(const uint dispatchThreadIdX)
+{
+	if(dispatchThreadIdX == 0)
+	{
+         UNROLL_N(NUM_CULLING_VIEWPORTS)
+         for (uint view = 0; view < NUM_CULLING_VIEWPORTS; ++view)
+         {    
+            for (uint geom = 0; geom < NUM_GEOMETRY_SETS; ++geom)
+            {    
+               //typedef struct IndirectDrawIndexArguments
+               //{
+               //    uint32_t mIndexCount;
+               //    uint32_t mInstanceCount;
+               //    uint32_t mStartIndex;
+               //    uint32_t mVertexOffset;
+               //    uint32_t mStartInstance;
+               //} IndirectDrawIndexArguments;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,0)] = 0;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,1)] = 1;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,2)] = INDEXBUFFER_OFFSET(geom);
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,3)] = 0;
+               gIndirectDrawClearArgsRW[GET_INDIRECT_DRAW_ELEM_INDEX(view,geom,4)] = 0;
+            }
+         }
+    }
+}
+
+
+#endif
+
 
 #endif //!_VB_CLEAR_BUFFERS_H

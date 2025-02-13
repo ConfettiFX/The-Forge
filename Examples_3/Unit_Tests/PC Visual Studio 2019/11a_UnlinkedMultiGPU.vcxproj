@@ -18,12 +18,19 @@
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\basic.vert.fsl" />
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\copyQuad.frag.fsl" />
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\copyQuad.vert.fsl" />
-    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\11a_UnlinkedMultiGPU\Test0.lua" />
+    <ClInclude Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\srt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\11a_UnlinkedMultiGPU\GPUCfg\gpu.cfg" />
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test0.lua" />
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test_SwapRenderers_Screenshot.lua" />
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test_SwapRenderers_Swap.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{765fe836-821c-4ae9-8465-3640dd8fb33f}</ProjectGuid>

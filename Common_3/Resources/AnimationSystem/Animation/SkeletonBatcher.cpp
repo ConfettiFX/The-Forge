@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,12 @@
 #include "SkeletonBatcher.h"
 
 #include "../../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
+
+#include "../../../Graphics/FSL/fsl_srt.h"
+#include "../../../Graphics/FSL/defaults.h"
+#include "Shaders/FSL/animation_srt.h"
+
+#include "../../../Utilities/Interfaces/IMemory.h"
 
 void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 {
@@ -98,6 +104,8 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
         }
     }
 
+#else
+    (void)skeletonRenderDesc;
 #endif
 }
 
@@ -153,15 +161,8 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         addShader(mRenderer, &jointShader, &mJointShader);
         addShader(mRenderer, &boneShader, &mBoneShader);
 
-        Shader*           shaders[] = { mJointShader, mBoneShader };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mShaderCount = 2;
-        rootDesc.ppShaders = shaders;
-
-        addRootSignature(mRenderer, &rootDesc, &mRootSignature);
-
         // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
-        DescriptorSetDesc setDesc = { mRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, mMaxSkeletonBatches * 2 * mFrameCount };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtAnimationData, PerDraw, mMaxSkeletonBatches * 2 * mFrameCount, 0);
         addDescriptorSet(mRenderer, &setDesc, &pDescriptorSet);
     }
 
@@ -211,6 +212,7 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         depthStateDesc.mDepthFunc = CMP_GEQUAL;
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, NULL, NULL, NULL, SRT_LAYOUT_DESC(SrtAnimationData, PerDraw));
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         if (mJointMeshType == Cube)
@@ -227,7 +229,6 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         pipelineSettings.mSampleCount = pDesc->mSampleCount;
         pipelineSettings.mSampleQuality = pDesc->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = (TinyImageFormat)pDesc->mDepthFormat;
-        pipelineSettings.pRootSignature = mRootSignature;
 
         pipelineSettings.pShaderProgram = mJointShader;
         pipelineSettings.pVertexLayout = &jointLayout;
@@ -239,6 +240,8 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         pipelineSettings.pVertexLayout = &boneVertexLayout;
         addPipeline(mRenderer, &desc, &mBonePipeline);
     }
+#else
+    (void)pDesc;
 #endif
 }
 void SkeletonBatcher::Unload(ReloadType reloadType)
@@ -254,10 +257,11 @@ void SkeletonBatcher::Unload(ReloadType reloadType)
     if (reloadType & RELOAD_TYPE_SHADER)
     {
         removeDescriptorSet(mRenderer, pDescriptorSet);
-        removeRootSignature(mRenderer, mRootSignature);
         removeShader(mRenderer, mBoneShader);
         removeShader(mRenderer, mJointShader);
     }
+#else
+    (void)reloadType;
 #endif
 }
 
@@ -265,7 +269,7 @@ void SkeletonBatcher::PrepareDescriptorSets()
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     DescriptorData params[1] = {};
-    params[0].pName = "uniformBlock";
+    params[0].mIndex = SRT_RES_IDX(SrtAnimationData, PerDraw, gUniformBlock);
 
     for (uint32_t i = 0; i < mFrameCount; ++i)
     {
@@ -300,6 +304,11 @@ void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const m
         mUniformDataJoints[i].mLightPosition = Vector4(lightPos);
         mUniformDataJoints[i].mLightColor = Vector4(lightColor);
     }
+#else
+    (void)projViewMat;
+    (void)viewMat;
+    (void)lightPos;
+    (void)lightColor;
 #endif
 }
 
@@ -307,6 +316,8 @@ void SkeletonBatcher::SetActiveRigs(uint32_t activeRigs)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     mNumActiveAnimatedObjects = min(activeRigs, mNumAnimatedObjects);
+#else
+    (void)activeRigs;
 #endif
 }
 
@@ -321,6 +332,8 @@ void SkeletonBatcher::PreSetInstanceUniforms(const uint32_t frameIndex)
     {
         tfrg_atomic32_store_relaxed(&pFrameBatchSize[i], 0);
     }
+#else
+    (void)frameIndex;
 #endif
 }
 
@@ -403,6 +416,10 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
             }
         }
     }
+#else
+    (void)frameIndex;
+    (void)numObjects;
+    (void)objectsOffset;
 #endif
 }
 
@@ -423,6 +440,8 @@ void SkeletonBatcher::AddAnimatedObject(AnimatedObject* animatedObject)
     ++mNumAnimatedObjects;
     ++mNumActiveAnimatedObjects;
     mCumulativeAnimatedObjectInstanceCount[mNumAnimatedObjects] = joints;
+#else
+    (void)animatedObject;
 #endif
 }
 
@@ -462,7 +481,8 @@ void SkeletonBatcher::RemoveAnimatedObject(AnimatedObject* animatedObject)
 
         ASSERT(mNumActiveAnimatedObjects <= mNumAnimatedObjects);
     }
-
+#else
+    (void)animatedObject;
 #endif
 }
 
@@ -526,5 +546,8 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
         }
         cmdEndDebugMarker(cmd);
     }
+#else
+    (void)cmd;
+    (void)frameIndex;
 #endif
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,27 +25,23 @@
 #include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shading_utilities.h.fsl"
 #include "triangle_binning.h.fsl"
 
-RES(RWBuffer(uint64_t), visibilityBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
+#include "vb_resources.h.fsl"
+#include "triangle_filtering.srt.h"
 
-STRUCT(RootConstantRenderTargetData)
-{
-    DATA(uint, view, None);
-    DATA(int, width, None);
-    DATA(int, height, None);
-};
-RES(ROOT_CONSTANT(RootConstantRenderTargetData), RootConstantRenderTargetInfo, UPDATE_FREQ_NONE, b0, binding = 0);
 
+
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(256, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 {
     INIT_MAIN;
     
-    if (threadID.x >= RootConstantRenderTargetInfo.width)
+    if (threadID.x >= gRenderTargetInfo.width)
     {
         RETURN();
     }
 
-    visibilityBuffer[threadID.x] = INVALID_VISIBILITY_DATA;
+    gVisibilityBufferRW[threadID.x] = INVALID_VISIBILITY_DATA;
 
     RETURN();
 }

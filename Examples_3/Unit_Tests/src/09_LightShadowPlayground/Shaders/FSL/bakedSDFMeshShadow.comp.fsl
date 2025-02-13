@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,65 +28,9 @@
 #define SAMPLE_COUNT 4
 #endif
 
-#define PI 3.1415926289793f
 
-#if SAMPLE_COUNT > 1
-RES(Depth2DMS(float, SAMPLE_COUNT), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 0);
-#else
-RES(Depth2D(float), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 0);
-#endif
-
-RES(Tex3D(float), SDFVolumeTextureAtlas, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(WTex2D(float2), OutTexture, UPDATE_FREQ_NONE, u0, binding = 2);
-
-RES(SamplerState, clampToEdgeTrillinearSampler, UPDATE_FREQ_NONE, s0, binding = 3);
-RES(SamplerState, clampToEdgeNearSampler, UPDATE_FREQ_NONE, s1, binding = 4);
-
-STRUCT(CameraUniformBlock)
-{
-    DATA(float4x4, View, None);
-    DATA(float4x4, Project, None);
-    DATA(float4x4, ViewProject, None);
-    DATA(float4x4, InvView, None);
-	DATA(float4x4, InvProj, None);
-	DATA(float4x4, InvViewProject, None);
-	DATA(float4, mCameraPos, None);
-	DATA(float, mNear, None);
-	DATA(float, mFar, None);
-	DATA(float, mFarNearDiff, None);
-	DATA(float, mFarNear, None);
-	DATA(float2, mTwoOverRes, None);
-	DATA(float2, mWindowSize, None);
-	DATA(float4, mDeviceZToWorldZ, None);
-};
-RES(CBUFFER(CameraUniformBlock), cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 5);
-
-STRUCT(MeshSDFUniformBlock)
-{
-	DATA(float4x4, mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT], None);
-	DATA(float4, mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT], None);
-	DATA(float4, mLocalPositionExtent[SDF_MAX_OBJECT_COUNT], None);
-	DATA(float4, mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT], None);
-	DATA(float4, mSDFMAD[SDF_MAX_OBJECT_COUNT], None);
-};
-RES(CBUFFER(MeshSDFUniformBlock), meshSDFUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 6);
-
-STRUCT(LightUniformBlock)
-{
-    DATA(float4x4, lightViewProj, None);
-    DATA(float4, lightPosition, None);
-    DATA(float4, lightColor, None);
-	DATA(float4, mLightUpVec, None);
-	DATA(float4, mTanLightAngleAndThresholdValue, None);
-	DATA(float4, mLightDir, None);
-};
-RES(CBUFFER(LightUniformBlock), lightUniformBlock, UPDATE_FREQ_PER_FRAME, b2, binding = 7);
-
-STRUCT(MeshSDFPushConstant)
-{
-	DATA(uint, mNumObjects, None);
-};
-RES(ROOT_CONSTANT(MeshSDFPushConstant), meshSDFPushConstant, UPDATE_FREQ_NONE, b3, binding = 3);
+#include "vb_resources.h.fsl"
+#include "bakedSDFMeshShadow.srt.h"
 
 float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
 {
@@ -110,7 +54,7 @@ float3 SDFVolumeDimensionPositionToUV(float3 volumePos, float3 uvScale, float3 u
 
 float SampleSDFVolumeTextureAtlas(float3 volumeUV)
 {
-	return SampleLvlTex3D(SDFVolumeTextureAtlas, clampToEdgeTrillinearSampler, volumeUV, 0).r;
+	return SampleLvlTex3D(gSDFVolumeTextureAtlas, gSamplerTrilinearWrap, volumeUV, 0).r;
 }
 
 float ShadowRayMarch(float3 rayWorldStartPos, 
@@ -123,12 +67,12 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 
 	float minShadow = 1.0;
 
-	for(uint index = 0; index < meshSDFPushConstant.mNumObjects; ++index)
+	for(uint index = 0; index < gMeshSDFUniformBlock.mNumObjects.x; ++index)
 	{
-		const float twoSidedMeshDistanceBias = meshSDFUniformBlock.mSDFMAD[index].z;
+		const float twoSidedMeshDistanceBias = gMeshSDFUniformBlock.mSDFMAD[index].z;
 		
 
-		float4x4 worldToVolumeMat = meshSDFUniformBlock.mWorldToVolumeMat[index];
+		float4x4 worldToVolumeMat = gMeshSDFUniformBlock.mWorldToVolumeMat[index];
 
 		float3 volumeRayStart = mul(worldToVolumeMat, float4(rayWorldStartPos.xyz, 1.0)).xyz;
 		float3 volumeRayEnd = mul(worldToVolumeMat, float4(rayWorldEndPos.xyz, 1.0)).xyz;
@@ -137,7 +81,7 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 		volumeRayDir /= volumeRayLength;
 
 
-		float4 uvScaleAndVolumeScale = meshSDFUniformBlock.mUVScaleAndVolumeScale[index];
+		float4 uvScaleAndVolumeScale = gMeshSDFUniformBlock.mUVScaleAndVolumeScale[index];
 
 		bool isTwoSided = (uvScaleAndVolumeScale.w < 0.0) ? true : false;
 
@@ -155,7 +99,7 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 			max(objectCenterDistAlongRay, 0.0f), volumeMaxSphereRadius);
 
 
-		float3 localPositionExtent = meshSDFUniformBlock.mLocalPositionExtent[index].xyz;
+		float3 localPositionExtent = gMeshSDFUniformBlock.mLocalPositionExtent[index].xyz;
 
 		float2 intersectionTimes = LineBoxIntersect(volumeRayStart, 
 			volumeRayEnd, -localPositionExtent.xyz * SDF_APPROX_MARGIN - localConeRadiusAtObject,
@@ -163,7 +107,7 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 
 		if(intersectionTimes.x < intersectionTimes.y)
 		{
-			float4 uvAddAndSelfShadowBias = meshSDFUniformBlock.mUVAddAndSelfShadowBias[index];
+			float4 uvAddAndSelfShadowBias = gMeshSDFUniformBlock.mUVAddAndSelfShadowBias[index];
 			float selfShadowScale = 1.0f / max(uvAddAndSelfShadowBias.w * worldToVolumeScale, .0001f);
 
 			//we jump straight the position of the ray when it hits the volume dimension bbox
@@ -230,34 +174,35 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 
 float ConvertFromDeviceZ(float deviceZ)
 {
-	const float4 deviceZToWorldZ = cameraUniformBlock.mDeviceZToWorldZ;
+	const float4 deviceZToWorldZ = gCameraUniformBlock.mDeviceZToWorldZ;
 	return deviceZ * deviceZToWorldZ.x + deviceZToWorldZ.y + 1.0f / (deviceZ * deviceZToWorldZ.z - deviceZToWorldZ.w);
 }
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(SDF_MESH_SHADOW_THREAD_X, SDF_MESH_SHADOW_THREAD_Y, 1)
 void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThreadID, SV_GroupThreadID(uint3) GroupThreadID )
 {
 	INIT_MAIN;
 	uint3 localDispatchThreadID = DispatchThreadID * SDF_SHADOW_DOWNSAMPLE_VALUE;
 
-	float xClip = (( float(localDispatchThreadID.x) * 2.f) / cameraUniformBlock.mWindowSize.x) - 1.f;
-	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / cameraUniformBlock.mWindowSize.y);
+	float xClip = (( float(localDispatchThreadID.x) * 2.f) / gCameraUniformBlock.mWindowSize.x) - 1.f;
+	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / gCameraUniformBlock.mWindowSize.y);
 
 #if SAMPLE_COUNT > 1
-	float depthVal = LoadTex2DMS(DepthTexture, clampToEdgeNearSampler, localDispatchThreadID.xy, 0).r;
+	float depthVal = LoadTex2DMS(gDepthTexture, gClampToEdgeNearSampler, localDispatchThreadID.xy, 0).r;
 #else
-	float2 depthSize = cameraUniformBlock.mWindowSize;
+	float2 depthSize = gCameraUniformBlock.mWindowSize;
 	float2 depthUV = (float2(localDispatchThreadID.xy) + 0.5f) / depthSize;
-	float depthVal = SampleLvlTex2D(DepthTexture, clampToEdgeNearSampler, depthUV, 0).r;
+	float depthVal = SampleLvlTex2D(gDepthTexture, gClampToEdgeNearSampler, depthUV, 0).r;
 #endif
 
 	if(depthVal == 0.f)
 	{
-		Write2D(OutTexture, DispatchThreadID.xy, f2(0.0f));
+		Write2D(gOutTextureF2, DispatchThreadID.xy, f2(0.0f));
 		RETURN();
 	}
 
-	float4 worldPosW =  mul(cameraUniformBlock.InvViewProject, float4(xClip, yClip, depthVal, 1.0));
+	float4 worldPosW =  mul(gCameraUniformBlock.InvViewProject, float4(xClip, yClip, depthVal, 1.0));
 	float3 worldPos = (worldPosW / worldPosW.w).xyz;
 
 	float worldZ = ConvertFromDeviceZ(depthVal);
@@ -271,13 +216,13 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 	float traceDistance = 10000;
 	float3 rayOrigin = worldPos;
 	//float3 rayDir = normalize(lightPosition.xyz - float3(0.0, 0.0, 0.0));
-	float3 rayDir = -lightUniformBlock.mLightDir.xyz;
+	float3 rayDir = -gCameraUniformBlock.mLight.mLightDir.xyz;
 	rayOrigin += RayStartOffset * rayDir;
 	float3 rayEnd = worldPos + rayDir * traceDistance;
 
 	float shadow = ShadowRayMarch(rayOrigin, rayEnd, 
-		lightUniformBlock.mTanLightAngleAndThresholdValue.x, minSphereRadius, maxSphereRadius);
+		gCameraUniformBlock.mLight.mTanLightAngleAndThresholdValue.x, minSphereRadius, maxSphereRadius);
 
-	Write2D(OutTexture, DispatchThreadID.xy, float2(shadow, worldZ));
+	Write2D(gOutTextureF2, DispatchThreadID.xy, float2(shadow, worldZ));
 	RETURN();
 }

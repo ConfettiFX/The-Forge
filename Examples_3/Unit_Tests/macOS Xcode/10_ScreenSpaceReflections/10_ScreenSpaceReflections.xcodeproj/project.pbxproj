@@ -36,6 +36,16 @@
 		D00A0D6E20DB69F400895D71 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D00A0D6C20DB69F400895D71 /* Info.plist */; };
 		D00A0D8220DB6B6A00895D71 /* 10_ScreenSpaceReflections.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D00A0D8120DB6B6A00895D71 /* 10_ScreenSpaceReflections.cpp */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		F25E31642D4925320002574A /* Test_RenderSceneExReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31612D4925320002574A /* Test_RenderSceneExReflections.lua */; };
+		F25E31652D4925320002574A /* Test_RenderSceneReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31622D4925320002574A /* Test_RenderSceneReflections.lua */; };
+		F25E31662D4925320002574A /* Test_RenderScene.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31602D4925320002574A /* Test_RenderScene.lua */; };
+		F25E31672D4925320002574A /* Test_RenderReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E315F2D4925320002574A /* Test_RenderReflections.lua */; };
+		F25E31682D4925320002574A /* Test_DeviceReset.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E315E2D4925320002574A /* Test_DeviceReset.lua */; };
+		F25E31692D4925320002574A /* Test_RenderSceneExReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31612D4925320002574A /* Test_RenderSceneExReflections.lua */; };
+		F25E316A2D4925320002574A /* Test_RenderSceneReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31622D4925320002574A /* Test_RenderSceneReflections.lua */; };
+		F25E316B2D4925320002574A /* Test_RenderScene.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31602D4925320002574A /* Test_RenderScene.lua */; };
+		F25E316C2D4925320002574A /* Test_RenderReflections.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E315F2D4925320002574A /* Test_RenderReflections.lua */; };
+		F25E316D2D4925320002574A /* Test_DeviceReset.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E315E2D4925320002574A /* Test_DeviceReset.lua */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,7 +115,11 @@
 		E9A438A8233DBF25005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		EA463C8B1EF81E8F005AC8C7 /* 10_ScreenSpaceReflections.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 10_ScreenSpaceReflections.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC66B88B2C9358C00004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
-		EC66B8902C9359040004DC3B /* 10_ScreenSpaceReflections */ = {isa = PBXFileReference; lastKnownFileType = folder; path = 10_ScreenSpaceReflections; sourceTree = "<group>"; };
+		F25E315E2D4925320002574A /* Test_DeviceReset.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_DeviceReset.lua; sourceTree = "<group>"; };
+		F25E315F2D4925320002574A /* Test_RenderReflections.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_RenderReflections.lua; sourceTree = "<group>"; };
+		F25E31602D4925320002574A /* Test_RenderScene.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_RenderScene.lua; sourceTree = "<group>"; };
+		F25E31612D4925320002574A /* Test_RenderSceneExReflections.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_RenderSceneExReflections.lua; sourceTree = "<group>"; };
+		F25E31622D4925320002574A /* Test_RenderSceneReflections.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_RenderSceneReflections.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -200,7 +214,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				EC66B88E2C9358D30004DC3B /* Art */,
 				EC66B8862C9358260004DC3B /* Examples_3 */,
 				7F6EFFFB2A93D9C500981E7B /* BuildConfigs */,
 				5C172FB921414BD90074EE71 /* The-Forge.xcodeproj */,
@@ -208,6 +221,7 @@
 				C95132EE2010E68A002E584B /* 10_ScreenSpaceReflections_iOS */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				F25E31632D4925320002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -275,23 +289,6 @@
 			path = 10_ScreenSpaceReflections;
 			sourceTree = "<group>";
 		};
-		EC66B88E2C9358D30004DC3B /* Art */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B88F2C9358E10004DC3B /* Scripts */,
-			);
-			name = Art;
-			path = ../../../../Art;
-			sourceTree = "<group>";
-		};
-		EC66B88F2C9358E10004DC3B /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B8902C9359040004DC3B /* 10_ScreenSpaceReflections */,
-			);
-			path = Scripts;
-			sourceTree = "<group>";
-		};
 		EC66B8932C9359200004DC3B /* src */ = {
 			isa = PBXGroup;
 			children = (
@@ -300,6 +297,19 @@
 			);
 			path = src;
 			sourceTree = "<group>";
+		};
+		F25E31632D4925320002574A /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				F25E315E2D4925320002574A /* Test_DeviceReset.lua */,
+				F25E315F2D4925320002574A /* Test_RenderReflections.lua */,
+				F25E31602D4925320002574A /* Test_RenderScene.lua */,
+				F25E31612D4925320002574A /* Test_RenderSceneExReflections.lua */,
+				F25E31622D4925320002574A /* Test_RenderSceneReflections.lua */,
+			);
+			name = Scripts;
+			path = ../../src/10_ScreenSpaceReflections/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -411,6 +421,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
+				F25E31642D4925320002574A /* Test_RenderSceneExReflections.lua in Resources */,
+				F25E31652D4925320002574A /* Test_RenderSceneReflections.lua in Resources */,
+				F25E31662D4925320002574A /* Test_RenderScene.lua in Resources */,
+				F25E31672D4925320002574A /* Test_RenderReflections.lua in Resources */,
+				F25E31682D4925320002574A /* Test_DeviceReset.lua in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -422,6 +437,11 @@
 				D00A0D6D20DB69F400895D71 /* Assets.xcassets in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 				D00A0D6E20DB69F400895D71 /* Info.plist in Resources */,
+				F25E31692D4925320002574A /* Test_RenderSceneExReflections.lua in Resources */,
+				F25E316A2D4925320002574A /* Test_RenderSceneReflections.lua in Resources */,
+				F25E316B2D4925320002574A /* Test_RenderScene.lua in Resources */,
+				F25E316C2D4925320002574A /* Test_RenderReflections.lua in Resources */,
+				F25E316D2D4925320002574A /* Test_DeviceReset.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -444,7 +464,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		0993419D284E97B200215997 /* ShellScript */ = {
@@ -463,7 +483,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C61B59C24D2E22000EF5D20 /* Run Script */ = {

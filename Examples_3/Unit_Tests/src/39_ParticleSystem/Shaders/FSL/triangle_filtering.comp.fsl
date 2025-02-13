@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,14 +49,11 @@
 // Multi-viewport culling
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "triangle_filtering.srt.h"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
-
-RES(Buffer(ParticleData), ParticlesDataBuffer, UPDATE_FREQ_NONE, t52, binding = 11);
-RES(Buffer(uint), BitfieldBuffer, UPDATE_FREQ_NONE, t53, binding = 10);
-RES(ByteBuffer, indexDataBuffer, UPDATE_FREQ_NONE, t13, binding = 4);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t4, binding = 5);
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
 
 bool TriangleIntersectsSphere(float3 A, float3 B, float3 C, float3 P, float r, bool twoSided)
@@ -109,7 +106,7 @@ bool TriangleIntersectsSphere(float3 A, float3 B, float3 C, float3 P, float r, b
 		return false;
 	return true;
 }
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 {
@@ -121,7 +118,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 		for (uint i = 0; i < NUM_UNIQUE_GEOMETRIES; ++i)
         	AtomicStore(workGroupIndexCount[i], 0u);
 
-		filterDispatchGroupData = filterDispatchGroupDataBuffer[groupId.x];
+		filterDispatchGroupData = gFilterDispatchGroupDataBuffer[groupId.x];
 	}
 
     GroupMemoryBarrier();
@@ -138,21 +135,21 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 
 	uint batchMeshIndex = filterDispatchGroupData.meshIndex;
 	uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
-	uint batchInputIndexOffset = (meshConstantsBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
-	uint vertexOffset = meshConstantsBuffer[batchMeshIndex].vertexOffset;
-	bool twoSided = (meshConstantsBuffer[batchMeshIndex].twoSided == 1);
+	uint batchInputIndexOffset = (gMeshConstantsBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
+	uint vertexOffset = gMeshConstantsBuffer[batchMeshIndex].vertexOffset;
+	bool twoSided = (gMeshConstantsBuffer[batchMeshIndex].twoSided == 1);
 	uint batchFaceCount =  ((filterDispatchGroupData.geometrySet_faceCount & BATCH_FACE_COUNT_MASK) >> BATCH_FACE_COUNT_LOW_BIT);
 
 	uint indices[3] = { 0, 0, 0 };
 	if (threadId.x < batchFaceCount)
 	{
-		indices[0] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
-		indices[1] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
-		indices[2] = vertexOffset + LoadByte(indexDataBuffer, (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
+		indices[0] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
 
-		indirectDataBuffer[indices[0]] = batchMeshIndex;
-		indirectDataBuffer[indices[1]] = batchMeshIndex;
-		indirectDataBuffer[indices[2]] = batchMeshIndex;
+		gIndirectDataBufferRW[indices[0]] = batchMeshIndex;
+		gIndirectDataBufferRW[indices[1]] = batchMeshIndex;
+		gIndirectDataBufferRW[indices[2]] = batchMeshIndex;
 
 		float4 vert[3] =
 		{
@@ -166,12 +163,12 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 		{
 			float4 vertices[3] =
 			{
-				mul(PerFrameVBConstants.transform[i].mvp.mat, vert[0]),
-				mul(PerFrameVBConstants.transform[i].mvp.mat, vert[1]),
-				mul(PerFrameVBConstants.transform[i].mvp.mat, vert[2])
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[0]),
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[1]),
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[2])
 			};
 
-			cull[i] = FilterTriangle(indices, vertices, !twoSided, PerFrameVBConstants.cullingViewports[i].windowSize, PerFrameVBConstants.cullingViewports[i].sampleCount);
+			cull[i] = FilterTriangle(indices, vertices, !twoSided, gPerFrameVBConstants.cullingViewports[i].windowSize, gPerFrameVBConstants.cullingViewports[i].sampleCount);
 			if (!cull[i])
 				AtomicAdd(workGroupIndexCount[i], 3, threadOutputSlot[i]);
 		}
@@ -179,14 +176,14 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 		// Filter for point light shadows
 		for (uint j=0; j<MAX_SHADOW_COUNT; j++)
 		{
-			uint Bitfield = BitfieldBuffer[j];
+			uint Bitfield = gBitfieldBuffer[j];
 			if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
 				continue;
 
-			float3 particlePos = UnpackParticlePosition(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], ParticlesDataBuffer[j]);
+			float3 particlePos = UnpackParticlePosition(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], gParticlesDataBuffer[j]);
 
 			// Skip triangle if it is outside of the area of influence of the light
-			float lightRadius = unpack2Floats(ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK].LightRadiusAndVelocityNoise).x;
+			float lightRadius = unpack2Floats(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK].LightRadiusAndVelocityNoise).x;
 			if (!TriangleIntersectsSphere(vert[0].xyz, vert[1].xyz, vert[2].xyz, particlePos, lightRadius, twoSided))
 				continue;
 
@@ -197,12 +194,12 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 				uint faceIdx = VIEW_POINT_SHADOW + i;
 				float4 vertices[3] =
 				{
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[0] - float4(particlePos, 0.0)),
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[1] - float4(particlePos, 0.0)),
-					mul(PerFrameVBConstants.transform[faceIdx].mvp.mat, vert[2] - float4(particlePos, 0.0))
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[0] - float4(particlePos, 0.0)),
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[1] - float4(particlePos, 0.0)),
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[2] - float4(particlePos, 0.0))
 				};
 
-				cull[VIEW_POINT_SHADOW+j] = cull[VIEW_POINT_SHADOW+j] && FilterTriangle(indices, vertices, !twoSided, PerFrameVBConstants.cullingViewports[faceIdx].windowSize, PerFrameVBConstants.cullingViewports[faceIdx].sampleCount);
+				cull[VIEW_POINT_SHADOW+j] = cull[VIEW_POINT_SHADOW+j] && FilterTriangle(indices, vertices, !twoSided, gPerFrameVBConstants.cullingViewports[faceIdx].windowSize, gPerFrameVBConstants.cullingViewports[faceIdx].sampleCount);
 			}
 
 			if (!cull[VIEW_POINT_SHADOW+j])
@@ -215,7 +212,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 	if (threadId.x < NUM_UNIQUE_GEOMETRIES)
 	{
 		uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(threadId.x, batchGeomSet, 0);
-        AtomicAdd(indirectDrawArgs[indirectDrawIndex], workGroupIndexCount[threadId.x], workGroupOutputSlot[threadId.x]);
+        AtomicAdd(gIndirectDrawFilteringArgs[indirectDrawIndex], workGroupIndexCount[threadId.x], workGroupOutputSlot[threadId.x]);
 	}
 
     GroupMemoryBarrier();
@@ -228,9 +225,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
             uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
             
 			// Write index
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
-			StoreByte(filteredIndicesBuffer[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
 		}
 	}
 

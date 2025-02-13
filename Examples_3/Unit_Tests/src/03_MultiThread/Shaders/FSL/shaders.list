@@ -1,0 +1,32 @@
+#include "../../../../../../Common_3/Graphics/FSL/defaults.h"
+
+#rootsig default.rootsig
+#end
+
+#rootsig compute.rootsig
+#end
+
+#frag Graph.frag
+#include "Graph.frag.fsl"
+#end
+
+#vert FT_VDP Graph.vert
+#include "Graph.vert.fsl"
+#end
+
+#frag FT_MULTIVIEW Particle.frag
+#include "Particle.frag.fsl"
+#end
+
+#vert FT_VDP FT_MULTIVIEW Particle.vert
+#include "Particle.vert.fsl"
+#end
+
+#frag FT_MULTIVIEW Skybox.frag
+#include "Skybox.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW Skybox.vert
+#include "Skybox.vert.fsl"
+#end
+

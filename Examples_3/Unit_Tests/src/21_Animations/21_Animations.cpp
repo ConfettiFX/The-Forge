@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -65,6 +65,11 @@
 // Memory
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/animation_srt.h"
+
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -102,7 +107,6 @@ int       gNumberOfCubes;
 Shader*        pPlaneDrawShader = NULL;
 Buffer*        pPlaneVertexBuffer = NULL;
 Pipeline*      pPlaneDrawPipeline = NULL;
-RootSignature* pRootSignature = NULL;
 DescriptorSet* pDescriptorSet = NULL;
 DescriptorSet* pTargetDescriptorSet = NULL;
 
@@ -130,15 +134,38 @@ struct UniformBlock
 Buffer*              pCuboidUniformBuffer[gDataBufferCount] = { NULL };
 Buffer*              pTargetUniformBuffer[gDataBufferCount] = { NULL };
 UniformSkeletonBlock gUniformDataTarget;
+
+//--------------------------------------------------------------------------------------------
+// Extended GPU Config settings
+//--------------------------------------------------------------------------------------------
+#define FOREACH_SETTING(X)    X(MaxRigs, 4096)
+
+#define GENERATE_ENUM(x, y)   x,
+#define GENERATE_STRING(x, y) #x,
+#define GENERATE_STRUCT(x, y) uint32_t m##x = y;
+
+typedef enum ESettings
+{
+    FOREACH_SETTING(GENERATE_ENUM) Count
+} ESettings;
+
+const char* gSettingNames[] = { FOREACH_SETTING(GENERATE_STRING) };
+
+// Useful for using names directly instead of subscripting an array
+struct ConfigSettings
+{
+    FOREACH_SETTING(GENERATE_STRUCT)
+} gGpuSettings;
+
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log)
 //--------------------------------------------------------------------------------------------
-ICameraController*   pCameraController = NULL;
+ICameraController* pCameraController = NULL;
 
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
 
-const char* gTestScripts[] = { "21_Animations/Test0.lua" };
+const char* gTestScripts[] = { "Test0.lua" };
 uint32_t    gScriptIndexes[] = { 0 };
 uint32_t    gCurrentScriptIndex = 0;
 
@@ -1049,6 +1076,7 @@ void ResetInverseKinematics()
 void RunAnimation(void* pUserData)
 {
     UNREF_PARAM(pUserData);
+    gNumRigs = gNumRigs > gGpuSettings.mMaxRigs ? gGpuSettings.mMaxRigs : gNumRigs;
     // this resets all values to the defaults
     ResetAnimations();
     ResetInverseKinematics();
@@ -1114,7 +1142,7 @@ void BlendRatioChangeCallback(void* pUserData)
 void SetUpAnimationSpecificGuiWindows()
 {
     unsigned uintValMin = 1;
-    unsigned uintValMax = MAX_ANIMATED_OBJECTS;
+    unsigned uintValMax = gGpuSettings.mMaxRigs;
     unsigned sliderStepSizeUint = 1;
     float    sliderStepSizeFloat = 0.001f;
 
@@ -2073,23 +2101,55 @@ public:
     {
         initHiresTimer(&gAnimationUpdateTimer);
 
+        // WINDOW AND RENDERER SETUP
+        //
+        ExtendedSettings extendedSettings = {};
+        extendedSettings.mNumSettings = ESettings::Count;
+        extendedSettings.pSettings = (uint32_t*)&gGpuSettings;
+        extendedSettings.ppSettingNames = gSettingNames;
+
+        RendererDesc settings;
+        memset(&settings, 0, sizeof(settings));
+        settings.pExtendedSettings = &extendedSettings;
+        initGPUConfiguration(settings.pExtendedSettings);
+        initRenderer(GetName(), &settings, &pRenderer);
+        // check for init success
+        if (!pRenderer)
+        {
+            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            return false;
+        }
+        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
+
         // RIG
         //
         // Initialize the rig with the path to its ozz file and its rendering details
         gStickFigureRig.Initialize(RD_ANIMATIONS, gStickFigureName);
 
         // Generate joint vertex buffer
-        generateQuad(&pJointPoints, &gNumberOfJointPoints, gJointRadius);
+        gNumberOfJointPoints = 0;
+        generateQuad(NULL, &gNumberOfJointPoints, gJointRadius);
+        pJointPoints = (float*)tf_malloc(sizeof(float) * gNumberOfJointPoints);
+        generateQuad(pJointPoints, &gNumberOfJointPoints, gJointRadius);
 
         // Generate bone vertex buffer
-        generateIndexedBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
+        gNumberOfBonePoints = 0;
+        generateIndexedBonePoints(NULL, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
+                                  &gStickFigureRig.mSkeleton.joint_parents()[0]);
+        pBonePoints = (float*)tf_malloc(sizeof(float) * gNumberOfBonePoints);
+        generateIndexedBonePoints(pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
                                   &gStickFigureRig.mSkeleton.joint_parents()[0]);
 
         // Generate attached object vertex buffer
-        generateCuboidPoints(&pCuboidPoints, &gNumberOfCuboidPoints);
+        gNumberOfCuboidPoints = 0;
+        generateCuboidPoints(NULL, &gNumberOfCuboidPoints);
+        pCuboidPoints = (float*)tf_malloc(sizeof(float) * gNumberOfCuboidPoints);
+        generateCuboidPoints(pCuboidPoints, &gNumberOfCuboidPoints);
 
         // Generate cubes vertex buffer
-        generateCuboidPoints(&pCubesPoints, &gNumberOfCubes, 0.065f, 0.065f, 0.065f); // Use cuboids of size 1x1x1
+        generateCuboidPoints(NULL, &gNumberOfCubes, 0.065f, 0.065f, 0.065f); // Use cuboids of size 1x1x1
+        pCubesPoints = (float*)tf_malloc(sizeof(float) * gNumberOfCubes);
+        generateCuboidPoints(pCubesPoints, &gNumberOfCubes, 0.065f, 0.065f, 0.065f); // Use cuboids of size 1x1x1
 
         gOzzLogoRig.Initialize(RD_ANIMATIONS, gOzzLogoName);
 
@@ -2126,21 +2186,27 @@ public:
         //
         // Initialize with the length of the clip they are controlling and an
         // optional external time to set based on their updating
-        for (size_t i = 0; i < MAX_ANIMATED_OBJECTS; i++)
-        {
-            gStandClipController[i].Initialize(gStandClip.GetDuration(), &gUIData.mStandClip.mAnimationTime);
-            gWalkClipController[i].Initialize(gWalkClip.GetDuration(), &gUIData.mWalkClip.mAnimationTime);
-            gJogClipController[i].Initialize(gJogClip.GetDuration(), &gUIData.mJogClip.mAnimationTime);
-            gRunClipController[i].Initialize(gRunClip.GetDuration(), &gUIData.mRunClip.mAnimationTime);
-            gNeckCrackClipController[i].Initialize(gNeckCrackClip.GetDuration(), &gUIData.mNeckCrackClip.mAnimationTime);
-        }
+        gStandClipController[0].Initialize(gStandClip.GetDuration(), &gUIData.mStandClip.mAnimationTime);
+        gWalkClipController[0].Initialize(gWalkClip.GetDuration(), &gUIData.mWalkClip.mAnimationTime);
+        gJogClipController[0].Initialize(gJogClip.GetDuration(), &gUIData.mJogClip.mAnimationTime);
+        gRunClipController[0].Initialize(gRunClip.GetDuration(), &gUIData.mRunClip.mAnimationTime);
+        gNeckCrackClipController[0].Initialize(gNeckCrackClip.GetDuration(), &gUIData.mNeckCrackClip.mAnimationTime);
         gShatterClipContoller.Initialize(gShatterClip.GetDuration(), &gUIData.mShatterClip.mAnimationTime);
+
+        for (size_t i = 1; i < gGpuSettings.mMaxRigs; i++)
+        {
+            gStandClipController[i].Initialize(gStandClip.GetDuration(), NULL);
+            gWalkClipController[i].Initialize(gWalkClip.GetDuration(), NULL);
+            gJogClipController[i].Initialize(gJogClip.GetDuration(), NULL);
+            gRunClipController[i].Initialize(gRunClip.GetDuration(), NULL);
+            gNeckCrackClipController[i].Initialize(gNeckCrackClip.GetDuration(), NULL);
+        }
 
         // ANIMATIONS
         //
         AnimationDesc animationDesc{};
 
-        for (size_t i = 0; i < MAX_ANIMATED_OBJECTS; i++)
+        for (size_t i = 0; i < gGpuSettings.mMaxRigs; i++)
         {
             // Stand Animation
             animationDesc = {};
@@ -2203,7 +2269,7 @@ public:
         //
         const unsigned int gridWidth = 25;
         const unsigned int gridDepth = 10;
-        for (unsigned int i = 0; i < MAX_ANIMATED_OBJECTS; i++)
+        for (unsigned int i = 0; i < gGpuSettings.mMaxRigs; i++)
         {
             gStickFigureAnimObject[i].Initialize(&gStickFigureRig, &gAnimations[0][i]);
 
@@ -2245,20 +2311,6 @@ public:
         gTwoBonesIKDesc.mMidAxis = Vector3::zAxis();
         gStickFigureRig.FindJointChain(twoBonesJointNames, 3, gTwoBonesIKDesc.mJointChain);
 
-        // WINDOW AND RENDERER SETUP
-        //
-        RendererDesc settings;
-        memset(&settings, 0, sizeof(settings));
-        initGPUConfiguration(settings.pExtendedSettings);
-        initRenderer(GetName(), &settings, &pRenderer);
-        // check for init success
-        if (!pRenderer)
-        {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
-            return false;
-        }
-        setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
         // CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
         //
         QueueDesc queueDesc = {};
@@ -2278,6 +2330,10 @@ public:
         // INITIALIZE RESOURCE/DEBUG SYSTEMS
         //
         initResourceLoaderInterface(pRenderer);
+
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
 
         // Load fonts
         FontDesc font = {};
@@ -2408,12 +2464,12 @@ public:
         skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
         skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 8;
         skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
-        skeletonRenderDesc.mMaxAnimatedObjects = MAX_ANIMATED_OBJECTS;
+        skeletonRenderDesc.mMaxAnimatedObjects = gGpuSettings.mMaxRigs;
         skeletonRenderDesc.mJointMeshType = QuadSphere;
         gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
         // Add the rig to the list of skeletons to render
-        for (size_t i = 0; i < MAX_ANIMATED_OBJECTS; i++)
+        for (size_t i = 0; i < gGpuSettings.mMaxRigs; i++)
         {
             gSkeletonBatcher.AddAnimatedObject(&gStickFigureAnimObject[i]);
         }
@@ -2460,19 +2516,19 @@ public:
         tf_free(pJointPoints);
         tf_free(pBonePoints);
         tf_free(pCuboidPoints);
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
 
         return true;
     }
 
     void Exit() override
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         threadSystemWaitIdle(gThreadSystem);
 
         exitCameraController(pCameraController);
 
-        for (size_t i = 0; i < MAX_ANIMATED_OBJECTS; i++)
+        for (size_t i = 0; i < gGpuSettings.mMaxRigs; i++)
         {
             gStickFigureAnimObject[i].Exit();
 
@@ -2525,7 +2581,7 @@ public:
         // Animation data
         gOzzLogoSkeletonBatcher.Exit();
         gSkeletonBatcher.Exit();
-
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
@@ -2587,7 +2643,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -2648,7 +2703,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -3108,10 +3162,11 @@ public:
     void addDescriptorSets()
     {
         // 1->Plane , 2->Cuboid, 3->IK Target
-        DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gDataBufferCount * 2 };
+
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount * 2, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
 
-        DescriptorSetDesc targetDesc = { gSkeletonBatcher.mRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gDataBufferCount };
+        DescriptorSetDesc targetDesc = SRT_SET_DESC(SrtAnimationData, PerDraw, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &targetDesc, &pTargetDescriptorSet);
     }
 
@@ -3120,17 +3175,6 @@ public:
         removeDescriptorSet(pRenderer, pTargetDescriptorSet);
         removeDescriptorSet(pRenderer, pDescriptorSet);
     }
-
-    void addRootSignatures()
-    {
-        Shader*           shaders[] = { pCubeShader, pPlaneDrawShader };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mShaderCount = 2;
-        rootDesc.ppShaders = shaders;
-        addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-    }
-
-    void removeRootSignatures() { removeRootSignature(pRenderer, pRootSignature); }
 
     void addShaders()
     {
@@ -3182,6 +3226,7 @@ public:
 
         PipelineDesc desc = {};
         desc.mType = PIPELINE_TYPE_GRAPHICS;
+        PIPELINE_LAYOUT_DESC(desc, NULL, NULL, NULL, SRT_LAYOUT_DESC(SrtData, PerDraw));
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 1;
@@ -3190,7 +3235,6 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pCubeShader;
         pipelineSettings.pVertexLayout = &vertexLayout;
         pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
@@ -3228,13 +3272,13 @@ public:
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData params[1] = {};
-            params[0].pName = "uniformBlock";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             params[0].ppBuffers = &pPlaneUniformBuffer[i];
             updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSet, 1, params);
-            params[0].pName = "uniformBlock";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             params[0].ppBuffers = &pCuboidUniformBuffer[i];
             updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSet, 1, params);
-            params[0].pName = "uniformBlock";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             params[0].ppBuffers = &pTargetUniformBuffer[i];
             updateDescriptorSet(pRenderer, i, pTargetDescriptorSet, 1, params);
         }

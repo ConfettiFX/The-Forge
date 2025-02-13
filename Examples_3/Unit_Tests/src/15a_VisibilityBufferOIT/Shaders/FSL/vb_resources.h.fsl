@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,11 +24,15 @@
 
 #ifndef vb_resources_h
 #define vb_resources_h
-#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-STRUCT(GeometryCountOIT)
+#include "shader_defs.h.fsl"
+
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_resources.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/pre_skin_vertexes.h.fsl"
+
+STRUCT(SkyboxUniformBufferData)
 {
-	DATA(uint, count, None);
+    DATA(float4x4, InverseViewProjection, None);
 };
 
 STRUCT(TransparentNodeOIT)
@@ -36,19 +40,6 @@ STRUCT(TransparentNodeOIT)
 	DATA(uint, triangleData, None); 
 	DATA(uint, next, None); 
 };
-
-RES(Buffer(MeshData), MeshDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 4);
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t8, binding = 15);
-
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t6, binding = 8);
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t7, binding = 9);
-
-RES(RWBuffer(uint),    headIndexBufferUAV, UPDATE_FREQ_NONE, u2, binding = 10); 
-RES(RWBuffer(TransparentNodeOIT), vbDepthLinkedListUAV, UPDATE_FREQ_NONE, u3, binding = 11); 
-RES(RWBuffer(GeometryCountOIT), geometryCountBuffer, UPDATE_FREQ_NONE, u4, binding = 12);
-
-RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 13);
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t9, binding = 14);
 
 STRUCT(PsInOpaque)
 {
@@ -63,35 +54,6 @@ STRUCT(PsInAlphaTested)
     DATA(FLAT(uint), materialID, TEXCOORD1);
 #endif
 };
-
-float4 LoadVertex(uint index)
-{
-    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
-}
-
-float2 LoadTexCoord(uint index)
-{
-	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
-}
-
-float4x4 GetModelViewProj(uint geomSet, uint view, inout(uint) vertID)
-{
-    uint indirectData = indirectDataBuffer[vertID];
-    MeshData meshConstant = MeshDataBuffer[indirectData];
-    vertID = vertID - meshConstant.indirectVertexOffset;
-
-    return mul(PerFrameVBConstants.transform[view].mvp.mat, meshConstant.modelMtx);
-}
-
-float4x4 GetModelViewProjAndMaterialID(uint geomSet, uint view, inout(uint) vertID, out(uint) materialID)
-{
-    uint indirectData =  indirectDataBuffer[vertID];
-    MeshData meshConstant = MeshDataBuffer[indirectData];
-    vertID = vertID - meshConstant.indirectVertexOffset;
-	materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
-
-    return mul(PerFrameVBConstants.transform[view].mvp.mat, meshConstant.modelMtx);
-}
 
 
 #endif /* vb_resources_h */

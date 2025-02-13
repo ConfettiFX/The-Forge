@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -45,6 +45,8 @@
 #define _VB_BATCH_COMPACION_H
 
 #include "vb_resources.h.fsl"
+
+
 
 // Returns index within an array of (NUM_CULLING_VIEWS * NUM_GEOMETRY_SETS * MAX_DRAWS_INDIRECT)
 uint BatchCompaction(const uint threadIDx, const uint view, const uint numIndices, inout(uint) slot )

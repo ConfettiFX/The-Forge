@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,6 +30,7 @@ STRUCT(VSOutput)
     DATA(float2, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN(VSOutput In)
 {
     INIT_MAIN;

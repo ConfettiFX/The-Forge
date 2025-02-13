@@ -16,12 +16,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\copydepth.srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR.srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\triangle_filtering.srt.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\persistent_set.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR.srt.h" />
     <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\batchCompaction.comp.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\clearVisibilityBuffers.comp.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl" />
@@ -34,7 +43,7 @@
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Projection.comp.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.frag.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.vert.fsl" />
-    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\Shader_Defs.h.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl" />
@@ -61,17 +70,17 @@
     <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-
     <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
       <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_DeviceReset.lua" />
-    <None Include="..\..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderReflections.lua" />
-    <None Include="..\..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderScene.lua" />
-    <None Include="..\..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderSceneExReflections.lua" />
-    <None Include="..\..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderSceneReflections.lua" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\GPUCfg\gpu.cfg" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\Scripts\Test_DeviceReset.lua" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\Scripts\Test_RenderReflections.lua" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\Scripts\Test_RenderScene.lua" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\Scripts\Test_RenderSceneExReflections.lua" />
+    <None Include="..\..\src\10_ScreenSpaceReflections\Scripts\Test_RenderSceneReflections.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>
@@ -133,9 +142,10 @@
         xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
         xcopy "$(TheForgeArtDir)Scripts\$(ProjectName)\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
         xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-
-        xcopy $(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
         xcopy $(TheForgeRoot)Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\$(ProjectName)\"
+        xcopy /Y /S /D "$(SolutionDir)..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\$(ProjectName)\"
+        xcopy $(SolutionDir)..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
       </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -188,9 +198,10 @@
         xcopy /Y /S /D "$(TheForgeArtDir)Meshes\SanMiguel_3\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\SanMiguel_3\"
         xcopy "$(TheForgeArtDir)Scripts\$(ProjectName)\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
         xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
-
-        xcopy $(TheForgeArtDir)GPUCfg\$(ProjectName)\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
         xcopy $(TheForgeRoot)Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
+        xcopy /Y /S /D "$(TheForgeRoot)Common_3\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+        xcopy /Y /S /D "$(SolutionDir)..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+        xcopy $(SolutionDir)..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
       </Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

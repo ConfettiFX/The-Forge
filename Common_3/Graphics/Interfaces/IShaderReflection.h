@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -68,64 +68,11 @@ struct ArgumentDescriptor
 };
 #endif
 
-struct ShaderResource
-{
-    // resource Type
-    DescriptorType type;
-
-    // The resource set for binding frequency
-    uint32_t set;
-
-    // The resource binding location
-    uint32_t reg;
-
-    // The size of the resource. This will be the DescriptorInfo array size for textures
-    uint32_t size;
-
-    // what stages use this resource
-    ShaderStage used_stages;
-
-    // resource name
-    const char* name;
-
-    // name size
-    uint32_t name_size;
-
-    // 1D / 2D / Array / MSAA / ...
-    TextureDimension dim;
-
-#if defined(METAL)
-    uint32_t           alignment;
-    bool               mIsArgumentBufferField;
-    ArgumentDescriptor mArgumentDescriptor;
-#endif
-};
-
-struct ShaderVariable
-{
-    // Variable name
-    const char* name;
-
-    // parents resource index
-    uint32_t parent_index;
-
-    // The offset of the Variable.
-    uint32_t offset;
-
-    // The size of the Variable.
-    uint32_t size;
-
-    // name size
-    uint32_t name_size;
-};
-
 struct ShaderReflection
 {
     // single large allocation for names to reduce number of allocations
-    char*           pNamePool;
-    VertexInput*    pVertexInputs;
-    ShaderResource* pShaderResources;
-    ShaderVariable* pVariables;
+    char*        pNamePool;
+    VertexInput* pVertexInputs;
 
 #if defined(VULKAN)
     char* pEntryPoint;
@@ -134,8 +81,6 @@ struct ShaderReflection
     ShaderStage mShaderStage;
 
     uint32_t mNamePoolSize;
-    uint32_t mShaderResourceCount;
-    uint32_t mVariableCount;
 
     uint32_t mVertexInputsCount;
 
@@ -155,16 +100,12 @@ struct ShaderReflection
 
 struct PipelineReflection
 {
-    ShaderResource* pShaderResources;
-    ShaderVariable* pVariables;
-    char*           pNamePool;
+    char* pNamePool;
 
     ShaderStage mShaderStages;
     // the individual stages reflection data.
     uint32_t    mStageReflectionCount;
     uint32_t    mNamePoolSize;
-    uint32_t    mShaderResourceCount;
-    uint32_t    mVariableCount;
 
     uint32_t mVertexStageIndex;
     uint32_t mHullStageIndex;

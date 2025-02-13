@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,17 +22,8 @@
  * under the License.
 */
 
-STRUCT(Camera)
-{
-	DATA(float4x4, projView, None);
-};
-RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
-
-STRUCT(Object)
-{
-	DATA(float4x4, worldMat, None);
-};
-RES(CBUFFER(Object), cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1);
+#include "resources.h.fsl"
+#include "srt.h"
 
 STRUCT(VSInput)
 {
@@ -43,12 +34,12 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
-	float4x4 mvp = mul(cbCamera.projView, cbObject.worldMat);
+	float4x4 mvp = mul(gShadowCamera.projView, gObject.worldMat);
 	Out.Position = mul(mvp, float4(In.Position.xyz, 1.0f));
     RETURN(Out);
 }

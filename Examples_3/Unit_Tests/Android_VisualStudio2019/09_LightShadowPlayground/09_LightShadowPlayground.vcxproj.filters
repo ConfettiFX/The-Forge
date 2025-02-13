@@ -1,211 +1,223 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground">
-      <UniqueIdentifier>{8ecad163-c54d-47a7-b316-939cee8762d3}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{76328fd5-e80f-4868-9e76-b00c3edac305}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{f5fb739b-273f-4aa4-b655-0ab36d8c38df}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{e40ca695-7515-4d6c-88c6-26ed38844d1d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{3b7c55c4-4067-4439-ab8a-a02bcab2ed07}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{4edef4de-a6d3-440f-a441-90b4845267a3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{29852d82-d703-494a-af2c-2bff75d0d7cd}</UniqueIdentifier>
+    <Filter Include="Scripts\Shared">
+      <UniqueIdentifier>{be76be6a-66c0-4f6f-96c4-825de58177ca}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Visibility_Buffer\src">
-      <UniqueIdentifier>{8353eac0-5706-4963-9602-caf63ba0aedd}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{a0c25889-7b8e-44e4-9108-fb0921ca230f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Visibility_Buffer">
-      <UniqueIdentifier>{0b5f4e75-772c-47ce-97af-5a3c50b81148}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL">
-      <UniqueIdentifier>{c19a34df-dabb-42b5-bae1-48d94072edb2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders">
-      <UniqueIdentifier>{28db0cff-a5fa-4fec-a58e-ec4ff275249d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts\09_LightShadowPlayground">
-      <UniqueIdentifier>{697012a7-4692-4e08-8c7a-84d1159dfcfb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{6045b86f-f387-4f0f-8f59-8b9ac9e0652b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{ac11fe90-f788-451e-881b-55310246eb6a}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{f3cfede5-daf0-41a7-8d8f-574d2bf5f15e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
-      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguelSDF.cpp">
-      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h">
-      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+      <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguelSDF.h">
-      <Filter>Examples_3\Visibility_Buffer\src</Filter>
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\bakedSDFMeshShadow.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\gaussian_blur.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\perframe_set.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\persistent_set.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\screenspace_shadows.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\triangleFiltering.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\updateRegion3DTexture.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibility_buffer_pass.srt.h">
+      <Filter>Headers</Filter>
     </ClInclude>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ASMShader_Defs.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\bakedSDFMeshShadow.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\batchCompaction.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\clearScreenSpaceShadows.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\clearVisibilityBuffers.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\copyDEMQuads.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\copyDEMQuads.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\copyDepthQuads.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\copyDepthQuads.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\display.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\display.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\fill_Indirection.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\fill_Indirection.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\gaussianBlur.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\generateAsmDEM.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\generateAsmDEM.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPass.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPassAlpha.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPassAlpha.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshMSMDepthPass.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshMSMDepthPassAlpha.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshVSMDepthPass.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\meshVSMDepthPassAlpha.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\resolve.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\resolve.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\screenSpaceShadows.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\SDF_Constant.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Shader_Defs.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\sss_resources.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\triangleFiltering.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\updateRegion3DTexture.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\upsampleSDFShadow.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\upsampleSDFShadow.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPass.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPass.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPassAlpha.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPassAlpha.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferShade.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferShade.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\visualizeSDFMesh.comp.fsl">
-      <Filter>Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ASM.lua">
-      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
+    <None Include="..\..\..\..\Common_3\Scripts\Test_MSAA_0.lua">
+      <Filter>Scripts\Shared</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_ESM.lua">
-      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
+    <None Include="..\..\..\..\Common_3\Scripts\Test_MSAA_2.lua">
+      <Filter>Scripts\Shared</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_MSM.lua">
-      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
+    <None Include="..\..\..\..\Common_3\Scripts\Test_MSAA_4.lua">
+      <Filter>Scripts\Shared</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_SDF.lua">
-      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
+    <None Include="..\..\src\09_LightShadowPlayground\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\09_LightShadowPlayground\Test_VSM.lua">
-      <Filter>Art\Scripts\09_LightShadowPlayground</Filter>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_0.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_2.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSM.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\Test_MSAA_4.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_VSM.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

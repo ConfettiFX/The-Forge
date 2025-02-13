@@ -14,15 +14,6 @@
     <ClCompile Include="..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadGroundTextures.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadModels.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\loadTextures.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Hair.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Metal.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\Test_Wood.lua" />
-    <None Include="..\..\..\..\Art\Scripts\06_MaterialPlayground\updateCamera.lua" />
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\BRDFIntegration.comp.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\computeIrradianceMap.comp.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\computeSpecularMap.comp.fsl" />
@@ -48,7 +39,7 @@
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF_resources.h.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.frag.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.vert.fsl" />
-    <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.frag.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.vert.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\skybox.frag.fsl" />
@@ -67,10 +58,25 @@
     <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-
     <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
       <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\06_MaterialPlayground\Shaders\FSL\capsules.srt.h" />
+    <ClInclude Include="..\..\src\06_MaterialPlayground\Shaders\FSL\compute_specular_comp.srt.h" />
+    <ClInclude Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair.srt.h" />
+    <ClInclude Include="..\..\src\06_MaterialPlayground\Shaders\FSL\srt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\06_MaterialPlayground\GPUCfg\gpu.cfg" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadGroundTextures.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadModels.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadTextures.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Hair.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Metal.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\Test_Wood.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\updateCamera.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{611831C0-6301-4DB2-A61E-2596129C9239}</ProjectGuid>
@@ -122,13 +128,15 @@
     <PreLinkEvent>
       <Command>
         %(Command) :: Copy Art files
-        xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-        xcopy $(TheForgeRoot)Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
+        xcopy $(TheForgeRoot)Common_3\Quest\quest_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
         xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
         xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
         xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
-        xcopy /Y /S /D "$(TheForgeArtDir)Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
+
+        xcopy $(TheForgeRoot)Common_3\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y
+        xcopy $(SolutionDir)..\src\$(ProjectName)\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y
+        xcopy $(SolutionDir)..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 
         xcopy $(TheForgeArtDir)Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
         xcopy "$(TheForgeArtDir)Textures\ktx\LA_Helipad3D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
@@ -137,11 +145,11 @@
         xcopy "$(TheForgeArtDir)Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
         xcopy "$(TheForgeArtDir)Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
         xcopy "$(TheForgeArtDir)Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-        xcopy "$(TheForgeArtDir)Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
-        xcopy "$(TheForgeArtDir)Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+        xcopy "$(TheForgeArtDir)Meshes\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
+        xcopy "$(TheForgeArtDir)Fonts\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\" /s /y /d
 
-        xcopy "$(TheForgeArtDir)PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
-        xcopy "$(TheForgeArtDir)PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+        xcopy "$(TheForgeArtDir)Textures\ktx\PBR\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+        xcopy "$(TheForgeArtDir)Textures\ktx\PBR\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
 
         "$(SolutionDir)..\src\$(ProjectName)\compile_materials.bat" "$(SolutionDir)..\..\..\" "$(ProjectDir)..\..\src\$(ProjectName)\Materials" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledMaterials"
       </Command>
@@ -188,9 +196,13 @@
       <Command>%(Command) :: Copy Art files
 
 set ART=$(TheForgeArtDir)
-xcopy $(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-xcopy $(TheForgeRoot)Common_3\OS\Android\android_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+
+xcopy $(TheForgeRoot)Common_3\OS\Quest\quest_gpu.data  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data* /s /y /d
+
+xcopy $(TheForgeRoot)Common_3\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y
+xcopy $(SolutionDir)..\src\$(ProjectName)\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\ /s /y
+xcopy $(SolutionDir)..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
+
 
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
 xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
@@ -203,11 +215,11 @@ xcopy "$(TheForgeArtDir)Meshes\capsule.bin" "$(SolutionDir)$(Platform)\$(Configu
 xcopy "$(TheForgeArtDir)Meshes\cube.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
 xcopy "$(TheForgeArtDir)Meshes\sphere.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
 xcopy "$(TheForgeArtDir)Meshes\matBall.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
-xcopy "$(TheForgeArtDir)Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
-xcopy "$(TheForgeArtDir)Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
+xcopy "$(TheForgeArtDir)Meshes\Hair\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\Hair\" /s /y /d
+xcopy "$(TheForgeArtDir)Fonts\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\" /s /y /d
 
-xcopy "$(TheForgeArtDir)PBR\ktx\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
-xcopy "$(TheForgeArtDir)PBR\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "$(TheForgeArtDir)Textures\ktx\PBR\Metallic_*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
+xcopy "$(TheForgeArtDir)Textures\ktx\PBR\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\PBR\" /s /y /d
 
 "$(SolutionDir)..\src\$(ProjectName)\compile_materials.bat" "$(SolutionDir)..\..\..\" "$(ProjectDir)..\..\src\$(ProjectName)\Materials" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledMaterials"</Command>
     </PreLinkEvent>

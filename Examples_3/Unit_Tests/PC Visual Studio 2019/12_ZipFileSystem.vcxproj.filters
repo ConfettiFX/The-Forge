@@ -1,41 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{9b3ed51e-d8d7-4223-b6e0-9ad1d1313f05}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{b30cbe0a-1278-464a-b5e3-821f479b6b0a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{d64042ed-9e8f-470f-b353-95f490724af7}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{8a161dea-347a-45a8-887d-e58ef42e872e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{d75d2453-6c10-40ec-acf6-cd8831cb86bf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\structs.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\occlusion.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\occlusion.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
   </ItemGroup>
 </Project>

@@ -7,6 +7,9 @@
     <Filter Include="Application\Profiler">
       <UniqueIdentifier>{ea6543ad-1f58-420b-8cb2-bc7cf5027586}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Application\Screenshot">
+      <UniqueIdentifier>{f0897b8a-512f-4d92-a0ee-3da1ee8c8bca}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Application\ThirdParty\OpenSource\imgui">
       <UniqueIdentifier>{ab65cab0-1cad-45e6-a4d8-7e4349a283d4}</UniqueIdentifier>
     </Filter>
@@ -109,29 +112,20 @@
     <Filter Include="Utilities\Threading">
       <UniqueIdentifier>{ab144885-8eae-4b07-a621-fed3b180df09}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Application\Interfaces">
-      <UniqueIdentifier>{bcd803be-40f2-4ef6-92c6-532bb6d35301}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Game\Interfaces">
-      <UniqueIdentifier>{28dba3f1-dbdf-4da0-95d3-775dbe4f0561}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Application\Fonts\Shaders\FSL">
       <UniqueIdentifier>{702df82e-73d6-41c7-900a-6f381c59c673}</UniqueIdentifier>
     </Filter>
     <Filter Include="Application\Fonts\Shaders">
       <UniqueIdentifier>{d82f665e-f4d5-4dd1-af04-affdae4d490f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Input">
-      <UniqueIdentifier>{692cab80-a13b-4964-93df-dba8098a7466}</UniqueIdentifier>
+    <Filter Include="Application\Interfaces">
+      <UniqueIdentifier>{bcd803be-40f2-4ef6-92c6-532bb6d35301}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Interfaces">
-      <UniqueIdentifier>{cbcf03d0-0316-4468-994d-4ff1210a5a0e}</UniqueIdentifier>
+    <Filter Include="Application\Screenshot\Shaders\FSL">
+      <UniqueIdentifier>{9c953080-bc76-4257-9a18-bcda63be887c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utilities\Interfaces">
-      <UniqueIdentifier>{fdf25c6d-d255-465a-91e5-bdfeefd48303}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics">
-      <UniqueIdentifier>{fcd38e20-cefb-44d0-ac6e-f35abb82ae63}</UniqueIdentifier>
+    <Filter Include="Application\Screenshot\Shaders">
+      <UniqueIdentifier>{4f76e41c-3d24-4b1c-b3d6-67cb0c290a18}</UniqueIdentifier>
     </Filter>
     <Filter Include="Application\UI\Shaders\FSL">
       <UniqueIdentifier>{fe23ea6d-a66d-41e2-83d8-2da5646c5b8f}</UniqueIdentifier>
@@ -139,11 +133,26 @@
     <Filter Include="Application\UI\Shaders">
       <UniqueIdentifier>{e4046edd-f4ef-4944-9142-2abeaeaada67}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Game\Interfaces">
+      <UniqueIdentifier>{28dba3f1-dbdf-4da0-95d3-775dbe4f0561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Input">
+      <UniqueIdentifier>{692cab80-a13b-4964-93df-dba8098a7466}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Interfaces">
+      <UniqueIdentifier>{cbcf03d0-0316-4468-994d-4ff1210a5a0e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Resources\AnimationSystem\Animation\Shaders\FSL">
       <UniqueIdentifier>{676e1ad7-87e1-4507-b1eb-d4e4d9dccb26}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\AnimationSystem\Animation\Shaders">
       <UniqueIdentifier>{07819bb2-9037-47c2-b2a5-662b24da823d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\Interfaces">
+      <UniqueIdentifier>{fdf25c6d-d255-465a-91e5-bdfeefd48303}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{fcd38e20-cefb-44d0-ac6e-f35abb82ae63}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -156,8 +165,8 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.cpp">
       <Filter>Application\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp">
-      <Filter>Application</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot\Screenshot.cpp">
+      <Filter>Application\Screenshot</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui.cpp">
       <Filter>Application\ThirdParty\OpenSource\imgui</Filter>
@@ -417,6 +426,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Config.h">
       <Filter>Application</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.srt.h">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IApp.h">
       <Filter>Application\Interfaces</Filter>
     </ClInclude>
@@ -444,6 +456,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerHTML.h">
       <Filter>Application\Profiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.srt.h">
+      <Filter>Application\Screenshot\Shaders\FSL</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imconfig.h">
       <Filter>Application\ThirdParty\OpenSource\imgui</Filter>
     </ClInclude>
@@ -452,6 +467,18 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui_resources.h">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui_srt.h">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_resources.h">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_srt.h">
+      <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Interfaces\IScripting.h">
       <Filter>Game\Interfaces</Filter>
@@ -491,6 +518,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Rig.h">
       <Filter>Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_resources.h">
+      <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_srt.h">
+      <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.h">
       <Filter>Resources\AnimationSystem\Animation</Filter>
@@ -543,6 +576,15 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.h">
       <Filter>Utilities\Threading</Filter>
     </ClInclude>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\font_shaders.list">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.fsl">
+      <Filter>Application\Screenshot\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\screenshot_shaders.list">
+      <Filter>Application\Screenshot\Shaders\FSL</Filter>
+    </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
@@ -555,9 +597,6 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.vert.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UI_ShaderList.fsl">
-      <Filter>Application\UI\Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.frag.fsl">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
     </FSLShader>
@@ -567,10 +606,10 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash3D.vert.fsl">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\Fonts_ShaderList.fsl">
-      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ui_shaders.list">
+      <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Animation_ShaderList.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_shaders.list">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.frag.fsl">

@@ -44,6 +44,10 @@
 		EC417E162C94F0BC00950982 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC417E132C94F0B900950982 /* iOSAppDelegate.m */; };
 		EC417E202C94F0EF00950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417E172C94F0D100950982 /* Assets.xcassets */; };
 		EC417E222C94F0F600950982 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EC417E1D2C94F0EA00950982 /* LaunchScreen.storyboard */; };
+		F25E318D2D4932AF0002574A /* Test_MSAA.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E318A2D4932AF0002574A /* Test_MSAA.lua */; };
+		F25E318E2D4932AF0002574A /* Test_VRS.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E318B2D4932AF0002574A /* Test_VRS.lua */; };
+		F25E318F2D4932AF0002574A /* Test_MSAA.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E318A2D4932AF0002574A /* Test_MSAA.lua */; };
+		F25E31902D4932AF0002574A /* Test_VRS.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E318B2D4932AF0002574A /* Test_VRS.lua */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -186,6 +190,8 @@
 		EC417E182C94F0D100950982 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/iOS/Info.plist; sourceTree = "<group>"; };
 		EC417E1E2C94F0EA00950982 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = ../../../Build_Props/XCode/iOS/Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EC66B8C82C935DFA0004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
+		F25E318A2D4932AF0002574A /* Test_MSAA.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_MSAA.lua; sourceTree = "<group>"; };
+		F25E318B2D4932AF0002574A /* Test_VRS.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_VRS.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -290,6 +296,7 @@
 				D26E80521F471B2300C043F1 /* 15a_VisibilityBufferOIT_iOS */,
 				EA463C8D1EF81E8F005AC8C7 /* Frameworks */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				F25E318C2D4932AF0002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -385,6 +392,16 @@
 			);
 			path = 15a_VisibilityBufferOIT;
 			sourceTree = "<group>";
+		};
+		F25E318C2D4932AF0002574A /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				F25E318A2D4932AF0002574A /* Test_MSAA.lua */,
+				F25E318B2D4932AF0002574A /* Test_VRS.lua */,
+			);
+			name = Scripts;
+			path = ../../src/15a_VisibilityBufferOIT/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -535,6 +552,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F25E318F2D4932AF0002574A /* Test_MSAA.lua in Resources */,
+				F25E31902D4932AF0002574A /* Test_VRS.lua in Resources */,
 				EC417E202C94F0EF00950982 /* Assets.xcassets in Resources */,
 				EC417E222C94F0F600950982 /* LaunchScreen.storyboard in Resources */,
 			);
@@ -544,6 +563,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F25E318D2D4932AF0002574A /* Test_MSAA.lua in Resources */,
+				F25E318E2D4932AF0002574A /* Test_VRS.lua in Resources */,
 				EC417E0B2C94F06A00950982 /* Info.plist in Resources */,
 				EC417E0C2C94F06A00950982 /* Assets.xcassets in Resources */,
 				EC417E122C94F09700950982 /* MainMenu.xib in Resources */,
@@ -569,7 +590,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C13A50524D1F7490023D339 /* Run Script */ = {
@@ -624,7 +645,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

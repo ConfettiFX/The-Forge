@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,31 +24,105 @@
 
 #define PRE_SKIN_NORMALS
 //#define PRE_SKIN_TANGENTS
+
+#include "shader_defs.h.fsl"
+
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_resources.h.fsl"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/pre_skin_vertexes.h.fsl"
 
-RES(ByteBuffer, vertexJointsBuffer, UPDATE_FREQ_NONE, t11, binding = 11);
-RES(ByteBuffer, vertexWeightsBuffer, UPDATE_FREQ_NONE, t12, binding = 12);
+#include "vb_resources.h.fsl"
+#include "pre_skin_vertexes.comp.srt.h"
 
+#ifdef PRE_SKIN_ASYNC_COMPUTE
+	#define VERTEX_POSITION_BUFFER_NAME gVertexPositionBufferSkinnedAsync
+	#define VERTEX_NORMAL_BUFFER_NAME gVertexNormalBufferSkinnedAsync
+	#define VERTEX_TANGENT_BUFFER_NAME gVertexTangentBufferSkinnedAsync
+
+#else
+	#define VERTEX_POSITION_BUFFER_NAME gVertexPositionBufferSkinned
+	#define VERTEX_NORMAL_BUFFER_NAME gVertexNormalBufferSkinned
+	#define VERTEX_TANGENT_BUFFER_NAME gVertexTangentBufferSkinned
+#endif
+
+void PreSkinVertex(const uint groupIdX_batchIndex, const uint threadIdX_vertexIndex, PreSkinIn In, uint4 jointIndices, float4 jointWeights)
+{
+    float4x4 boneTransform = gJointMatrixes[jointIndices[0]] * jointWeights[0];
+    boneTransform += gJointMatrixes[jointIndices[1]] * jointWeights[1];
+    boneTransform += gJointMatrixes[jointIndices[2]] * jointWeights[2];
+    boneTransform += gJointMatrixes[jointIndices[3]] * jointWeights[3];
+
+    uint vertexOutputOffset = threadIdX_vertexIndex + gBatchData.skinBatchDataBuffer[groupIdX_batchIndex].outputVertexOffset;
+
+    // Apply global offset, this way PreSkinBatchData::outputVertexOffset can be relative to 0 and this global offset
+    // gives us the position in the final buffer where to write the data
+    vertexOutputOffset += gOutputBufferOffsets.bufferOffsets.vertexOffset;
+
+    uint3 uintPos = asuint(mul(boneTransform, float4(In.position, 1.0f)).xyz);
+    StoreByte(VERTEX_POSITION_BUFFER_NAME, (vertexOutputOffset * 3 + 0) << 2, uintPos[0]);
+    StoreByte(VERTEX_POSITION_BUFFER_NAME, (vertexOutputOffset * 3 + 1) << 2, uintPos[1]);
+    StoreByte(VERTEX_POSITION_BUFFER_NAME, (vertexOutputOffset * 3 + 2) << 2, uintPos[2]);
+
+#ifdef PRE_SKIN_NORMALS
+    float3 normal = decodeDir(unpackUnorm2x16(In.normal));
+    normal = mul(adjoint_float4x4(boneTransform), normal);
+    uint packedNormal = packUnorm2x16(encodeDir(normal));
+    StoreByte(VERTEX_NORMAL_BUFFER_NAME, vertexOutputOffset << 2, packedNormal);
+#endif
+
+#ifdef PRE_SKIN_TANGENTS
+    float3 tangent = decodeDir(unpackUnorm2x16(In.tangent));
+    tangent = mul(boneTransform, float4(tangent, 0.0f)).xyz;
+    uint packedTangent = packUnorm2x16(encodeDir(tangent));
+    StoreByte(VERTEX_TANGENT_BUFFER_NAME, vertexOutputOffset << 2, packedTangent);
+#endif
+}
+
+float3 LoadVertexPositionFloat3(uint vtxIndex)
+{
+    return asfloat(LoadByte4(VERTEX_POSITION_BUFFER_NAME, (vtxIndex * 3) << 2)).xyz;
+}
+
+#define LoadJointIndexes4x16(buffer, jointVtxIndex)   unpackUint4x16FromUint2x32(uint2(LoadByte4(buffer, (jointVtxIndex * 2) << 2).xy))
+#define LoadJointWeightsFloat4(buffer, jointVtxIndex) asfloat(LoadByte4(buffer, jointVtxIndex * 16));
+
+#ifdef PRE_SKIN_NORMALS
+uint LoadVertexNormalUint(uint vtxIndex)
+{
+    return LoadByte(VERTEX_NORMAL_BUFFER_NAME, vtxIndex << 2);
+}
+#endif
+
+#ifdef PRE_SKIN_TANGENTS
+uint LoadVertexTangentUint(uint vtxIndex)
+{
+    return LoadByte(VERTEX_TANGENT_BUFFER_NAME, vtxIndex << 2);
+}
+#endif
+
+
+
+
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(SKIN_BATCH_SIZE, 1, 1)
 void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 {
 	INIT_MAIN;
-
-	if (threadId.x >= batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexCount)
+	if (threadId.x >= gBatchData.skinBatchDataBuffer[groupId.x].vertexCount)
 	{
 		RETURN();
 	}
+
 	
 	// Index for position might be different than index for joints, positions live in a buffer with position all other meshes in
 	// the scene, whereas joints buffer is smaller and only contains the data necessary for the few skinned meshes in the scene
-	uint inVertexIndex = threadId.x + batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexPositionOffset;
-	uint jointIndex = threadId.x + batchData_rootcbv.skinBatchDataBuffer[groupId.x].vertexJointsOffset;
+	uint inVertexIndex = threadId.x + gBatchData.skinBatchDataBuffer[groupId.x].vertexPositionOffset;
+	uint jointIndex = threadId.x + gBatchData.skinBatchDataBuffer[groupId.x].vertexJointsOffset;
 
-	uint4 joints = LoadJointIndexes4x16(vertexJointsBuffer, jointIndex);
-	float4 weights = LoadJointWeightsFloat4(vertexWeightsBuffer, jointIndex);
+	uint4 joints = LoadJointIndexes4x16(gVertexJointsBuffer, jointIndex);
+	float4 weights = LoadJointWeightsFloat4(gVertexWeightsBuffer, jointIndex);
+	// gJointMatrixes buffer contains matrixes for all animated instances in the scene, we need to offset our joints to the correct offset
+	joints += gBatchData.skinBatchDataBuffer[groupId.x].jointMatrixOffset;
 
-	// jointMatrixes buffer contains matrixes for all animated instances in the scene, we need to offset our joints to the correct offset
-	joints += batchData_rootcbv.skinBatchDataBuffer[groupId.x].jointMatrixOffset;
 
 	PreSkinIn In;
 	In.position = LoadVertexPositionFloat3(inVertexIndex);

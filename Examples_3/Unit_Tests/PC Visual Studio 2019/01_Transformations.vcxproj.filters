@@ -1,64 +1,67 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations">
-      <UniqueIdentifier>{05b128ca-850f-4c63-8593-c37638db8512}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{54ed5d5f-bfa7-4a29-8d2a-7a1a9f46a081}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{d5a71915-f72b-4dd4-877e-20b2f9f7d992}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{6aff4b52-53ba-4349-ab51-fffcdbef7f8d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{482a0b83-f077-410a-9ca6-536559b0b606}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{da1c0719-241f-4629-b49e-a7af9edb5295}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{000af006-39cc-4d33-9f52-7e8145ce7183}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{13033753-aac6-4532-a4e4-69ef50a835c8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL">
-      <UniqueIdentifier>{0eb061b8-890d-4ed2-b874-cb7579a3c7d9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders">
-      <UniqueIdentifier>{19f0fc31-d825-4ff6-b618-11f7a890ff65}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{3368b10e-ec7c-4bf7-b77c-b565fa8b9246}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{ff31ab6b-b48d-4d28-966b-e2c3cf8794f3}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{64fe91ff-7aa5-4040-820d-1656c6330538}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
+    <ClInclude Include="..\src\01_Transformations\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\resources.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\01_Transformations\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+    <FSLShader Include="..\src\01_Transformations\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\Art\Scripts\TestBorderless.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\src\01_Transformations\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
     </None>
-    <None Include="..\..\..\Art\Scripts\TestCenteredWindow.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\src\01_Transformations\Scripts\TestBorderless.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\Art\Scripts\TestFullScreen.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\src\01_Transformations\Scripts\TestCenteredWindow.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\Art\Scripts\TestNonCenteredWindow.lua">
-      <Filter>Art\Scripts</Filter>
+    <None Include="..\src\01_Transformations\Scripts\TestFullScreen.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Scripts\TestNonCenteredWindow.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Scripts\TestReloadShader.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Scripts\TestReloadShaderCapture.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

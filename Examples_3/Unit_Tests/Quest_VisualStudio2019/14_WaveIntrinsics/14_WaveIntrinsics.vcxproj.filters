@@ -1,82 +1,64 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Examples_3\Unit_Tests\src\14_WaveIntrinsics">
-      <UniqueIdentifier>{4c6abe04-f6d3-43e7-b390-7cf2296dac92}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{df2e65e6-7979-467e-99a2-bb3fe7e4af0e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{0aab3600-0b49-4750-94d5-b57652f8a453}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{cd27457a-7937-45a2-8b05-2e733a1babad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{1a402f11-89ff-4cc4-a751-b6fd89b558f9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{1be86183-e1a6-44a3-a9ea-0c9276e7e67e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL">
-      <UniqueIdentifier>{8e3667e9-3d9d-4b55-b980-d9f3f3afeb3d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders">
-      <UniqueIdentifier>{d0202589-f9de-438f-912c-337986a5bbbe}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts\14_WaveIntrinsics">
-      <UniqueIdentifier>{89b75cd4-488f-4b2f-a75f-2836934cd240}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{af44a03f-3707-46f4-be01-603b1ca1752e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{b4d1ead6-bad3-4516-8698-bba85916b393}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{9efaf560-fe26-4d7d-857c-c657cc8c2305}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\14_WaveIntrinsics\14_WaveIntrinsics.cpp">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\resources.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\14_WaveIntrinsics\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_Normal.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_Normal.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_QuadReadAcross.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_QuadReadAcross.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveActiveBallot.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveActiveBallot.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveActiveSum.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveActiveSum.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveGetLaneIndex.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveGetLaneIndex.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveGetMaxActiveIndex.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveGetMaxActiveIndex.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveIsFirstLane.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveIsFirstLane.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WavePrefixSum.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WavePrefixSum.lua">
+      <Filter>Scripts</Filter>
     </None>
-    <None Include="..\..\..\..\Art\Scripts\14_WaveIntrinsics\Test_WaveReadLaneFirst.lua">
-      <Filter>Art\Scripts\14_WaveIntrinsics</Filter>
+    <None Include="..\..\src\14_WaveIntrinsics\Scripts\Test_WaveReadLaneFirst.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

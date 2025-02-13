@@ -27,10 +27,20 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\d3d12_srt.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\defaults.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\fsl_srt.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d12_ext.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\fsl_ext.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal_ext.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan_ext.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
@@ -43,16 +53,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl" />
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl" />
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl" />
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_clear_sorting_structs.comp.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl" />
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_utils.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl" />
     <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\clear_buffers.h.fsl" />

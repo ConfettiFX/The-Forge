@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,28 +22,23 @@
 * under the License.
 */
 
-RES(RWTex2D(float), Source, UPDATE_FREQ_PER_DRAW, u0, binding = 1);
-RES(RWTex2D(float), Destination, UPDATE_FREQ_PER_DRAW, u1, binding = 2);
+#include "vb_resources.h.fsl"
+#include "generateMips.srt.h"
 
-STRUCT(RootConstant)
-{
-	DATA(uint2, MipSize, None);
-};
-RES(ROOT_CONSTANT(RootConstant), uRootConstant, UPDATE_FREQ_NONE, b0, binding = 0);
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(16,  16,  1)
 void CS_MAIN( SV_DispatchThreadID(uint3) id) 
 {    
 	INIT_MAIN;
-	if (id.x < uRootConstant.MipSize.x && id.y < uRootConstant.MipSize.y)
+	if (id.x < gGenMipsConstants.MipSize.x && id.y < gGenMipsConstants.MipSize.y)
 	{
 		float color = 0.0f;
 		UNROLL for (int x = 0; x < 2; ++x)
 		{
 			UNROLL for (int y = 0; y < 2; ++y)
-				color = max(color, LoadRWTex2D(Source, id.xy * 2 + uint2(x, y)).x);
+				color = max(color, LoadRWTex2D(gSourceTexture, id.xy * 2 + uint2(x, y)).x);
 		}
-		Write2D(Destination, id.xy, color);
+		Write2D(gDestinationTexture, id.xy, color);
 	}
 	RETURN();
 }

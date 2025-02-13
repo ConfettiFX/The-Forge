@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,7 +30,7 @@ struct UIComponent;
 
 FORGE_API bool platformInitReloadClient(void);
 FORGE_API void platformExitReloadClient();
-FORGE_API void platformReloadClientRequestShaderRecompile();
-FORGE_API bool platformReloadClientGetShaderBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize);
-FORGE_API bool platformReloadClientShouldQuit(void);
-FORGE_API void platformReloadClientAddReloadShadersWidgets(UIComponent* pReloadShaderComponent);
+FORGE_API void platformRequestReload();
+FORGE_API bool platformGetReloadBinary(const char* path, void** pByteCode, uint32_t* pByteCodeSize);
+FORGE_API void platformUpdateReloadClient(void);
+FORGE_API void platformSetupReloadClientUI(UIComponent* pReloadShaderComponent);

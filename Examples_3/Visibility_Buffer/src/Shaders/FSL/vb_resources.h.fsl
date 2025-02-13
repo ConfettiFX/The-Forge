@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,12 +27,7 @@
 
 #include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 4);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t1, binding = 5);
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t2, binding = 6);
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t3, binding = 7);
-
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t4, binding=8);
+#include "shader_defs.h.fsl"
 
 STRUCT(PsInOpaque)
 {
@@ -57,14 +52,20 @@ STRUCT(VsInVBOpaque)
     DATA(float3, position, POSITION);
 };
 
-float4 LoadVertex(uint index)
-{
-    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
-}
 
-float2 LoadTexCoord(uint index)
+STRUCT(UniformCameraSkyData)
 {
-	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
-}
+	DATA(CameraMatrix, projView, None);
+	DATA(float3, camPos, None);
+};
+
+
+
+STRUCT(BlurWeightData)
+{
+	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE / 4], None);
+};
+
+
 
 #endif /* vb_resources_h */

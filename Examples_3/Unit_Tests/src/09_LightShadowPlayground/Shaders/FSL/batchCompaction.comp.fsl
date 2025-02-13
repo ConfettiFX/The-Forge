@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,11 +22,14 @@
 * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
 
-RES(RWBuffer(uint), indirectMaterialBuffer, UPDATE_FREQ_NONE, u40, binding = 40);
+#include "vb_resources.h.fsl"
+#include "srt.h"
+
+
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/batch_compaction.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID) 
 {
@@ -58,7 +61,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID)
 		if (numIndices[j] > 0)
 		{
 			uint instanceSlot = BatchCompaction(threadID.x, j, numIndices[j], slot);
-			indirectMaterialBuffer[instanceSlot] = uncompactedDrawArgs[GET_UNCOMPACT_DRAW_INDEX(j, threadID.x)].instanceDataIndex;
+			gIndirectMaterialBufferRW[instanceSlot] = uncompactedDrawArgs[GET_UNCOMPACT_DRAW_INDEX(j, threadID.x)].instanceDataIndex;
 		}
 	}
 	RETURN();

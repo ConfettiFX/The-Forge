@@ -33,6 +33,24 @@
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 		EC417DFD2C94EE8000950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417DFC2C94EE8000950982 /* Assets.xcassets */; };
 		EC417DFF2C94EE9300950982 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EC417DFE2C94EE9300950982 /* Info.plist */; };
+		F25E31782D4932980002574A /* Test_WaveGetLaneIndex.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31722D4932980002574A /* Test_WaveGetLaneIndex.lua */; };
+		F25E31792D4932980002574A /* Test_QuadReadAcross.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E316F2D4932980002574A /* Test_QuadReadAcross.lua */; };
+		F25E317A2D4932980002574A /* Test_WavePrefixSum.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31752D4932980002574A /* Test_WavePrefixSum.lua */; };
+		F25E317B2D4932980002574A /* Test_WaveReadLaneFirst.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31762D4932980002574A /* Test_WaveReadLaneFirst.lua */; };
+		F25E317C2D4932980002574A /* Test_WaveActiveBallot.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31702D4932980002574A /* Test_WaveActiveBallot.lua */; };
+		F25E317D2D4932980002574A /* Test_WaveGetMaxActiveIndex.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31732D4932980002574A /* Test_WaveGetMaxActiveIndex.lua */; };
+		F25E317E2D4932980002574A /* Test_WaveActiveSum.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31712D4932980002574A /* Test_WaveActiveSum.lua */; };
+		F25E317F2D4932980002574A /* Test_Normal.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E316E2D4932980002574A /* Test_Normal.lua */; };
+		F25E31802D4932980002574A /* Test_WaveIsFirstLane.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31742D4932980002574A /* Test_WaveIsFirstLane.lua */; };
+		F25E31812D4932980002574A /* Test_WaveGetLaneIndex.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31722D4932980002574A /* Test_WaveGetLaneIndex.lua */; };
+		F25E31822D4932980002574A /* Test_QuadReadAcross.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E316F2D4932980002574A /* Test_QuadReadAcross.lua */; };
+		F25E31832D4932980002574A /* Test_WavePrefixSum.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31752D4932980002574A /* Test_WavePrefixSum.lua */; };
+		F25E31842D4932980002574A /* Test_WaveReadLaneFirst.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31762D4932980002574A /* Test_WaveReadLaneFirst.lua */; };
+		F25E31852D4932980002574A /* Test_WaveActiveBallot.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31702D4932980002574A /* Test_WaveActiveBallot.lua */; };
+		F25E31862D4932980002574A /* Test_WaveGetMaxActiveIndex.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31732D4932980002574A /* Test_WaveGetMaxActiveIndex.lua */; };
+		F25E31872D4932980002574A /* Test_WaveActiveSum.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31712D4932980002574A /* Test_WaveActiveSum.lua */; };
+		F25E31882D4932980002574A /* Test_Normal.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E316E2D4932980002574A /* Test_Normal.lua */; };
+		F25E31892D4932980002574A /* Test_WaveIsFirstLane.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31742D4932980002574A /* Test_WaveIsFirstLane.lua */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,15 +118,15 @@
 		EC417DFC2C94EE8000950982 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/MacOS/Assets.xcassets; sourceTree = "<group>"; };
 		EC417DFE2C94EE9300950982 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/MacOS/Info.plist; sourceTree = "<group>"; };
 		EC66B8A72C935BD20004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
-		EC66B8AC2C935C320004DC3B /* Test_QuadReadAcross.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_QuadReadAcross.lua; sourceTree = "<group>"; };
-		EC66B8AD2C935C320004DC3B /* Test_WaveGetLaneIndex.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveGetLaneIndex.lua; sourceTree = "<group>"; };
-		EC66B8AE2C935C320004DC3B /* Test_WaveIsFirstLane.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveIsFirstLane.lua; sourceTree = "<group>"; };
-		EC66B8AF2C935C320004DC3B /* Test_WavePrefixSum.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WavePrefixSum.lua; sourceTree = "<group>"; };
-		EC66B8B02C935C320004DC3B /* Test_WaveActiveBallot.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveActiveBallot.lua; sourceTree = "<group>"; };
-		EC66B8B12C935C320004DC3B /* Test_Normal.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_Normal.lua; sourceTree = "<group>"; };
-		EC66B8B22C935C320004DC3B /* Test_WaveActiveSum.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveActiveSum.lua; sourceTree = "<group>"; };
-		EC66B8B32C935C320004DC3B /* Test_WaveReadLaneFirst.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveReadLaneFirst.lua; sourceTree = "<group>"; };
-		EC66B8B42C935C320004DC3B /* Test_WaveGetMaxActiveIndex.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Test_WaveGetMaxActiveIndex.lua; sourceTree = "<group>"; };
+		F25E316E2D4932980002574A /* Test_Normal.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_Normal.lua; sourceTree = "<group>"; };
+		F25E316F2D4932980002574A /* Test_QuadReadAcross.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_QuadReadAcross.lua; sourceTree = "<group>"; };
+		F25E31702D4932980002574A /* Test_WaveActiveBallot.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveActiveBallot.lua; sourceTree = "<group>"; };
+		F25E31712D4932980002574A /* Test_WaveActiveSum.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveActiveSum.lua; sourceTree = "<group>"; };
+		F25E31722D4932980002574A /* Test_WaveGetLaneIndex.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveGetLaneIndex.lua; sourceTree = "<group>"; };
+		F25E31732D4932980002574A /* Test_WaveGetMaxActiveIndex.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveGetMaxActiveIndex.lua; sourceTree = "<group>"; };
+		F25E31742D4932980002574A /* Test_WaveIsFirstLane.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveIsFirstLane.lua; sourceTree = "<group>"; };
+		F25E31752D4932980002574A /* Test_WavePrefixSum.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WavePrefixSum.lua; sourceTree = "<group>"; };
+		F25E31762D4932980002574A /* Test_WaveReadLaneFirst.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_WaveReadLaneFirst.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,7 +221,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				EC66B8A92C935BE50004DC3B /* Art */,
 				EC66B8A32C935B660004DC3B /* Examples_3 */,
 				7F6E00042A93D9D200981E7B /* BuildConfigs */,
 				5C512C442141556900E7A798 /* The-Forge.xcodeproj */,
@@ -211,6 +228,7 @@
 				D062DAD82211030400CF2B1B /* 14_WaveIntrinsics_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
+				F25E31772D4932980002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -269,38 +287,22 @@
 			path = 14_WaveIntrinsics;
 			sourceTree = "<group>";
 		};
-		EC66B8A92C935BE50004DC3B /* Art */ = {
+		F25E31772D4932980002574A /* Scripts */ = {
 			isa = PBXGroup;
 			children = (
-				EC66B8AA2C935BF30004DC3B /* Scripts */,
+				F25E316E2D4932980002574A /* Test_Normal.lua */,
+				F25E316F2D4932980002574A /* Test_QuadReadAcross.lua */,
+				F25E31702D4932980002574A /* Test_WaveActiveBallot.lua */,
+				F25E31712D4932980002574A /* Test_WaveActiveSum.lua */,
+				F25E31722D4932980002574A /* Test_WaveGetLaneIndex.lua */,
+				F25E31732D4932980002574A /* Test_WaveGetMaxActiveIndex.lua */,
+				F25E31742D4932980002574A /* Test_WaveIsFirstLane.lua */,
+				F25E31752D4932980002574A /* Test_WavePrefixSum.lua */,
+				F25E31762D4932980002574A /* Test_WaveReadLaneFirst.lua */,
 			);
-			name = Art;
-			path = ../../../../Art;
-			sourceTree = "<group>";
-		};
-		EC66B8AA2C935BF30004DC3B /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B8AB2C935C0F0004DC3B /* 14_WaveIntrinsics */,
-			);
-			path = Scripts;
-			sourceTree = "<group>";
-		};
-		EC66B8AB2C935C0F0004DC3B /* 14_WaveIntrinsics */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B8B12C935C320004DC3B /* Test_Normal.lua */,
-				EC66B8AC2C935C320004DC3B /* Test_QuadReadAcross.lua */,
-				EC66B8B02C935C320004DC3B /* Test_WaveActiveBallot.lua */,
-				EC66B8B22C935C320004DC3B /* Test_WaveActiveSum.lua */,
-				EC66B8AD2C935C320004DC3B /* Test_WaveGetLaneIndex.lua */,
-				EC66B8B42C935C320004DC3B /* Test_WaveGetMaxActiveIndex.lua */,
-				EC66B8AE2C935C320004DC3B /* Test_WaveIsFirstLane.lua */,
-				EC66B8AF2C935C320004DC3B /* Test_WavePrefixSum.lua */,
-				EC66B8B32C935C320004DC3B /* Test_WaveReadLaneFirst.lua */,
-			);
-			path = 14_WaveIntrinsics;
-			sourceTree = "<group>";
+			name = Scripts;
+			path = ../../src/14_WaveIntrinsics/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -409,6 +411,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */,
+				F25E31782D4932980002574A /* Test_WaveGetLaneIndex.lua in Resources */,
+				F25E31792D4932980002574A /* Test_QuadReadAcross.lua in Resources */,
+				F25E317A2D4932980002574A /* Test_WavePrefixSum.lua in Resources */,
+				F25E317B2D4932980002574A /* Test_WaveReadLaneFirst.lua in Resources */,
+				F25E317C2D4932980002574A /* Test_WaveActiveBallot.lua in Resources */,
+				F25E317D2D4932980002574A /* Test_WaveGetMaxActiveIndex.lua in Resources */,
+				F25E317E2D4932980002574A /* Test_WaveActiveSum.lua in Resources */,
+				F25E317F2D4932980002574A /* Test_Normal.lua in Resources */,
+				F25E31802D4932980002574A /* Test_WaveIsFirstLane.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,6 +430,15 @@
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 				EC417DFD2C94EE8000950982 /* Assets.xcassets in Resources */,
 				EC417DFF2C94EE9300950982 /* Info.plist in Resources */,
+				F25E31812D4932980002574A /* Test_WaveGetLaneIndex.lua in Resources */,
+				F25E31822D4932980002574A /* Test_QuadReadAcross.lua in Resources */,
+				F25E31832D4932980002574A /* Test_WavePrefixSum.lua in Resources */,
+				F25E31842D4932980002574A /* Test_WaveReadLaneFirst.lua in Resources */,
+				F25E31852D4932980002574A /* Test_WaveActiveBallot.lua in Resources */,
+				F25E31862D4932980002574A /* Test_WaveGetMaxActiveIndex.lua in Resources */,
+				F25E31872D4932980002574A /* Test_WaveActiveSum.lua in Resources */,
+				F25E31882D4932980002574A /* Test_Normal.lua in Resources */,
+				F25E31892D4932980002574A /* Test_WaveIsFirstLane.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -441,7 +461,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09F9CC4C284FD1600064E142 /* ShellScript */ = {
@@ -460,7 +480,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C61B5A024D2E3C600EF5D20 /* ShellScript */ = {

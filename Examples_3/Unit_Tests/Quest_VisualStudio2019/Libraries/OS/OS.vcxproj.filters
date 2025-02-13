@@ -1,14 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Application\Screenshot">
+      <UniqueIdentifier>{934a5421-a2ee-4d05-b55d-7ffc2b380345}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application">
+      <UniqueIdentifier>{67c12e19-cdc0-4c03-acea-e52ef823d3e4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="OS\Android">
       <UniqueIdentifier>{47136eb1-80c8-457f-a62a-a1920fe22249}</UniqueIdentifier>
     </Filter>
     <Filter Include="OS">
       <UniqueIdentifier>{46a9c856-9efb-471d-9007-488d84e1083f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Application">
-      <UniqueIdentifier>{67c12e19-cdc0-4c03-acea-e52ef823d3e4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Utilities\Math">
       <UniqueIdentifier>{0f1b198f-b5a3-47fa-b8d0-b65a3b6b8605}</UniqueIdentifier>
@@ -139,6 +142,12 @@
     <Filter Include="Utilities\ThirdParty\OpenSource\Nothings">
       <UniqueIdentifier>{57fe3538-3f7a-4571-a87e-f2ded292106a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Application\Screenshot\Shaders\FSL">
+      <UniqueIdentifier>{94a049b0-2275-41ad-af74-4a1cc181d14a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Screenshot\Shaders">
+      <UniqueIdentifier>{192aeba5-dfc9-4477-892c-ef8b98ebe763}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Application\UI\Shaders\FSL">
       <UniqueIdentifier>{a5f1b51f-a06d-4792-abba-9b75d851ebcb}</UniqueIdentifier>
     </Filter>
@@ -153,6 +162,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot\Screenshot.cpp">
+      <Filter>Application\Screenshot</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp">
       <Filter>OS\Android</Filter>
     </ClCompile>
@@ -182,9 +194,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\CPUConfig.cpp">
       <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp">
-      <Filter>Application</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\StbDs.c">
       <Filter>Utilities\Math</Filter>
@@ -564,16 +573,19 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash3D.vert.fsl">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\Fonts_ShaderList.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\font_shaders.list">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.fsl">
+      <Filter>Application\Screenshot\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\screenshot_shaders.list">
+      <Filter>Application\Screenshot\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.vert.fsl">
-      <Filter>Application\UI\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UI_ShaderList.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.frag.fsl">
@@ -582,7 +594,10 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.vert.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Animation_ShaderList.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ui_shaders.list">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_shaders.list">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.frag.fsl">

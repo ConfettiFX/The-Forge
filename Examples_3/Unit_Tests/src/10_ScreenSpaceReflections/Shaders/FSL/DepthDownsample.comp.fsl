@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,11 +47,12 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_DEPTH_DOWNSAMPLE
 #define FFX_SSSR_DEPTH_DOWNSAMPLE
 
+#include "vb_resources.h.fsl"
+#include "DepthDownsample.srt.h"
+
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_SHUFFLE_BIT)
 
-RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(RWTex2D(float), g_downsampled_depth_buffer[13], UPDATE_FREQ_NONE, u0, binding = 1);
-RES(RWBuffer(uint), g_global_atomic, UPDATE_FREQ_NONE, u13, binding = 2); // Single atomic counter that stores the number of remaining threadgroups to process.
+
 
 GroupShared(float, g_group_shared_depth_values[16][16]);
 GroupShared(uint, g_group_shared_counter);
@@ -59,25 +60,25 @@ GroupShared(uint, g_group_shared_counter);
 // Define fetch and store functions
 float4 SpdLoadSourceImage(int2 index)
 {
-    return LoadTex2D(g_depth_buffer, NO_SAMPLER, index, 0).xxxx;
+    return LoadTex2D(gDepthBuffer, NO_SAMPLER, index, 0).xxxx;
 }
 float4 SpdLoad(uint2 index)
 {
     // 5 -> 6 as we store a copy of the depth buffer at index 0
-    return LoadRWTex2D(g_downsampled_depth_buffer[6], index).xxxx;
+    return LoadRWTex2D(gDownsampledDepthBuffer[6], index).xxxx;
 }
 void SpdStore(uint2 pix, float4 outValue, uint index)
 {
     // + 1 as we store a copy of the depth buffer at index 0
-    Write2D(g_downsampled_depth_buffer[index + 1], pix, outValue.x);
+    Write2D(gDownsampledDepthBuffer[index + 1], pix, outValue.x);
 }
 void SpdIncreaseAtomicCounter()
 {
-    AtomicAdd(g_global_atomic[0], 1u, g_group_shared_counter);
+    AtomicAdd(gGlobalAtomic[0], 1u, g_group_shared_counter);
 }
 void SpdResetAtomicCounter()
 {
-    AtomicStore(g_global_atomic[0], 0);
+    AtomicStore(gGlobalAtomic[0], 0);
 }
 uint SpdGetAtomicCounter()
 {
@@ -382,12 +383,13 @@ float GetMipsCount(int2 texture_size)
     return 1.0 + floor(log2(max_dim));
 }
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(32,  8,  1)
 void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupID(uint3) gid, SV_GroupIndex(uint) gi )
 {
 	INIT_MAIN;
 
-    int2 image_size = GetDimensions(g_downsampled_depth_buffer[0], NO_SAMPLER);
+    int2 image_size = GetDimensions(gDownsampledDepthBuffer[0], NO_SAMPLER);
     // reduce by 1 since we skip the first mip and offset spd writes
     float spd_mips_count = GetMipsCount(image_size) - 1;
     uint threadgroup_count = GetThreadgroupCount(image_size);

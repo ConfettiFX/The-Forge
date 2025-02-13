@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,13 +37,15 @@ STRUCT(VSOutput)
 	DATA(float, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
+
 VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
     uint rnd = In.seed;
-    uint rnd_mat = particleRootConstant.data;
-    float tt  = particleRootConstant.paletteFactor;
+    uint rnd_mat = gParticleConstants.mData;
+    float tt  = gParticleConstants.mPaletteFactor;
     uint para2 = 907633515u;
     uint para1 = 196314165u;
     
@@ -155,9 +157,9 @@ VSOutput VS_MAIN( VSInput In )
     }
 
 #if FT_MULTIVIEW
-    Out.Position = mul(uniformBlock.mvp[VR_VIEW_ID], p);
+    Out.Position = mul(gUniformBlock.mvp[VR_VIEW_ID], p);
 #else
-    Out.Position = mul(uniformBlock.mvp, p);
+    Out.Position = mul(gUniformBlock.mvp, p);
   #endif
     Out.TexCoord = c;
     Out.PointSize = 1.0f;

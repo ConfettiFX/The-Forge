@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,12 +22,14 @@
  * under the License.
 */
 
+#include "resources.comp.h.fsl"
+#include "resources.h.fsl"
+#include "compute_specular_comp.srt.h"
+
 STATIC const float Pi = 3.14159265359;
 STATIC float SampleDelta = SAMPLE_DELTA;
 
-RES(TexCube(float4), srcTexture, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(WTex2DArray(float4), dstTexture, UPDATE_FREQ_NONE, u2, binding = 2);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s3, binding = 3);
+
 
 float4 computeIrradiance(float3 N)
 {
@@ -49,7 +51,7 @@ float4 computeIrradiance(float3 N)
 			// tangent space to world
 			float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
-			float4 sampledValue = SampleLvlTexCube(srcTexture, skyboxSampler, sampleVec, 0);
+			float4 sampledValue = SampleLvlTexCube(gSrcTexture, gSamplerBilinearWrap, sampleVec, 0);
 		
 			irradiance += float4(sampledValue.rgb * cos(theta) * sin(theta), sampledValue.a);
 			nrSamples++;
@@ -59,6 +61,8 @@ float4 computeIrradiance(float3 N)
 
 	return Pi * irradiance * (1.0 / float(nrSamples));
 }
+
+ROOT_SIGNATURE(ComputeRootSignature)
 
 NUM_THREADS(16, 16, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) DTid) 
@@ -94,7 +98,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 
 	float4 irradiance = computeIrradiance(sphereDir);
 
-	Write3D(dstTexture, int3(threadPos.xyz), irradiance);
+	Write3D(gDestTextureIrradiance, int3(threadPos.xyz), irradiance);
 
 	RETURN();
 }

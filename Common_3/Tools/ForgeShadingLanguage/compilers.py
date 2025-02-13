@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -95,19 +95,24 @@ def util_shadertarget_dx(stage, features):
                 level_dx = max(level_dx, dx_levels[feature])
     if stage is Stages.GRAPH:
         level_dx = max(level_dx, '_6_8')
+    if stage is Stages.ROOTSIG:
+        level_dx = '_1_1'
     stage_dx = {
         Stages.VERT: 'vs',
         Stages.FRAG: 'ps',
         Stages.COMP: 'cs',
         Stages.GEOM: 'gs',
         Stages.GRAPH: 'lib',
+        Stages.ROOTSIG: 'rootsig',
     }
     return stage_dx[stage] + level_dx
 
-def util_spirv_target(features):
+def util_spirv_target(features, binary: ShaderBinary):
     if Features.RAYTRACING in features:
         return 'spirv1.4'
-    return 'spirv1.3' # vulkan1.1 default
+    if WaveopsFlags.WAVE_OPS_NONE != binary.waveops_flags:
+        return 'spirv1.3' # vulkan1.1 default
+    return 'spirv1.0' # vulkan1.0 default
 
 def util_shadertarget_metal(platform : Platforms, binary: ShaderBinary):
     if Features.RAYTRACING in binary.features or \
@@ -116,7 +121,7 @@ def util_shadertarget_metal(platform : Platforms, binary: ShaderBinary):
     if platform == Platforms.IOS:
         if WaveopsFlags.WAVE_OPS_ARITHMETIC_BIT in binary.waveops_flags or Features.PRIM_ID in binary.features:
             return '2.3'
-    return '2.2' # default
+    return '2.3' # default
 
 def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, dst):
     
@@ -159,7 +164,7 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             if debug: params += ['-g']
             params += ['-V', src, '-o', compiled_filepath, '-I'+fsl_basepath]
             params += ['-S', binary.stage.name.lower()]
-            params += ['--target-env', util_spirv_target(binary.features)]
+            params += ['--target-env', util_spirv_target(binary.features, binary)]
             
             # spirv_opt = bin.replace('glslangValidator.exe', 'spirv-opt.exe')
             # spirv_opt_filepath = compiled_filepath + '_opt'
@@ -183,6 +188,15 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             if debug: params += ['/Zi', '-Qembed_debug']
             params += ['/T', util_shadertarget_dx(binary.stage, binary.features)]
             params += ['/I', fsl_basepath, '/Fo', compiled_filepath, src]
+            params += ['-flegacy-macro-expansion']
+            
+            if binary.stage is Stages.ROOTSIG:
+                if 'compute.rootsig' in compiled_filepath:
+                    params += ['/E', 'ComputeRootSignature']
+                else:
+                    params += ['/E', 'DefaultRootSignature']                
+            else:
+                params += ['-Qstrip_rootsignature']
 
         elif platform == Platforms.ORBIS:
             compiled_filepath = dst + f'_{len(compiled_derivatives)}.bsh'
@@ -249,6 +263,11 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             params += ['/T', util_shadertarget_dx(binary.stage, binary.features)]
             params += ['/I', fsl_basepath]
             params += ['/Fo', compiled_filepath, src]
+			
+            if binary.stage is Stages.ROOTSIG:
+                params += ['/E', 'DefaultRootSignature']
+            else:
+                params += ['-Qstrip_rootsignature']
 
         elif platform == Platforms.MACOS:
             compiled_filepath = dst + f'_{len(compiled_derivatives)}.air'
@@ -302,6 +321,7 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
         stages = [(bin, params)] + stages
 
         for bin, params in stages:
+            print(params)
             cp = subprocess.run([bin] + params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             
             # We provide the src file in case the error doesn't have any file/line information, this way the user

@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,6 +46,8 @@
 
 #define SHORT_CUT_DEPTH_PEELING
 #include "hair.h.fsl"
+
+ROOT_SIGNATURE(DefaultRootSignature)
 #if !defined(ORBIS)
 EARLY_FRAGMENT_TESTS
 #endif
@@ -53,10 +55,10 @@ float PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float Coverage;
-	float3 NDC = ScreenPosToNDC(In.Position.xyz, cbHairGlobal.Viewport);
+	float3 NDC = ScreenPosToNDC(In.Position.xyz, gHairGlobal.Viewport);
 	float2 p0 = In.P0P1.xy / In.W0W1.x;
 	float2 p1 = In.P0P1.zw / In.W0W1.y;
-	float coverage = ComputeCoverage(p0, p1, NDC.xy, cbHairGlobal.Viewport.zw);
+	float coverage = ComputeCoverage(p0, p1, NDC.xy, gHairGlobal.Viewport.zw);
 	clip(coverage);
 	float alpha = coverage * In.Color.a;
 	clip(alpha - (1.0f / 255.0f));
@@ -76,23 +78,23 @@ float PS_MAIN( VSOutput In )
 		uint3(p.x, p.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 		uint3(p.x, p.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 	};
-	AtomicMax3D(DepthsTexture, coords[0], depth, prevDepths[0]);
+	AtomicMax3D(gDestDepthsTexture, coords[0], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
-	AtomicMax3D(DepthsTexture, coords[1], depth, prevDepths[1]);
+	AtomicMax3D(gDestDepthsTexture, coords[1], depth, prevDepths[1]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
-	AtomicMax3D(DepthsTexture, coords[2], depth, prevDepths[2]);
+	AtomicMax3D(gDestDepthsTexture, coords[2], depth, prevDepths[2]);
 #else
-    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
+    uint2 viewport = uint2(gHairGlobal.Viewport.zw);
 	const uint coords[] = {
 		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 0),
 		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 1),
 		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 2)
 	};
-	AtomicMax(DepthsTexture[coords[0]], depth, prevDepths[0]);
+	AtomicMax(gDepthsBuffer[coords[0]], depth, prevDepths[0]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
-	AtomicMax(DepthsTexture[coords[1]], depth, prevDepths[1]);
+	AtomicMax(gDepthsBuffer[coords[1]], depth, prevDepths[1]);
 	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
-	AtomicMax(DepthsTexture[coords[2]], depth, prevDepths[2]);
+	AtomicMax(gDepthsBuffer[coords[2]], depth, prevDepths[2]);
 #endif
 
 

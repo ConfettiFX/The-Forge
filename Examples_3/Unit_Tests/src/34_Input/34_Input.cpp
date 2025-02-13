@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,6 +47,10 @@
 #include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
+
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
 
 // Button bit definitions
 #include "ButtonDefs.h"
@@ -277,8 +281,6 @@ Pipeline* pBasicPipeline = NULL;
 Buffer* pQuadVertexBuffer = NULL;
 Buffer* pQuadIndexBuffer = NULL;
 
-RootSignature* pRootSignature = NULL;
-Sampler*       pSampler = NULL;
 Texture*       pGamepad = NULL;
 Texture*       pKeyboardMouse = NULL;
 Texture*       pInputDeviceTexture = NULL;
@@ -584,6 +586,10 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
         TextureLoadDesc textureDesc = {};
         textureDesc.pFileName = "input/controller.tex";
         textureDesc.ppTexture = &pGamepad;
@@ -592,15 +598,6 @@ public:
         textureDesc.pFileName = "input/keyboard+mouse.tex";
         textureDesc.ppTexture = &pKeyboardMouse;
         addResource(&textureDesc, NULL);
-
-        SamplerDesc samplerDesc = {};
-        samplerDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_BORDER;
-        samplerDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_BORDER;
-        samplerDesc.mAddressW = ADDRESS_MODE_CLAMP_TO_BORDER;
-        samplerDesc.mMinFilter = FILTER_LINEAR;
-        samplerDesc.mMagFilter = FILTER_LINEAR;
-        samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-        addSampler(pRenderer, &samplerDesc, &pSampler);
 
         BufferLoadDesc bufferDesc = {};
         bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -685,13 +682,13 @@ public:
     x = inputGetCustomBindingEnum(#x);
         DECL_INPUTS(BINDING_ACTION)
 
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         return true;
     }
 
     void Exit()
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         waitQueueIdle(pGraphicsQueue);
 
         exitUserInterface();
@@ -711,11 +708,9 @@ public:
         removeResource(pQuadVertexBuffer);
         removeResource(pQuadIndexBuffer);
 
-        removeSampler(pRenderer, pSampler);
-
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
-
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
@@ -728,7 +723,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -827,7 +821,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -845,7 +838,7 @@ public:
         if (pInputDeviceTexture != pPrevInputDeviceTexture)
         {
             DescriptorData param = {};
-            param.pName = "uTexture";
+            param.mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
             param.ppTextures = &pInputDeviceTexture;
             updateDescriptorSet(pRenderer, 0, pDescriptorDevice, 1, &param);
 
@@ -1016,10 +1009,10 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount * 2 };
+        DescriptorSetDesc desc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
         addDescriptorSet(pRenderer, &desc, &pDescriptorDevice);
 
-        desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+        desc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &desc, &pDescriptorInputData);
     }
 
@@ -1028,21 +1021,6 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorDevice);
         removeDescriptorSet(pRenderer, pDescriptorInputData);
     }
-
-    void addRootSignatures()
-    {
-        Shader*           shaders[] = { pBasicShader };
-        const char*       pStaticSamplers[] = { "uSampler" };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mStaticSamplerCount = 1;
-        rootDesc.ppStaticSamplerNames = pStaticSamplers;
-        rootDesc.ppStaticSamplers = &pSampler;
-        rootDesc.mShaderCount = ARRAY_LENGTH(shaders);
-        rootDesc.ppShaders = shaders;
-        addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-    }
-
-    void removeRootSignatures() { removeRootSignature(pRenderer, pRootSignature); }
 
     void addShaders()
     {
@@ -1077,6 +1055,7 @@ public:
         DepthStateDesc depthStateDesc = {};
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -1085,7 +1064,6 @@ public:
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pBasicShader;
         pipelineSettings.pVertexLayout = &vertexLayout;
         pipelineSettings.pRasterizerState = &rasterizerStateDesc;
@@ -1097,7 +1075,7 @@ public:
     void prepareDescriptorSets()
     {
         DescriptorData param = {};
-        param.pName = "uTexture";
+        param.mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
         switch (gConstantData.deviceType)
         {
         case INPUT_DEVICE_GAMEPAD:
@@ -1117,7 +1095,7 @@ public:
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData uParam = {};
-            uParam.pName = "uInputData";
+            uParam.mIndex = SRT_RES_IDX(SrtData, PerFrame, gInputData);
             uParam.ppBuffers = &pInputDataUniformBuffer[i];
             updateDescriptorSet(pRenderer, i, pDescriptorInputData, 1, &uParam);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,13 +24,17 @@
 
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "cluster_lights.srt.h"
 #include "light_cull_resources.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
 
+
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
 void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId )
 {
@@ -44,20 +48,21 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	}
 
 	// Don't consider dead or invisible particles
-	uint Bitfield = BitfieldBuffer[lightId];
+	uint Bitfield = gBitfieldBuffer[lightId];
 	if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_LIGHT_CULLED) > 0 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
 	{
 		RETURN();
 	}
 
-	ParticleSet particleSet = ParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
-	ParticleData lightData = ParticlesDataBuffer[lightId];
-	float3 lightPos = UnpackParticlePosition(particleSet, ParticlesDataBuffer[lightId]);
+	const ParticleSet particleSet = gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
+	ParticleData lightData = gParticlesDataBuffer[lightId];
+	float3 lightPos = UnpackParticlePosition(particleSet, gParticlesDataBuffer[lightId]);
 
-	float4 lightPosClipSpace = mul(PerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, float4(lightPos.xyz, 1));
+
+	float4 lightPosClipSpace = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, float4(lightPos.xyz, 1));
 	float lightSize = unpack2Floats(particleSet.LightRadiusAndVelocityNoise).x * 
 		UnpackFadeValue(UnpackParticleAgeOverMaxAge(lightData), particleSet.StartColor, particleSet.EndColor) *
-		UnpackLightModulationFactor(particleSet, ParticleConstantBuffer.Time, lightId);
+		UnpackLightModulationFactor(particleSet, gParticleConstantBuffer.Time, lightId);
 	// Early exit light if it's behind the camera
 	if (lightPosClipSpace.w < 0.0 && -lightPosClipSpace.w > lightSize)
 	{
@@ -66,13 +71,13 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 
 	const float invClusterWidth = 1.0f / float(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT);
 	const float invClusterHeight = 1.0f / float(LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT);
-	const float2 windowSize = PerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
+	const float2 windowSize = gPerFrameVBConstants.cullingViewports[VIEW_CAMERA].windowSize;
 	const uint2 tileSize = uint2(ceil(windowSize * float2(invClusterWidth, invClusterHeight)));
 	const float aspectRatio = windowSize.x / windowSize.y;
 
 	float lightDepthView = linearizeDepthReverseZ((lightPosClipSpace.z / lightPosClipSpace.w ), CAMERA_NEAR, CAMERA_FAR);
 	float invLightPosW = 1.0 / lightPosClipSpace.w;
-	float fov = 2.0*atan( 1.0 / PerFrameVBConstants.transform[VIEW_CAMERA].projection.mat[1][1]);
+	float fov = 2.0*atan( 1.0 / gPerFrameVBConstants.transform[VIEW_CAMERA].projection.mat[1][1]);
 	float projRadius = 2.0f * lightSize * (1 / tan(fov * 0.5f)) * invLightPosW;
 
 	lightPos = lightPosClipSpace.xyz * invLightPosW;
@@ -141,8 +146,8 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 			}
 
 			// Due to float precision errors if, both min/max are same it will create holes...
-			uint depthMinInt = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 0];
-			uint depthMaxInt = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 1];
+			uint depthMinInt = gDepthBoundsBufferRW[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 0];
+			uint depthMaxInt = gDepthBoundsBufferRW[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 1];
 			
 			// Check depth bounds
 			float depthMin = (float(depthMinInt) / INT_MAX) * (CAMERA_FAR-CAMERA_NEAR) + CAMERA_NEAR;
@@ -155,7 +160,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 			if(depthMinInt != depthMaxInt)
 			{
 				// Check depth bitmask
-				uint depthBitmask = DepthBoundsBuffer[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 2];
+				uint depthBitmask = gDepthBoundsBufferRW[subclusterArrayPos * DEPTH_BOUNDS_ENTRY_SIZE + 2];
 
 				// Build the light depth bitmask
 				uint lightBitmask = 0xFFFFFFFF;
@@ -172,10 +177,10 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	
 			// Increase light count on this cluster
 			uint lightArrayPos = 0;
-			AtomicAdd(lightClustersCount[subclusterArrayPos], 1, lightArrayPos);
+			AtomicAdd(gLightClustersCountRW[subclusterArrayPos], 1, lightArrayPos);
 
 			// Add light id to cluster
-			lightClusters[subclusterArrayPos * MAX_LIGHTS_PER_CLUSTER + lightArrayPos] = lightId;
+			gLightClustersRW[subclusterArrayPos * MAX_LIGHTS_PER_CLUSTER + lightArrayPos] = lightId;
 		}
 	}
 

@@ -11,11 +11,14 @@
         xcopy "$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\Direct3d12Agility\bin\x64\*.dll" "$(OutDir)"* /S /Y /D
         xcopy "$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(OutDir)WinPixEventRunTime.dll"* /S /Y /D
         xcopy /Y /D "$(TheForgeArtDir)PathStatement.Windows.txt" "$(OutDir)PathStatement.txt*"
-        xcopy /Y /D "$(TheForgeArtDir)GPUCfg\$(ProjectName)\gpu.cfg" "$(OutDir)"
+        xcopy /Y /D "..\src\$(ProjectName)\GPUCfg\gpu.cfg" "$(OutDir)"
 
         mkdir "$(OutDir)PipelineCaches\"
         mkdir "$(OutDir)Screenshots\"
         mkdir "$(OutDir)Debug\"
+        mkdir "$(OutDir)Scripts\"
+        xcopy /Y /D "..\src\$(ProjectName)\Scripts\*" "$(OutDir)\Scripts\"
+        xcopy "$(TheForgeRoot)Common_3\Scripts\*" "$(OutDir)\Scripts\" /Y /D
 
         xcopy "$(TheForgeRoot)Common_3\OS\Windows\pc_gpu.data" "$(OutDir)gpu.data*" /Y /D
 
