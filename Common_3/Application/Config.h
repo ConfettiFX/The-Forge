@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -376,6 +376,12 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #if defined(DEBUG) || defined(_DEBUG) || defined(AUTOMATED_TESTING)
 #define FORGE_DEBUG
 #endif
+#endif
+
+#if defined(FORGE_DEBUG)
+#define IF_FORGE_DEBUG(...) __VA_ARGS__
+#else
+#define IF_FORGE_DEBUG(...)
 #endif
 
 #define ENABLE_LOGGING

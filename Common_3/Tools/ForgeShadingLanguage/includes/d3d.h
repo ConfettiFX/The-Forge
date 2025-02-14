@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -434,12 +434,6 @@ _DECL_TYPES(_DECL_AtomicStore)
 
 #define NUM_THREADS(X, Y, Z) [numthreads(X, Y, Z)]
 
-#define UPDATE_FREQ_NONE      space0
-#define UPDATE_FREQ_PER_FRAME space1
-#define UPDATE_FREQ_PER_BATCH space2
-#define UPDATE_FREQ_PER_DRAW  space3
-#define UPDATE_FREQ_USER      UPDATE_FREQ_NONE
-
 #define FLAT(X) nointerpolation X
 #define CENTROID(X) centroid X
 
@@ -846,13 +840,10 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 
 #if defined(DIRECT3D12)
     #define CBUFFER(T) ConstantBuffer<T>
-    #define RES(TYPE, NAME, FREQ, REG, BINDING) TYPE NAME : register(REG, FREQ)
 #elif defined(ORBIS) || defined(PROSPERO)
     #define CBUFFER(T) T
-    #define RES(TYPE, NAME, FREQ, REG, BINDING)
 #else
     #define CBUFFER(T) cbuffer
-    #define RES(TYPE, NAME, FREQ, REG, BINDING) TYPE NAME : register(REG)
 #endif
 
 
@@ -921,5 +912,21 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
     #define VR_VIEW_ID 0
 #endif
 #define VR_MULTIVIEW_COUNT 1
+
+#if defined(DIRECT3D12)
+#define ADDRESS_MODE_REPEAT TEXTURE_ADDRESS_MODE_WRAP
+#define ADDRESS_MODE_MIRROR TEXTURE_ADDRESS_MODE_MIRROR
+#define ADDRESS_MODE_CLAMP_TO_EDGE TEXTURE_ADDRESS_MODE_CLAMP
+#define ADDRESS_MODE_CLAMP_TO_BORDER TEXTURE_ADDRESS_MODE_BORDER
+
+#define CMP_NEVER COMPARISON_FUNC_NONE
+#define CMP_LESS COMPARISON_FUNC_LESS
+#define CMP_EQUAL COMPARISON_FUNC_EQUAL
+#define CMP_LEQUAL COMPARISON_FUNC_LESS_EQUAL
+#define CMP_GREATER COMPARISON_FUNC_GREATER
+#define CMP_NOTEQUAL COMPARISON_FUNC_NOT_EQUAL
+#define CMP_GEQUAL COMPARISON_FUNC_GREATER_EQUAL
+#define CMP_ALWAYS COMPARISON_FUNC_ALWAYS
+#endif
 
 #endif // _D3D_H

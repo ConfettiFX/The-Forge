@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -767,6 +767,8 @@ static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memo
 {
     Buffer* buffer;
 #if defined(DIRECT3D11)
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(alignment);
     // There is no such thing as staging buffer in D3D11
     // To keep code paths unified in update functions, we allocate space for a dummy buffer and the system memory for pCpuMappedAddress
     buffer = (Buffer*)tf_memalign(alignof(Buffer), sizeof(Buffer) + (size_t)memoryRequirement);
@@ -874,8 +876,10 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
 {
 #if defined(DIRECT3D11)
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pCopyEngine);
     return;
-#endif
+#else
 
     ASSERT(!pCopyEngine->isRecording);
     CopyResourceSet& resourceSet = pCopyEngine->resourceSets[pCopyEngine->activeSet];
@@ -896,6 +900,7 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
             waitForFences(pRenderer, 1, &resourceSet.pPostCopyBarrierFence);
         }
     }
+#endif
 #endif
 }
 
@@ -3887,7 +3892,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     void*    pCachedByteCode = NULL;
     uint32_t cachedByteCodeSize = 0;
 
-    const bool result = platformReloadClientGetShaderBinary(binaryShaderPath, &pCachedByteCode, &cachedByteCodeSize)
+    const bool result = platformGetReloadBinary(binaryShaderPath, &pCachedByteCode, &cachedByteCodeSize)
                             ? fsOpenStreamFromMemory(pCachedByteCode, cachedByteCodeSize, FM_READ, false, &binaryFileStream)
                             : fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
 #else
@@ -4195,6 +4200,11 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
 
         fsCloseStream(&stream);
     }
+    else
+    {
+        LOGF(LogLevel::eINFO, "Failed to open the pipeline cache. Likely because the file is"
+                              "only created upon the first exit of the application");
+    }
 
     PipelineCacheDesc desc = {};
     desc.mFlags = pDesc->mFlags;
@@ -4248,6 +4258,81 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
     UNREF_PARAM(pDesc);
     UNREF_PARAM(pPipelineCache);
 
+#endif
+}
+/************************************************************************/
+// Root signature
+/************************************************************************/
+#if defined(DIRECT3D12)
+static void initRootSignature(Renderer* pRenderer, const char* pFileName, ID3D12RootSignature** ppOutRootSignature)
+{
+    ShaderByteCodeBuffer shaderByteCodeBuffer = {};
+    char                 bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
+    shaderByteCodeBuffer.pStackMemory = bytecodeStack;
+    BinaryShaderDesc desc = {};
+    FSLMetadata      metadata = {};
+    if (!load_shader_stage_byte_code(pRenderer, pFileName, SHADER_STAGE_NONE, &desc.mComp, &shaderByteCodeBuffer, &metadata))
+    {
+        freeShaderByteCode(&shaderByteCodeBuffer, &desc);
+        return;
+    }
+
+    extern void initRootSignature(Renderer*, const void*, uint32_t, ID3D12RootSignature**);
+    initRootSignature(pRenderer, desc.mComp.pByteCode, desc.mComp.mByteCodeSize, ppOutRootSignature);
+    freeShaderByteCode(&shaderByteCodeBuffer, &desc);
+}
+#endif
+
+void initRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc)
+{
+#if defined(DIRECT3D12)
+    ASSERT(pRenderer);
+    ASSERT(pDesc);
+
+    if (pDesc->pGraphicsFileName)
+    {
+        initRootSignature(pRenderer, pDesc->pGraphicsFileName, &pRenderer->mDx.pGraphicsRootSignature);
+    }
+    if (pDesc->pComputeFileName)
+    {
+        initRootSignature(pRenderer, pDesc->pComputeFileName, &pRenderer->mDx.pComputeRootSignature);
+    }
+#elif defined(VULKAN)
+    DescriptorSetDesc setDesc = {};
+    setDesc.mDescriptorCount = 0;
+    setDesc.mIndex = 0;
+    setDesc.mMaxSets = 1;
+    setDesc.mNodeIndex = 0;
+    setDesc.mStaticSamplerCount = pDesc->mStaticSamplerCount;
+    setDesc.pDescriptors = NULL;
+    setDesc.pStaticSamplers = pDesc->pStaticSamplers;
+    addDescriptorSet(pRenderer, &setDesc, &pRenderer->mVk.pEmptyStaticSamplerDescriptorSet);
+#else
+    UNREF_PARAM(pRenderer);
+    UNREF_PARAM(pDesc);
+#endif
+}
+
+void exitRootSignature(Renderer* pRenderer)
+{
+#if defined(DIRECT3D12)
+    ASSERT(pRenderer);
+    extern void exitRootSignature(Renderer*, ID3D12RootSignature*);
+
+    if (pRenderer->mDx.pGraphicsRootSignature)
+    {
+        exitRootSignature(pRenderer, pRenderer->mDx.pGraphicsRootSignature);
+        pRenderer->mDx.pGraphicsRootSignature = NULL;
+    }
+    if (pRenderer->mDx.pComputeRootSignature)
+    {
+        exitRootSignature(pRenderer, pRenderer->mDx.pComputeRootSignature);
+        pRenderer->mDx.pComputeRootSignature = NULL;
+    }
+#elif defined(VULKAN)
+    removeDescriptorSet(pRenderer, pRenderer->mVk.pEmptyStaticSamplerDescriptorSet);
+#else
+    UNREF_PARAM(pRenderer);
 #endif
 }
 /************************************************************************/

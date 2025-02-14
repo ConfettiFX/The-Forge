@@ -323,6 +323,9 @@ BEGIN_GPU_LIST;
 0x106B; 0x0009; high; Apple; Apple M3
 0x106B; 0x000A; ultra; Apple; Apple M3 Pro
 0x106B; 0x000B; ultra; Apple; Apple M3 Max
+0x106B; 0x000C; high; Apple; Apple M4
+0x106B; 0x000D; ultra; Apple; Apple M4 Pro
+0x106B; 0x000E; ultra; Apple; Apple M4 Max
 0x106B; 0x1001; verylow; Apple; Apple A8 GPU
 0x106B; 0x1002; verylow; Apple; Apple A9 GPU
 0x106B; 0x1003; verylow; Apple; Apple A9X GPU
@@ -337,6 +340,10 @@ BEGIN_GPU_LIST;
 0x106B; 0x100C; low; Apple; Apple A15 GPU
 0x106B; 0x100D; medium; Apple; Apple A16 GPU
 0x106B; 0x100E; medium; Apple; Apple A17 Pro GPU
-
+0x106B; 0x100F; medium; Apple; Apple A18 GPU
+0x106B; 0x1010; high; Apple; Apple A18 Pro GPU
+0x106B; 0x1011; low; Apple; Apple M1 GPU
+0x106B; 0x1012; medium; Apple; Apple M2 GPU
+0x106B; 0x1013; high; Apple; Apple M4 GPU
 END_GPU_LIST;
 

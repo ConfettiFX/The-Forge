@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -110,7 +110,6 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
     // Cant write to system files
     if (RD_SYSTEM == rd && (mode & FM_WRITE))
     {
-        LOGF(LogLevel::eERROR, "Trying to write to system file with FileMode '%d'", mode);
         return false;
     }
 
@@ -123,14 +122,12 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
 
     if ((mode & FM_WRITE) != 0)
     {
-        LOGF(LogLevel::eERROR, "Cannot open %s with mode %i: the Android bundle is read-only.", filePath, mode);
         return false;
     }
 
     AAsset* file = AAssetManager_open(pAssetManager, filePath, AASSET_MODE_BUFFER);
     if (!file)
     {
-        LOGF(LogLevel::eERROR, "Failed to open '%s' with mode %i.", filePath, mode);
         return false;
     }
 
@@ -217,7 +214,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     }
 
 #if defined(AUTOMATED_TESTING) && defined(ENABLE_SCREENSHOT)
-    mkdir(gResourceDirectories[RD_SCREENSHOTS].mPath, 0700);
+    mkdir(gResourceDirectories[RD_SCREENSHOTS].mPath, ACCESSPERMS);
 #endif
 
     gInitialized = true;

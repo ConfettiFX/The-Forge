@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,6 +29,37 @@
 #include "particle_shared.h.fsl"
 #include "particle_packing.h.fsl"
 
+bool IsParticleSetVisible(ParticleSet particleSet)
+{
+	if (particleSet.Allocated < 1)
+		return false;
+
+	uint2 colorBufferSize = gParticleConstantBuffer.ScreenSize;
+
+	float4 setPosition = float4(particleSet.AttractorIndex != -1 ? gParticleConstantBuffer.SeekPosition.xyz : particleSet.Position.xyz, 1.0);
+	float4 clipSpacePos = mul(gParticleConstantBuffer.ViewProjTransform, setPosition);
+	float3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
+
+
+	float fov = 2.0 * atan(1.0 / gParticleConstantBuffer.ProjTransform[1][1]);
+	float3 particleSetScale = UnpackParticleSetSize(particleSet.SpawnVolume);
+
+	float setRadius = 2.0 * max(particleSetScale.x, max(particleSetScale.y, particleSetScale.z)) * (1 / tan(fov * 0.5f)) / clipSpacePos.w;
+	float ratio = float(gParticleConstantBuffer.ScreenSize.x) / float(gParticleConstantBuffer.ScreenSize.y);
+
+	setRadius *= ratio;
+
+	float screenRadius = length(float2(1, 1));
+	float distanceToCenter = length(ndcPos.xy);
+
+	if (distanceToCenter - screenRadius >= abs(setRadius) || clipSpacePos.w < -abs(setRadius))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, float fragDepth)
 {
 	if (fragColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
@@ -37,10 +68,10 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 	uint listIndex, bufferIndex;
 	bufferIndex = coords.y * screenSize.x + coords.x;
 
-	if (TransparencyListHeads[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
+	if (gTransparencyListHeadsRW[bufferIndex] >= MAX_TRANSPARENCY_LAYERS)
 		return;
 
-	AtomicAdd(TransparencyListHeads[bufferIndex], 1, listIndex);
+	AtomicAdd(gTransparencyListHeadsRW[bufferIndex], 1, listIndex);
 
 	if (listIndex >= MAX_TRANSPARENCY_LAYERS)
 		return;
@@ -50,7 +81,7 @@ void SaveTransparencyEntry(uint2 screenSize, uint2 coords, float4 fragColor, flo
 	node.Depth = fragDepth;
 	node.Color = packUnorm4x8(fragColor);
 
-	TransparencyList[bufferIndex*MAX_TRANSPARENCY_LAYERS + listIndex] = node;
+	gTransparencyListRW[bufferIndex*MAX_TRANSPARENCY_LAYERS + listIndex] = node;
 }
 
 /* 
@@ -75,87 +106,6 @@ uint GetBufferSectionFromBitfield(uint bitfield)
 }
 
 /*
-	Swaps particle and bitfield entries at indices currIdx and swapIdx
-	Returns the new bitfield, stores the new particle in outParticle
-*/
-uint SwapParticles(uint currBitfield, uint currIdx, uint swapIdx, inout(ParticleData) outParticle)
-{
-	// Swap particles
-	uint bitfieldB = BitfieldBuffer[swapIdx];
-	ParticleData particleA = ParticlesDataBuffer[currIdx];
-	ParticleData particleB = ParticlesDataBuffer[swapIdx];
-
-	ParticlesDataBuffer[currIdx] = particleB;
-	ParticlesDataBuffer[swapIdx] = particleA;
-
-	BitfieldBuffer[swapIdx] = currBitfield;
-	BitfieldBuffer[currIdx] = bitfieldB;
-
-	outParticle = particleB;
-	return bitfieldB;
-}
-
-
-
-/* 
-	Attempts nAttempts times to swap a particle with state isActive with a particle with state !isActive contained in 
-		the same buffer lighting section (currBufferSection).
-		Multiple attempts are needed because it could happen that a candidate particle to use for swapping has the same
-		state as the one we want to swap (this happens when the particle buffer is fragmented).
-
-	Returns true if the particle was swapped before nAttempts, false otherwise. When returning true, particleData
-		contains the particle we swapped with and currBitfield contains its bitfield.
-*/
-bool TrySwappingActivity(bool isActive, uint currBufferSection, uint nAttempts, uint particleIdx, uint particleCount, 
-	inout(uint) currBitfield, inout(ParticleData) particleData, bool wasAllocated)
-{
-	int sign = isActive ? 1 : -1;
-	uint attemptCount = 0;
-
-	uint currIdx;
-	uint toSwapBitfield = currBitfield;
-	uint setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
-	uint prevSectionBound;
-
-	switch (currBufferSection)
-	{
-		case 0: prevSectionBound = 0; break;
-		case 1: prevSectionBound = MAX_SHADOW_COUNT; break;
-		case 2: prevSectionBound = MAX_SHADOW_COUNT + MAX_LIGHT_COUNT; break;
-	}
-
-	do
-	{
-		// Get index to swap particle to
-		AtomicAdd(ParticleBufferState[0].ParticleSectionsIndices[PREV_BOUND(currBufferSection)], sign, currIdx);
-		if (sign*int(currIdx) < sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) && currIdx >= prevSectionBound)
-		{
-			toSwapBitfield = BitfieldBuffer[currIdx];
-			setIndex = toSwapBitfield & PARTICLE_BITFIELD_SET_INDEX_MASK;
-			attemptCount++;
-
-			if (isActive && (toSwapBitfield & PARTICLE_BITFIELD_IS_ALLOCATED) == 0 && wasAllocated)
-				break;
-		}
-	}
-	while (isActive == bool(ParticleSetVisibility[CURR_VISIBILITY(setIndex)]) &&										// Make sure the received particle has the right state
-		sign*int(currIdx) < sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) &&	// Don't read from the wrong section
-		int(currIdx) >= prevSectionBound &&
-		attemptCount < nAttempts);																						// Only try a certain amount of times
-
-	if (bool(ParticleSetVisibility[CURR_VISIBILITY(setIndex)]) != isActive || ((isActive && (toSwapBitfield & PARTICLE_BITFIELD_IS_ALLOCATED) == 0) && wasAllocated))
-	{
-		currBitfield = SwapParticles(currBitfield, particleIdx, currIdx, particleData);
-		return true;
-	}
-	
-	if (sign*int(currIdx) >= sign*int(ParticleBufferState[0].ParticleSectionsIndices[CURR_BOUND(currBufferSection)]) || int(currIdx) < prevSectionBound)
-		return true;
-
-	return false;
-}
-
-/*
 	Stores a particle and its bitfield in the particles / bitfield buffers, initializing the particles with 
 		the attributes passed as arguments.
 */
@@ -165,8 +115,8 @@ void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, floa
 	particleData.AnimationTime = animationTime;
 	particleData.Pad = 0;
 
-	ParticlesDataBuffer[particleIdx] = particleData;
-	BitfieldBuffer[particleIdx] = bitfield;
+	gParticlesDataBufferRW[particleIdx] = particleData;
+	gBitfieldBufferRW[particleIdx] = bitfield;
 }
 
 

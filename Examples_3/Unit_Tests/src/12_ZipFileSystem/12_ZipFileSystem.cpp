@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,6 +46,10 @@
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+
 #define SIZEOF_ARR(x) sizeof(x) / sizeof(x[0])
 
 /// Demo structures
@@ -87,12 +91,11 @@ Semaphore*    pImageAcquiredSemaphore = NULL;
 Shader*   pBasicShader = NULL;
 Pipeline* pBasicPipeline = NULL;
 
-Shader*        pSkyboxShader = NULL;
-Buffer*        pSkyboxVertexBuffer = NULL;
-Pipeline*      pPipelineSkybox = NULL;
-RootSignature* pRootSignature = NULL;
-Sampler*       pSamplerSkybox = NULL;
-Texture*       pSkyboxTextures[6];
+Shader*   pSkyboxShader = NULL;
+Buffer*   pSkyboxVertexBuffer = NULL;
+Pipeline* pPipelineSkybox = NULL;
+Sampler*  pSamplerSkybox = NULL;
+Texture*  pSkyboxTextures[6];
 
 // Zip File Test Texture
 Texture*  pZipTexture[1];
@@ -102,18 +105,23 @@ Buffer*   pZipTextureVertexBuffer = NULL;
 Pipeline* pZipTexturePipeline = NULL;
 
 // Occlusion Query
-const uint32_t gMaxOcclusionQueries = 2;
-const uint32_t gOccTestOccuionSphereMaxIndex = 0;
-const uint32_t gOccTestOccuionSphereIndex = 1;
+#ifdef QUEST_VR
+const uint32_t gViewCount = 2;
+#else
+const uint32_t gViewCount = 1;
+#endif
+const uint32_t gMaxOcclusionQueries = 2 * gViewCount;
+const uint32_t gOccTestOcclusionSphereMaxIndex = 0;
+const uint32_t gOccTestOcclusionSphereIndex = 1;
 
 QueryPool* pOcclusionQueryPool[gDataBufferCount] = {};
 Pipeline*  pOcclusionMax = NULL;
 Pipeline*  pOcclusionTest = NULL;
 Buffer*    pSphereVertexBuffer = NULL;
 
-unsigned char gOcclsuionText[256];
-bstring       gOcclusionbstr = bemptyfromarr(gOcclsuionText);
-float4        gOccluion1Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+unsigned char gOcclusionText[256];
+bstring       gOcclusionbstr = bemptyfromarr(gOcclusionText);
+float4        gOcclusion1Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
 
 Buffer* pProjViewUniformBuffer[gDataBufferCount] = { NULL };
 
@@ -598,7 +606,10 @@ public:
         // Generate sphere vertex buffer
         if (!pSpherePoints)
         {
-            generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
+            gNumberOfSpherePoints = 0;
+            generateSpherePoints(NULL, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
+            pSpherePoints = (float*)tf_malloc(sizeof(float) * gNumberOfSpherePoints);
+            generateSpherePoints(pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
         }
 
         struct ArchiveOpenDesc openDesc = { 0 };
@@ -698,6 +709,10 @@ public:
         }
 
         initResourceLoaderInterface(pRenderer);
+
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
 
         // Load fonts
         FontDesc font = {};
@@ -877,7 +892,7 @@ public:
 
         gFrameIndex = 0;
         waitForAllResourceLoads();
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         return true;
     }
 
@@ -888,7 +903,7 @@ public:
             tf_free(pSpherePoints);
             pSpherePoints = nullptr;
         }
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         fsArchiveClose(&gArchiveFileSystem);
 
         bdestroy(&gText);
@@ -924,7 +939,7 @@ public:
 
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
-
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         if (pRenderer->pGpu->mOcclusionQueries)
         {
@@ -941,9 +956,9 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTextures);
-        setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFrameUniforms);
     }
 
@@ -958,29 +973,30 @@ public:
         // Skybox
         {
             // Prepare descriptor sets
-            DescriptorData params[7] = {};
-            params[0].pName = "RightText";
+            DescriptorData params[8] = {};
+            params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gRightTexture);
             params[0].ppTextures = &pSkyboxTextures[0];
-            params[1].pName = "LeftText";
+            params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gLeftTexture);
             params[1].ppTextures = &pSkyboxTextures[1];
-            params[2].pName = "TopText";
+            params[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gTopTexture);
             params[2].ppTextures = &pSkyboxTextures[2];
-            params[3].pName = "BotText";
+            params[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gBotTexture);
             params[3].ppTextures = &pSkyboxTextures[3];
-            params[4].pName = "FrontText";
+            params[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gFrontTexture);
             params[4].ppTextures = &pSkyboxTextures[4];
-            params[5].pName = "BackText";
+            params[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gBackTexture);
             params[5].ppTextures = &pSkyboxTextures[5];
-
-            params[6].pName = "ZipTexture";
+            params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gZipTexture);
             params[6].ppTextures = pZipTexture;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTextures, 7, params);
+            params[7].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
+            params[7].ppSamplers = &pSamplerSkybox;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetTextures, 8, params);
         }
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData params[1] = {};
-            params[0].pName = "uniformBlock";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
             params[0].ppBuffers = &pProjViewUniformBuffer[i];
             updateDescriptorSet(pRenderer, i, pDescriptorSetFrameUniforms, 1, params);
         }
@@ -991,7 +1007,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -1020,7 +1035,7 @@ public:
 
                 DynamicTextWidget occlusionRedWidget;
                 occlusionRedWidget.pText = &gOcclusionbstr;
-                occlusionRedWidget.pColor = &gOccluion1Color;
+                occlusionRedWidget.pColor = &gOcclusion1Color;
                 UIWidget* pOcclusionWidget =
                     uiAddComponentWidget(pGui_OcclusionData, "Sphere Occlusion:", &occlusionRedWidget, WIDGET_TYPE_DYNAMIC_TEXT);
                 luaRegisterWidget(pOcclusionWidget);
@@ -1085,7 +1100,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -1177,9 +1191,9 @@ public:
         if (pRenderer->pGpu->mOcclusionQueries)
         {
             QueryData occlusionData = {};
-            getQueryData(pRenderer, pOcclusionQueryPool[gFrameIndex], gOccTestOccuionSphereMaxIndex, &occlusionData);
+            getQueryData(pRenderer, pOcclusionQueryPool[gFrameIndex], gOccTestOcclusionSphereMaxIndex, &occlusionData);
             const uint64_t maxOcclusion = occlusionData.mOcclusionCounts;
-            getQueryData(pRenderer, pOcclusionQueryPool[gFrameIndex], gOccTestOccuionSphereIndex, &occlusionData);
+            getQueryData(pRenderer, pOcclusionQueryPool[gFrameIndex], gOccTestOcclusionSphereIndex * gViewCount, &occlusionData);
             const uint64_t testOcclusion = occlusionData.mOcclusionCounts;
             float          visibility = ((maxOcclusion == 0.0f) ? 0.0f : (((float)testOcclusion) / ((float)maxOcclusion))) * 100.0f;
             bformat(&gOcclusionbstr, "Visible texels %u | Total texels %u | (%f%%)", testOcclusion, maxOcclusion, visibility);
@@ -1229,7 +1243,7 @@ public:
 
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
 
-            occlusionQueryDesc.mIndex = gOccTestOccuionSphereMaxIndex;
+            occlusionQueryDesc.mIndex = gOccTestOcclusionSphereMaxIndex;
             cmdBeginQuery(cmd, pOcclusionQueryPool[gFrameIndex], &occlusionQueryDesc);
             cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &sphereStride, NULL);
             cmdDraw(cmd, gNumberOfSpherePoints / 6, 0);
@@ -1278,7 +1292,7 @@ public:
 
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
 
-            occlusionQueryDesc.mIndex = gOccTestOccuionSphereIndex;
+            occlusionQueryDesc.mIndex = gOccTestOcclusionSphereIndex * gViewCount;
             cmdBeginQuery(cmd, pOcclusionQueryPool[gFrameIndex], &occlusionQueryDesc);
             cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &sphereStride, NULL);
             cmdDraw(cmd, gNumberOfSpherePoints / 6, 0);
@@ -1365,22 +1379,6 @@ public:
         return pSwapChain != NULL;
     }
 
-    void addRootSignatures()
-    {
-        Shader* shaders[] = { pSkyboxShader, pBasicShader, pZipTextureShader, pOcclusionShader };
-
-        const char*       pStaticSamplers[] = { "uSampler0" };
-        RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
-        skyboxRootDesc.mStaticSamplerCount = 1;
-        skyboxRootDesc.ppStaticSamplerNames = pStaticSamplers;
-        skyboxRootDesc.ppStaticSamplers = &pSamplerSkybox;
-        skyboxRootDesc.mShaderCount = 4;
-        skyboxRootDesc.ppShaders = shaders;
-        addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignature);
-    }
-
-    void removeRootSignatures() { removeRootSignature(pRenderer, pRootSignature); }
-
     void addShaders()
     {
         ShaderLoadDesc skyShader = {};
@@ -1436,6 +1434,7 @@ public:
 
         PipelineDesc desc = {};
         desc.mType = PIPELINE_TYPE_GRAPHICS;
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 1;
@@ -1444,7 +1443,6 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pBasicShader;
         pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
         pipelineSettings.pRasterizerState = &binCubeRasterizerStateDesc;
@@ -1487,7 +1485,6 @@ public:
         vertexLayout.mAttribs[2].mLocation = 2;
         vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
 
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pDepthState = &depthStateDesc;
         pipelineSettings.pRasterizerState = &cubeRasterizerStateDesc;
         pipelineSettings.pShaderProgram = pZipTextureShader;
@@ -1515,7 +1512,7 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-        pipelineSettings.pRootSignature = pRootSignature;
+
         pipelineSettings.pVertexLayout = &vertexLayout;
         pipelineSettings.pRasterizerState = &rasterizerStateFrontDesc;
         pipelineSettings.pShaderProgram = pOcclusionShader;

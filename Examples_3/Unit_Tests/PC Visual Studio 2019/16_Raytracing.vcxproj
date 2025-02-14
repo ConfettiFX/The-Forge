@@ -17,6 +17,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\Shared.fsl.h" />
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
+    <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\srt.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DenoiserInputsPass.frag.fsl" />
@@ -24,10 +25,11 @@
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.frag.fsl" />
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.vert.fsl" />
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\RayQuery.comp.fsl" />
-    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\shaders.list" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\16_Raytracing\Test_RaytracingTechnique_RayQuery.lua" />
+    <None Include="..\src\16_Raytracing\GPUCfg\gpu.cfg" />
+    <None Include="..\src\16_Raytracing\Scripts\Test_RaytracingTechnique_RayQuery.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

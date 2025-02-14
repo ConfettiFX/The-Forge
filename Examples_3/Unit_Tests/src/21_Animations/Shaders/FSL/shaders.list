@@ -1,0 +1,24 @@
+#include "../../../../../../Common_3/Graphics/FSL/defaults.h"
+
+#rootsig default.rootsig
+#end
+
+#rootsig compute.rootsig
+#end
+
+#frag cube.frag
+#include "cube.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW cube.vert
+#include "cube.vert.fsl"
+#end
+
+#frag plane.frag
+#include "plane.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW plane.vert
+#include "plane.vert.fsl"
+#end
+

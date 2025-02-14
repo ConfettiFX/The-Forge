@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+
+#define EPSILON 1e-7f
+
+STRUCT(UniformBlock)
+{
+#if FT_MULTIVIEW
+	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
+	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
+#else
+	DATA(float4x4, projView, None);
+	DATA(float4x4, invProjView, None);
+#endif
+	DATA(float3, camPos, None);
+};
+
+
+STRUCT(Camera)
+{
+#if FT_MULTIVIEW
+	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
+	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
+#else
+	DATA(float4x4, projView, None);
+	DATA(float4x4, invProjView, None);
+#endif
+	DATA(float3, camPos, None);
+ #ifndef METAL
+    float __dumm;
+#endif
+
+	DATA(float, fAmbientLightIntensity, None);
+	DATA(int, bUseEnvironmentLight, None);
+	DATA(float, fEnvironmentLightIntensity, None);
+	DATA(float, fAOIntensity, None);
+	DATA(int, renderMode, None);
+	DATA(float, fNormalMapIntensity, None);
+};
+
+STRUCT(CapsuleData)
+{
+	DATA(float4, CenterRadius0, None);
+	DATA(float4, CenterRadius1, None);
+};
+
+STRUCT(Object)
+{
+	DATA(float4x4, worldMat, None);
+	DATA(float4, albedoAndRoughness, None);
+	DATA(float2, tiling, None);
+	DATA(float, baseMetalness, None);
+
+	// specifies which texture maps are to be used 
+	// instead of the constant buffer values above.
+	DATA(int, textureConfig, None);
+};
+
+
+
+STRUCT(HairData)
+{
+	DATA(float4x4, Transform, None);
+	DATA(uint, RootColor, None);
+	DATA(uint, StrandColor, None);
+	DATA(float, ColorBias, None);
+	DATA(float, Kd, None);
+	DATA(float, Ks1, None);
+	DATA(float, Ex1, None);
+	DATA(float, Ks2, None);
+	DATA(float, Ex2, None);
+	DATA(float, FiberRadius, None);
+	DATA(float, FiberSpacing, None);
+	DATA(uint, NumVerticesPerStrand, None);
+};
+
+
+STRUCT(DirectionalLightShadowCameras)
+{
+    DATA(Camera, ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS], None);
+};
+
+STRUCT(PointLight)
+{
+    DATA(float4, positionAndRadius, None);
+    DATA(float4, colorAndIntensity, None);
+};
+
+STRUCT(DirectionalLight)
+{
+    DATA(float4, directionAndShadowMap, None);
+    DATA(float4, colorAndIntensity, None);
+    DATA(float, shadowRange, None);
+    DATA(float, _pad0, None);
+    DATA(float, _pad1, None);
+    DATA(int, shadowMapDimensions, None);
+    DATA(float4x4, viewProj, None);
+};
+
+
+STRUCT(PointLightData)
+{
+    DATA(PointLight, PointLights[MAX_NUM_POINT_LIGHTS], None);
+    DATA(uint, NumPointLights, None);
+};
+
+STRUCT(DirectionalLightData)
+{
+    DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
+    DATA(uint, NumDirectionalLights, None);
+};
+
+STRUCT(HairGlobal)
+{
+    DATA(float4, Viewport, None);
+    DATA(float4, Gravity, None);
+    DATA(float4, Wind, None);
+    DATA(float, TimeStep, None);
+};

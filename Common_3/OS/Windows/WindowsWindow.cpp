@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,11 +38,6 @@
 #include <windowsx.h>
 
 #define elementsOf(a)      (sizeof(a) / sizeof((a)[0]))
-
-#define LEFTEXTENDWIDTH    6
-#define RIGHTEXTENDWIDTH   6
-#define BOTTOMEXTENDWIDTH  20
-#define TOPEXTENDWIDTH     27
 
 #define FORGE_WINDOW_CLASS L"The Forge"
 
@@ -568,19 +563,23 @@ static LRESULT HitTestNCA(HWND hWnd, WPARAM /*wParam*/, LPARAM lParam)
     RECT rcWindow;
     GetWindowRect(hWnd, &rcWindow);
 
-    // Get the frame rectangle, adjusted for the style without a caption.
-    RECT rcFrame = { 0 };
-    AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL);
+    // Get the minimal resizable window size.
+    RECT rcResizeBorder = { 0 };
+    AdjustWindowRect(&rcResizeBorder, WS_THICKFRAME, FALSE);
+
+    const long topExtendWidth = (rcResizeBorder.bottom - rcResizeBorder.top) / 2;
+    const long bottomExtendWidth = topExtendWidth;
+    const long leftExtendWidth = (rcResizeBorder.right - rcResizeBorder.left) / 2;
+    const long rightExtendWidth = leftExtendWidth;
 
     // Determine if the hit test is for resizing. Default middle (1,1).
     USHORT uRow = 1;
     USHORT uCol = 1;
-    bool   fOnResizeBorder = false;
 
     if (::IsZoomed(hWnd)) // if maximized, only the frame title remains
     {
         // Determine if the point is at the top or bottom of the window.
-        if ((ptMouse.y >= 0) && (ptMouse.y < TOPEXTENDWIDTH))
+        if ((ptMouse.y >= 0) && (ptMouse.y < topExtendWidth))
         {
             uRow = 0;
         }
@@ -588,22 +587,21 @@ static LRESULT HitTestNCA(HWND hWnd, WPARAM /*wParam*/, LPARAM lParam)
     else
     {
         // Determine if the point is at the top or bottom of the window.
-        if (ptMouse.y >= rcWindow.top && ptMouse.y < rcWindow.top + TOPEXTENDWIDTH)
+        if (ptMouse.y >= rcWindow.top && ptMouse.y < rcWindow.top + topExtendWidth)
         {
-            fOnResizeBorder = (ptMouse.y < (rcWindow.top - rcFrame.top));
             uRow = 0;
         }
-        else if (ptMouse.y < rcWindow.bottom && ptMouse.y >= rcWindow.bottom - BOTTOMEXTENDWIDTH)
+        else if (ptMouse.y < rcWindow.bottom && ptMouse.y >= rcWindow.bottom - bottomExtendWidth)
         {
             uRow = 2;
         }
 
         // Determine if the point is at the left or right of the window.
-        if (ptMouse.x >= rcWindow.left && ptMouse.x < rcWindow.left + LEFTEXTENDWIDTH)
+        if (ptMouse.x >= rcWindow.left && ptMouse.x < rcWindow.left + leftExtendWidth)
         {
             uCol = 0; // left side
         }
-        else if (ptMouse.x < rcWindow.right && ptMouse.x >= rcWindow.right - RIGHTEXTENDWIDTH)
+        else if (ptMouse.x < rcWindow.right && ptMouse.x >= rcWindow.right - rightExtendWidth)
         {
             uCol = 2; // right side
         }
@@ -611,7 +609,7 @@ static LRESULT HitTestNCA(HWND hWnd, WPARAM /*wParam*/, LPARAM lParam)
 
     // Hit test (HTTOPLEFT, ... HTBOTTOMRIGHT)
     LRESULT hitTests[3][3] = {
-        { fOnResizeBorder ? HTTOPLEFT : HTLEFT, fOnResizeBorder ? HTTOP : HTCAPTION, fOnResizeBorder ? HTTOPRIGHT : HTRIGHT },
+        { HTTOPLEFT, HTTOP, HTTOPRIGHT },
         { HTLEFT, HTNOWHERE, HTRIGHT },
         { HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT },
     };
@@ -753,8 +751,7 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* rect)
         return;
     }
 
-    HWND hwnd = (HWND)winDesc->handle.window;
-
+    HWND  hwnd = (HWND)winDesc->handle.window;
     DWORD windowStyle = PrepareStyleMask(winDesc);
     SetWindowLong(hwnd, GWL_STYLE, windowStyle);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -949,17 +949,14 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
 
 void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect)
 {
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
+    ASSERT(view);
+    NSWindow*         window = [view window];
     NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
-
-    NSRect viewRect{ { (float)rect->left, (float)rect->top }, { (float)getRectWidth(rect), (float)getRectHeight(rect) } };
-
-    NSRect   styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
-    RectDesc windowRect = {};
-    windowRect.left = (int32_t)styleAdjustedRect.origin.x;
-    windowRect.top = (int32_t)styleAdjustedRect.origin.y;
-    windowRect.right = (int32_t)styleAdjustedRect.origin.x + (int32_t)viewRect.size.width;
-    windowRect.bottom = (int32_t)styleAdjustedRect.origin.y + (int32_t)viewRect.size.height;
-    setWindowRect(winDesc, rect);
+    NSRect            viewRect = convertRectToNSRect(*rect, window);
+    NSRect            styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
+    RectDesc          windowRect = convertNSRectToRect(styleAdjustedRect, window);
+    setWindowRect(winDesc, &windowRect);
 }
 void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height)
 {

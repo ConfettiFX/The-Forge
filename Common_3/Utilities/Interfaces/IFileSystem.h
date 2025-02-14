@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -125,7 +125,7 @@ extern "C"
         FM_READ_APPEND = FM_READ | FM_APPEND,
 
         // RW mode and set position to the end
-        FM_READ_WRITE_APPEND = FM_READ | FM_APPEND,
+        FM_READ_WRITE_APPEND = FM_READ_WRITE | FM_APPEND,
 
         // -- mode and -- and also read access for other processes.
         FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,

@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,28 +47,27 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_INDIRECT_ARGS
 #define FFX_SSSR_INDIRECT_ARGS
 
-RES(RWBuffer(uint), g_tile_counter,   UPDATE_FREQ_NONE, u0, binding = 0 );
-RES(RWBuffer(uint), g_ray_counter,    UPDATE_FREQ_NONE, u1, binding = 1 );
-RES(RWBuffer(uint), g_intersect_args, UPDATE_FREQ_NONE, u2, binding = 2 );
-RES(RWBuffer(uint), g_denoiser_args,  UPDATE_FREQ_NONE, u3, binding = 3 );
+#include "vb_resources.h.fsl"
+#include "SSSR.srt.h"
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(1,  1,  1)
 void CS_MAIN()
 {
 	INIT_MAIN;
-    uint tile_counter   = g_tile_counter[0];
-    uint ray_counter    = g_ray_counter[0];
+    uint tile_counter   = gTileCounter[0];
+    uint ray_counter    = gRayCounter[0];
 
-    g_tile_counter[0]   = 0u;
-    g_ray_counter[0]    = 0u;
+    gTileCounter[0]   = 0u;
+    gRayCounter[0]    = 0u;
 
-    g_intersect_args[0] = (ray_counter + 63u) / 64u;
-    g_intersect_args[1] = 1u;
-    g_intersect_args[2] = 1u;
+    gIntersectArgs[0] = (ray_counter + 63u) / 64u;
+    gIntersectArgs[1] = 1u;
+    gIntersectArgs[2] = 1u;
 
-    g_denoiser_args[0]  = tile_counter;
-    g_denoiser_args[1]  = 1u;
-    g_denoiser_args[2]  = 1u;
+    gDenoiserArgs[0]  = tile_counter;
+    gDenoiserArgs[1]  = 1u;
+    gDenoiserArgs[2]  = 1u;
 	RETURN();
 }
 #endif // FFX_SSSR_INDIRECT_ARGS

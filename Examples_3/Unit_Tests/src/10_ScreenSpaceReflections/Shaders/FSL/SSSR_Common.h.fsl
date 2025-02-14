@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -112,30 +112,6 @@ FFX_SSSR_MOTION_VECTOR_UNPACK_FUNCTION
 FFX_SSSR_DEPTH_UNPACK_FUNCTION
 FFX_SSSR_SCENE_RADIANCE_UNPACK_FUNCTION
 
-// Common constants
-STRUCT(ConstantsData)
-{
-    DATA(float4x4, g_inv_view_proj, None);
-    DATA(float4x4, g_proj, None);
-    DATA(float4x4, g_inv_proj, None);
-    DATA(float4x4, g_view, None);
-    DATA(float4x4, g_inv_view, None);
-    DATA(float4x4, g_prev_view_proj, None);
-
-    DATA(uint, g_frame_index, None);
-    DATA(bool, g_clear_targets, None);
-    DATA(uint, g_max_traversal_intersections, None);
-    DATA(uint, g_min_traversal_occupancy, None);
-    DATA(uint, g_most_detailed_mip, None);
-    DATA(float, g_temporal_stability_factor, None);
-    DATA(float, g_depth_buffer_thickness, None);
-    DATA(uint, g_samples_per_quad, None);
-    DATA(uint, g_temporal_variance_guided_tracing_enabled, None);
-    DATA(float, g_roughness_threshold, None);
-    DATA(uint, g_skip_denoiser, None);
-};
-RES(CBUFFER(ConstantsData), Constants, UPDATE_FREQ_NONE, b0, binding = 0);
-
 // Mat must be able to transform origin from its current space into screen space.
 float3 ProjectPosition(float3 origin, float4x4 mat)
 {
@@ -172,7 +148,7 @@ STRUCT(Ray)
 // Create a ray that originates at the depth buffer surface and points away from the camera.
 Ray CreateViewSpaceRay(float3 screen_space_pos)
 {
-    float3 view_space_pos = InvProjectPosition(screen_space_pos, Constants.g_inv_proj);
+    float3 view_space_pos = InvProjectPosition(screen_space_pos, gConstants.g_inv_proj);
     Ray view_space_ray;
     view_space_ray.origin = view_space_pos;
     view_space_ray.direction = view_space_pos;
@@ -192,7 +168,7 @@ float LoadRoughness(int2 index, Tex2D(float4) tex)
 
 bool IsGlossy(float roughness)
 {
-    return roughness < Constants.g_roughness_threshold;
+    return roughness < gConstants.g_roughness_threshold;
 }
 
 bool IsMirrorReflection(float roughness)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,6 +50,7 @@
 #include "../../Utilities/Interfaces/ILog.h"
 #include "../../Utilities/Interfaces/IThread.h"
 #include "../../Utilities/Interfaces/ITime.h"
+#include "../../Application/Interfaces/IScreenshot.h"
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
 #include "../../Tools/ReloadServer/ReloadClient.h"
@@ -123,8 +124,8 @@ void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle,
 {
     UNREF_PARAM(handle);
 #if defined(AUTOMATED_TESTING)
-    LOGF(eERROR, title);
-    LOGF(eERROR, msg);
+    LOGF(eERROR, "%s", title);
+    LOGF(eERROR, "%s", msg);
 #else
     MessageBoxA((HWND)handle->window, msg, title, MB_OK);
 #endif
@@ -215,6 +216,8 @@ void updateBaseSubsystems(float deltaTime, bool appDrawn)
 
 #ifdef ENABLE_FORGE_SCRIPTING
     platformUpdateLuaScriptingSystem(appDrawn);
+#else
+    (void)appDrawn;
 #endif
 
 #ifdef ENABLE_FORGE_UI
@@ -280,7 +283,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.9f);
     uiAddComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
-    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
+    platformSetupReloadClientUI(pReloadShaderComponent);
 #endif
 
     // GPU SWITCHING
@@ -317,6 +320,8 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     }
     luaDefineScripts(scriptDescs, numScripts);
 #endif
+#else
+    (void)pSettings;
 #endif
 }
 
@@ -453,12 +458,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
             if (i + 1 < argc && isdigit(*argv[i + 1]))
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
         }
-        else if (strcmp(argv[i], "--request-recompile-after") == 0)
-        {
-            extern uint32_t gReloadServerRequestRecompileAfter;
-            if (i + 1 < argc && isdigit(*argv[i + 1]))
-                gReloadServerRequestRecompileAfter = atoi(argv[i + 1]);
-        }
         // Run forever, this is useful when the app will control when the automated tests are over
         else if (strcmp(argv[i], "--no-auto-exit") == 0)
         {
@@ -466,7 +465,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         }
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
         {
-            strcpy(benchmarkOutput, argv[i + 1]);
+            strncpy_s(benchmarkOutput, sizeof(benchmarkOutput), argv[i + 1], 1024);
         }
         // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
         // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
@@ -670,8 +669,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             togglePlatformUI();
         }
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
-        if (platformReloadClientShouldQuit())
-            quit = true;
+        platformUpdateReloadClient();
 #endif
 
 #ifdef AUTOMATED_TESTING

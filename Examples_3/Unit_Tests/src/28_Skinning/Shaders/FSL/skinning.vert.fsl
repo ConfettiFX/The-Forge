@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,25 +40,25 @@ STRUCT(VSOutput)
     DATA(float3, Normal, NORMAL);
     DATA(float2, UV, TEXCOORD0);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN(VSInput In)
 {
     INIT_MAIN;
     VSOutput Out;
 
-    float4x4 boneTransform = (boneMatrices.boneMatrix[In.BoneIndices[0]]) * In.BoneWeights[0];
-    boneTransform += (boneMatrices.boneMatrix[In.BoneIndices[1]]) * In.BoneWeights[1];
-    boneTransform += (boneMatrices.boneMatrix[In.BoneIndices[2]]) * In.BoneWeights[2];
-    boneTransform += (boneMatrices.boneMatrix[In.BoneIndices[3]]) * In.BoneWeights[3];
+    float4x4 boneTransform = (gBoneMatrices.boneMatrix[In.BoneIndices[0]]) * In.BoneWeights[0];
+    boneTransform += (gBoneMatrices.boneMatrix[In.BoneIndices[1]]) * In.BoneWeights[1];
+    boneTransform += (gBoneMatrices.boneMatrix[In.BoneIndices[2]]) * In.BoneWeights[2];
+    boneTransform += (gBoneMatrices.boneMatrix[In.BoneIndices[3]]) * In.BoneWeights[3];
 
     Out.Position = mul(boneTransform, float4(In.Position, 1.0f));
-    Out.Position = mul(uniformBlock.modelMatrix, Out.Position);
+    Out.Position = mul(gUniformBlock.modelMatrix, Out.Position);
 #if FT_MULTIVIEW
-    Out.Position = mul(uniformBlock.vpMatrix[VR_VIEW_ID], Out.Position);
+    Out.Position = mul(gUniformBlock.vpMatrix[VR_VIEW_ID], Out.Position);
 #else
-    Out.Position = mul(uniformBlock.vpMatrix, Out.Position);
+    Out.Position = mul(gUniformBlock.vpMatrix, Out.Position);
 #endif
-    Out.Normal = normalize(mul(uniformBlock.modelMatrix, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.f)).xyz);
+    Out.Normal = normalize(mul(gUniformBlock.modelMatrix, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.f)).xyz);
     Out.UV = unpack2Floats(In.UV);
 
     RETURN(Out);

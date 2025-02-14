@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,7 +25,10 @@
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 #include "vrs_resources.h.fsl"
+#include "srt.h"
+#include "vb_resources_util.h.fsl"
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleIndex(uint) i )
 {
     INIT_MAIN;
@@ -41,11 +44,11 @@ float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleI
     float2 texCoords = In.texCoord.xy + uvOffsets[i].x * uv_dx + uvOffsets[i].y * uv_dy;
 
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleGradTex2D(diffuseMaps[materialID], textureFilter, texCoords, uv_dx, uv_dy).a;
+		alpha = SampleGradTex2D(gDiffuseMaps[materialID], gVBTextureFilter, texCoords, uv_dx, uv_dy).a;
     EndNonUniformResourceIndex();
 #else
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(diffuseMaps[materialID], textureFilter, In.texCoord).a;
+		alpha = SampleTex2D(gDiffuseMaps[materialID], gVBTextureFilter, In.texCoord).a;
     EndNonUniformResourceIndex();
 #endif
     

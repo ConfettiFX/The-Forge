@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,8 +33,8 @@
 #endif
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
 
-STATIC const float PI = 3.1415926535897932384626422832795028841971f;
 
 STRUCT(PsIn)
 {
@@ -47,25 +47,16 @@ STRUCT(FSOutput)
 	DATA(float4, result, SV_Target);
 };
 
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 2);
 
-#if SAMPLE_COUNT > 1
-	RES(Depth2DMS(float, SAMPLE_COUNT), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
-#else
-	RES(Depth2D(float), depthTexture, UPDATE_FREQ_NONE, t0, binding = 3);
-#endif
 
-RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t1, binding = 4);
 
-STRUCT(GodRayRootConstantData)
-{
-	DATA(float, mScatterFactor, None);
-};
-RES(ROOT_CONSTANT(GodRayRootConstantData), GodRayRootConstant, UPDATE_FREQ_NONE, b2, binding = 0);
+
+#include "srt.h"
+
 
 float GetShadowFactor(float3 position)
 {
-	float4 posLS = mul(PerFrameVBConstants.transform[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
+	float4 posLS = mul(gPerFrameConstants.transform[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -79,10 +70,8 @@ float GetShadowFactor(float3 position)
 	if( all(GreaterThan(posLS.xy, 0)) && all(LessThan(posLS.xy, 1)))
 	{
 		// ESM
-		float CShadow = SampleLvlTex2D(shadowMap, uSampler0, posLS.xy, 0).r;
-
-		float esm = exp(-PerFrameConstants.esmControl * posLS.z) * exp(PerFrameConstants.esmControl * CShadow);
-
+		float CShadow = SampleLvlTex2D(gShadowMap, gSamplerPointClamp, posLS.xy, 0).r;
+		float esm = exp((CShadow - posLS.z) * gPerFrameConstants.esmControl);
 		shadowFactor = saturate(2.0 - esm);
 	}
 
@@ -91,7 +80,7 @@ float GetShadowFactor(float3 position)
 
 float PhaseHenyeyGreenstein(float VoL)
 {
-    float g = GodRayRootConstant.mScatterFactor;
+    float g = gPerFrameConstants.mGodRayScatterFactor;
     float nom = 1 - g * g;
     float denom = 4 * PI * pow(1 + g * g - 2 * g * VoL, 1.5);
     return nom / denom;
@@ -104,7 +93,7 @@ STATIC const float ditherOffsets[16] =
 	0.125f, 0.875f, 0.0625f, 0.8125f,
 	0.625f, 0.375f, 0.5625f, 0.3125f
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
@@ -113,28 +102,28 @@ FSOutput PS_MAIN( PsIn In )
 	float depth = 0.0f;
 
 #if USE_VRS
-	depth += LoadTex2DMS(depthTexture, uSampler0, uint2(In.position.xy), 0).r;
+	depth += LoadTex2DMS(gDepthTexture, gSamplerPointClamp, uint2(In.position.xy), 0).r;
 #elif SAMPLE_COUNT > 1
 	for(int i = 0; i < SAMPLE_COUNT; ++i)
-		depth += LoadTex2DMS(depthTexture, uSampler0, uint2(In.position.xy * 2), i).r;
+		depth += LoadTex2DMS(gDepthTexture, gSamplerPointClamp, uint2(In.position.xy * 2), i).r;
 	depth /= SAMPLE_COUNT;
 #else
-	depth = SampleLvlTex2D(depthTexture, uSampler0, In.texCoord, 0).r;
+	depth = SampleLvlTex2D(gDepthTexture, gSamplerPointClamp, In.texCoord, 0).r;
 #endif
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
 
-	float4 WorldPosW = mul(PerFrameVBConstants.transform[VIEW_CAMERA].invVP.mat, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
+	float4 WorldPosW = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, float4((In.texCoord * 2.0f - 1.0f) * float2(1.0f, -1.0f), depth, 1.0f));
 
-	float3 rayStart = PerFrameConstants.camPos.xyz;
+	float3 rayStart = gPerFrameConstants.camPos.xyz;
 	float3 rayEnd = WorldPosW.xyz / WorldPosW.w;
 
-	float3 L = -PerFrameConstants.lightDir.xyz;
+	float3 L = -gPerFrameConstants.lightDir.xyz;
 
 	float3 marchDir = normalize(rayEnd - rayStart);
 	float3 marchStep = (rayEnd - rayStart) / 10;
 
-	int2 ditherIdx = int2(fmod((In.texCoord) * float2(PerFrameConstants.screenWidth, PerFrameConstants.screenHeight) * 0.5f, 4.0f));
+	int2 ditherIdx = int2(fmod((In.texCoord) * float2(gPerFrameConstants.screenWidth, gPerFrameConstants.screenHeight) * 0.5f, 4.0f));
 	float offset = ditherOffsets[ditherIdx.x * 4 + ditherIdx.y];
 
 	rayStart += offset * marchStep;
@@ -145,7 +134,7 @@ FSOutput PS_MAIN( PsIn In )
 
 		float shadowFactor = GetShadowFactor(samplePos);
 
-		color += PerFrameConstants.lightColor.rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
+		color += gPerFrameConstants.lightColor.rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
 	}
 
 	color /= 10;

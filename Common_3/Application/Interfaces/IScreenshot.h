@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,15 +26,23 @@
 
 #include "../../Graphics/Interfaces/IGraphics.h"
 
-FORGE_API void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue);
+typedef struct ScreenshotDesc
+{
+    RenderTarget* pRenderTarget;
+    Semaphore**   ppWaitSemaphores;
+    uint32_t      mWaitSemaphoresCount;
+    ColorSpace    mColorSpace;
+    bool          discardAlpha;
+    bool          flipRedBlue;
+} ScreenshotDesc;
 
-// Use one renderpass prior to calling captureScreenshot() to prepare pSwapChain for copy.
-FORGE_API bool prepareScreenshot(SwapChain* pSwapChain);
+// Schedules the next drawn frame to  captured
+FORGE_API void requestScreenshotCapture(const char* name);
 
-// Attempts to capture a screenshot if setCaptureScreenshot was called for this frame
-FORGE_API void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool noAlpha, bool forceFlipRedBlue);
+FORGE_API bool isScreenshotCaptureRequested();
 
-FORGE_API void exitScreenshotInterface();
+FORGE_API void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphcisQueue, const char* appName);
 
-// Schedules the next drawn frame to be captured
-FORGE_API void setCaptureScreenshot(const char* name);
+FORGE_API void exitScreenshotCapturer();
+
+FORGE_API void captureScreenshot(ScreenshotDesc* pDesc);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,89 +32,11 @@
 	#define MAX_NUM_DIRECTIONAL_LIGHTS 1
 #endif
 
-STRUCT(PointLight)
-{
-	DATA(float4, positionAndRadius, None);
-	DATA(float4, colorAndIntensity, None);
-};
 
-STRUCT(DirectionalLight)
-{
-	DATA(float4, directionAndShadowMap, None);
-	DATA(float4, colorAndIntensity, None);
-	DATA(float, shadowRange, None);
-	DATA(float, _pad0, None);
-	DATA(float, _pad1, None);
-	DATA(int, shadowMapDimensions, None);
-	DATA(float4x4, viewProj, None);
-};
+#include "resources.h.fsl"
+#include "srt.h"
 
-// UPDATE_FREQ_NONE
-STRUCT(PointLightData)
-{
-	DATA(PointLight, PointLights[MAX_NUM_POINT_LIGHTS], None);
-	DATA(uint, NumPointLights, None);
-};
-RES(CBUFFER(PointLightData), cbPointLights, UPDATE_FREQ_NONE, b2, binding = 2);
 
-RES(Tex2D(float2), brdfIntegrationMap, UPDATE_FREQ_NONE, t3, binding = 4);
-RES(TexCube(float4), irradianceMap, UPDATE_FREQ_NONE, t4, binding = 5);
-RES(TexCube(float4), specularMap, UPDATE_FREQ_NONE, t5, binding = 6);
-RES(Tex2D(float4), shadowMap, UPDATE_FREQ_NONE, t13, binding = 13);
 
-RES(SamplerState, materialSampler, UPDATE_FREQ_NONE, s1, binding = 14);
-RES(SamplerState, brdfIntegrationSampler, UPDATE_FREQ_NONE, s2, binding = 15);
-RES(SamplerState, environmentSampler, UPDATE_FREQ_NONE, s3, binding = 16);
-RES(SamplerState, pointSampler, UPDATE_FREQ_NONE, s4, binding = 17);
-
-// UPDATE_FREQ_PER_FRAME
-STRUCT(Camera)
-{
-#if FT_MULTIVIEW
-	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
-	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
-#else
-	DATA(float4x4, projView, None);
-	DATA(float4x4, invProjView, None);
-#endif
-
-	DATA(float4, camPos, None);
-
-	DATA(float, fAmbientLightIntensity, None);
-
-	DATA(int, bUseEnvironmentLight, None);
-	DATA(float, fEnvironmentLightIntensity, None);
-	DATA(float, fAOIntensity, None);
-	DATA(int, renderMode, None);
-	DATA(float, fNormalMapIntensity, None);
-};
-RES(CBUFFER(Camera), cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
-
-STRUCT(DirectionalLightData)
-{
-	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
-	DATA(uint, NumDirectionalLights, None);
-};
-RES(CBUFFER(DirectionalLightData), cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b3, binding = 3);
-
-// UPDATE_FREQ_PER_DRAW
-STRUCT(Object)
-{
-	DATA(float4x4, worldMat, None);
-	DATA(float4, albedoAndRoughness, None);
-	DATA(float2, tiling, None);
-	DATA(float, baseMetalness, None);
-
-	// specifies which texture maps are to be used 
-	// instead of the constant buffer values above.
-	DATA(int, textureConfig, None);
-};
-RES(CBUFFER(Object), cbObject, UPDATE_FREQ_PER_DRAW, b1, binding = 1);
-RES(Tex2D(float4), albedoMap, UPDATE_FREQ_PER_DRAW, t7, binding = 7);
-RES(Tex2D(float4), normalMap, UPDATE_FREQ_PER_DRAW, t8, binding = 8);
-RES(Tex2D(float4), metallicMap, UPDATE_FREQ_PER_DRAW, t9, binding = 9);
-RES(Tex2D(float4), roughnessMap, UPDATE_FREQ_PER_DRAW, t10, binding = 10);
-RES(Tex2D(float4), aoMap, UPDATE_FREQ_PER_DRAW, t11, binding = 11);
-RES(Tex2D(float4), vmfMap, UPDATE_FREQ_PER_DRAW, t12, binding = 12);
 
 #endif /* renderSceneBRDF_h */

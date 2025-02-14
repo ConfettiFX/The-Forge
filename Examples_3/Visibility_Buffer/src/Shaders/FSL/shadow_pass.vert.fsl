@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,9 +22,11 @@
  * under the License.
 */
 
-#include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
+#include "srt.h"
+#include "vb_resources_util.h.fsl"
 
+ROOT_SIGNATURE(DefaultRootSignature)
 PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
 {
 	INIT_MAIN;
@@ -33,9 +35,9 @@ PsInOpaque VS_MAIN( SV_VertexID(uint) vertexID )
     float4 vertexPos = LoadVertex(vertexID);
 
 #if defined (TARGET_QUEST)
-	Out.position = mul(PerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat[0], vertexPos);
+	Out.position = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat[0], vertexPos);
 #else
-	Out.position = mul(PerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat, vertexPos);
+	Out.position = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat, vertexPos);
 #endif
 
     RETURN(Out);

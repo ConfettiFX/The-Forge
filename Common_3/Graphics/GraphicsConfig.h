@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -120,6 +120,18 @@ enum
 #define ENABLE_GRAPHICS_VALIDATION
 // Object names, markers and labels
 #define ENABLE_GRAPHICS_DEBUG_ANNOTATION
+#endif
+
+#if defined(ENABLE_GRAPHICS_RUNTIME_CHECK) || defined(PVS_STUDIO)
+#define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                           \
+    if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__)) \
+    {                                                                          \
+        continue;                                                              \
+    }
+#define IF_VALIDATE_DESCRIPTOR(...) __VA_ARGS__
+#else
+#define VALIDATE_DESCRIPTOR(descriptor, ...)
+#define IF_VALIDATE_DESCRIPTOR(...)
 #endif
 
 #ifdef FORGE_PROFILE

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -62,7 +62,7 @@
 																								UnpackFadeValue(ageOverMaxAge, startColor, endColor))
 #define UnpackParticleColorSpeed(startColor, endColor, ageOverMaxAge, speedOverMaxSpeed)	float4(lerp(unpackUnorm4x8(startColor).xyz, unpackUnorm4x8(endColor).xyz, saturate(speedOverMaxSpeed)), \
 																								UnpackFadeValue(ageOverMaxAge, startColor, endColor))
-#define UnpackAlpha(particleSet, particleIdx)												lerp(unpackFloat2(particleSet.MinAndMaxAlpha).x * 256, unpackFloat2(particleSet.MinAndMaxAlpha).y * 256, UnpackRandomInterpolator(particleIdx))
+#define UnpackAlpha(particleSet, particleIdx)												lerp(unpackFloat2(particleSet.MinAndMaxAlpha).x * 255, unpackFloat2(particleSet.MinAndMaxAlpha).y * 255, UnpackRandomInterpolator(particleIdx))
 
 /*****************************************/
 // Animation

@@ -1,61 +1,64 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU">
-      <UniqueIdentifier>{fc9e0849-9211-4952-a458-94cc00776e3e}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{6232d8f7-afbf-48c5-aece-7098ae7f0eed}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{7207cddd-87b4-4e4e-ae4c-65fbf19a5973}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{790d7281-f162-41c8-893e-be245c7c2aa6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{5172058d-72fe-4c99-9018-5e85fc42a7f0}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{55b09891-8d95-40cb-9763-4b162dd6545f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{6ea55e28-ceb2-4ca1-8e8c-b658fce4e435}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{e9fc246c-7bf4-4718-b0b0-5a3ef8e7f31c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL">
-      <UniqueIdentifier>{6b87d287-faeb-4ef3-b90e-9f7fd83ee64c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders">
-      <UniqueIdentifier>{71ac5a12-2c60-4502-983a-60b6d5469ccb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts\11a_UnlinkedMultiGPU">
-      <UniqueIdentifier>{6813426e-b226-4244-91d5-2787191cacbd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{34259053-6ad2-41e3-86bc-1573e8b7df86}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{cda6ea72-8619-42cf-9690-d7bb207510ef}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{4e8d68c9-45a6-423c-b12b-08744458c334}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\11a_UnlinkedMultiGPU\11a_UnlinkedMultiGPU.cpp">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
+    <ClInclude Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\basic.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\basic.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\copyQuad.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\copyQuad.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\resources.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11a_UnlinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\Art\Scripts\11a_UnlinkedMultiGPU\Test0.lua">
-      <Filter>Art\Scripts\11a_UnlinkedMultiGPU</Filter>
+    <None Include="..\src\11a_UnlinkedMultiGPU\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
+    </None>
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test0.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test_SwapRenderers_Screenshot.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\11a_UnlinkedMultiGPU\Scripts\Test_SwapRenderers_Swap.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

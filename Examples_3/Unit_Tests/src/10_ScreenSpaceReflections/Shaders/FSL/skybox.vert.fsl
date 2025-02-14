@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,11 +22,8 @@
  * under the License.
 */
 
-STRUCT(uniformBlockData)
-{
-	DATA(float4x4, projView, None);
-};
-RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 STRUCT(VSInput)
 {
@@ -39,12 +36,13 @@ STRUCT(VSOutput)
 	DATA(float3, pos, POSITION);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;
 	VSOutput Out;
     VSOutput result;
-    result.Position = mul(uniformBlock.projView, In.Position);
+    result.Position = mul(gUniformBlockPerFrame.projView, In.Position);
 	result.Position = result.Position.xyww;
 
 	result.pos = In.Position.xyz;

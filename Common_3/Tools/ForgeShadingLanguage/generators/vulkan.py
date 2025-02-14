@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -124,7 +124,7 @@ def is_buffer(fsl_declaration):
 
 def declare_buffer(fsl_declaration):
     
-    buffer_type, name, freq, _, binding = fsl_declaration
+    buffer_type, name, freq, binding = fsl_declaration
     data_type  = getMacro(buffer_type)
     if 'ByteBuffer' in buffer_type:
         data_type = 'uint'
@@ -181,7 +181,7 @@ def is_rw_texture(fsl_declaration):
     return getMacroName(dtype) in writeable_types
 
 def declare_rw_texture(fsl_declaration):
-    tex_type, tex_name, freq, _, binding = fsl_declaration
+    tex_type, tex_name, freq, binding = fsl_declaration
     access = ''
     if tex_type.startswith('WT'):
         access = 'writeonly'
@@ -326,11 +326,16 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
     return_assignments = []
 
     subs = []
+    
+    parsing_resources = False
+    sets_to_check = []
+    register_index = 0
 
     for fi, line_index, line in iter_lines(shader.lines):
 
         shader_src_len = len(shader_src)
-        
+        skip_line = False
+        stripped_line = line.strip()
         if '@fsl_extension' in line:
             shader_src += [line.replace('@fsl_extension', '#extension')]
             continue
@@ -486,13 +491,56 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                 dn = getArrayBaseName(dn)
             push_constant = None
             continue
-
+            
+        # those macros are skipped and will not be in generated shader
+        # we use them to detect start and end of SRT and SRT sets
+        if stripped_line.startswith('BEGIN_SRT(') or stripped_line.startswith('BEGIN_SRT_NO_AB('):
+            parsing_resources = True
+            skip_line = True
+        elif stripped_line.startswith('END_SRT('):
+            parsing_resources = False
+            skip_line = True
+        elif parsing_resources:
+            if stripped_line.startswith('BEGIN_SRT_SET('):
+                register_index = 0
+                skip_line = True
+                if stripped_line not in sets_to_check:
+                    sets_to_check.append(stripped_line)
+            elif stripped_line.startswith('END_SRT_SET('):
+                skip_line = True
+            else:
+                # skip empty lines and comments
+                if len(stripped_line) > 0 and stripped_line.startswith('#') is False:
+                    #check if this is an array and get the count, otherwise its 1
+                    array_count = 1
+                    match = re.search(r'\[\s*(\d+)\s*U?\s*\]', stripped_line)
+                    if match:
+                       array_count = int(match.group(1))
+                    # get the substring starting with 'binding =' and strip it from spaces
+                    binding_start_index = stripped_line.find("binding =")
+                    if binding_start_index != -1:
+                        binding_subtring = stripped_line[binding_start_index:]
+                        binding_end_index = binding_subtring.find(')')
+                        # in case there is a + (happens with samplers)
+                        plus_sign_index = binding_subtring.find('+')
+                        if plus_sign_index > -1:
+                            binding_end_index = plus_sign_index
+                        binding_end_index = binding_start_index + binding_end_index
+                        binding_subtring = stripped_line[binding_start_index:binding_end_index]
+                        new_binding_string = f'binding = {register_index} '
+                        #increment by array count for next binding
+                        register_index += array_count
+                        fixed_binding_line = stripped_line[:binding_start_index] + new_binding_string + stripped_line[binding_end_index:]
+                        line = fixed_binding_line + '\n'
         resource_decl = None
-        if line.strip().startswith('RES('):
+        
+        if line.strip().startswith('DECLARE_SRT_RESOURCE('):
             resource_decl = getMacro(line)
-            fsl_assert(len(resource_decl) == 5, fi, line_index, message='invalid Res declaration: \''+line+'\'')
+            fsl_assert(len(resource_decl) == 4, fi, line_index, message='invalid Res declaration: \''+line+'\'')
             basename = getArrayBaseName(resource_decl[1])
         
+        if skip_line:
+            continue
         # handle buffer resource declarations
         if resource_decl and is_buffer(resource_decl):
             shader_src += declare_buffer(resource_decl)

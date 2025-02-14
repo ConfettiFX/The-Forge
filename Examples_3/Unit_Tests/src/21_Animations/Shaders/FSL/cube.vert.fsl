@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -43,7 +43,8 @@ STRUCT(UniformBlock)
     DATA(uint4, skeletonInfo, None);
     DATA(float4x4, toWorld[MAX_INSTANCES], None);
 };
-RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
+
+#include "srt.h"
 
 STRUCT(VSInput)
 {
@@ -57,32 +58,33 @@ STRUCT(VSOutput)
     DATA(float4, Color, COLOR);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(uniformBlock.mvp[VR_VIEW_ID], uniformBlock.toWorld[InstanceID]);
+    float4x4 tempMat = mul(gUniformBlock.mvp[VR_VIEW_ID], gUniformBlock.toWorld[InstanceID]);
 #else
-    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld[InstanceID]);
+    float4x4 tempMat = mul(gUniformBlock.mvp, gUniformBlock.toWorld[InstanceID]);
 #endif
     Out.Position = mul(tempMat, In.Position);
 
-    float4 normal = normalize(mul(uniformBlock.toWorld[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
-    float4 pos = mul(uniformBlock.toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
+    float4 normal = normalize(mul(gUniformBlock.toWorld[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
+    float4 pos = mul(gUniformBlock.toWorld[InstanceID], float4(In.Position.xyz, 1.0f));
 
     float lightIntensity = 1.0f;
     float quadraticCoeff = 1.2;
     float ambientCoeff = 0.4;
 
-    float3 lightDir = normalize(uniformBlock.lightPosition.xyz - pos.xyz);
+    float3 lightDir = normalize(gUniformBlock.lightPosition.xyz - pos.xyz);
 
     // float distance = length(lightDir);
     // float attenuation = 1.0 / (quadraticCoeff * distance * distance);
     // float intensity = lightIntensity * attenuation;
 
-    float3 baseColor = uniformBlock.jointColor.xyz;
-    float3 blendedColor = (uniformBlock.lightColor.xyz * baseColor) * lightIntensity;
+    float3 baseColor = gUniformBlock.jointColor.xyz;
+    float3 blendedColor = (gUniformBlock.lightColor.xyz * baseColor) * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     Out.Color = float4(diffuse + ambient, 1.0);

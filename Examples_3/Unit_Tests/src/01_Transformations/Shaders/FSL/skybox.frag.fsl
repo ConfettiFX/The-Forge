@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,6 +32,7 @@ STRUCT(VSOutput)
     DATA(float4, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN(VSOutput In)
 {
     INIT_MAIN;
@@ -44,37 +45,37 @@ float4 PS_MAIN(VSOutput In)
     {
         newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
         newtextcoord = float2(1.0 - newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(RightText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gRightTexture, gSampler, newtextcoord);
     }
     else if (side == 2)
     {
         newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(LeftText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gLeftTexture, gSampler, newtextcoord);
     }
     else if (side == 4)
     {
         newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(BotText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gBotTexture, gSampler, newtextcoord);
     }
     else if (side == 5)
     {
         newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(FrontText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gFrontTexture, gSampler, newtextcoord);
     }
     else if (side == 6)
     {
         newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
         newtextcoord = float2(1.0 - newtextcoord.x, 1.0 - newtextcoord.y);
-        Out = SampleTex2D(BackText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gBackTexture, gSampler, newtextcoord);
     }
     else
     {
         newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        Out = SampleTex2D(TopText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gTopTexture, gSampler, newtextcoord);
     }
     RETURN(Out);
 }

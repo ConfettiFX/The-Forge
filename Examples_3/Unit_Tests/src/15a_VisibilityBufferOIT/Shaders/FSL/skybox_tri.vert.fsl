@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,15 +21,9 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-
-STRUCT(SkyboxUniformBufferData)
-{
-    DATA(float4x4, InverseViewProjection, None);
-};
-RES(CBUFFER(SkyboxUniformBufferData), SkyboxUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0);
-
-RES(TexCube(float4), skyboxTexture, UPDATE_FREQ_NONE, t0, binding = 1);
-RES(SamplerState, skyboxTextureSampler, UPDATE_FREQ_NONE, s0, binding = 2);
+#include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 STRUCT(VSOutput)
 {
@@ -37,6 +31,7 @@ STRUCT(VSOutput)
     DATA(float3, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
 {
     INIT_MAIN;
@@ -46,6 +41,6 @@ VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
     float4 position = float4(uv * 2.0 - float2(1.0, 1.0), 1.0, 1.0);
 
     Out.Position = position;
-    Out.TexCoord = mul(SkyboxUniformBuffer.InverseViewProjection, position).xyz;
+    Out.TexCoord = mul(gSkyboxUniformBuffer.InverseViewProjection, position).xyz;
     RETURN(Out);
 }

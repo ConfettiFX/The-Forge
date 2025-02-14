@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,6 +46,8 @@
 
 #include "hair.comp.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
+
 NUM_THREADS(THREAD_GROUP_SIZE, 1, 1)
 void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 {
@@ -56,13 +58,13 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	float4 rootPosPrev[2];
 	float4 rootPos[2];
 
-	rootPosPrevPrev = HairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
+	rootPosPrevPrev = gHairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
 
-	rootPosPrev[0] = HairVertexPositionsPrev[indices.globalRootVertexIndex];
-	rootPosPrev[1] = HairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
+	rootPosPrev[0] = gHairVertexPositionsPrev[indices.globalRootVertexIndex];
+	rootPosPrev[1] = gHairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
 
-	rootPos[0] = HairVertexPositions[indices.globalRootVertexIndex];
-	rootPos[1] = HairVertexPositions[indices.globalRootVertexIndex + 1];
+	rootPos[0] = gHairVertexPositions[indices.globalRootVertexIndex];
+	rootPos[1] = gHairVertexPositions[indices.globalRootVertexIndex + 1];
 
 	float3 u = normalize(rootPosPrev[1].xyz - rootPosPrev[0].xyz);
 	float3 v = normalize(rootPos[1].xyz - rootPos[0].xyz);
@@ -70,24 +72,24 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 	float4 rotation = QuatFromUnitVectors(u, v);
 	float3 RotateVecation = rootPos[0].xyz - RotateVec(rotation, rootPosPrev[0].xyz);
 
-	float vspStrength = cbSimulation.VSPStrength;
+	float vspStrength = gHairSimulation.VSPStrength;
 	float acceleration = length((rootPos[1] - 2.0f * rootPosPrev[1] + rootPosPrevPrev[1]).xyz);
 
-	if (acceleration > cbSimulation.VSPAccelerationThreshold)
+	if (acceleration > gHairSimulation.VSPAccelerationThreshold)
 		vspStrength = 1.0f;
 
-	for(uint localVertexIndex = 2; localVertexIndex < cbSimulation.NumVerticesPerStrand; ++localVertexIndex)
+	for(uint localVertexIndex = 2; localVertexIndex < gHairSimulation.NumVerticesPerStrand; ++localVertexIndex)
 	{
 		uint globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
 
-		float4 pos = HairVertexPositions[globalVertexIndex];
-		float4 posPrev = HairVertexPositionsPrev[globalVertexIndex];
+		float4 pos = gHairVertexPositions[globalVertexIndex];
+		float4 posPrev = gHairVertexPositionsPrev[globalVertexIndex];
 
 		pos.xyz = (1.0f - vspStrength) * pos.xyz + vspStrength * (RotateVec(rotation, pos.xyz) + RotateVecation);
 		posPrev.xyz = (1.0f - vspStrength) * posPrev.xyz + vspStrength * (RotateVec(rotation, posPrev.xyz) + RotateVecation);
 
-		HairVertexPositions[globalVertexIndex] = pos;
-		HairVertexPositionsPrev[globalVertexIndex] = posPrev;
+		gHairVertexPositions[globalVertexIndex] = pos;
+		gHairVertexPositionsPrev[globalVertexIndex] = posPrev;
 	}
 	RETURN();
 }

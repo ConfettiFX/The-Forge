@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -522,6 +522,9 @@ inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget
 #ifdef ENABLE_FORGE_UI
     pWidget->mCollapsed = collapsed;
     pWidget->mPreviousCollapsed = !collapsed;
+#else
+    (void)pWidget;
+    (void)collapsed;
 #endif
 }
 

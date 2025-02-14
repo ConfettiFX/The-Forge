@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,6 +27,10 @@
 #ifndef IMPORTANCE_SAMPLE_COUNT
 	#define IMPORTANCE_SAMPLE_COUNT 64
 #endif
+
+#include "resources.comp.h.fsl"
+#include "resources.h.fsl"
+#include "compute_specular_comp.srt.h"
 
 STATIC float Pi = 3.14159265359;
 STATIC float SampleCount = IMPORTANCE_SAMPLE_COUNT;
@@ -132,7 +136,7 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 	return float2(A, B);
 }
 
-RES(WTex2D(float2), dstTexture, UPDATE_FREQ_NONE, u0, binding = 0);
+ROOT_SIGNATURE(ComputeRootSignature)
 
 NUM_THREADS(16, 16, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) DTid) 
@@ -140,6 +144,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	INIT_MAIN;
 	float2 texcoords = float2(float(DTid.x + 0.5) / 512.0f, float(DTid.y + 0.5) / 512.0f);
 	float4 result = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0f, 0.0f);
-	Write2D(dstTexture, DTid.xy, result.xy);
+	Write2D(gDestTextureBRDF, DTid.xy, result.xy);
 	RETURN();
 }

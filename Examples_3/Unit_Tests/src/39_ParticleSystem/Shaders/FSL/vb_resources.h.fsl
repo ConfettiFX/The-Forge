@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,16 +29,9 @@
 
 #define MAX_TEXTURE_UNITS 256
 
-RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s2, binding = 3);
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding=4);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t2, binding = 5);
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t3, binding = 6);
 
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t0, binding = 27);
-#else
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], space4, t0, binding = 27);
-#endif
+
+
 
 STRUCT(PsInShadowOpaque)
 {
@@ -74,14 +67,7 @@ STRUCT(PsInVBAlphaTested)
 	DATA(FLAT(uint), materialID, TEXCOORD1);
 };
 
-float4 LoadVertex(uint index)
-{
-    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1.0f);
-}
 
-float2 LoadTexCoord(uint index)
-{
-	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
-}
+
 
 #endif /* vb_resources_h */

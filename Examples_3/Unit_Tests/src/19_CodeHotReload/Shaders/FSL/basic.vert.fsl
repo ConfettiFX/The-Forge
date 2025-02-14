@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,16 +22,10 @@
  * under the License.
  */
 
-STRUCT(InstanceData)
-{
-    DATA(float4x4, modelMtx, None);
-    DATA(float4, colorIndex, None);
-};
+#include "structs.h"
+#include "srt.h"
 
-RES(Buffer(InstanceData), instanceBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
 
-RES(Tex2D(float4), uTexture0, UPDATE_FREQ_NONE, t1, binding = 2);
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s2, binding = 3);
 
 STRUCT(VsIn)
 {
@@ -44,7 +38,7 @@ STRUCT(VSOutput)
     DATA(float3, color, COLOR0);
     DATA(float2, uv, TEXCOORD0);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN(VsIn In, SV_InstanceID(uint) instanceId)
 {
     INIT_MAIN;
@@ -52,9 +46,9 @@ VSOutput VS_MAIN(VsIn In, SV_InstanceID(uint) instanceId)
     float    x = float(int(In.position) / 2);
     float    y = float(fmod(In.position, 2.0));
 
-    float4 colorIndex = instanceBuffer[instanceId].colorIndex;
+    float4 colorIndex = gInstanceBuffer[instanceId].colorIndex;
 
-    Out.pos = mul(instanceBuffer[instanceId].modelMtx, float4(x, y, 0.f, 1.f) - float4(0.5f, 0.5f, 0.f, 0.f));
+    Out.pos = mul(gInstanceBuffer[instanceId].modelMtx, float4(x, y, 0.f, 1.f) - float4(0.5f, 0.5f, 0.f, 0.f));
     Out.pos.w = 1.0f;
     Out.uv = float2((x + colorIndex.w) / 8.0, 1.0 - y);
     Out.color = colorIndex.rgb;

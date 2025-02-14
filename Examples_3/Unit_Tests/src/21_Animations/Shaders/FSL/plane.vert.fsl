@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,7 +33,8 @@ STRUCT(UniformBlock)
 #endif
     DATA(float4x4, toWorld, None);
 };
-RES(CBUFFER(UniformBlock), uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
+
+#include "srt.h"
 
 STRUCT(VSInput)
 {
@@ -47,14 +48,15 @@ STRUCT(VSOutput)
     DATA(float2, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN(VSInput In)
 {
     INIT_MAIN;
     VSOutput Out;
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(uniformBlock.mvp[VR_VIEW_ID], uniformBlock.toWorld);
+    float4x4 tempMat = mul(gUniformBlock.mvp[VR_VIEW_ID], gUniformBlock.toWorld);
 #else
-    float4x4 tempMat = mul(uniformBlock.mvp, uniformBlock.toWorld);
+    float4x4 tempMat = mul(gUniformBlock.mvp, gUniformBlock.toWorld);
 #endif
     Out.Position = mul(tempMat, In.Position);
 

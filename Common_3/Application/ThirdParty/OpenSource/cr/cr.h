@@ -11,17 +11,22 @@ A single file header-only live reload solution for C, written in C++:
 - support multiple plugins;
 - MIT licensed;
 
-### Build Status:
-
-|Platform|Build Status|
-|--------|------|
-|Linux|[![Build Status](https://travis-ci.org/fungos/cr.svg?branch=master)](https://travis-ci.org/fungos/cr)|
-|Windows|[![Build status](https://ci.appveyor.com/api/projects/status/jf0dq97w9b7b5ihi?svg=true)](https://ci.appveyor.com/project/fungos/cr)|
-
-Note that the only file that matters is `cr.h`.
+NOTE: The only file that matters in this repository is `cr.h`.
 
 This file contains the documentation in markdown, the license, the implementation and the public api.
 All other files in this repository are supporting files and can be safely ignored.
+
+### Building cr - Using vcpkg
+
+You can download and install cr using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    ./vcpkg install cr
+
+The cr port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
 ### Example
 
@@ -182,7 +187,7 @@ Arguments
 Enum indicating the kind of step that is being executed by the `host`:
 
 - `CR_LOAD` A load caused by reload is being executed, can be used to restore any
- saved internal state.
+ saved internal state. 
 - `CR_STEP` An application update, this is the normal and most frequent operation;
 - `CR_UNLOAD` An unload for reloading the plugin will be executed, giving the
  application one chance to store any required data;
@@ -321,6 +326,8 @@ With all these information you'll be able to decide which is better to your use 
 
 [@pixelherodev](https://github.com/pixelherodev)
 
+[Alexander](https://github.com/clibequilibrium)
+
 ### Contributing
 
 We welcome *ALL* contributions, there is no minor things to contribute with, even one letter typo fixes are welcome.
@@ -368,6 +375,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "../../../../Application/Config.h"
 #include "../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../Utilities/Interfaces/IFileSystem.h"
+
 
 #if !FORGE_CODE_HOT_RELOAD && defined(CR_HOST)
 #error "CR_HOST can't be defined when FORGE_CODE_HOT_RELOAD is disabled."
@@ -395,6 +404,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CR_MAIN_FUNC "tfMainCodeReload"
 
 #if FORGE_CODE_HOT_RELOAD
+// IToolFileSystem only defined for windows/mac/steamOS, which are the only three platforms that enables hot reload. 
+#include "../../../../Utilities/Interfaces/IToolFileSystem.h"
 //
 // Global OS specific defines/customizations
 //
@@ -411,6 +422,37 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #error "Unknown/unsupported platform, please open an issue if you think this platform should be supported."
 #endif // CR_WINDOWS || CR_LINUX || CR_OSX
 #endif // FORGE_CODE_HOT_RELOAD
+
+//
+// Global compiler specific defines/customizations
+//
+#if defined(_MSC_VER)
+#if defined(__cplusplus)
+#define CR_EXPORT extern "C" __declspec(dllexport)
+#define CR_IMPORT extern "C" __declspec(dllimport)
+#else
+#define CR_EXPORT __declspec(dllexport)
+#define CR_IMPORT __declspec(dllimport)
+#endif
+#endif // defined(_MSC_VER)
+
+#if defined(__GNUC__) // clang & gcc
+#if defined(__cplusplus)
+#define CR_EXPORT extern "C" __attribute__((visibility("default")))
+#else
+#define CR_EXPORT __attribute__((visibility("default")))
+#endif
+#define CR_IMPORT
+#endif // defined(__GNUC__)
+
+#if defined(__MINGW32__)
+#undef CR_EXPORT
+#if defined(__cplusplus)
+#define CR_EXPORT  extern "C" __declspec(dllexport)
+#else
+#define CR_EXPORT  __declspec(dllexport)
+#endif
+#endif
 
 // cr_mode defines how much we validate global state transfer between
 // instances. The default is CR_UNSAFE, you can choose another mode by
@@ -570,65 +612,17 @@ struct cr_plugin {
 #endif
 
 // returns pointer to allocated memory, requires tf_free
-static char* cr_split_path(
-  const char* in_path,
-  char**      parent_dir,
-  char**      base_name,
-  char**      ext)
+static void cr_version_path(const char* basepath, char* output, unsigned version, const char* temppath)
 {
-    size_t path_len = CR_STRLEN(in_path);
-
-    size_t sep_pos = path_len;
-    size_t dot_pos = path_len;
-
-    char* path = (char*)tf_malloc(path_len + 1);
-    for (size_t i = 0; i < path_len; ++i)
-    {
-        path[i] = in_path[i];
-        if (path[i] == CR_PATH_SEPARATOR_INVALID)
-        {
-            path[i] = CR_PATH_SEPARATOR;
-            sep_pos = i;
-            dot_pos = path_len;
-        }
-        else if (path[i] == '.')
-        {
-            dot_pos = i;
-        }
-    }
-    path[path_len] = 0;
-
-    *parent_dir = NULL;
-    *base_name  = path;
-    *ext        = NULL;
-
-    if (sep_pos != path_len)
-    {
-        path[sep_pos] = 0;
-        *parent_dir   = path;
-        *base_name += sep_pos + 1;
-    }
-
-    if (dot_pos != path_len)
-    {
-        path[dot_pos] = 0;
-        *ext          = path + dot_pos + 1;
-    }
-
-    return path;
-}
-
-// returns pointer to allocated memory, requires tf_free
-static char*
-cr_version_path(const char* basepath, unsigned version, const char* temppath)
-{
+    char tempBuffer[FS_MAX_PATH];
     char version_str[32];
     snprintf(version_str, 32, "%u", version);
+
 
     char* folder;
     char* fname;
     char* ext;
-    char* memory = cr_split_path(basepath, &folder, &fname, &ext);
+    fsSplitPath(basepath, tempBuffer, &folder, &fname, &ext);
 
     size_t verSize    = CR_STRLEN(version_str);
     size_t folderSize = CR_STRLEN(folder);
@@ -654,11 +648,11 @@ cr_version_path(const char* basepath, unsigned version, const char* temppath)
         folder2    = temppath;
         folderSize = CR_STRLEN(temppath);
     }
+    // folder + seperator + name + version + '.' + ext + '\0'
+    size_t versionPathLength = folderSize + 1 + fnameSize + verSize + 1 + extSize + 1;
+    ASSERT(versionPathLength <= FS_MAX_PATH);
 
-    char* result =
-      (char*)tf_malloc(folderSize + 1 + fnameSize + verSize + 1 + extSize + 1);
-
-    char* curr = result;
+    char* curr = output;
     if(folderSize)
     {
         memcpy(curr, folder2, folderSize);
@@ -673,10 +667,6 @@ cr_version_path(const char* basepath, unsigned version, const char* temppath)
     memcpy(curr, ext, extSize);
     curr += extSize;
     *curr = 0;
-
-    tf_free(memory);
-
-    return result;
 }
 
 namespace cr_plugin_section_type {
@@ -712,6 +702,7 @@ struct cr_internal {
     cr_plugin_section data[cr_plugin_section_type::count]
                           [cr_plugin_section_version::count] = {};
     cr_mode mode = CR_SAFEST;
+    ResourceDirectory resDir;
 };
 
 static bool cr_plugin_section_validate(cr_plugin &ctx,
@@ -771,48 +762,6 @@ static wchar_t* cr_utf8_to_wstring(const char* str)
 #define CR_WINDOWS_ConvertPathFree(x)
 #endif  // UNICODE
 
-static time_t cr_last_write_time(const char* path) {
-    CR_WINDOWS_ConvertPath(_path, path);
-    WIN32_FILE_ATTRIBUTE_DATA fad;
-    bool success = GetFileAttributesEx(_path, GetFileExInfoStandard, &fad);
-    CR_WINDOWS_ConvertPathFree(_path);
-    if (!success) {
-        return -1;
-    }
-
-    if (fad.nFileSizeHigh == 0 && fad.nFileSizeLow == 0) {
-        return -1;
-    }
-
-    LARGE_INTEGER time;
-    time.HighPart = fad.ftLastWriteTime.dwHighDateTime;
-    time.LowPart = fad.ftLastWriteTime.dwLowDateTime;
-
-    return static_cast<time_t>(time.QuadPart / 10000000 - 11644473600LL);
-}
-
-static bool cr_exists(const char* path) {
-    CR_WINDOWS_ConvertPath(_path, path);
-    bool success = GetFileAttributes(_path) != INVALID_FILE_ATTRIBUTES;
-    CR_WINDOWS_ConvertPathFree(_path);
-    return success;
-}
-
-static bool cr_copy(const char* from, const char* to) {
-    CR_WINDOWS_ConvertPath(_from, from);
-    CR_WINDOWS_ConvertPath(_to, to);
-    bool success = CopyFile(_from, _to, FALSE);
-    CR_WINDOWS_ConvertPathFree(_from);
-    CR_WINDOWS_ConvertPathFree(_to);
-    return success;
-}
-
-static void cr_del(const char* path) {
-    CR_WINDOWS_ConvertPath(_path, path);
-    DeleteFile(_path);
-    CR_WINDOWS_ConvertPathFree(_path);
-}
-
 // If using Microsoft Visual C/C++ compiler we need to do some workaround the
 // fact that the compiled binary has a fullpath to the PDB hardcoded inside
 // it. This causes a lot of headaches when trying compile while debugging as
@@ -828,34 +777,6 @@ static void cr_del(const char* path) {
 #include <tchar.h>
 
 // returns pointer to allocated memory, requires tf_free
-static char* cr_replace_extension(const char* filepath, const char* ext)
-{
-    char* folder;
-    char* filename;
-    char* old_ext;
-    char* memory = cr_split_path(filepath, &folder, &filename, &old_ext);
-
-    size_t folderSize = CR_STRLEN(folder);
-    size_t fnameSize  = CR_STRLEN(filename);
-    size_t extSize    = CR_STRLEN(ext);
-
-    char* result = (char*)tf_malloc(folderSize + 1 + fnameSize + extSize + 1);
-
-    char* curr = result;
-    memcpy(curr, folder, folderSize);
-    curr += folderSize;
-    *(curr++) = '/';
-    memcpy(curr, filename, fnameSize);
-    curr += fnameSize;
-    memcpy(curr, ext, extSize);
-    curr += extSize;
-    *curr = 0;
-
-    tf_free(memory);
-
-    return result;
-}
-
 template <class T>
 static T struct_cast(void *ptr, LONG offset = 0) {
     return reinterpret_cast<T>(reinterpret_cast<intptr_t>(ptr) + offset);
@@ -960,79 +881,41 @@ static char *cr_pdb_find(LPBYTE imageBase, PIMAGE_DEBUG_DIRECTORY debugDir) {
 }
 
 static bool
-cr_pdb_replace(const char* filename, const char* pdbname, char** orig_pdb)
+cr_pdb_replace(ResourceDirectory resDir, const char* filename, const char* pdbname, char* orig_pdb)
 {
     *orig_pdb = NULL;
-
-    CR_WINDOWS_ConvertPath(_filename, filename);
-
-    HANDLE fp = nullptr;
-    HANDLE filemap = nullptr;
-    LPVOID mem = 0;
     bool result = false;
+    FileStream fs = {};
+    unsigned char *buffer = NULL;
     do {
-        fp = CreateFile(_filename, GENERIC_READ | GENERIC_WRITE,
-                        FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-                        FILE_ATTRIBUTE_NORMAL, nullptr);
-        if ((fp == INVALID_HANDLE_VALUE) || (fp == nullptr)) {
+        bool success = fsOpenStreamFromPath(resDir, filename, FM_READ_WRITE, &fs);
+        if (!success)
+        {
             break;
         }
 
-        filemap = CreateFileMapping(fp, nullptr, PAGE_READWRITE, 0, 0, nullptr);
-        if (filemap == nullptr) {
+        size_t fileSize = fsGetStreamFileSize(&fs);
+        buffer = (unsigned char*)tf_malloc(fileSize + 1);
+        size_t bytesRead = fsReadFromStream(&fs, buffer, fileSize);
+        if (bytesRead != fileSize)
+        {
             break;
         }
 
-        mem = MapViewOfFile(filemap, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-        if (mem == nullptr) {
-            break;
-        }
-
-        PIMAGE_DOS_HEADER dosHeader = struct_cast<PIMAGE_DOS_HEADER>(mem);
-        if (dosHeader == 0) {
-            break;
-        }
-
-        if (IsBadReadPtr(dosHeader, sizeof(IMAGE_DOS_HEADER))) {
-            break;
-        }
+        PIMAGE_DOS_HEADER dosHeader = struct_cast<PIMAGE_DOS_HEADER>(buffer);   
 
         if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
             break;
         }
 
-        PIMAGE_NT_HEADERS ntHeaders =
-            struct_cast<PIMAGE_NT_HEADERS>(dosHeader, dosHeader->e_lfanew);
-        if (ntHeaders == 0) {
-            break;
-        }
-
-        if (IsBadReadPtr(ntHeaders, sizeof(ntHeaders->Signature))) {
-            break;
-        }
+        PIMAGE_NT_HEADERS ntHeaders = struct_cast<PIMAGE_NT_HEADERS>(dosHeader, dosHeader->e_lfanew);
 
         if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
             break;
         }
 
-        if (IsBadReadPtr(&ntHeaders->FileHeader, sizeof(IMAGE_FILE_HEADER))) {
-            break;
-        }
-
-        if (IsBadReadPtr(&ntHeaders->OptionalHeader,
-                         ntHeaders->FileHeader.SizeOfOptionalHeader)) {
-            break;
-        }
-
         if (ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
             ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-            break;
-        }
-
-        IMAGE_SECTION_HEADER* sectionHeaders = IMAGE_FIRST_SECTION(ntHeaders);
-        if (IsBadReadPtr(sectionHeaders,
-                         ntHeaders->FileHeader.NumberOfSections *
-                             sizeof(IMAGE_SECTION_HEADER))) {
             break;
         }
 
@@ -1053,14 +936,7 @@ cr_pdb_replace(const char* filename, const char* pdbname, char** orig_pdb)
         }
 
         PIMAGE_DEBUG_DIRECTORY debugDir =
-            struct_cast<PIMAGE_DEBUG_DIRECTORY>(mem, debugDirOffset);
-        if (debugDir == 0) {
-            break;
-        }
-
-        if (IsBadReadPtr(debugDir, debugDirSize)) {
-            break;
-        }
+            struct_cast<PIMAGE_DEBUG_DIRECTORY>(buffer, debugDirOffset);
 
         if (debugDirSize < sizeof(IMAGE_DEBUG_DIRECTORY)) {
             break;
@@ -1072,70 +948,55 @@ cr_pdb_replace(const char* filename, const char* pdbname, char** orig_pdb)
         }
 
         for (int i = 1; i <= numEntries; i++, debugDir++) {
-            char *pdb = cr_pdb_find((LPBYTE)mem, debugDir);
+            char *pdb = cr_pdb_find((LPBYTE)buffer, debugDir);
             if (pdb) {
+                ssize_t offset = (unsigned char*)pdb - buffer;
+                fsSeekStream(&fs, SBO_START_OF_FILE, offset);
                 size_t len = CR_STRLEN(pdb);
                 size_t pdbnameSize = CR_STRLEN(pdbname);
                 if (len >= pdbnameSize)
                 {
-                    *orig_pdb = (char*)tf_malloc(len + 1);
-                    memcpy(*orig_pdb, pdb, len);
-                    (*orig_pdb)[len] = 0;
+                    ASSERT(len + 1 < FS_MAX_PATH);
+                    memcpy(orig_pdb, pdb, len);
+                    orig_pdb[len] = 0;
 
-                    memcpy_s(pdb, len, pdbname, pdbnameSize);
-                    pdb[pdbnameSize] = 0;
-
+                    fsWriteToStream(&fs, pdbname, pdbnameSize + 1);
                     result = true;
                 }
             }
         }
     } while (0);
 
-    if (mem != nullptr) {
-        UnmapViewOfFile(mem);
+    if (fs.pIO != NULL)
+    {
+        fsFlushStream(&fs);
+        fsCloseStream(&fs);
     }
 
-    if (filemap != nullptr) {
-        CloseHandle(filemap);
+    if (buffer)
+    {
+        tf_free(buffer);
     }
 
-    if ((fp != nullptr) && (fp != INVALID_HANDLE_VALUE)) {
-        CloseHandle(fp);
-    }
-
-    CR_WINDOWS_ConvertPathFree(_filename);
     return result;
 }
 
-bool static cr_pdb_process(const char* desination)
+bool static cr_pdb_process(ResourceDirectory resDir, const char* desination)
 {
-    char* folder;
-    char* fname;
+    UNREF_PARAM(resDir);
+    char pathBuffer[FS_MAX_PATH];
+    fsReplacePathExtension(desination, ".pdb", pathBuffer);
+
+    char splitBuffer[FS_MAX_PATH];
+    char* parentDir;
+    char* filename;
     char* ext;
-    char* allocation1 = cr_split_path(desination, &folder, &fname, &ext);
+    fsSplitPath(pathBuffer, splitBuffer, &parentDir, &filename, &ext);
+    
+    char orig_pdb[FS_MAX_PATH];
+    bool  result = cr_pdb_replace(resDir, desination, filename, orig_pdb);
+    result &= fsCopyFile(resDir, orig_pdb, resDir, pathBuffer);
 
-    size_t fnameSize   = CR_STRLEN(fname);
-    char*  allocation2 = (char*)tf_malloc(fnameSize + 5);
-
-    {
-        char* cur = allocation2;
-        memcpy(cur, fname, fnameSize);
-        cur += fnameSize;
-        memcpy(cur, ".pdb", 4);
-        cur += 4;
-        *cur = 0;
-    }
-
-    char* orig_pdb;
-    bool  result = cr_pdb_replace(desination, allocation2, &orig_pdb);
-
-    char* allocation3 = cr_replace_extension(desination, ".pdb");
-    result &= cr_copy(orig_pdb, allocation3);
-
-    tf_free(orig_pdb);
-    tf_free(allocation1);
-    tf_free(allocation2);
-    tf_free(allocation3);
     return result;
 }
 #endif // _MSC_VER
@@ -1231,7 +1092,36 @@ static cr_plugin_main_func cr_so_symbol(so_handle handle) {
     return new_main;
 }
 
+#ifdef __MINGW32__
+#include <setjmp.h>
+#include <signal.h>
+
+static jmp_buf env;
+static void cr_signal_handler(int sig) {
+    __builtin_longjmp(env, 1);
+}
+
+static cr_failure cr_signal_to_failure(int sig) {
+    switch (sig) {
+    case 0:
+        return CR_NONE;
+    case SIGILL:
+        return CR_ILLEGAL;
+    case SIGSEGV:
+        return CR_SEGFAULT;
+    case SIGABRT:
+        return CR_ABORT;
+    }
+    return static_cast<cr_failure>(CR_OTHER + sig);
+}
+#endif
+
 static void cr_plat_init() {
+#ifdef __MINGW32__
+    signal(SIGILL, cr_signal_handler);
+    signal(SIGSEGV, cr_signal_handler);
+    signal(SIGABRT, cr_signal_handler);
+#endif
 }
 
 static int cr_seh_filter(cr_plugin &ctx, unsigned long seh) {
@@ -1266,13 +1156,23 @@ static int cr_plugin_main(cr_plugin &ctx, cr_op operation) {
     cr_internal* p = (cr_internal *)ctx.p;
 #ifndef __MINGW32__
     __try {
-#endif
         if (p->main) {
             return p->main(&ctx, operation);
         }
-#ifndef __MINGW32__
     } __except (cr_seh_filter(ctx, GetExceptionCode())) {
         return -1;
+    }
+#else
+    if (int sig = __builtin_setjmp(env)) {
+        ctx.version = ctx.last_working_version;
+        ctx.failure = cr_signal_to_failure(sig);
+        CR_LOG("1 FAILURE: %d (CR: %d)\n", sig, ctx.failure);
+        return -1;
+    } else {
+        CR_ASSERT(p);
+        if (p->main) {
+            return p->main(&ctx, operation);
+        }
     }
 #endif
     return -1;
@@ -1299,61 +1199,6 @@ static int cr_plugin_main(cr_plugin &ctx, cr_op operation) {
 #endif
 
 using so_handle = void *;
-
-static time_t cr_last_write_time(const char* path)
-{
-    struct stat stats;
-    if (stat(path, &stats) == -1)
-    {
-        return -1;
-    }
-
-    if (stats.st_size == 0) {
-        return -1;
-    }
-
-#if defined(CR_OSX)
-    return stats.st_mtime;
-#else
-    return stats.st_mtim.tv_sec;
-#endif
-}
-
-static bool cr_exists(const char* path)
-{
-	struct stat stats {};
-    return stat(path, &stats) != -1;
-}
-
-static bool cr_copy(const char* from, const char* to)
-{
-#if defined(CR_LINUX)
-    // Reference: http://www.informit.com/articles/article.aspx?p=23618&seqNum=13
-    int input, output;
-    struct stat src_stat;
-    if ((input = open(from, O_RDONLY)) == -1) {
-        return false;
-    }
-    fstat(input, &src_stat);
-
-    if ((output = open(to, O_WRONLY|O_CREAT, O_NOFOLLOW|src_stat.st_mode)) == -1) {
-        close(input);
-        return false;
-    }
-
-    int result = sendfile(output, input, NULL, src_stat.st_size);
-    close(input);
-    close(output);
-    return result > -1;
-#elif defined(CR_OSX)
-    return copyfile(from, to, NULL, COPYFILE_ALL|COPYFILE_NOFOLLOW_DST) == 0;
-#endif
-}
-
-static void cr_del(const char* path)
-{
-	unlink(path);
-}
 
 // unix,internal
 // a helper function to validate that an area of memory is empty
@@ -1783,12 +1628,12 @@ static bool cr_plugin_load_internal(cr_plugin& ctx, bool rollback)
     CR_TRACE
     cr_internal* p = (cr_internal *)ctx.p;
     const char*  file = p->fullname;
-    if (cr_exists(file) || rollback)
+    char         pathBuffer[FS_MAX_PATH];
+    if (fsFileExist(p->resDir, p->fullname) || rollback)
     {
         {
-            char* old_file = cr_version_path(file, ctx.version, p->temppath);
-            CR_LOG("unload '%s' with rollback: %d\n", old_file, rollback);
-            tf_free(old_file);
+            cr_version_path(file, pathBuffer, ctx.version, p->temppath);
+            CR_LOG("unload '%s' with rollback: %d\n", pathBuffer, rollback);
         }
 
         int r = cr_plugin_unload(ctx, rollback, false);
@@ -1798,7 +1643,8 @@ static bool cr_plugin_load_internal(cr_plugin& ctx, bool rollback)
 
         unsigned int new_version = rollback ? ctx.version : ctx.next_version;
 
-        char* new_file = cr_version_path(file, new_version, p->temppath);
+        cr_version_path(file, pathBuffer, ctx.version, p->temppath);
+        const char* new_file = pathBuffer;
 
         if (rollback) {
             if (ctx.version == 0) {
@@ -1810,13 +1656,13 @@ static bool cr_plugin_load_internal(cr_plugin& ctx, bool rollback)
         } else {
             // Save current version for rollback.
             ctx.last_working_version = ctx.version;
-            cr_copy(file, new_file);
+            fsCopyFile(p->resDir, file, p->resDir, new_file);
 
             // Update `next_version` for use by the next reload.
             ctx.next_version = new_version + 1;
 
 #if defined(_MSC_VER)
-            if (!cr_pdb_process(new_file)) {
+            if (!cr_pdb_process(p->resDir, new_file)) {
                 CR_ERROR("Couldn't process PDB, debugging may be "
                          "affected and/or reload may fail\n");
             }
@@ -1848,12 +1694,11 @@ static bool cr_plugin_load_internal(cr_plugin& ctx, bool rollback)
         p2->handle = new_dll;
         p2->main = new_main;
         if (ctx.failure != CR_BAD_IMAGE) {
-            p2->timestamp = cr_last_write_time(file);
+            p2->timestamp = fsGetLastModifiedTime(p2->resDir, file);
         }
         ctx.version = new_version;
 
         CR_LOG("loaded: %s (version: %d)\n", new_file, ctx.version);
-        tf_free(new_file);
     }
     else
     {
@@ -1977,7 +1822,7 @@ static void cr_so_sections_free(cr_plugin &ctx) {
 
 static bool cr_plugin_changed(cr_plugin &ctx) {
     cr_internal* p = (cr_internal *)ctx.p;
-    const time_t src = cr_last_write_time(p->fullname);
+    const time_t src = fsGetLastModifiedTime(p->resDir, p->fullname);
     const time_t cur = p->timestamp;
     return src > cur;
 }
@@ -2054,6 +1899,10 @@ extern "C" int cr_plugin_update(cr_plugin &ctx, bool reloadCheck = true) {
         CR_LOG("1 ROLLBACK version was %d\n", ctx.version);
         cr_plugin_rollback(ctx);
         CR_LOG("1 ROLLBACK version is now %d\n", ctx.version);
+#ifdef __MINGW32__
+        cr_plat_init();
+#endif
+
     } else {
         if (reloadCheck) {
             cr_plugin_reload(ctx);
@@ -2076,20 +1925,24 @@ extern "C" int cr_plugin_update(cr_plugin &ctx, bool reloadCheck = true) {
 }
 
 // Loads a plugin from the specified full path (or current directory if NULL).
-extern "C" bool cr_plugin_open(cr_plugin &ctx, const char *fullpath) {
+// Expects a ResourceDirectory with empty path. So we can use absolute path with ToolFilesytem.
+extern "C" bool cr_plugin_open(cr_plugin& ctx, ResourceDirectory resDir, const char* fullpath)
+{
     CR_TRACE
     CR_ASSERT(fullpath);
-    if (!cr_exists(fullpath)) {
+    if (!fsFileExist(resDir, fullpath)) {
         return false;
     }
     cr_internal* p = new(CR_MALLOC(sizeof(cr_internal))) cr_internal;
     p->mode = CR_OP_MODE;
 
     {
-        size_t pathSize = CR_STRLEN(fullpath);
-        p->fullname     = (char*)tf_malloc(pathSize + 1);
-        memcpy(p->fullname, fullpath, pathSize);
-        p->fullname[pathSize] = 0;
+        size_t fullPathSize = CR_STRLEN(fullpath);
+        ASSERT(fullPathSize < FS_MAX_PATH);
+        p->fullname     = (char*)tf_malloc(fullPathSize + 1);
+        memcpy(p->fullname, fullpath, fullPathSize);
+        p->fullname[fullPathSize] = 0;
+        p->resDir = resDir;
     }
 
     ctx.p                    = p;
@@ -2099,11 +1952,6 @@ extern "C" bool cr_plugin_open(cr_plugin &ctx, const char *fullpath) {
     ctx.failure = CR_NONE;
     cr_plat_init();
     return true;
-}
-
-// 20200109 [DEPRECATED] Use `cr_plugin_open` instead.
-extern "C" bool cr_plugin_load(cr_plugin &ctx, const char *fullpath) {
-    return cr_plugin_open(ctx, fullpath);
 }
 
 // Call to cleanup internal state once the plugin is not required anymore.
@@ -2117,18 +1965,15 @@ extern "C" void cr_plugin_close(cr_plugin& ctx)
     cr_internal* p = (cr_internal*)ctx.p;
 
     // delete backups
+    char pathBuffer[FS_MAX_PATH];
     const char* file = p->fullname;
     for (unsigned int i = 0; i < ctx.version; i++)
     {
-        char* fd = cr_version_path(file, i, p->temppath);
-        cr_del(fd);
-        tf_free(fd);
+        cr_version_path(file, pathBuffer, i, p->temppath);
+        fsRemoveFile(p->resDir, pathBuffer);
 #if defined(_MSC_VER)
-        fd        = cr_version_path(file, i, p->temppath);
-        char* fd2 = cr_replace_extension(fd, ".pdb");
-        cr_del(fd2);
-        tf_free(fd);
-        tf_free(fd2);
+        fsReplacePathExtension(pathBuffer, ".pdb", pathBuffer);
+        fsRemoveFile(p->resDir, pathBuffer);
 #endif
     }
 

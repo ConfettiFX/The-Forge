@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,95 +22,11 @@
 * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
-STRUCT(Light)
-{
-	DATA(float4, pos, None);
-	DATA(float4, col, None);
-	DATA(float,  radius, None);
-	DATA(float,  intensity, None);
-	DATA(float,  _pad0, None);
-	DATA(float,  _pad1, None);
-};
-
-STRUCT(DirectionalLight)
-{
-	DATA(float4, mCol, None); //alpha is the intesity
-	DATA(float4, mDir, None);
-};
-
-STRUCT(cbExtendCameraData)
-{
-	DATA(float4x4, viewMat, None);
-	DATA(float4x4, invViewMat, None);
-	DATA(float4x4, projMat, None);
-	DATA(float4x4, viewProjMat, None);
-	DATA(float4x4, InvViewProjMat, None);
-
-	DATA(float4, cameraWorldPos, None);
-
-	DATA(float2, viewPortSize, None);
-	DATA(float,  mNear, None);
-	DATA(float,  mFar, None);
-
-	DATA(float4, mEnvColor, None);
-
-	DATA(float,  mGroundRoughness, None);
-	DATA(float,  mGroundMetallic, None);
-	DATA(uint,   mUseEnvMap, None);
-};
-RES(CBUFFER(cbExtendCameraData), cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
-
-STRUCT(objectUniformBlockData)
-{
-    DATA(float4x4, WorldViewProjMat,     None);
-    DATA(float4x4, prevWorldViewProjMat, None);
-};
-RES(CBUFFER(objectUniformBlockData), objectUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 1);
-
-STRUCT(cbLightsData)
-{
-	DATA(Light, lights[16], None);
-	DATA(int, currAmountOflights, None);
-};
-RES(CBUFFER(cbLightsData), cbLights, UPDATE_FREQ_NONE, b3, binding = 6);
-
-STRUCT(cbDLightsData)
-{
-	DATA(DirectionalLight, dlights[16], None);
-	DATA(int, currAmountOfDLights, None);
-};
-RES(CBUFFER(cbDLightsData), cbDLights, UPDATE_FREQ_NONE, b4, binding = 3);
-
-RES(ByteBuffer,   filteredIndexBuffer,    UPDATE_FREQ_PER_FRAME, t4, binding = 4);
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t5, binding = 5);
-
-RES(ByteBuffer,            vertexPos,           UPDATE_FREQ_NONE, t7,  binding = 7);
-RES(ByteBuffer,            vertexTexCoord,      UPDATE_FREQ_NONE, t8,  binding = 8);
-RES(ByteBuffer,            vertexNormal,        UPDATE_FREQ_NONE, t9,  binding = 9);
-RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t10, binding = 10);
-
-RES(Tex2D(float4),   vbPassTexture,      UPDATE_FREQ_NONE, t11, binding = 11);
-RES(Tex2D(float2),   brdfIntegrationMap, UPDATE_FREQ_NONE, t12, binding = 12);
-RES(TexCube(float4), irradianceMap,      UPDATE_FREQ_NONE, t13, binding = 13);
-RES(TexCube(float4), specularMap,        UPDATE_FREQ_NONE, t14, binding = 14);
-
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t25, binding = 15);
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t26, binding = 16);
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t27, binding = 17);
-#else
-	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t20,  binding = 15); // 0   + 20
-	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t276, binding = 16); // 256 + 20
-	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t532, binding = 17); // 512 + 20
-#endif
-
-RES(SamplerState, defaultSampler,            UPDATE_FREQ_NONE, s0, binding = 18);
-RES(SamplerState, envSampler,                UPDATE_FREQ_NONE, s1, binding = 19);
-RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s2, binding = 20);
 
 STRUCT(PsIn)
 {
@@ -124,12 +40,13 @@ STRUCT(PsOut)
 	DATA(float4, NormalRoughness, SV_Target1);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 PsOut PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
 	PsOut Out;
 
-	float4 visRaw = LoadTex2D(vbPassTexture, clampMiplessLinearSampler, uint2(In.Position.xy), 0);
+	float4 visRaw = LoadTex2D(gVBPassTexture, gSamplerBilinearClamp, uint2(In.Position.xy), 0);
 
 	uint geomSetPrimID = packUnorm4x8(visRaw);
 
@@ -147,23 +64,23 @@ PsOut PS_MAIN( PsIn In )
 	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 1);
 	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + (primitiveID * 3 + 2);
 
-	uint index0 = LoadByte(filteredIndexBuffer, triIdx0 << 2);
-	uint index1 = LoadByte(filteredIndexBuffer, triIdx1 << 2);
-	uint index2 = LoadByte(filteredIndexBuffer, triIdx2 << 2);
+	uint index0 = LoadByte(gFilteredIndexBuffer, triIdx0 << 2);
+	uint index1 = LoadByte(gFilteredIndexBuffer, triIdx1 << 2);
+	uint index2 = LoadByte(gFilteredIndexBuffer, triIdx2 << 2);
 
-	float3 v0pos = asfloat(LoadByte4(vertexPos, index0 * 12)).xyz;
-	float3 v1pos = asfloat(LoadByte4(vertexPos, index1 * 12)).xyz;
-	float3 v2pos = asfloat(LoadByte4(vertexPos, index2 * 12)).xyz;
+	float3 v0pos = asfloat(LoadByte4(gVertexPositionBuffer, index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
 
-	float4 pos0 = mul(objectUniformBlock.WorldViewProjMat, float4(v0pos, 1));
-	float4 pos1 = mul(objectUniformBlock.WorldViewProjMat, float4(v1pos, 1));
-	float4 pos2 = mul(objectUniformBlock.WorldViewProjMat, float4(v2pos, 1));
+	float4 pos0 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v0pos, 1));
+	float4 pos1 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v1pos, 1));
+	float4 pos2 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v2pos, 1));
 
-	float4 wPos0 = mul(cbExtendCamera.InvViewProjMat,pos0);
-	float4 wPos1 = mul(cbExtendCamera.InvViewProjMat,pos1);
-	float4 wPos2 = mul(cbExtendCamera.InvViewProjMat,pos2);
+	float4 wPos0 = mul(gCBExtendCamera.InvViewProjMat,pos0);
+	float4 wPos1 = mul(gCBExtendCamera.InvViewProjMat,pos1);
+	float4 wPos2 = mul(gCBExtendCamera.InvViewProjMat,pos2);
 
-	float2 two_over_windowsize = float2(1.5f, 1.5f) / cbExtendCamera.viewPortSize.xy;
+	float2 two_over_windowsize = float2(1.5f, 1.5f) / gCBExtendCamera.viewPortSize.xy;
 
 	//Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
 	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,In.ScreenPos,two_over_windowsize);
@@ -173,21 +90,21 @@ PsOut PS_MAIN( PsIn In )
 	float interpolatedW = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
 
 	//reconstruct the z value at this screen point
-	float zVal = interpolatedW * getElem(cbExtendCamera.projMat, 2, 2) + getElem(cbExtendCamera.projMat, 3, 2);
+	float zVal = interpolatedW * getElem(gCBExtendCamera.projMat, 2, 2) + getElem(gCBExtendCamera.projMat, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using Screen Position and the Z value
 	// Then by multiplying the perspective projected coordinates by the inverse view projection matrix, it produces world coord
-	float3 WorldPos = mul(cbExtendCamera.InvViewProjMat, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
+	float3 WorldPos = mul(gCBExtendCamera.InvViewProjMat, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
 
 	/////////////LOAD///////////////////////////////
-	uint materialID = indirectDataBuffer[index0];
+	uint materialID = gIndirectDataBuffer[index0];
 
 	//Texture coord interpolation
 	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(vertexTexCoord, index0 << 2)) ,
-			unpack2Floats(LoadByte(vertexTexCoord, index1 << 2)) ,
-			unpack2Floats(LoadByte(vertexTexCoord, index2 << 2)) 
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index0 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index1 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, index2 << 2)) 
 	);
 
 	// Interpolate texture coordinates and calculate the gradients for 
@@ -205,9 +122,9 @@ PsOut PS_MAIN( PsIn In )
 	float4 diffuseColor  = f4(0);
 	float4 specularColor = f4(0);
 	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		normalMapData = SampleGradTex2D(normalMaps[materialID],   defaultSampler, texCoord, texCoordDX, texCoordDY);
-		diffuseColor  = SampleGradTex2D(diffuseMaps[materialID],  defaultSampler, texCoord, texCoordDX, texCoordDY);
-		specularColor = SampleGradTex2D(specularMaps[materialID], defaultSampler, texCoord, texCoordDX, texCoordDY);
+		normalMapData = SampleGradTex2D(gNormalMaps[materialID],   gDefaultSampler, texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(gDiffuseMaps[materialID],  gDefaultSampler, texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(gSpecularMaps[materialID], gDefaultSampler, texCoord, texCoordDX, texCoordDY);
 	EndNonUniformResourceIndex();
 
 	// reconstruct encoded normals...
@@ -217,9 +134,9 @@ PsOut PS_MAIN( PsIn In )
 
 	//Normal interpolation
 	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index0 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index1 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(vertexNormal, index2 << 2))) 
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index2 << 2))) 
 	);
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));;
 	
@@ -240,16 +157,16 @@ PsOut PS_MAIN( PsIn In )
 	// a hack to make the San Miguel floor reflective
 	if(materialID == 203)
 	{
-		Roughness = cbExtendCamera.mGroundRoughness;
-		Metallic = cbExtendCamera.mGroundMetallic;
+		Roughness = gCBExtendCamera.mGroundRoughness;
+		Metallic = gCBExtendCamera.mGroundMetallic;
 	}
 
-	float3 camPos = cbExtendCamera.cameraWorldPos.xyz;
+	float3 camPos = gCBExtendCamera.cameraWorldPos.xyz;
 
 	float3 V = normalize(camPos.xyz - WorldPos.xyz);
 	float NoV = dot(normal, V);
 
-	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && (meshConstantsBuffer[materialID].twoSided == 1);
+	bool isTwoSided = (geomSet == GEOMSET_ALPHA_CUTOUT) && (gMeshConstantsBuffer[materialID].twoSided == 1);
 	if(isTwoSided && NoV < 0.0)
 	{
 		//flip normal
@@ -267,15 +184,15 @@ PsOut PS_MAIN( PsIn In )
 	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
 
 	//Directional Lights
-	for(int i = 0; i < cbDLights.currAmountOfDLights; ++i)
+	for(int i = 0; i < gCBDLights.currAmountOfDLights; ++i)
 	{
 		// Vec from world pos to light pos
-		float3 L = -normalize(cbDLights.dlights[i].mDir.xyz);
+		float3 L = -normalize(gCBDLights.dlights[i].mDir.xyz);
 
 		// halfway vec
 		float3 H = normalize(V + L);
 
-		float3 radiance = cbDLights.dlights[i].mCol.rgb * cbDLights.dlights[i].mCol.a;
+		float3 radiance = gCBDLights.dlights[i].mCol.rgb * gCBDLights.dlights[i].mCol.a;
 
 		float NoL = dot(normal, L);	
 		// Deal with two faced materials
@@ -290,14 +207,14 @@ PsOut PS_MAIN( PsIn In )
 	}
 
 	//Point Lights
-	for(int pl_i = 0; pl_i < cbLights.currAmountOflights; ++pl_i)
+	for(int pl_i = 0; pl_i < gCBLights.currAmountOflights; ++pl_i)
 	{
 		float3 shadedColor = calcPointLightShade(
 						NoV, 
 						V, normal,
 						DiffuseColor, SpecularColor, Roughness, Metallic,
-						WorldPos, cbLights.lights[pl_i].pos.xyz, cbLights.lights[pl_i].col.rgb, cbLights.lights[pl_i].radius, isTwoSided);
-		Lo += shadedColor * cbLights.lights[pl_i].intensity;
+						WorldPos, gCBLights.lights[pl_i].pos.xyz, gCBLights.lights[pl_i].col.rgb, gCBLights.lights[pl_i].radius, isTwoSided);
+		Lo += shadedColor * gCBLights.lights[pl_i].intensity;
 	}
 
 	float3 F = FresnelSchlickRoughness(NoV, F0, Roughness);
@@ -305,12 +222,12 @@ PsOut PS_MAIN( PsIn In )
 	float3 kD = f3(1.0f) - kS;
 	kD *= 1.0f - Metallic;
 
-	bool useEnvMap = cbExtendCamera.mUseEnvMap != 0;
+	bool useEnvMap = gCBExtendCamera.mUseEnvMap != 0;
 
-	float3 irradiance = SampleTexCube(irradianceMap, envSampler, normal).rgb;
+	float3 irradiance = SampleTexCube(gIrradianceMap, gEnvSampler, normal).rgb;
 	float3 diffuse = irradiance * DiffuseColor;
-	float3 specColor = useEnvMap ? SampleLvlTexCube(specularMap, envSampler, R, Roughness * 4).rgb : cbExtendCamera.mEnvColor.rgb;
-	float2 brdf = SampleTex2D(brdfIntegrationMap, defaultSampler, float2(NoV, Roughness)).rg;
+	float3 specColor = useEnvMap ? SampleLvlTexCube(gSpecularMap, gEnvSampler, R, Roughness * 4).rgb : gCBExtendCamera.mEnvColor.rgb;
+	float2 brdf = SampleTex2D(gBRDFIntegrationMap, gBilinearSampler, float2(NoV, Roughness)).rg;
 	float3 specular = specColor * (SpecularColor * brdf.x + brdf.y);
 
 	float ao = 1.0f;

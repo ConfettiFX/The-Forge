@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,21 +29,21 @@
 #include "../../Graphics/GraphicsConfig.h"
 
 #ifndef ENABLE_GPU_PROFILER
-ProfileToken initGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName) { return PROFILE_INVALID_TOKEN; }
-void         cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMarker) {}
-void         cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken) {}
-ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* pName, bool bUseMarker)
+ProfileToken initGpuProfiler(Renderer* /*pRenderer*/, Queue* /*pQueue*/, const char* /*pName*/) { return PROFILE_INVALID_TOKEN; }
+void         cmdBeginGpuFrameProfile(Cmd* /*pCmd*/, ProfileToken /*nProfileToken*/, bool /*bUseMarker*/) {}
+void         cmdEndGpuFrameProfile(Cmd* /*pCmd*/, ProfileToken /*nProfileToken*/) {}
+ProfileToken cmdBeginGpuTimestampQuery(Cmd* /*pCmd*/, ProfileToken /*nProfileToken*/, const char* /*pName*/, bool /*bUseMarker*/)
 {
     return PROFILE_INVALID_TOKEN;
 }
-void         cmdEndGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken) {}
-float        getGpuProfileTime(ProfileToken nProfileToken) { return -1.0f; }
-float        getGpuProfileAvgTime(ProfileToken nProfileToken) { return -1.0f; }
-float        getGpuProfileMinTime(ProfileToken nProfileToken) { return -1.0f; }
-float        getGpuProfileMaxTime(ProfileToken nProfileToken) { return -1.0f; }
-uint64_t     getGpuProfileTicksPerSecond(ProfileToken nProfileToken) { return 0; }
-GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
-void         exitGpuProfiler(ProfileToken nProfileToken) {}
+void         cmdEndGpuTimestampQuery(Cmd* /*pCmd*/, ProfileToken /*nProfileToken*/) {}
+float        getGpuProfileTime(ProfileToken /*nProfileToken*/) { return -1.0f; }
+float        getGpuProfileAvgTime(ProfileToken /*nProfileToken*/) { return -1.0f; }
+float        getGpuProfileMinTime(ProfileToken /*nProfileToken*/) { return -1.0f; }
+float        getGpuProfileMaxTime(ProfileToken /*nProfileToken*/) { return -1.0f; }
+uint64_t     getGpuProfileTicksPerSecond(ProfileToken /*nProfileToken*/) { return 0; }
+GpuProfiler* getGpuProfiler(ProfileToken /*nProfileToken*/) { return NULL; }
+void         exitGpuProfiler(ProfileToken /*nProfileToken*/) {}
 #else
 
 #include "../../Graphics/Interfaces/IGraphics.h"

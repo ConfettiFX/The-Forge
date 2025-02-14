@@ -92,7 +92,7 @@
       <OutDir>$(OutDir)Shaders</OutDir>
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+      <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,7 +134,7 @@
       <OutDir>$(OutDir)Shaders</OutDir>
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Compile>true</Compile>
-      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+      <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -143,11 +143,17 @@
   <ItemGroup>
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.frag.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.vert.fsl" />
-    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\resources.h.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.h.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\28_Skinning\Shaders\FSL\srt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\28_Skinning\GPUCfg\gpu.cfg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -329,6 +329,7 @@ static void GamepadResetState(InputPortIndex portIndex)
     gpad.mRumbleLow = 0.0f;
     gpad.mRumbleStopped = false;
     gpad.mLightReset = true;
+    gpad.mActive = false;
 }
 
 void GamepadUpdateLastState(InputPortIndex portIndex)

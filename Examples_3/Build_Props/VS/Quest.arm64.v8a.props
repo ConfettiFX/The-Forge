@@ -80,6 +80,7 @@
       <Command>
         %(Command)
         RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(TheForgeArtDir)PathStatement.Android.txt  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\PathStatement.txt* /s /y /d
         xcopy $(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\VulkanSDK\bin\Android\*.* $(OutDir) /s /y /d
       </Command>
       <Command Condition="'$(UseQuest)' != ''">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -51,18 +51,15 @@
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+
 // startdust hash function, use this to generate all the seed and update the position of all particles
 #define RND_GEN(x)                  ((x) = (x)*196314165 + 907633515)
 
 #define MAX_CORES                   64
 #define MAX_GPU_PROFILE_NAME_LENGTH 256
-
-struct ParticleData
-{
-    float    mPaletteFactor;
-    uint32_t mData;
-    uint32_t mTextureIndex;
-};
 
 struct ThreadData
 {
@@ -138,19 +135,18 @@ Buffer*        pProjViewUniformBuffer[gDataBufferCount] = { NULL };
 Buffer*        pSkyboxUniformBuffer[gDataBufferCount] = { NULL };
 Buffer*        pSkyBoxVertexBuffer = NULL;
 Buffer*        pBackGroundVertexBuffer[gDataBufferCount] = { NULL };
+Buffer*        pPerDrawBuffers[gDataBufferCount][gMaxThreadCount];
 Pipeline*      pPipeline = NULL;
 Pipeline*      pSkyBoxDrawPipeline = NULL;
 Pipeline*      pGraphLinePipeline = NULL;
 Pipeline*      pGraphLineListPipeline = NULL;
 Pipeline*      pGraphTrianglePipeline = NULL;
-RootSignature* pRootSignature = NULL;
-RootSignature* pGraphRootSignature = NULL;
 DescriptorSet* pDescriptorSet = NULL;
 DescriptorSet* pDescriptorSetUniforms = NULL;
+DescriptorSet* pDescriptorSetPerDraw = NULL;
 Texture*       pTextures[5];
 Texture*       pSkyBoxTextures[6];
 Sampler*       pSampler = NULL;
-Sampler*       pSamplerSkyBox = NULL;
 uint32_t       gFrameIndex = 0;
 bool           bShowThreadsPlot = true;
 
@@ -197,7 +193,7 @@ ThreadID initialThread;
 
 uint32_t gFontID = 0;
 
-const char* gTestScripts[] = { "03_MultiThread/Test_TurnOffPlots.lua" };
+const char* gTestScripts[] = { "Test_TurnOffPlots.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 
 void RunScript(void* pUserData)
@@ -317,6 +313,10 @@ public:
         initHiresTimer(&timer);
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
         // load all image to GPU
         for (int i = 0; i < 5; ++i)
         {
@@ -337,18 +337,9 @@ public:
             textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
             addResource(&textureDesc, NULL);
         }
-
         SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_NEAREST,
                                     ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
-        SamplerDesc skyBoxSamplerDesc = { FILTER_LINEAR,
-                                          FILTER_LINEAR,
-                                          MIPMAP_MODE_NEAREST,
-                                          ADDRESS_MODE_CLAMP_TO_EDGE,
-                                          ADDRESS_MODE_CLAMP_TO_EDGE,
-                                          ADDRESS_MODE_CLAMP_TO_EDGE };
         addSampler(pRenderer, &samplerDesc, &pSampler);
-        addSampler(pRenderer, &skyBoxSamplerDesc, &pSamplerSkyBox);
-
         gTextureIndex = 0;
 
         // #ifdef _WINDOWS
@@ -407,6 +398,16 @@ public:
             addResource(&ubDesc, NULL);
             ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
             addResource(&ubDesc, NULL);
+        }
+
+        ubDesc.mDesc.mSize = sizeof(ParticleData);
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
+        {
+            for (uint32_t j = 0; j < gMaxThreadCount; ++j)
+            {
+                ubDesc.ppBuffer = &pPerDrawBuffers[i][j];
+                addResource(&ubDesc, NULL);
+            }
         }
 
         BufferLoadDesc particleVbDesc = {};
@@ -497,7 +498,7 @@ public:
         pCameraController->setMotionParameters(cmp);
 
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         gFrameIndex = 0;
 
         return true;
@@ -505,7 +506,7 @@ public:
 
     void Exit() override
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         threadSystemExit(&gThreadSystem, &gThreadSystemExitDescDefault);
         exitCameraController(pCameraController);
 
@@ -523,6 +524,14 @@ public:
         {
             removeResource(pProjViewUniformBuffer[i]);
             removeResource(pSkyboxUniformBuffer[i]);
+        }
+
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
+        {
+            for (uint32_t j = 0; j < gMaxThreadCount; ++j)
+            {
+                removeResource(pPerDrawBuffers[i][j]);
+            }
         }
         removeResource(pParticleVertexBuffer);
         removeResource(pSkyBoxVertexBuffer);
@@ -545,13 +554,12 @@ public:
             removeResource(pSkyBoxTextures[i]);
 
         removeSampler(pRenderer, pSampler);
-        removeSampler(pRenderer, pSamplerSkyBox);
-
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
         exitGpuCmdRing(pRenderer, &gThreadCmdRing);
 
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
         exitQueue(pRenderer, pGraphicsQueue);
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitRenderer(pRenderer);
         exitGPUConfiguration();
@@ -564,7 +572,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -648,7 +655,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -979,43 +985,19 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
-        setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount * 2 };
+        setDesc = SRT_SET_DESC(SrtData, PerBatch, gDataBufferCount * 2, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+        setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount * gMaxThreadCount, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerDraw);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSet);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerDraw);
         removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-    }
-
-    void addRootSignatures()
-    {
-        const char*       pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
-        Sampler*          pSamplers[] = { pSampler, pSamplerSkyBox };
-        Shader*           shaders[] = { pShader, pSkyBoxDrawShader };
-        RootSignatureDesc skyBoxRootDesc = {};
-        skyBoxRootDesc.mStaticSamplerCount = 2;
-        skyBoxRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-        skyBoxRootDesc.ppStaticSamplers = pSamplers;
-        skyBoxRootDesc.mShaderCount = 2;
-        skyBoxRootDesc.ppShaders = shaders;
-        skyBoxRootDesc.mMaxBindlessTextures = 5;
-        addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
-        gParticleRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "particleRootConstant");
-
-        RootSignatureDesc graphRootDesc = {};
-        graphRootDesc.mShaderCount = 1;
-        graphRootDesc.ppShaders = &pGraphShader;
-        addRootSignature(pRenderer, &graphRootDesc, &pGraphRootSignature);
-    }
-
-    void removeRootSignatures()
-    {
-        removeRootSignature(pRenderer, pRootSignature);
-        removeRootSignature(pRenderer, pGraphRootSignature);
+        removeDescriptorSet(pRenderer, pDescriptorSet);
     }
 
     void addShaders()
@@ -1069,6 +1051,8 @@ public:
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
         PipelineDesc graphicsPipelineDesc = {};
+        PIPELINE_LAYOUT_DESC(graphicsPipelineDesc, SRT_LAYOUT_DESC(SrtData, Persistent), NULL, SRT_LAYOUT_DESC(SrtData, PerBatch),
+                             SRT_LAYOUT_DESC(SrtData, PerDraw));
         graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_POINT_LIST;
@@ -1078,7 +1062,6 @@ public:
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pShader;
         pipelineSettings.pVertexLayout = &vertexLayout;
         addPipeline(pRenderer, &graphicsPipelineDesc, &pPipeline);
@@ -1100,7 +1083,6 @@ public:
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
         pipelineSettings.pVertexLayout = &vertexLayout;
         addPipeline(pRenderer, &graphicsPipelineDesc, &pSkyBoxDrawPipeline);
@@ -1126,7 +1108,6 @@ public:
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pGraphRootSignature;
         pipelineSettings.pShaderProgram = pGraphShader;
         pipelineSettings.pVertexLayout = &vertexLayout;
         addPipeline(pRenderer, &graphicsPipelineDesc, &pGraphLinePipeline);
@@ -1150,34 +1131,46 @@ public:
 
     void prepareDescriptorSets()
     {
-        DescriptorData params[7] = {};
-        params[0].pName = "RightText";
+        DescriptorData params[8] = {};
+        params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gRightText);
         params[0].ppTextures = &pSkyBoxTextures[0];
-        params[1].pName = "LeftText";
+        params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gLeftText);
         params[1].ppTextures = &pSkyBoxTextures[1];
-        params[2].pName = "TopText";
+        params[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gTopText);
         params[2].ppTextures = &pSkyBoxTextures[2];
-        params[3].pName = "BotText";
+        params[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gBotText);
         params[3].ppTextures = &pSkyBoxTextures[3];
-        params[4].pName = "FrontText";
+        params[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gFrontText);
         params[4].ppTextures = &pSkyBoxTextures[4];
-        params[5].pName = "BackText";
+        params[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gBackText);
         params[5].ppTextures = &pSkyBoxTextures[5];
-        updateDescriptorSet(pRenderer, 0, pDescriptorSet, 6, params);
-
-        params[0].pName = "uTex0";
-        params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
-        params[0].ppTextures = pTextures;
-        updateDescriptorSet(pRenderer, 1, pDescriptorSet, 1, params);
+        params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
+        params[6].ppSamplers = &pSampler;
+        params[7].mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
+        params[7].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
+        params[7].ppTextures = pTextures;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSet, 8, params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             params[0] = {};
-            params[0].pName = "uniformBlock";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerBatch, gUniformBlock);
             params[0].ppBuffers = &pSkyboxUniformBuffer[i];
             updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
             params[0].ppBuffers = &pProjViewUniformBuffer[i];
             updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
+        }
+
+        for (uint32_t i = 0; i < gDataBufferCount; ++i)
+        {
+            params[0] = {};
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gParticleConstants);
+
+            for (uint32_t j = 0; j < gMaxThreadCount; j++)
+            {
+                params[0].ppBuffers = &pPerDrawBuffers[i][j];
+                updateDescriptorSet(pRenderer, i * gMaxThreadCount + j, pDescriptorSetPerDraw, 1, params);
+            }
         }
     }
 
@@ -1345,6 +1338,11 @@ public:
         ThreadData& data = *(ThreadData*)pData;
         if (data.mThreadID == initialThread)
             data.mThreadID = getCurrentThreadID();
+
+        BufferUpdateDesc update = { pPerDrawBuffers[data.mFrameIndex][data.mThreadIndex] };
+        beginUpdateResource(&update);
+        memcpy(update.pMappedData, &gParticleData, sizeof(gParticleData));
+        endUpdateResource(&update);
         // PROFILER_SET_CPU_SCOPE("Threads", "Cpu draw", 0xffffff);
         Cmd* cmd = data.pCmd;
         resetCmdPool(pRenderer, data.pCmdPool);
@@ -1353,27 +1351,22 @@ public:
         char buffer[32] = {};
         snprintf(buffer, TF_ARRAY_COUNT(buffer), "Particle Thread Cmd %d", data.mThreadIndex);
         cmdBeginDebugMarker(cmd, 0.6f, 0.7f, 0.8f, buffer);
-
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { data.pRenderTarget, LOAD_ACTION_LOAD };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mWidth, (float)data.pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mWidth, data.pRenderTarget->mHeight);
-
         const uint32_t parDataStride = sizeof(uint32_t);
         cmdBindPipeline(cmd, pPipeline);
-        cmdBindDescriptorSet(cmd, 1, pDescriptorSet);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSet);
         cmdBindDescriptorSet(cmd, data.mFrameIndex * 2 + 1, pDescriptorSetUniforms);
-        cmdBindPushConstants(cmd, pRootSignature, gParticleRootConstantIndex, &gParticleData);
+        cmdBindDescriptorSet(cmd, data.mFrameIndex * gMaxThreadCount + data.mThreadIndex, pDescriptorSetPerDraw);
         cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, &parDataStride, NULL);
-
         cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);
-
         cmdEndDebugMarker(cmd);
         cmdEndGpuFrameProfile(cmd, gGpuProfiletokens[data.mThreadIndex + 1]); // pGpuProfiletokens[0] is reserved for main thread
         endCmd(cmd);
-
         updatePerformanceStats();
     }
 };

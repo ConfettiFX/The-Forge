@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,10 +28,10 @@ STRUCT(PsIn)
 {
 	DATA(float4, position, SV_Position);
 };
-
-RES(Tex2DMS(float4, SAMPLE_COUNT), msaaSource, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState, dummySampler, UPDATE_FREQ_NONE, s0, binding = 1);
-
+#include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PsIn In )
 {
     INIT_MAIN;
@@ -39,9 +39,13 @@ float4 PS_MAIN( PsIn In )
     float4 value = f4(0);
 
     uint2 texCoord = uint2(In.position.xy);
+#if (SAMPLE_COUNT > 1)
     for(int i = 0; i < SAMPLE_COUNT; ++i)
-        value += LoadTex2DMS(msaaSource, dummySampler, texCoord, i);
+        value += LoadTex2DMS(gMsaaSource, gSamplerBilinearClamp, texCoord, i);
     value /= SAMPLE_COUNT;
+#else
+    value += LoadTex2D(gMsaaSource, gSamplerBilinearClamp, texCoord, 0);
+#endif
 
     Out = value;
     RETURN(Out);

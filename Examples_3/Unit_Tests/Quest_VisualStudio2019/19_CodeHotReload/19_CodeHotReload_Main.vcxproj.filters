@@ -1,70 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Common_3\Game\ThirdParty\OpenSource\flecs">
-      <UniqueIdentifier>{4b85a4a7-85d1-4084-a263-adb034082ecc}</UniqueIdentifier>
+    <Filter Include="Source\Shared">
+      <UniqueIdentifier>{bc0b7dc4-16b7-4178-b989-4091a933965c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Game\ThirdParty\OpenSource">
-      <UniqueIdentifier>{69e27455-0975-4d43-88fd-a08670408916}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{21423904-f33a-4836-9278-4b16fcfb9538}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Game\ThirdParty">
-      <UniqueIdentifier>{fbcbef5b-a080-45b3-837b-a50fdff81236}</UniqueIdentifier>
+    <Filter Include="Headers\Shared">
+      <UniqueIdentifier>{6e3ca9c4-5fe9-4916-822f-38111694e296}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Game">
-      <UniqueIdentifier>{25c98dc9-163b-48ec-a944-d23856d16b2d}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{a0fb020e-f9b0-481e-9c72-01fab5010789}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3">
-      <UniqueIdentifier>{a3b8067e-21ea-405e-94d4-b5468e302b18}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{013c2606-8b08-4d32-9e6b-03808e9ee7f9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\19_CodeHotReload">
-      <UniqueIdentifier>{c099ab29-17ca-4ec5-b57a-50c99daf0468}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{515f5032-828c-4c3b-8063-e98978e73402}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{df91520a-e8b1-4291-a71d-3e0d3847e749}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{0aff3b4f-4cf1-4ae1-892d-c4dd648f9fb8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{039017dc-8245-40d4-8ef0-e9f5014c75db}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders\FSL">
-      <UniqueIdentifier>{c4055558-4da2-4afc-b45c-8e4184729c5e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders">
-      <UniqueIdentifier>{23a56349-7e52-4ec9-b215-966330bbb337}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts\19_CodeHotReload">
-      <UniqueIdentifier>{d378d0ca-24be-4e97-9e4f-472816a05c3b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{ce2c8069-87e6-49f3-8134-343397a0c1f0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{190c23f4-44b2-4699-a116-e649aa8c87da}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{cb3c732a-4dec-42f9-a248-bd72efc6558d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c">
-      <Filter>Common_3\Game\ThirdParty\OpenSource\flecs</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\19_CodeHotReload\19_CodeHotReload_Main.cpp">
-      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClInclude Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h">
-      <Filter>Common_3\Game\ThirdParty\OpenSource\flecs</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\basic.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\19_CodeHotReload\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\..\Art\Scripts\19_CodeHotReload\Test_HotReload.lua">
-      <Filter>Art\Scripts\19_CodeHotReload</Filter>
+    <None Include="..\..\src\19_CodeHotReload\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
+    </None>
+    <None Include="..\..\src\19_CodeHotReload\Scripts\Test_HotReload.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

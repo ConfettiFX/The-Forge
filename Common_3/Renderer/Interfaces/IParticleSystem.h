@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -59,14 +59,34 @@ typedef struct ParticleSystemInitDesc
     Buffer* pTransparencyListHeadsBuffer = NULL;
 
     Buffer** ppParticleConstantBuffer = NULL;
+
+    DescriptorSet* pDescriptorSetPersistent = NULL;
+    DescriptorSet* pDescriptorSetPerFrame = NULL;
+    DescriptorSet* pDescriptorSetPerBatch = NULL;
+
+    Pipeline* pParticleRenderPipeline = NULL;
+    Pipeline* pParticleSimulatePipeline = NULL;
+
+    uint32_t mParticleTexturesIndex = 0;
+    uint32_t mDepthBufferIndex = 0;
+    uint32_t mParticlesDataBufferIndex = 0;
+    uint32_t mParticlesBufferStateIndex = 0;
+    uint32_t mTransparencyListIndex = 0;
+    uint32_t mBitfieldBufferIndex = 0;
+    uint32_t mParticleSetBufferIndex = 0;
+    uint32_t mParticleSetVisibilityIndex = 0;
+    uint32_t mParticlesToRasterizeIndex = 0;
+    uint32_t mTransparencyListHeadsIndex = 0;
+    uint32_t mParticleRenderIndirectDataIndex = 0;
+    uint32_t mStatsBufferIndex = 0;
+
 } ParticleSystemInitDesc;
 
-FORGE_RENDERER_API bool                particleSystemInit(const ParticleSystemInitDesc* pDesc);
-FORGE_RENDERER_API ParticleSystemStats particleSystemGetStats();
-FORGE_RENDERER_API void                particleSystemExit();
+FORGE_RENDERER_API bool                initParticleSystem(const ParticleSystemInitDesc* pDesc);
+FORGE_RENDERER_API ParticleSystemStats getParticleSystemStats();
+FORGE_RENDERER_API void                exitParticleSystem();
 
-FORGE_RENDERER_API void particleSystemUpdateConstantBuffers(uint32_t frameIndex, ParticleConstantBufferData* cameraConstantBufferData);
+FORGE_RENDERER_API void updateParticleSystemConstantBuffers(uint32_t frameIndex, ParticleConstantBufferData* cameraConstantBufferData);
 
-FORGE_RENDERER_API void particleSystemCmdBegin(Cmd* pCmd, uint32_t frameIndex);
-FORGE_RENDERER_API void particleSystemCmdSimulate(Cmd* pCmd, uint32_t frameIndex);
-FORGE_RENDERER_API void particleSystemCmdRender(Cmd* pCmd, uint32_t frameIndex);
+FORGE_RENDERER_API void cmdParticleSystemSimulate(Cmd* pCmd, uint32_t frameIndex);
+FORGE_RENDERER_API void cmdParticleSystemRender(Cmd* pCmd, uint32_t frameIndex);

@@ -1,0 +1,16 @@
+#include "../../../../../../Common_3/Graphics/FSL/defaults.h"
+
+#rootsig default.rootsig
+#end
+
+#rootsig compute.rootsig
+#end
+
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert basic.vert
+#include "basic.vert.fsl"
+#end
+

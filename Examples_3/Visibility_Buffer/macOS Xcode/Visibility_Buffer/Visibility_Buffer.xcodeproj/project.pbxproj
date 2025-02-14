@@ -397,7 +397,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 		};
 		5C13A50524D1F7490023D339 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -414,7 +414,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src\"\n\n#PathStatement\nrsync \"$ART/PathStatement.MacOS.txt\" \"$DST/PathStatement.txt\"\n\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n\nrsync -u -r \"$ART/GPUCfg/Visibility_Buffer/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/gpu.data\"\n\n# Camera Path\nrsync -u -r \"$ART/cameraPath.txt\" \"$DST\"\n\ncd \"$ART/../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src\"\n\n#PathStatement\nrsync \"$ART/PathStatement.MacOS.txt\" \"$DST/PathStatement.txt\"\n\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n\n\nrsync -r \"$SRCROOT/../../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/gpu.data\"\nrsync -u -r \"$SRCROOT/../../../../Common_3/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n\n# Camera Path\nrsync -u -r \"$ART/cameraPath.txt\" \"$DST\"\n\ncd \"$ART/../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
 		};
 		994BB7B9289A3A680076DA97 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -431,7 +431,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src\"\n\n#PathStatement\nrsync \"$ART/PathStatement.iOS.txt\" \"$DST/PathStatement.txt\"\n\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$ART/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$ART/GPUCfg/Visibility_Buffer/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/gpu.data\"\n\n# Textures\nrsync -u \"$SRCROOT/../../../Art/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/\" \"$DST/Textures/\"\n# Camera Path\nrsync -u -r \"$ART/cameraPath.txt\" \"$DST\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ART/Fonts/\" \"$DST/Fonts\"\n\ncd \"$ART/../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src\"\n\n#PathStatement\nrsync \"$ART/PathStatement.iOS.txt\" \"$DST/PathStatement.txt\"\n\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nsync -r \"$SRCROOT/../../../../Common_3/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRCROOT/../../../../Common_3/OS/Darwin/apple_gpu.data\" \"$DST/gpu.data\"\n\n# Textures\nrsync -u \"$SRCROOT/../../../../Art/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Textures/ktx/\" \"$DST/Textures/\"\n# Camera Path\nrsync -u -r \"$ART/cameraPath.txt\" \"$DST\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ART/Fonts/\" \"$DST/Fonts\"\n\ncd \"$ART/../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
 		};
 		994BB7BA289A3A680076DA97 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -448,7 +448,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

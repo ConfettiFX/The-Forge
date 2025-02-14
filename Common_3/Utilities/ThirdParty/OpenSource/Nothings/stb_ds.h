@@ -163,6 +163,9 @@ DOCUMENTATION
         size_t hmlenu(T*)
         size_t shlenu(T*)
           Returns the number of elements in the hashmap.
+      hmhtable
+        void* hmhtable(T*)
+          Returns a pointer to the hash table of the hashmap.
       hmgeti
       shgeti
       hmgeti_ts
@@ -224,8 +227,8 @@ DOCUMENTATION
           present in the hashmap, updates it.
       hmdel
       shdel
-        int hmdel(T*, TK key)
-        int shdel(T*, char* key)
+        ptrdiff_t hmdel(T*, TK key)
+        ptrdiff_t shdel(T*, char* key)
           If 'key' is in the hashmap, deletes its entry and returns 1.
           Otherwise returns 0.
     Function interface (actually macros) for strings only:
@@ -402,6 +405,7 @@ struct bstring;
 #define hmdel       stbds_hmdel
 #define hmlen       stbds_hmlen
 #define hmlenu      stbds_hmlenu
+#define hmhtable    stbds_hmhtable
 #define hmfree      stbds_hmfree
 #define hmdefault   stbds_hmdefault
 #define hmdefaults  stbds_hmdefaults
@@ -480,7 +484,7 @@ constexpr void STBDS_CheckAlignment()
 
 #ifdef __cplusplus
 template<typename Tablekey, typename ProvidedKey>
-inline void STBDS_AssertKeySizesImpl()
+static inline void STBDS_AssertKeySizesImpl()
 {
   COMPILE_ASSERT(sizeof(Tablekey) == sizeof(ProvidedKey) && "Sizes should be equal. You are probably mixing integers of different size.");
 }
@@ -489,7 +493,7 @@ inline void STBDS_AssertKeySizesImpl()
 #else
 #include "../../../Interfaces/ILog.h"
 // Can't do static assert in the middle of expression, so have to use ASSERT for C
-inline void STBDS_AssertKeySizesImpl(size_t realSize, size_t providedSize)
+static inline void STBDS_AssertKeySizesImpl(size_t realSize, size_t providedSize)
 {
   ASSERT(realSize == providedSize && "Sizes should be equal. You are probably mixing integers of different size.");
 }
@@ -542,6 +546,7 @@ STB_DS_API extern void * stbds_hmput_default(void *a, size_t elemsize, size_t el
 STB_DS_API extern void * stbds_hmput_key(void *a, size_t elemsize, size_t elemalign, const void *key, size_t keysize, int mode STBDS_FN_ALLOC_ARGS);
 STB_DS_API extern void * stbds_hmdel_key(void *a, size_t elemsize, const void *key, size_t keysize, size_t keyoffset, int mode STBDS_FN_ALLOC_ARGS);
 STB_DS_API extern void * stbds_shmode_func(size_t elemsize, size_t elemalign, int mode STBDS_FN_ALLOC_ARGS);
+STB_DS_API extern void * stbds_hminit_table(void* a, size_t elemsize, size_t elemalign STBDS_FN_ALLOC_ARGS);
 
 #ifdef __cplusplus
 }
@@ -642,6 +647,9 @@ void stbds_same_type(const T*, const T*) {}
      (t)[stbds_temp((t)-1)] = (s))
 #define stbds_hmputs(t, s) stbds_hmputs_impl(t, s, __FILE__, __LINE__, __FUNCTION__, "hmputs")
 
+#define stbds_hminit_table_impl(t, f, l, fn, p) ((t) = stbds_hminit_table((t), sizeof *(t), STBDS_ALIGNOF_PTR((t)) STBDS_IF_MEM_TRACKING(,f,l,fn,p)))
+#define stbds_hminit_table_wrapper(t) stbds_hminit_table_impl(t, __FILE__, __LINE__, __FUNCTION__, "hminit_table")
+
 /*
  * Note: NULL check ensures that there will be no memory allocation,
  *       otherwise  stbds_hmget_key_wrapper can allocate memory for default block
@@ -692,6 +700,7 @@ void stbds_same_type(const T*, const T*) {}
 #define stbds_hmget_ts(t, k, temp)  (stbds_hmgetp_ts_impl(t, k, temp, __FILE__, __LINE__, __FUNCTION__, "hmget_ts")->value)
 #define stbds_hmlen(t)        ((t) ? (ptrdiff_t) stbds_header((t)-1)->length-1 : 0)
 #define stbds_hmlenu(t)       ((t) ?             stbds_header((t)-1)->length-1 : 0)
+#define stbds_hmhtable(t)     ((t) ?             stbds_header((t)-1)->hash_table : NULL)
 #define stbds_hmgetp_null(t,k)  (stbds_hmgeti_unsafe_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "hmgetp_null") == -1 ? NULL : &(t)[stbds_temp((t)-1)])
 
 #define stbds_shput_impl(t, k, v, f, l, fn, p) \
@@ -1722,6 +1731,31 @@ void * stbds_hmput_default(void *a, size_t elemsize, size_t elemalign STBDS_FN_A
 }
 
 static char *stbds_strdup(char *str STBDS_FN_ALLOC_ARGS);
+
+void *stbds_hminit_table(void* a, size_t elemsize, size_t elemalign STBDS_FN_ALLOC_ARGS)
+{
+    if (a == NULL) {
+        a = stbds_arrgrowf(0, elemsize, elemalign, 0, 1 STBDS_FN_ALLOC_PARAMS);
+        memset(a, 0, elemsize);
+        stbds_header(a)->length += 1;
+        // adjust a to point AFTER the default element
+        a = STBDS_ARR_TO_HASH(a, elemsize);
+    }
+
+    a = STBDS_HASH_TO_ARR(a, elemsize);
+
+    stbds_hash_index* table = (stbds_hash_index*)stbds_header(a)->hash_table;
+    ASSERT(table == NULL);
+
+    size_t slot_count = STBDS_BUCKET_LENGTH;
+    stbds_hash_index* nt = stbds_make_hash_index(slot_count, table STBDS_FN_ALLOC_PARAMS);
+    STBDS_HM_DISPATCH_IMPL(STBDS_HM_BINARY, nt->string.mode = (uint8_t), _default_storage_mode);
+
+    stbds_header(a)->hash_table = table = nt;
+    STBDS_STATS(++stbds_hash_grow);
+
+    return STBDS_ARR_TO_HASH(a, elemsize);
+}
 
 void *stbds_hmput_key(void *a, size_t elemsize, size_t elemalign, const void *key, size_t keysize, int mode STBDS_FN_ALLOC_ARGS)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,8 +21,8 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
-#include "sss_resources.h.fsl"
+#include "vb_resources.h.fsl"
+#include "screenspace_shadows.srt.h"
 
 struct WavefrontExtents
 {
@@ -34,11 +34,11 @@ struct WavefrontExtents
 
 WavefrontExtents ComputeWavefrontExtents(int3 inGroupID, int inGroupThreadID)
 {
-	int2 xy = int2(inGroupID.yz) * WAVE_SIZE + DispatchRootConstants.WaveOffset;
+	int2 xy = int2(inGroupID.yz) * WAVE_SIZE + gSSSWaveOffsets.WaveOffset;
 	
-	float2 light_xy = floor(SSSUniform.mLightCoordinate.xy) + 0.5;
-	float2 light_xy_fraction = SSSUniform.mLightCoordinate.xy - light_xy;
-	bool reverse_direction = SSSUniform.mLightCoordinate.w > 0.0f;
+	float2 light_xy = floor(gSSSUniform.mLightCoordinate.xy) + 0.5;
+	float2 light_xy_fraction = gSSSUniform.mLightCoordinate.xy - light_xy;
+	bool reverse_direction = gSSSUniform.mLightCoordinate.w > 0.0f;
 
 	int2 sign_xy = int2(sign(float2(xy)));
 	bool horizontal = abs(xy.x + sign_xy.y) < abs(xy.y - sign_xy.x);
@@ -61,7 +61,7 @@ WavefrontExtents ComputeWavefrontExtents(int3 inGroupID, int inGroupThreadID)
 
 	float2 start_xy = xy_f + light_xy;
 
-	float2 end_xy = lerp(SSSUniform.mLightCoordinate.xy, start_xy, (major_axis_end + ma_light_frac) / (major_axis_start + ma_light_frac));
+	float2 end_xy = lerp(gSSSUniform.mLightCoordinate.xy, start_xy, (major_axis_end + ma_light_frac) / (major_axis_start + ma_light_frac));
 
 	float2 xy_delta = (start_xy - end_xy);
 
@@ -82,6 +82,7 @@ bool EarlyOut(float depth)
 	return depth >= 1.0f || depth <= 0.0f;
 }
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(WAVE_SIZE, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupID )
 {
@@ -97,7 +98,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 	float depth_thickness_scale[READ_COUNT];
 	float sample_distance[READ_COUNT];
 
-	const float direction = -SSSUniform.mLightCoordinate.w;
+	const float direction = -gSSSUniform.mLightCoordinate.w;
 	const float z_sign = NEAR_DEPTH_VALUE > FAR_DEPTH_VALUE ? -1 : +1;
 
 	int i;
@@ -123,31 +124,31 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 			depths = f2(0.0f);
 			for (int smp = 0; smp < SAMPLE_COUNT; smp++)
 			{
-				depths.x += LoadTex2DMS(DepthTexture, NO_SAMPLER, read_xy, smp).r;
-				depths.y += LoadTex2DMS(DepthTexture, NO_SAMPLER, read_xy + offset_xy, smp).r;
+				depths.x += LoadTex2DMS(gDepthTexture, NO_SAMPLER, read_xy, smp).r;
+				depths.y += LoadTex2DMS(gDepthTexture, NO_SAMPLER, read_xy + offset_xy, smp).r;
 			}
 			depths /= SAMPLE_COUNT;
 		#else
-			depths.x = f4(LoadTex2D(DepthTexture, NO_SAMPLER, read_xy, 0)).r;
-			depths.y = f4(LoadTex2D(DepthTexture, NO_SAMPLER, read_xy + offset_xy, 0)).r;
+			depths.x = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy, 0)).r;
+			depths.y = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy + offset_xy, 0)).r;
 		#endif
 
 		depth_thickness_scale[i] = abs(FAR_DEPTH_VALUE - depths.x);
 
-		bool use_point_filter = abs(depths.x - depths.y) > depth_thickness_scale[i] * SSSUniform.mBilinearThreshold;
+		bool use_point_filter = abs(depths.x - depths.y) > depth_thickness_scale[i] * gSSSUniform.mBilinearThreshold;
 
 		if (i == 0) is_edge = use_point_filter;
 
-		if (bool(SSSUniform.mBilinearSamplingOffsetMode))
+		if (bool(gSSSUniform.mBilinearSamplingOffsetMode))
 		{
 			bilinear = use_point_filter ? 0 : bilinear;
 			sampling_depth[i] = lerp(depths.x, depths.y, abs(bilinear));
-			shadowing_depth[i] = (bool(SSSUniform.mIgnoreEdgePixels) && use_point_filter) ? edge_skip : sampling_depth[i];
+			shadowing_depth[i] = (bool(gSSSUniform.mIgnoreEdgePixels) && use_point_filter) ? edge_skip : sampling_depth[i];
 		}
 		else
 		{
 			sampling_depth[i] = depths.x;
-			float edge_depth = bool(SSSUniform.mIgnoreEdgePixels) ? edge_skip : depths.x;
+			float edge_depth = bool(gSSSUniform.mIgnoreEdgePixels) ? edge_skip : depths.x;
 			float shadow_depth = depths.x + abs(depths.x - depths.y) * z_sign;
 			shadowing_depth[i] = use_point_filter ? edge_depth : shadow_depth;
 		}
@@ -157,7 +158,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 
 	#if (WAVE_SUPPORTED_FLAGS & WAVE_ARITHMETIC)
 	skip_pixel = EarlyOut(sampling_depth[0]);
-	bool early_out = WaveActiveMax(skip_pixel ? -1 : 0) == -1;
+	int waveActiveTest = skip_pixel ? -1 : 0;
+	bool early_out = WaveActiveMax(waveActiveTest) == -1;
 	if (WaveGetLaneCount() == WAVE_SIZE && early_out)
 	{
 		return;
@@ -172,7 +174,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 	}
 	#endif
 
-	float LightZ = SSSUniform.mLightCoordinate.z;
+	float LightZ = gSSSUniform.mLightCoordinate.z;
 
 	for (i = 0; i < READ_COUNT; i++)
 	{
@@ -197,7 +199,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 	float4 shadow_value = f4(1.0f);
 	float hard_shadow = 1;
 
-	float depth_scale = min(sample_distance[0] + direction, 1.0 / SSSUniform.mSurfaceThickness) * sample_distance[0] / depth_thickness_scale[0];
+	float depth_scale = min(sample_distance[0] + direction, 1.0 / gSSSUniform.mSurfaceThickness) * sample_distance[0] / depth_thickness_scale[0];
 
 	start_depth = start_depth * depth_scale - z_sign;
 
@@ -221,32 +223,32 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 	}
 
 
-	shadow_value = saturate(shadow_value * (SSSUniform.mShadowContrast) + (1 - SSSUniform.mShadowContrast));
-	hard_shadow = saturate(hard_shadow * (SSSUniform.mShadowContrast) + (1 - SSSUniform.mShadowContrast));
+	shadow_value = saturate(shadow_value * (gSSSUniform.mShadowContrast) + (1 - gSSSUniform.mShadowContrast));
+	hard_shadow = saturate(hard_shadow * (gSSSUniform.mShadowContrast) + (1 - gSSSUniform.mShadowContrast));
 
 	float result = 0;
 	result = dot(shadow_value, f4(0.25f));
 
 	result = min(hard_shadow, result);
 
-	if (SSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_EDGE_MASK)
+	if (gSSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_EDGE_MASK)
 		result = is_edge ? 1 : 0;
-	if (SSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_THREAD_INDEX)
+	if (gSSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_THREAD_INDEX)
 		result = (threadInGroupId.x / float(WAVE_SIZE));
-	if (SSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_WAVE_INDEX)		
+	if (gSSSUniform.mDebugOutput == DEBUG_OUTPUT_MODE_WAVE_INDEX)		
 		result = frac(groupID.x / float(WAVE_SIZE));
 			
 	uint mappedResult = uint(round(saturate(result) * SHADOW_MAX_VALUE));
-	if (write_xy.x >= SSSUniform.mScreenSize.x || write_xy.y >= SSSUniform.mScreenSize.y) {
+	if (write_xy.x >= gSSSUniform.mScreenSize.x || write_xy.y >= gSSSUniform.mScreenSize.y) {
 		RETURN();
 	}
 
 	#if TEXTURE_ATOMIC_SUPPORTED
 		uint2 write_coord = write_xy;
-		AtomicMin2D(OutputTexture, write_coord, mappedResult, temp);
+		AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
 	#else
-		uint write_coord = write_xy.x + uint(SSSUniform.mScreenSize.x) * write_xy.y;
-		AtomicMin(OutputTexture[write_coord], mappedResult);
+		uint write_coord = write_xy.x + uint(gSSSUniform.mScreenSize.x) * write_xy.y;
+		AtomicMin(gOutputTexture[write_coord], mappedResult);
 	#endif
 
 #ifdef GPU_CRASH
@@ -258,9 +260,9 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
         counter += float(mappedResult);
 		counter -= 0.0000001;
 	#if TEXTURE_ATOMIC_SUPPORTED
-		AtomicMin2D(OutputTexture, write_coord, mappedResult, temp);
+		AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
 	#else
-		AtomicMin(OutputTexture[write_coord], mappedResult);
+		AtomicMin(gOutputTexture[write_coord], mappedResult);
 	#endif
     }
 #endif

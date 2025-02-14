@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,7 @@
 #ifndef _PARTICLE_DEFS_H
 #define _PARTICLE_DEFS_H
 
+
 #define MAX_SHADOW_COUNT		8
 #define MAX_LIGHT_COUNT			20000
 #define MAX_STANDARD_COUNT		8000000
@@ -35,7 +36,7 @@
 #define PARTICLES_BATCH_X			32
 #define PARTICLES_BATCH_Y			1
 #define MAX_PARTICLE_SET_COUNT		128
-#define MAX_PARTICLE_TEXTURES_COUNT	3
+#define MAX_PARTICLE_TEXTURES_COUNT	5
 
 // Pixels with a transparency lower than this value are discarded
 #define TRANSPARENCY_CONTRIBUTION_THRESHOLD	0.0
@@ -87,12 +88,13 @@
 
 #define PARTICLE_BITFIELD_SET_INDEX_MASK 0xFFFU
 
-#define PARTICLE_BITFIELD_STATE_BITS_MASK		0x1F000U
+#define PARTICLE_BITFIELD_STATE_BITS_MASK		0xF000U
 #define PARTICLE_BITFIELD_IS_ALIVE				0x1000U
 #define PARTICLE_BITFIELD_IS_ALLOCATED			0x2000U
 #define PARTICLE_BITFIELD_IS_ACCELERATING		0x4000U
-#define PARTICLE_BITFIELD_HAS_COLLIDED			0x10000U
+#define PARTICLE_BITFIELD_REQUIRES_INIT			0x8000U
 
+#define PARTICLE_BITFIELD_HAS_COLLIDED			0x10000U
 #define PARTICLE_BITFIELD_LOOP_ANIMATION		0x20000U
 
 #define PARTICLE_BITFIELD_TYPE_BITS_MASK		0x180000U
@@ -115,10 +117,6 @@
 #define PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME		0x8000000U
 #define PARTICLE_BITFIELD_MODULATION_TYPE_SPEED			0x0000000U
 
-
-#define PARTICLE_CHANGED_BITFIELD_PARTICLE_AMOUNT		0x10000
-#define PARTICLE_CHANGED_BITFIELD_LIGHT_BITFIELD		0x20000
-
 STRUCT(ParticleData)
 {
 	DATA(uint2, VelocityAndAge, None);
@@ -126,6 +124,7 @@ STRUCT(ParticleData)
 	DATA(float, AnimationTime, None);
 	DATA(uint, Pad, None);
 };
+
 
 STRUCT(ParticleSet)
 {
@@ -179,6 +178,12 @@ STRUCT(ParticleSet)
 	DATA(float, ParticlesPerSecond, None);
 	// First 16 bits: amount of horizontal tiles, last 16 bits: amount of vertical tiles
 	DATA(uint, AnimationTiling, None);
+
+	// float4 packed into a uint2. X,Y,Z: visibility volume of the particle set, W: unused
+	DATA(uint2, VisibilityVolume, None);
+	DATA(uint, StartIdx, None);
+    DATA(uint, Pad3, None);
+	
 };
 
 STRUCT(PackedParticleTransparencyNode)
@@ -219,7 +224,7 @@ STRUCT(ParticleConstantBufferData)
 	// Camera planes
 	DATA(float2, CameraPlanes, None);
 };
-RES(CBUFFER(ParticleConstantBufferData), ParticleConstantBuffer, UPDATE_FREQ_PER_FRAME, b10, binding = 2);
+
 
 STRUCT(ParticleBufferStateData)
 {
@@ -251,5 +256,6 @@ STRUCT(ParticleSystemStats)
 	DATA(uint, AllocatedCount[PARTICLE_BUFFER_SECTION_COUNT], None);
 	DATA(uint, VisibleParticlesCount, None);
 };
+
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -163,13 +163,16 @@ typedef struct PreSkinVertexesPassDesc
     Pipeline*      pPipelinePreSkinVertexes;
     DescriptorSet* pDescriptorSetPreSkinVertexes;
     DescriptorSet* pDescriptorSetPreSkinVertexesPerFrame;
+    DescriptorSet* pDescriptorSetPreSkinVertexesPerDraw;
 
     Buffer**                ppPreSkinOutputVertexBuffers;
     const PreSkinContainer* pPreSkinContainers;
     uint32_t                mPreSkinOutputVertexBufferCount;
     uint32_t                mPreSkinContainerCount;
-
-    uint32_t mFrameIndex;
+    uint32_t                mPreSkinBatchIndex;
+    uint32_t                mFilterTrianglesBatchIndex;
+    uint32_t                mPreSkinDescIndex;
+    uint32_t                mFrameIndex;
 } PreSkinVertexesPassDesc;
 
 typedef struct PreSkinVertexesStats
@@ -195,12 +198,15 @@ typedef struct TriangleFilteringPassDesc
 
     DescriptorSet* pDescriptorSetTriangleFiltering;
     DescriptorSet* pDescriptorSetTriangleFilteringPerFrame;
+    DescriptorSet* pDescriptorSetTriangleFilteringPerBatch;
+    DescriptorSet* pDescriptorSetTriangleFilteringPerDraw;
     DescriptorSet* pDescriptorSetClearBuffers;
 
     uint64_t mGpuProfileToken;
     uint32_t mClearThreadCount;
 
     uint32_t mFrameIndex;
+    uint32_t mTriangleFilteringBatchIndex;
     uint32_t mBuffersIndex; // See comment in VisibilityBufferDesc::mNumBuffers
 
 } TriangleFilteringPassDesc;

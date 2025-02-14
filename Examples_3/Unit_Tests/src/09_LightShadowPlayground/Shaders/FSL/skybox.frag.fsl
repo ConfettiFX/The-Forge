@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,14 +22,9 @@
  * under the License.
 */
 
-RES(TexCube(float4), skyboxTex, UPDATE_FREQ_NONE, t0, binding = 0);
-RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s0, binding = 1);
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
-STRUCT(UniformCameraSkyData)
-{
-	DATA(float4x4, projView, None);
-};
-RES(CBUFFER(UniformCameraSkyData), UniformCameraSky, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(VSinput) {
 	DATA(float4, Position, POSITION);
@@ -40,10 +35,11 @@ STRUCT(VSOutput) {
 	DATA(float3, pos, POSITION);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( VSOutput Input )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = SampleTexCube(skyboxTex, skyboxSampler, Input.pos);
+    Out = SampleTexCube(gSkyboxTex, gSamplerBilinearWrap, Input.pos);
     RETURN(Out);
 }

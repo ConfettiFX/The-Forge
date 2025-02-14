@@ -1,0 +1,31 @@
+#include "../../../../../../Common_3/Graphics/FSL/defaults.h"
+
+#rootsig default.rootsig
+#end
+
+#rootsig compute.rootsig
+#end
+
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert basic.vert
+#include "basic.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#frag copyQuad.frag
+#include "copyQuad.frag.fsl"
+#end
+
+#vert copyQuad.vert
+#include "copyQuad.vert.fsl"
+#end

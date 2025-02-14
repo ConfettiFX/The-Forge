@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,30 +25,11 @@
 #ifndef _VB_RESOURCES_H
 #define _VB_RESOURCES_H
 
-#if defined(_VB_TRIANGLE_FILTERING_H)
-RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
-#elif defined(_VB_CLEAR_BUFFERS_H)
-RES(RWBuffer(uint), indirectDrawArgs, UPDATE_FREQ_NONE, u0, binding = 0);
-#endif
-
-#ifdef _VB_TRIANGLE_FILTERING_H
-RES(RWBuffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, u2, binding = 6);
-
-RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u3, binding = 8);
-
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t1, binding = 1);
-
-RES(Buffer(FilterDispatchGroupData), filterDispatchGroupDataBuffer, UPDATE_FREQ_PER_FRAME, t2, binding = 3);
-
-#endif
-
-#ifdef _VB_PRE_SKIN_VERTEXES_H
-
 STRUCT(batchData)
 {
     DATA(PreSkinBatchData, skinBatchDataBuffer[SKIN_BATCH_COUNT], None);
 };
-RES(CBUFFER(batchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0);
-#endif
+
+
 
 #endif

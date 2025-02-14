@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,6 +32,7 @@
 #include <ctime>
 #include <mach/clock.h>
 #include <mach/mach.h>
+#include <syslog.h> // for use with AUTOMATED_TESTING
 
 #include "../../Application/Interfaces/IApp.h"
 #include "../../Application/Interfaces/IFont.h"
@@ -308,7 +309,7 @@ void setupPlatformUI()
     UIComponentDesc desc = {};
     desc.mStartPosition = vec2(pApp->mSettings.mWidth * 0.6f, pApp->mSettings.mHeight * 0.90f);
     uiAddComponent("Reload Control", &desc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
+    platformSetupReloadClientUI(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -514,12 +515,6 @@ char     benchmarkOutput[1024] = { "\0" };
                 if (i + 1 < pApp->argc && isdigit(*(pApp->argv[i + 1])))
                     targetFrameCount = min(max(atoi(pApp->argv[i + 1]), 32), 512);
             }
-            else if (strcmp(pApp->argv[i], "--request-recompile-after") == 0)
-            {
-                extern uint32_t gReloadServerRequestRecompileAfter;
-                if (i + 1 < pApp->argc && isdigit(*pApp->argv[i + 1]))
-                    gReloadServerRequestRecompileAfter = atoi(pApp->argv[i + 1]);
-            }
             else if (strcmp(pApp->argv[i], "--no-auto-exit") == 0)
             {
                 targetFrameCount = UINT32_MAX;
@@ -673,11 +668,7 @@ char     benchmarkOutput[1024] = { "\0" };
     }
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
-    if (platformReloadClientShouldQuit())
-    {
-        [self shutdown];
-        exit(0);
-    }
+    platformUpdateReloadClient();
 #endif
 
 #ifdef AUTOMATED_TESTING
@@ -720,6 +711,10 @@ char     benchmarkOutput[1024] = { "\0" };
     exitFileSystem();
 
     exitMemAlloc();
+
+#ifdef AUTOMATED_TESTING
+    syslog(LOG_NOTICE, "The-Forge: Success terminating application");
+#endif
 }
 @end
 

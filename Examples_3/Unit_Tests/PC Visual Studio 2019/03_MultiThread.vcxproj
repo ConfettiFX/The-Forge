@@ -18,12 +18,17 @@
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Graph.vert.fsl" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Particle.frag.fsl" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl" />
-    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\03_MultiThread\Test_TurnOffPlots.lua" />
+    <ClInclude Include="..\src\03_MultiThread\Shaders\FSL\srt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\03_MultiThread\GPUCfg\gpu.cfg" />
+    <None Include="..\src\03_MultiThread\Scripts\Test_TurnOffPlots.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{50434FC0-BDB1-4AC6-9A49-ABB92E7CBB13}</ProjectGuid>

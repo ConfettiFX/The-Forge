@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#if FT_RAYTRACING && !defined(TARGET_SCARLETT)
+#if FT_RAYTRACING && !defined(TARGET_SCARLETT) && !defined(TARGET_XBOX)
 
 // Ray query interface
 

@@ -18,12 +18,17 @@
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\basic.vert.fsl" />
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\copyQuad.frag.fsl" />
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\copyQuad.vert.fsl" />
-    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\11_LinkedMultiGPU\Test0.lua" />
+    <None Include="..\src\11_LinkedMultiGPU\GPUCfg\gpu.cfg" />
+    <None Include="..\src\11_LinkedMultiGPU\Scripts\Test0.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\11_LinkedMultiGPU\Shaders\FSL\srt.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3C4D4A39-3CD2-4462-A655-8F18CF045F2B}</ProjectGuid>

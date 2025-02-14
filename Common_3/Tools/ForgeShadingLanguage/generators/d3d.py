@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -22,7 +22,7 @@
 
 """ HLSL shader generation """
 
-from utils import Stages, DescriptorSets, WaveopsFlags, ShaderBinary, Platforms, iter_lines
+from utils import Stages, WaveopsFlags, ShaderBinary, Platforms, iter_lines
 from utils import isArray, getArrayLen, getArrayBaseName, getMacroName, is_groupshared_decl
 from utils import getMacroFirstArg, getHeader, getShader, getMacro, platform_langs, get_whitespace
 from utils import get_fn_table, Features
@@ -45,6 +45,86 @@ def orbis(*args):
 
 def prospero(*args):
     return hlsl(Platforms.PROSPERO, *args)
+
+def resources_declaration(resources_dict):
+    text = ''
+    for key, items in resources_dict.items():
+        for resources in items:
+            for line in resources:
+                valid_case = False
+                line_tokens = re.findall(r'\w+', line)
+                tokens_len = len(line_tokens)
+                #print( f'resource = ' + line + ' token count = ' + str(tokens_len) )
+                if tokens_len == 2 and 'RWByteBuffer' in line_tokens[0]:
+                    text += 'static ' + line_tokens[0] + ' '+ line_tokens[1] + ' = gSRT.p' + key + '->' + line_tokens[1] + ';\n'
+                    valid_case = True
+                
+                if tokens_len == 3 and ( 'RWBuffer' in line_tokens[0] or 'RWCoherentBuffer' in line_tokens[0] ):
+                    text += 'static ' + line_tokens[0] + '(' + line_tokens[1] + ') ' + line_tokens[2] +' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    valid_case = True
+                if tokens_len == 3 and ( 'Tex2D' in line_tokens[0] or 'Tex3D' in line_tokens[0] ):
+                    text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    valid_case = True
+                if tokens_len == 3 and 'Depth2D' in line_tokens[0]:
+                    text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    valid_case = True                    
+                if tokens_len == 3 and ( line_tokens[0] == 'TexCube' or line_tokens[0] == 'TexCubeArray' ):
+                    text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    valid_case = True
+                if tokens_len == 4 and ( 'Tex1D' in line_tokens[0] or 'Tex2D' in line_tokens[0] or 'Tex3D' in line_tokens[0] or 'Depth2D' in line_tokens[0] ):
+                    # detect array
+                    if '[' in line and ']' in line:
+                        text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    else:
+                        text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[3] + ';\n'
+                    valid_case = True
+                if tokens_len == 2 and ( line_tokens[0] == 'SamplerState' or line_tokens[0] == 'SamplerComparisonState' ):
+                    text += 'static ' + line + ' = gSRT.p' + key + '->' + line_tokens[1] + ';\n'
+                    valid_case = True
+                if tokens_len == 2 and line_tokens[0] == 'ByteBuffer':
+                    text += 'static ' + line_tokens[0] + '  '+ line_tokens[1] + ' = gSRT.p' + key + '->' + line_tokens[1] + ';\n'
+                    valid_case = True                    
+                if tokens_len == 4 and line_tokens[1] == 'CBUFFER':
+                    text += 'static ' + line_tokens[2] + '& ' + line_tokens[3] + ' = *gSRT.p' + key + '->' + line_tokens[3] + ';\n'
+                    valid_case = True
+                if tokens_len == 4 and line_tokens[1] == 'ROOT_CONSTANT':
+                    text += 'static ' + line_tokens[1] + '(' + line_tokens[2] + ')& ' + line_tokens[3] + ' = gSRT.' + line_tokens[3] + ';\n'
+                    valid_case = True
+                if tokens_len == 4 and line_tokens[1] == 'ROOT_CBV':
+                    text += 'static ' + line_tokens[2] + '& ' + line_tokens[3] + ' = *gSRT.' + line_tokens[3] + ';\n'
+                    valid_case = True
+                if tokens_len == 3 and line_tokens[0] == 'Buffer':
+                    text += 'static ' + line_tokens[0] + '(' + line_tokens[1] + ') ' + line_tokens[2] + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
+                    valid_case = True                    
+
+                if tokens_len == 3 and line_tokens[0] == 'RWByteBuffer':
+                    text += 'static ' + line_tokens[0] + ' ' + line_tokens[1] + '  [] = gSRT.p' + key + '->' + line_tokens[1] + ';\n'
+                    valid_case = True    
+                    
+                if tokens_len == 4 and line_tokens[2] == 'TopLevelBvhDescriptor':
+                    text += 'static ' + line_tokens[0] + '::' + line_tokens[1] + '::' + line_tokens[2] + ' ' + line_tokens[3] + ' = gSRT.p' + key + '->' + line_tokens[3] + ';\n'
+                    valid_case = True
+
+
+                if valid_case == False:
+                    print('Error : resource case not found, check resources_declaration in d3d.py : ' + line + ' token count = ' + str(tokens_len))
+
+    return text
+    
+def replace_d3d_resource_register(register_subtring, new_register):
+    # find ( and find comma
+    open_parenthesis_index = register_subtring.find('(')
+    comma_index = register_subtring.find(',')
+    if ( open_parenthesis_index is not -1) and (comma_index is not -1) :
+        register_subtring = register_subtring[:open_parenthesis_index+1] + new_register + register_subtring[comma_index:]
+    return register_subtring
+    
+def replace_d3d_register_declaration(line, new_register_string):
+    register_index = line.find('register')
+    if register_index is not -1:
+        line = line[:register_index] + ' ' + new_register_string
+    return line
+    
 
 def hlsl(platform, debug, binary: ShaderBinary, dst):
 
@@ -90,6 +170,13 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
     header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'd3d.h')
     header_lines = open(header_path).readlines()
     shader_src += header_lines + ['\n']
+    
+    #todo : do we need this? if not remove.
+    # directly embed srt header in shader
+    #if not pssl:
+        #header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'd3d12_srt.h')
+        #header_lines = open(header_path).readlines()
+        #shader_src += header_lines + ['\n']
 
     nonuniformresourceindex = None
 
@@ -112,15 +199,26 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                 dependencies += [(Stages.GEOM, fn, os.path.basename(fn))]
 
     srt_loc = len(shader_src)+1
-    srt_resources = { descriptor_set.name: [] for descriptor_set in DescriptorSets }
     srt_free_resources = []
 
     parsing_struct = None
     skip_semantics = False
-
+    declarations_code = ''
+    parsing_resources = False
+    all_resources = {}
+    curr_res_freq = ''
+    resources_to_check = { 'Tex', 'SamplerState', 'SamplerComparisonState', 'struct CBUFFER', 'Buffer', 'Tex2DArray', 'RWTex2DArray', 'WTex2DArray', 'RWTex2D', 'RWTex3D', 'WTex2D', 'WTex3D', 'RTex2D', 'RTex3D', 'RWBuffer', 'RWCoherentBuffer', 'struct ROOT_CONSTANT', 'struct ROOT_CBV', 'ByteBuffer', 'Depth2D', 'RWByteBuffer', 'TopLevelBvhDescriptor' }
+    resources_to_check_end = {  'TopLevelBvhDescriptor' }
+    sets_to_check = []
+    register_index = 0
+    
     for fi, line_index, line in iter_lines(shader.lines):
 
+        skip_line = False
+        stripped_line = line.strip()
         shader_src_len = len(shader_src)
+        line_tokens = re.findall(r'\w+', line)
+        tokens_len = len(line_tokens)
 
         if pssl:
             if 'RayQueryCallBegin(' in line:
@@ -132,6 +230,27 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                     line = line.replace('RayQueryCallEnd', '')
                     awaiting_ray_query_calls += [[hit_name, line, len(shader_src)]]
                     line = '{}\n'
+                    
+            if parsing_resources:
+                if stripped_line.startswith('struct set'):
+                    if stripped_line not in sets_to_check:
+                        sets_to_check.append(stripped_line)
+                
+                if any( stripped_line.startswith(word) for word in sets_to_check):
+                    curr_res_freq = line_tokens[1][3:]
+                if any( stripped_line.startswith(word) for word in resources_to_check) or any( word in stripped_line for word in resources_to_check_end):
+                    cleaned_line = stripped_line.replace(";", "").replace("\n", "")
+                    if curr_res_freq not in all_resources:
+                        all_resources[curr_res_freq] = []
+                    all_resources[curr_res_freq].append([f"{cleaned_line}"])
+                    if tokens_len == 3:
+                        declarations_code += f"//static {cleaned_line} = gSRT.pNone->{line_tokens[2]};\n"
+            
+            if 'struct globalSRT' in line:
+                parsing_resources = True
+            if 'gSRT: S_SRT_DATA' in line:
+                line += '//Generated resources declarations :\n' + resources_declaration(all_resources) 
+                parsing_resources = False
 
             if 'RayQueryEndForEachCandidate' in line:
                     hit_name = getMacro(line)
@@ -142,7 +261,63 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                             awaiting_ray_query_calls.remove(awaiting_call)
                             print(line)
                             break
-
+        else:
+            # those macros are skipped and will not be in generated shader
+            # we use them to detect start and end of SRT and SRT sets
+            if stripped_line.startswith('BEGIN_SRT(') or stripped_line.startswith('BEGIN_SRT_NO_AB('):
+                parsing_resources = True
+                skip_line = True
+            elif stripped_line.startswith('END_SRT('):
+                parsing_resources = False
+                skip_line = True
+            elif parsing_resources:
+                if stripped_line.startswith('BEGIN_SRT_SET('):
+                    register_index = 0
+                    skip_line = True
+                    if stripped_line not in sets_to_check:
+                        sets_to_check.append(stripped_line)
+                elif stripped_line.startswith('END_SRT_SET('):
+                    skip_line = True
+                else:
+                    # skip empty lines and comments
+                    if len(stripped_line) > 0 and stripped_line.startswith('#') is False:
+                        #check if this is an array and get the count, otherwise its 1
+                        array_count = 1
+                        match = re.search(r'\[\s*(\d+)\s*U?\s*\]', stripped_line)
+                        if match:
+                            array_count = int(match.group(1))
+                        # get the substring staring with 'register' and strip it from spaces
+                        register_start_index = stripped_line.find("register")
+                        if register_start_index != -1:
+                            register_subtring = stripped_line[register_start_index:]
+                            register_subtring = register_subtring.replace(' ','')
+                            open_parenthesis_index = register_subtring.find('(')
+                            # replace it with the accumulated register index, based on type
+                            # this way the register bindings are automatically calculated 
+                            if open_parenthesis_index != -1:
+                                fix_line = False
+                                fixed_register_substring = ''
+                                resource_type_letter = register_subtring[open_parenthesis_index+1:open_parenthesis_index+2]
+                                if resource_type_letter is 's':
+                                    fixed_register_substring = replace_d3d_resource_register(register_subtring, 's'+str(register_index))
+                                    register_index += array_count
+                                    fix_line = True
+                                elif resource_type_letter is 'b':
+                                    fixed_register_substring = replace_d3d_resource_register(register_subtring, 'b'+str(register_index))
+                                    register_index += array_count
+                                    fix_line = True
+                                elif resource_type_letter is 't':
+                                    fixed_register_substring = replace_d3d_resource_register(register_subtring, 't'+str(register_index))
+                                    register_index += array_count
+                                    fix_line = True
+                                elif resource_type_letter is 'u':
+                                    fixed_register_substring = replace_d3d_resource_register(register_subtring, 'u'+str(register_index))
+                                    register_index += array_count
+                                    fix_line = True
+                                    
+                                if fix_line is True:
+                                    fixed_line = replace_d3d_register_declaration(line, fixed_register_substring)
+                                    line = fixed_line + '\n'
         if is_groupshared_decl(line):
             dtype, dname = getMacro(line)
             basename = getArrayBaseName(dname)
@@ -178,27 +353,6 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             continue
 
         resource_decl = None
-        if line.strip().startswith('RES('):
-            resource_decl = getMacro(line)
-            if 'ROOT_CONSTANT' in resource_decl[0]:
-                srt_loc = len(shader_src) + 1
-
-        if d3d11 and resource_decl:
-            dtype, name, freq, reg, _ = resource_decl
-            freq = DescriptorSets[freq].value
-            shader_src += [f'#define {name} _fslF{freq}_{name}\n']
-            if 'CBUFFER' in dtype or 'ROOT_CONSTANT' in dtype:
-                line = line[:-2] + f' {{{getMacro(dtype)} {name};}};\n'
-
-        if pssl and resource_decl:
-            resType, res_name, res_freq, _, _ = resource_decl
-            if 'CBUFFER' in resType or 'ROOT_CONSTANT' in resType:
-                line = f'struct {res_name} {{ {getMacro(resType)} m; }};\n'
-            if 'rootcbv' in res_name:
-                srt_free_resources += [pssl.declare_resource(resource_decl)]
-            else:
-                srt_resources[res_freq] += [pssl.declare_resource(resource_decl)]
-            replacements += [ pssl.declare_reference(shader, resource_decl) ]
 
         if '_MAIN(' in line and shader.returnType:
             if shader.returnType not in shader.structs:
@@ -298,21 +452,14 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
         if shader_src_len != len(shader_src):
             shader_src += ['#line {}\n'.format(line_index)]
 
-        shader_src += [line]
+        if skip_line is False:
+            shader_src += [line]
 
     if pssl:
         for awaiting_call in awaiting_ray_query_calls:
             lastCharacter = awaiting_call[1].find(f', {awaiting_call[0]}Callback', )
             shader_src[awaiting_call[2]] = awaiting_call[1][0:lastCharacter] + ");}\n"
-        if srt_loc > 0: # skip srt altogether if no declared resourced or not requested
-            srt = pssl.gen_srt(srt_resources, srt_free_resources)
-            shader_src0, shader_src1 = shader_src[:srt_loc], shader_src[srt_loc:]
-            shader_src0 += [srt]
-            shader_src1 = ''.join(shader_src1)
-            for s, d in replacements:
-                rr = re.compile(rf'\b{s}\b\s*(.)', re.DOTALL)
-                shader_src1 = rr.sub(lambda x: x.group() if x.group(1) == '{' else d+x.group(1), shader_src1)
-            shader_src = shader_src0 + [shader_src1]
+
 
     open(dst, 'w').writelines(shader_src)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,7 +39,7 @@ float texPattern(float2 position)
 
 	return c;
 }
-
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PSInput In )
 {
 	INIT_MAIN;
@@ -50,7 +50,7 @@ float4 PS_MAIN( PSInput In )
 	// Add grid-like texture pattern on top of the color
 	float texP = texPattern(In.position.xy);
 	outputColor = texP * In.color;
-	switch (SceneConstantBuffer.renderMode)
+	switch (gSceneConstantBuffer.renderMode)
 	{
 		case 1:
 		{
@@ -62,7 +62,7 @@ float4 PS_MAIN( PSInput In )
 		{
 			// Example of query intrinsics: WaveGetLaneIndex
 			// Gradiently color the wave block by their lane id. Black for the smallest lane id and White for the largest lane id.
-			outputColor = WaveGetLaneIndex() / f4(SceneConstantBuffer.laneSize);
+			outputColor = WaveGetLaneIndex() / f4(gSceneConstantBuffer.laneSize);
 			break;
 		}
 		
@@ -96,7 +96,7 @@ float4 PS_MAIN( PSInput In )
 			// Active lanes ratios (# of total activelanes / # of total lanes).
 			ballot_t activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = CountBallot(activeLaneMask);
-			float activeRatio = float(numActiveLanes) / float(SceneConstantBuffer.laneSize);
+			float activeRatio = float(numActiveLanes) / float(gSceneConstantBuffer.laneSize);
 			outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0);
 
 			break;

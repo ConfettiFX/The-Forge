@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,7 +52,11 @@
 #ifndef _VB_TRIANGLE_FILTERING_H
 #define _VB_TRIANGLE_FILTERING_H
 
+
 #include "vb_resources.h.fsl"
+
+
+
 
 GroupShared(uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
 GroupShared(uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);
@@ -65,7 +69,7 @@ GroupShared(FilterDispatchGroupData, filterDispatchGroupData);
 
 float4 LoadVertex(uint index)
 {
-	return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1);
+	return float4(asfloat(LoadByte4(gVertexPositionBuffer, index * 12)).xyz, 1);
 }
 
 STATIC const uint cullFlags = 0xFFFFFFFF;

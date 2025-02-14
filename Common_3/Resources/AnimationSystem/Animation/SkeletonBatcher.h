@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -124,11 +124,10 @@ public:
     // Instance draw all the skeletons
     void Draw(Cmd* cmd, const uint32_t frameIndex);
 
-    Shader*        mJointShader = NULL;
-    Shader*        mBoneShader = NULL;
-    Pipeline*      mJointPipeline = NULL;
-    Pipeline*      mBonePipeline = NULL;
-    RootSignature* mRootSignature = NULL;
+    Shader*   mJointShader = NULL;
+    Shader*   mBoneShader = NULL;
+    Pipeline* mJointPipeline = NULL;
+    Pipeline* mBonePipeline = NULL;
 
 private:
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG

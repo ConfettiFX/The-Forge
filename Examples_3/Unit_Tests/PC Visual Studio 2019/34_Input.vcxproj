@@ -21,10 +21,11 @@
   <ItemGroup>
     <FSLShader Include="..\src\34_Input\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\34_Input\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\34_Input\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\34_Input\Shaders\FSL\shaders.list" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\34_Input\ButtonDefs.h" />
+    <ClInclude Include="..\src\34_Input\Shaders\FSL\srt.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{356397B9-E848-4BAF-873C-7B9DB3FA36A9}</ProjectGuid>

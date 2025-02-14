@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -250,7 +250,7 @@ void setupPlatformUI(int32_t width, int32_t height)
     UIComponentDesc = {};
     UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
     uiAddComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
-    platformReloadClientAddReloadShadersWidgets(pReloadShaderComponent);
+    platformSetupReloadClientUI(pReloadShaderComponent);
 #endif
 
     // MICROPROFILER UI
@@ -442,12 +442,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
             if (i + 1 < argc && isdigit(*argv[i + 1]))
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
         }
-        else if (strcmp(argv[i], "--request-recompile-after") == 0)
-        {
-            extern uint32_t gReloadServerRequestRecompileAfter;
-            if (i + 1 < argc && isdigit(*argv[i + 1]))
-                gReloadServerRequestRecompileAfter = atoi(argv[i + 1]);
-        }
         else if (strcmp(argv[i], "--no-auto-exit") == 0)
         {
             targetFrameCount = UINT32_MAX;
@@ -551,8 +545,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
         }
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
-        if (platformReloadClientShouldQuit())
-            gQuit = true;
+        platformUpdateReloadClient();
 #endif
 
 #ifdef AUTOMATED_TESTING

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,6 +22,13 @@
  * under the License.
 */
 
+#include "fsl_ext.h"
+
+
+#include "fsl_ext.h"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "Shared.fsl.h"
+#include "srt.h"
 
 STRUCT(PsIn)
 {
@@ -34,21 +41,15 @@ STRUCT(FSOutput)
 	DATA(float4, FragmentOutput, SV_Target);
 };
 
-RES(Tex2D(float4), uTex0, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
-#if DENOISER_ENABLED
-RES(Tex2D(float4), albedoTex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
-#endif
-
-RES(SamplerState, uSampler0, UPDATE_FREQ_PER_FRAME, s1, binding = 1);
-
+ROOT_SIGNATURE(DefaultRootSignature)
 FSOutput PS_MAIN( PsIn In )
 {
     INIT_MAIN;
     FSOutput Out;
-	Out.FragmentOutput = SampleTex2D(uTex0, uSampler0, In.texCoord);
+	Out.FragmentOutput = SampleTex2D(gDisplayTexture, gSamplerPointClamp, In.texCoord);
 	//Out.FragmentOutput.a = 1.f;
 #if DENOISER_ENABLED
-	Out.FragmentOutput.rgb *= SampleTex2D(albedoTex, uSampler0, In.texCoord).rgb;
+	Out.FragmentOutput.rgb *= SampleTex2D(gAlbedoTex, gSamplerPointClamp, In.texCoord).rgb;
 #endif
     RETURN(Out);
 }

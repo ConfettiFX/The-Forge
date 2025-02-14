@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -178,6 +178,11 @@ extern "C"
     /// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
     /// `output` buffer size required to be >= FS_MAX_PATH
     FORGE_TOOL_API void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
+
+    /// Get `path`'s parent path, excluding the end seperator.
+    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// outParentDir, outBaseName, outExt is NULL if not found.
+    FORGE_TOOL_API void fsSplitPath(const char* path, char* output, char** outParentDir, char** outBaseName, char** outExt);
 
     /// Get `path`'s parent path, excluding the end seperator.
     /// `output` buffer size required to be >= FS_MAX_PATH

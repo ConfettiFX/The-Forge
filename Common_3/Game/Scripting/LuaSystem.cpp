@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,6 +39,7 @@
 #ifdef AUTOMATED_TESTING
 #define AUTOMATEDSCRIPTING_WAIT_INTERVAL 5
 #endif
+#include "../../Application/Interfaces/IScreenshot.h"
 
 typedef struct ScriptInfo
 {
@@ -588,8 +589,6 @@ void registerDynamicTextWidgetLua(const UIWidget* pWidget)
 
 #endif
 
-#endif
-
 static void RegisterDefaultLuaFunctions(LuaManager* pManager)
 {
     pManager->SetFunction("LOGINFO",
@@ -623,7 +622,21 @@ static void RegisterDefaultLuaFunctions(LuaManager* pManager)
 #endif
                               return 1;
                           });
+#ifdef AUTOMATED_TESTING
+    pManager->SetFunction("RequestScreenshotCapture",
+                          [](ILuaStateWrap* state) -> int
+                          {
+                              const char* name;
+                              state->GetStringArg(1, &name);
+                              if (!name)
+                                  name = "";
+                              requestScreenshotCapture(name);
+                              return 0;
+                          });
+#endif
 }
+
+#endif
 
 ////////////////////////////////
 // PUBLIC INTERFACE FUNCTIONS //
@@ -742,6 +755,8 @@ void platformUpdateLuaScriptingSystem(bool appDrawn)
             }
         }
     }
+#else
+    (void)appDrawn;
 #endif
 }
 
@@ -767,6 +782,7 @@ void luaAssignCustomManager(LuaManager* pNewManager)
     pLuaManager = pNewManager;
     sLocalLuaManager = false;
 #else
+    (void)pNewManager;
     LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
     LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
@@ -789,6 +805,8 @@ void luaDefineScripts(LuaScriptDesc* pDescs, uint32_t count)
         ++sTestScriptCount;
     }
 #else
+    (void)pDescs;
+    (void)count;
     LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
     LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
@@ -808,6 +826,7 @@ void luaQueueScriptToRun(LuaScriptDesc* pDesc)
 
     ++sRuntimeScriptCount;
 #else
+    (void)pDesc;
     LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
     LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
@@ -815,8 +834,7 @@ void luaQueueScriptToRun(LuaScriptDesc* pDesc)
 
 void luaRegisterWidget(const void* pWidgetHandle)
 {
-#ifdef ENABLE_FORGE_UI
-#ifdef ENABLE_FORGE_SCRIPTING
+#if defined(ENABLE_FORGE_UI) && defined(ENABLE_FORGE_SCRIPTING)
     ASSERT(pWidgetHandle);
     const UIWidget* pWidget = (const UIWidget*)pWidgetHandle;
 
@@ -1031,8 +1049,8 @@ void luaRegisterWidget(const void* pWidgetHandle)
     }
     }
 #else
+    (void)pWidgetHandle;
     LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
     LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
-#endif
 #endif
 }

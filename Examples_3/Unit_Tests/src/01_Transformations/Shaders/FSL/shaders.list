@@ -1,0 +1,23 @@
+#include "../../../../../../Common_3/Graphics/FSL/defaults.h"
+
+#rootsig default.rootsig
+#end
+
+#rootsig compute.rootsig
+#end
+
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW basic.vert
+#include "basic.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end

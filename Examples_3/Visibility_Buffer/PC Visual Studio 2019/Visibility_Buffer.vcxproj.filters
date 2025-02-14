@@ -1,97 +1,136 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Shaders\FSL">
-      <UniqueIdentifier>{b43b33bc-c6de-4cff-ba8b-3d2170161340}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{f38a339c-2535-4963-b863-91cad5d608fb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{5b86c801-b383-4a3b-85ae-bb1f4a2152b7}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{d1533330-8d68-4f9f-a524-1988e969a3f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{e7f49a6f-411c-4ecd-8766-84dc6bd7cf27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{96ae924b-3d66-4c63-aa23-5dce96ea9b32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{1d1b1ff4-0456-4fbf-af3b-35e47f22d086}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Visibility_Buffer\src\SanMiguel.cpp" />
-    <ClCompile Include="..\src\Visibility_Buffer.cpp" />
-    <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
-    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+    <ClCompile Include="..\..\Visibility_Buffer\src\SanMiguel.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Visibility_Buffer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\cluster_lights.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\godray_blur.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\persistent_set.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\perframe_set.h">
+      <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\triangle_filtering.srt.h">
+      <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
     </ClInclude>
     <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl">
-      <Filter>Shaders\FSL</Filter>
+    <FSLShader Include="..\src\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\vb_resources_util.h.fsl">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
+    <None Include="..\src\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
+    </None>
+    <None Include="..\src\Scripts\Test_Cluster_Culling.lua">
+      <Filter>Scripts</Filter>
+    </None>
   </ItemGroup>
 </Project>

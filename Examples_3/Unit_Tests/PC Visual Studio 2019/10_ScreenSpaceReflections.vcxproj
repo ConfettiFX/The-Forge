@@ -15,7 +15,6 @@
     <ClCompile Include="..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\batchCompaction.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\clearVisibilityBuffers.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl" />
@@ -28,7 +27,7 @@
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Projection.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.frag.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.vert.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Shader_Defs.h.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl" />
@@ -42,6 +41,7 @@
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveTemporal.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\triangleFiltering.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\vb_resources.h.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\vb_resources_util.h.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPass.frag.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPass.vert.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPassAlpha.frag.fsl" />
@@ -51,13 +51,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\copydepth.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\persistent_set.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\triangle_filtering.srt.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_DeviceReset.lua" />
-    <None Include="..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderReflections.lua" />
-    <None Include="..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderScene.lua" />
-    <None Include="..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderSceneExReflections.lua" />
-    <None Include="..\..\..\Art\Scripts\10_ScreenSpaceReflections\Test_RenderSceneReflections.lua" />
+    <None Include="..\src\10_ScreenSpaceReflections\GPUCfg\gpu.cfg" />
+    <None Include="..\src\10_ScreenSpaceReflections\Scripts\Test_DeviceReset.lua" />
+    <None Include="..\src\10_ScreenSpaceReflections\Scripts\Test_RenderReflections.lua" />
+    <None Include="..\src\10_ScreenSpaceReflections\Scripts\Test_RenderScene.lua" />
+    <None Include="..\src\10_ScreenSpaceReflections\Scripts\Test_RenderSceneExReflections.lua" />
+    <None Include="..\src\10_ScreenSpaceReflections\Scripts\Test_RenderSceneReflections.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>

@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,7 +52,7 @@ STRUCT(PSOutput)
 {
 	DATA(float, depth, SV_Depth);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 PSOutput PS_MAIN( VSOutputFullscreen In )
 {
 	INIT_MAIN;
@@ -60,14 +60,14 @@ PSOutput PS_MAIN( VSOutputFullscreen In )
 	// TODO: samplerless texture fetch
 #if TEXTURE_ATOMIC_SUPPORTED
 #if VR_MULTIVIEW_ENABLED
-	Out.depth = asfloat( LoadTex3D(DepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2 + VR_VIEW_ID(In.ViewID) * 3), 0).r );
+	Out.depth = asfloat( LoadTex3D(gDepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2 + VR_VIEW_ID(In.ViewID) * 3), 0).r );
 #else
-	Out.depth = asfloat( LoadTex3D(DepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2), 0).r );
+	Out.depth = asfloat( LoadTex3D(gDepthsTexture, NO_SAMPLER, int3(In.Position.x, In.Position.y, 2), 0).r );
 #endif
 #else
 	uint2 p = uint2(In.Position.xy);
-    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
-	Out.depth = asfloat(DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
+    uint2 viewport = uint2(gHairGlobal.Viewport.zw);
+	Out.depth = asfloat(gDepthsBuffer[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
 #endif
 	RETURN(Out);
 }

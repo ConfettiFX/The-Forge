@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,33 +25,16 @@
 #ifndef _VB_PRE_SKIN_VERTEXES_H
 #define _VB_PRE_SKIN_VERTEXES_H
 
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
+
+
 #include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-RES(Buffer(float4x4), jointMatrixes, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
+
 
 STRUCT(outputBufferOffsetsData)
 {
     DATA(PreSkinBufferOffsets, bufferOffsets, None);
 };
-RES(CBUFFER(outputBufferOffsetsData), outputBufferOffsets, UPDATE_FREQ_PER_FRAME, b0, binding = 4);
-
-#ifdef PRE_SKIN_ASYNC_COMPUTE
-#define ATTRIBUTE_BUFFER_UPDATE_FREQ UPDATE_FREQ_PER_FRAME
-#else
-#define ATTRIBUTE_BUFFER_UPDATE_FREQ UPDATE_FREQ_NONE
-#endif
-
-RES(RWByteBuffer, vertexPositionBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u1, binding = 1);
-
-#ifdef PRE_SKIN_NORMALS
-RES(RWByteBuffer, vertexNormalBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u2, binding = 2);
-#endif // PRE_SKIN_NORMALS
-
-#ifdef PRE_SKIN_TANGENTS
-RES(RWByteBuffer, vertexTangentBuffer, ATTRIBUTE_BUFFER_UPDATE_FREQ, u3, binding = 3);
-#endif // PRE_SKIN_TANGENTS
 
 struct PreSkinIn
 {
@@ -66,59 +49,7 @@ struct PreSkinIn
 #endif
 };
 
-void PreSkinVertex(const uint groupIdX_batchIndex, const uint threadIdX_vertexIndex, PreSkinIn In, uint4 jointIndices, float4 jointWeights)
-{
-    float4x4 boneTransform = jointMatrixes[jointIndices[0]] * jointWeights[0];
-    boneTransform += jointMatrixes[jointIndices[1]] * jointWeights[1];
-    boneTransform += jointMatrixes[jointIndices[2]] * jointWeights[2];
-    boneTransform += jointMatrixes[jointIndices[3]] * jointWeights[3];
 
-	uint vertexOutputOffset = threadIdX_vertexIndex + batchData_rootcbv.skinBatchDataBuffer[groupIdX_batchIndex].outputVertexOffset;
 
-	// Apply global offset, this way PreSkinBatchData::outputVertexOffset can be relative to 0 and this global offset
-    // gives us the position in the final buffer where to write the data
-    vertexOutputOffset += outputBufferOffsets.bufferOffsets.vertexOffset;
-
-    uint3 uintPos = asuint(mul(boneTransform, float4(In.position, 1.0f)).xyz);
-    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 0) << 2, uintPos[0]);
-    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 1) << 2, uintPos[1]);
-    StoreByte(vertexPositionBuffer, (vertexOutputOffset * 3 + 2) << 2, uintPos[2]);
-
-#ifdef PRE_SKIN_NORMALS
-    float3 normal = decodeDir(unpackUnorm2x16(In.normal));
-    normal = mul(adjoint_float4x4(boneTransform), normal);
-    uint packedNormal = packUnorm2x16(encodeDir(normal));
-    StoreByte(vertexNormalBuffer, vertexOutputOffset << 2, packedNormal);
-#endif
-
-#ifdef PRE_SKIN_TANGENTS
-    float3 tangent = decodeDir(unpackUnorm2x16(In.tangent));
-    tangent = mul(boneTransform, float4(tangent, 0.0f)).xyz;
-    uint packedTangent = packUnorm2x16(encodeDir(tangent));
-    StoreByte(vertexTangentBuffer, vertexOutputOffset << 2, packedTangent);
-#endif
-}
-
-float3 LoadVertexPositionFloat3(uint vtxIndex)
-{
-    return asfloat(LoadByte4(vertexPositionBuffer, (vtxIndex * 3) << 2)).xyz;
-}
-
-#define LoadJointIndexes4x16(buffer, jointVtxIndex) unpackUint4x16FromUint2x32(uint2(LoadByte4(buffer, (jointVtxIndex * 2) << 2).xy))
-#define LoadJointWeightsFloat4(buffer, jointVtxIndex) asfloat(LoadByte4(buffer, jointVtxIndex * 16));
-
-#ifdef PRE_SKIN_NORMALS
-uint LoadVertexNormalUint(uint vtxIndex)
-{
-    return LoadByte(vertexNormalBuffer, vtxIndex << 2);
-}
-#endif
-
-#ifdef PRE_SKIN_TANGENTS
-uint LoadVertexTangentUint(uint vtxIndex)
-{
-    return LoadByte(vertexTangentBuffer, vtxIndex << 2);
-}
-#endif
 
 #endif // _VB_PRE_SKIN_VERTEXES_H

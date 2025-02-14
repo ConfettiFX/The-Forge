@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,6 +46,10 @@
 
 // Math
 #include "../../../../Common_3/Utilities/Math/MathTypes.h"
+
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
 
 // Code Reload
 #include "IGamePlugin.h"
@@ -141,6 +145,8 @@ ECS_COMPONENT_DECLARE(PositionComponent);
 ECS_COMPONENT_DECLARE(SpriteComponent);
 ECS_COMPONENT_DECLARE(MoveComponent);
 
+const ResourceDirectory RD_PLUGIN = RD_MIDDLEWARE_0;
+
 // #NOTE: Two sets of resources (one in flight and one being used on CPU)
 const uint32_t gDataBufferCount = 2;
 
@@ -160,10 +166,8 @@ Buffer*   pSpriteIndexBuffer = NULL;
 Buffer*   pSpriteVertexBuffer = NULL;
 Pipeline* pSpritePipeline = NULL;
 
-RootSignature* pRootSignature = NULL;
 DescriptorSet* pDescriptorSetTexture = NULL;
 DescriptorSet* pDescriptorSetUniforms = NULL;
-Sampler*       pLinearClampSampler = NULL;
 
 Texture* pSpriteTexture = NULL;
 
@@ -201,7 +205,7 @@ UIComponent* pGUIWindow = nullptr;
 
 uint32_t gFontID = 0;
 
-const char* gTestScripts[] = { "19_CodeHotReload/Test_HotReload.lua" };
+const char* gTestScripts[] = { "Test_HotReload.lua" };
 uint32_t    gCurrentScriptIndex = 0;
 void        RunScript(void* pUserData)
 {
@@ -219,8 +223,8 @@ ECS_COMPONENT_DECLARE(AvoidComponent);
 
 static void MoveSystem(ecs_iter_t* it)
 {
-    PositionComponent* positions = ecs_term(it, PositionComponent, 1);
-    MoveComponent*     moves = ecs_term(it, MoveComponent, 2);
+    PositionComponent* positions = ecs_field(it, PositionComponent, 0);
+    MoveComponent*     moves = ecs_field(it, MoveComponent, 1);
 
     const WorldBoundsComponent* bounds = ecs_singleton_get(it->world, WorldBoundsComponent);
 
@@ -258,7 +262,7 @@ static void MoveSystem(ecs_iter_t* it)
 
 static void SpriteSystem(ecs_iter_t* it)
 {
-    SpriteComponent* sprites = ecs_term(it, SpriteComponent, 1);
+    SpriteComponent* sprites = ecs_field(it, SpriteComponent, 0);
 
     const AppDataComponent* appData = ecs_singleton_get(it->world, AppDataComponent);
 
@@ -270,9 +274,9 @@ static void SpriteSystem(ecs_iter_t* it)
 
 static void AvoidanceSystem(ecs_iter_t* it)
 {
-    PositionComponent* positions = ecs_term(it, PositionComponent, 1);
-    MoveComponent*     moves = ecs_term(it, MoveComponent, 2);
-    SpriteComponent*   sprites = ecs_term(it, SpriteComponent, 3);
+    PositionComponent* positions = ecs_field(it, PositionComponent, 0);
+    MoveComponent*     moves = ecs_field(it, MoveComponent, 1);
+    SpriteComponent*   sprites = ecs_field(it, SpriteComponent, 2);
 
     for (int i = 0; i < it->count; i++)
     {
@@ -283,9 +287,9 @@ static void AvoidanceSystem(ecs_iter_t* it)
         ecs_iter_t avoidIter = ecs_query_iter(it->world, gECSAvoidQuery);
         while (ecs_query_next(&avoidIter))
         {
-            PositionComponent* avoidPositions = ecs_term(&avoidIter, PositionComponent, 1);
-            SpriteComponent*   avoidSprites = ecs_term(&avoidIter, SpriteComponent, 3);
-            AvoidComponent*    avoidDistances = ecs_term(&avoidIter, AvoidComponent, 4);
+            PositionComponent* avoidPositions = ecs_field(&avoidIter, PositionComponent, 0);
+            SpriteComponent*   avoidSprites = ecs_field(&avoidIter, SpriteComponent, 2);
+            AvoidComponent*    avoidDistances = ecs_field(&avoidIter, AvoidComponent, 3);
 
             for (int j = 0; j < avoidIter.count; j++)
             {
@@ -319,8 +323,8 @@ static void AvoidanceSystem(ecs_iter_t* it)
 
 static void FillRenderData(ecs_iter_t* it, uint32_t baseIndex)
 {
-    PositionComponent* positions = ecs_term(it, PositionComponent, 1);
-    SpriteComponent*   sprites = ecs_term(it, SpriteComponent, 2);
+    PositionComponent* positions = ecs_field(it, PositionComponent, 0);
+    SpriteComponent*   sprites = ecs_field(it, SpriteComponent, 1);
 
     const AppDataComponent* appData = ecs_singleton_get(it->world, AppDataComponent);
     const Vector3           camPos(appData->cameraPos.getX(), appData->cameraPos.getY(), 0.f);
@@ -365,7 +369,7 @@ struct CreationData
 static void createEntity(ecs_world_t* world, CreationData* pData, uintptr_t i)
 {
     UNREF_PARAM(i);
-    ecs_entity_t entityId = ecs_new_id(world);
+    ecs_entity_t entityId = ecs_new(world);
 
     float x = randomFloat(pData->bounds->xMin, pData->bounds->xMax);
     float y = randomFloat(pData->bounds->yMin, pData->bounds->yMax);
@@ -407,6 +411,9 @@ class CodeHotReload: public IApp
 public:
     bool Init()
     {
+        // Resource Directory's path needs to be empty
+        fsSetPathForResourceDir(pSystemFileIO, RD_PLUGIN, "");
+
         RendererDesc settings;
         memset(&settings, 0, sizeof(settings));
         initGPUConfiguration(settings.pExtendedSettings);
@@ -435,6 +442,10 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
         // Load fonts
         FontDesc font = {};
         font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -457,20 +468,12 @@ public:
 
         gGpuProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-        SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                    FILTER_LINEAR,
-                                    MIPMAP_MODE_LINEAR,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE };
-        addSampler(pRenderer, &samplerDesc, &pLinearClampSampler);
-
         gSpriteData = (SpriteData*)tf_malloc(MaxSpriteCount * sizeof(SpriteData));
 
         // Instance buffer
         BufferLoadDesc spriteVbDesc = {};
         spriteVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-        spriteVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        spriteVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         spriteVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
         spriteVbDesc.mDesc.mStartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         spriteVbDesc.mDesc.mFirstElement = 0;
@@ -533,7 +536,7 @@ public:
         // whether we're distributing (should be in bundle)
         // or development (should be external to support hot reloading)
         char gamePluginPath[FS_MAX_PATH] = "./" GAME_PLUGIN_ADD_EXTENSION(GAME_PLUGIN_NAME);
-        if (!cr_plugin_open(gCrGamePlugin, gamePluginPath))
+        if (!cr_plugin_open(gCrGamePlugin, RD_PLUGIN, gamePluginPath))
         {
             ASSERT(false);
             return false;
@@ -557,8 +560,8 @@ public:
         ECS_COMPONENT_DEFINE(gECSWorld, SpriteComponent);
         ECS_COMPONENT_DEFINE(gECSWorld, MoveComponent);
         ECS_COMPONENT_DEFINE(gECSWorld, PositionComponent);
-        ECS_COMPONENT_DEFINE(gECSWorld, WorldBoundsComponent);
         ECS_COMPONENT_DEFINE(gECSWorld, AvoidComponent);
+        ECS_COMPONENT_DEFINE(gECSWorld, WorldBoundsComponent);
 
         ECS_SYSTEM(gECSWorld, MoveSystem, EcsOnUpdate, PositionComponent, MoveComponent);
         ECS_SYSTEM(gECSWorld, AvoidanceSystem, EcsOnUpdate, PositionComponent, MoveComponent, SpriteComponent, !AvoidComponent);
@@ -567,19 +570,19 @@ public:
         ECS_SYSTEM(gECSWorld, FillRenderDataAvoidersSystem, EcsPostUpdate, PositionComponent, SpriteComponent, AvoidComponent);
 
         ecs_query_desc_t queryDesc = {};
-        queryDesc.filter.terms[0].id = { ecs_id(PositionComponent) };
-        queryDesc.filter.terms[1].id = { ecs_id(MoveComponent) };
-        queryDesc.filter.terms[2].id = { ecs_id(SpriteComponent) };
-        queryDesc.filter.terms[3].id = { ecs_id(AvoidComponent) };
-        queryDesc.filter.terms[3].oper = EcsNot;
+        queryDesc.terms[0].id = { ecs_id(PositionComponent) };
+        queryDesc.terms[1].id = { ecs_id(MoveComponent) };
+        queryDesc.terms[2].id = { ecs_id(SpriteComponent) };
+        queryDesc.terms[3].id = { ecs_id(AvoidComponent) };
+        queryDesc.terms[3].oper = EcsNot;
 
         gECSSpriteQuery = ecs_query_init(gECSWorld, &queryDesc);
 
-        queryDesc.filter.terms[3].oper = EcsAnd;
+        queryDesc.terms[3].oper = EcsAnd;
         gECSAvoidQuery = ecs_query_init(gECSWorld, &queryDesc);
 
         {
-            AppDataComponent* appData = ecs_singleton_get_mut(gECSWorld, AppDataComponent);
+            AppDataComponent* appData = ecs_singleton_ensure(gECSWorld, AppDataComponent);
             ASSERT(appData);
             memset((void*)appData, 0, sizeof(AppDataComponent));
             appData->aspectRatio = mSettings.mWidth / (float)mSettings.mHeight;
@@ -591,7 +594,7 @@ public:
             ecs_singleton_modified(gECSWorld, AppDataComponent);
         }
 
-        WorldBoundsComponent* bounds = ecs_singleton_get_mut(gECSWorld, WorldBoundsComponent);
+        WorldBoundsComponent* bounds = ecs_singleton_ensure(gECSWorld, WorldBoundsComponent);
         ASSERT(bounds);
         gGamePlugin.mGame->UpdateWorldBounds(bounds, 0.f);
         ecs_singleton_modified(gECSWorld, WorldBoundsComponent);
@@ -615,7 +618,7 @@ public:
         extern bool gVirtualJoystickEnable;
         gVirtualJoystickEnable = false;
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         gFrameIndex = 0;
         waitForAllResourceLoads();
 
@@ -624,7 +627,7 @@ public:
 
     void Exit()
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
 #if FORGE_CODE_HOT_RELOAD
         cr_plugin_close(gCrGamePlugin);
 #else
@@ -651,15 +654,13 @@ public:
         removeResource(pSpriteVertexBuffer);
         removeResource(pSpriteIndexBuffer);
 
-        removeSampler(pRenderer, pLinearClampSampler);
-
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
         exitGpuCmdRing(pRenderer, &gGraphicsCmdRing);
 
         tf_free(gSpriteData);
 
         gSpriteData = NULL;
-
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
@@ -672,7 +673,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -838,7 +838,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -877,10 +876,11 @@ public:
         }
 
         gGamePlugin.mGame->UpdateCamera(&gGamePlugin, deltaTime);
-        gGamePlugin.mAppData->cameraMovementDir = {};
+        // Needs explicit assignment otherwise when gdb is attached, it sets movement dir to {-nan, 0};
+        gGamePlugin.mAppData->cameraMovementDir = { 0, 0 };
         gGamePlugin.mAppData->cameraZoom = {};
 
-        WorldBoundsComponent* bounds = ecs_singleton_get_mut(gECSWorld, WorldBoundsComponent);
+        WorldBoundsComponent* bounds = ecs_singleton_ensure(gECSWorld, WorldBoundsComponent);
         gGamePlugin.mGame->UpdateWorldBounds(bounds, deltaTime);
         ecs_singleton_modified(gECSWorld, WorldBoundsComponent);
 
@@ -1029,9 +1029,9 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-        setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
     }
 
@@ -1040,18 +1040,6 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSetTexture);
         removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
     }
-
-    void addRootSignatures()
-    {
-        const char*       pStaticSamplers[] = { "uSampler0" };
-        RootSignatureDesc rootDesc = { &pSpriteShader, 1 };
-        rootDesc.mStaticSamplerCount = 1;
-        rootDesc.ppStaticSamplerNames = pStaticSamplers;
-        rootDesc.ppStaticSamplers = &pLinearClampSampler;
-        addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-    }
-
-    void removeRootSignatures() { removeRootSignature(pRenderer, pRootSignature); }
 
     void addShaders()
     {
@@ -1094,6 +1082,7 @@ public:
 
         // VertexLayout for sprite drawing.
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -1103,7 +1092,6 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pSpriteShader;
         pipelineSettings.pRasterizerState = &rasterizerStateDesc;
         pipelineSettings.pBlendState = &blendStateDesc;
@@ -1116,12 +1104,12 @@ public:
     void prepareDescriptorSets()
     {
         DescriptorData params[1] = {};
-        params[0].pName = "uTexture0";
+        params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
         params[0].ppTextures = &pSpriteTexture;
         updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            params[0].pName = "instanceBuffer";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gInstanceBuffer);
             params[0].ppBuffers = &pSpriteVertexBuffers[i];
             updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
         }

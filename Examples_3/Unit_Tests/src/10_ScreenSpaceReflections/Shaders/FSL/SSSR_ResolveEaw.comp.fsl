@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,14 +46,8 @@ THE SOFTWARE.
 
 #ifndef FFX_SSSR_EAW_RESOLVE
 #define FFX_SSSR_EAW_RESOLVE
-
-RES(Tex2D(float4), g_normal_roughness, UPDATE_FREQ_NONE, t0, binding = 5);
-RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t2, binding = 6);
-
-RES(RWTex2D(float4), g_temporally_denoised_reflections, UPDATE_FREQ_NONE, u0, binding = 1);
-RES(RWTex2D(float4), g_denoised_reflections, UPDATE_FREQ_NONE, u1, binding = 3);
-RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u2, binding = 4);
-
+#include "vb_resources.h.fsl"
+#include "SSSR.srt.h"
 #include "SSSR_Common.h.fsl"
 
 GroupShared(uint, g_shared_0[12][12]);
@@ -79,12 +73,12 @@ void StoreInGroupSharedMemory(int2 idx, min16float3 radiance, min16float roughne
 
 min16float3 LoadRadiance(int2 idx)
 {
-    return min16float3(LoadRWTex2D(g_temporally_denoised_reflections, idx).xyz);
+    return min16float3(LoadRWTex2D(gTemporallyDenoisedReflections, idx).xyz);
 }
 
 min16float LoadRoughnessValue(int2 idx)
 {
-    return min16float(FfxSssrUnpackRoughness(LoadTex2D(g_normal_roughness, NO_SAMPLER, idx, 0)));
+    return min16float(FfxSssrUnpackRoughness(LoadTex2D(gNormalRoughness, NO_SAMPLER, idx, 0)));
 }
 
 min16float4 ResolveScreenspaceReflections(int2 gtid, min16float center_roughness)
@@ -200,14 +194,15 @@ void Resolve(int2 did, int2 gtid)
         return;
     }
 
-    Write2D(g_denoised_reflections, did.xy, float4(ResolveScreenspaceReflections(gtid, center_roughness)));
+    Write2D(gDenoisedReflections, did.xy, float4(ResolveScreenspaceReflections(gtid, center_roughness)));
 }
 
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(8,  8,  1)
 void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id, SV_GroupID(uint3) group_id )
 {
 	INIT_MAIN;
-    uint packed_base_coords = g_tile_list[group_id.x];
+    uint packed_base_coords = gTileList[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
     uint2 coords = base_coords + group_thread_id.xy;
     Resolve(int2(coords.xy), int2(group_thread_id.xy));

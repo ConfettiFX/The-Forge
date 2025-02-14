@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -42,9 +42,9 @@ float cap_shadow(float3 ro, float3 rd, float k, float intensity)
 {
     float shadow = 1.0;
 
-    for (uint i = 0; i < uniformBlock.capsules_count; i++)
+    for (uint i = 0; i < gUniformBlock.capsules_count; i++)
     {
-        capsule _cap = uniformBlock.capsules[i];
+        capsule _cap = gUniformBlock.capsules[i];
 
         float r = _cap.b.w;
 
@@ -77,7 +77,7 @@ float cap_shadow(float3 ro, float3 rd, float k, float intensity)
     shadow = saturate(shadow * (1 - intensity) + intensity);
     return shadow;
 }
-
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN(VSOutput In)
 {
     INIT_MAIN;

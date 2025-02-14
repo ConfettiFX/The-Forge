@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -93,13 +93,18 @@ void updateVrApi()
 
     if (pQuest)
     {
+#ifdef AUTOMATED_TESTING
+        // For automated testing we use a static unchanging matrix to get consistent screenshots,
+        // else even the tiniest movements of the device result in different screenshots
+        pQuest->mViewMatrix = mat4::identity();
+#else
         vec3 headPosition = f3Tov3(*(float3*)&pQuest->mHeadsetTracking.HeadPose.Pose.Position);
         Quat headOrientation = *(Quat*)&pQuest->mHeadsetTracking.HeadPose.Pose.Orientation;
         // We have to invert the roll.
         // Below we convert the projection matrix the left handed which then inverts it again.
         headOrientation.setZ(-headOrientation.getZ());
-
         pQuest->mViewMatrix = mat4::translation(headPosition) * mat4::rotation(headOrientation);
+#endif
     }
 }
 

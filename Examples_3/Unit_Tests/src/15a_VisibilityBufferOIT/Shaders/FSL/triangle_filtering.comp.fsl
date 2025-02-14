@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,9 +50,15 @@
 // Mesh Instances: reuse the same mesh with different world transforms
 
 #include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "triangle_filtering.srt.h"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/triangle_filtering.h.fsl"
+
 #include "triangle_filtering_impl.h.fsl"
 
+
+
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
 void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
 {

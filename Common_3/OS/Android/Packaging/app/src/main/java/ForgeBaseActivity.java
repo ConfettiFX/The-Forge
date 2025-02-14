@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Timer;
+import java.util.TimerTask;
 import androidx.annotation.Keep;
 
 public class ForgeBaseActivity extends NativeActivity
@@ -27,6 +29,11 @@ public class ForgeBaseActivity extends NativeActivity
     private Activity activity;
 
     public static final String LOGTAG = "TheForgeJava";
+    private static final int   LOG_LEVEL_RAW = 1;
+    private static final int   LOG_LEVEL_DEBUG = 2;
+    private static final int   LOG_LEVEL_INFO = 4;
+    private static final int   LOG_LEVEL_WARNING = 8;
+    private static final int   LOG_LEVEL_ERROR = 16;
 
     private HashMap<Integer, Integer> mMobileThermalMap;
     private static final int          MOBILE_THERMAL_NOT_SUPPORTED = -2;
@@ -87,7 +94,7 @@ public class ForgeBaseActivity extends NativeActivity
         }
         catch (Exception e)
         {
-            Log.i(LOGTAG, "Failed to populate mMobileThermalMap: " + e.getMessage());
+            nativeLog(LOG_LEVEL_ERROR, "Failed to populate mMobileThermalMap: " + e.getMessage());
         }
 
         try
@@ -109,7 +116,7 @@ public class ForgeBaseActivity extends NativeActivity
         }
         catch (Exception e)
         {
-            Log.i(LOGTAG, "Failed to setup thermal status listener: " + e.getMessage());
+            nativeLog(LOG_LEVEL_ERROR, "Failed to setup thermal status listener: " + e.getMessage());
         }
 
         DisplayManager displayManager = (DisplayManager)getSystemService(DISPLAY_SERVICE);
@@ -118,11 +125,11 @@ public class ForgeBaseActivity extends NativeActivity
             displayManager.registerDisplayListener(
                 new DisplayManager.DisplayListener()
                 {
-                    @Override public void onDisplayAdded(int displayId) { Log.i(LOGTAG, "onDisplayAdded"); }
+                    @Override public void onDisplayAdded(int displayId) { nativeLog(LOG_LEVEL_INFO, "onDisplayAdded"); }
 
-                    @Override public void onDisplayChanged(int displayId) { Log.i(LOGTAG, "onDisplayChanged"); }
+                    @Override public void onDisplayChanged(int displayId) { nativeLog(LOG_LEVEL_INFO, "onDisplayChanged"); }
 
-                    @Override public void onDisplayRemoved(int displayId) { Log.i(LOGTAG, "onDisplayRemoved"); }
+                    @Override public void onDisplayRemoved(int displayId) { nativeLog(LOG_LEVEL_INFO, "onDisplayRemoved"); }
                 },
                 null);
         }
@@ -169,23 +176,57 @@ public class ForgeBaseActivity extends NativeActivity
                            });
     }
 
+    @Keep public void showAutoDismissAlert(final String title, final String message)
+    {
+        this.runOnUiThread(new Runnable()
+                           {
+                               public void run()
+                               {
+                                   AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                                   builder.setTitle(title)
+                                       .setMessage(message)
+                                       .setPositiveButton("Close",
+                                                          new DialogInterface.OnClickListener()
+                                                          {
+                                                              public void onClick(DialogInterface dialog, int id) { nativeOnAlertClosed(); }
+                                                          })
+                                       .setCancelable(true);
+                                   final AlertDialog dialog = builder.create();
+                                   dialog.show();
+
+                                   final Timer timer = new Timer();
+                                   timer.schedule(
+                                       new TimerTask()
+                                       {
+                                           public void run()
+                                           {
+                                               dialog.dismiss();
+                                               nativeOnAlertClosed();
+                                               timer.cancel();
+                                           }
+                                       },
+                                       10000);
+                               }
+                           });
+    }
+
     @Keep public float[] getSupportedRefreshRates()
     {
         if (Build.VERSION.SDK_INT < 23)
         {
-            Log.i(LOGTAG, "Supported Refresh rate API is only avaible in SDK >= 23.");
+            nativeLog(LOG_LEVEL_INFO, "Supported Refresh rate API is only avaible in SDK >= 23.");
             return null;
         }
 
         WindowManager wm = (WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
         Display       display = wm.getDefaultDisplay();
         Display.Mode[] modes = display.getSupportedModes();
-        Log.i(LOGTAG, "Supported Refresh rates (" + modes.length + ")");
+        nativeLog(LOG_LEVEL_INFO, "Supported Refresh rates (" + modes.length + ")");
 
         Set<Float> refreshRatesSet = new HashSet<Float>();
         for (int i = 0; i < modes.length; i += 1)
         {
-            Log.i(LOGTAG, "  [" + i + "] = " + modes[i].getRefreshRate());
+            nativeLog(LOG_LEVEL_INFO, "  [" + i + "] = " + modes[i].getRefreshRate());
             refreshRatesSet.add(modes[i].getRefreshRate());
         }
         refreshRatesSet.remove(display.getRefreshRate());
@@ -205,22 +246,23 @@ public class ForgeBaseActivity extends NativeActivity
     {
         if (Build.VERSION.SDK_INT < 30)
         {
-            Log.i(LOGTAG, "Refresh rate API is only avaible in SDK >= 30.");
+            nativeLog(LOG_LEVEL_INFO, "Refresh rate API is only avaible in SDK >= 30.");
             return;
         }
 
         try
         {
             surface.setFrameRate(frameRate, android.view.Surface.FRAME_RATE_COMPATIBILITY_DEFAULT);
-            Log.i(LOGTAG, "Called setRefreshRate: " + frameRate);
+            nativeLog(LOG_LEVEL_INFO, "Called setRefreshRate: " + frameRate);
         }
         catch (Exception e)
         {
-            Log.i(LOGTAG, "Failed calling setRefreshRate: " + e);
+            nativeLog(LOG_LEVEL_ERROR, "Failed calling setRefreshRate: " + e);
         }
     }
 
     // Native thermal event entry point defined in AndroidBase.cpp
     private static native void nativeThermalEvent(int nativeStatus);
+    private static native void nativeLog(int logLevel, String str);
     private native void        initializeJni();
 }

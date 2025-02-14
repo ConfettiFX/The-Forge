@@ -1,8 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup />
   <ItemGroup>
-    <ClCompile Include="..\src\19_CodeHotReload\19_CodeHotReload_Game.cpp" />
-    <ClInclude Include="..\src\19_CodeHotReload\IGamePlugin.h" />
+    <Filter Include="Source">
+      <UniqueIdentifier>{f04695e6-0ef5-4114-8d26-7e0578f41895}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{3bde2766-ae04-4360-8f23-83843aefa9b4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\19_CodeHotReload\19_CodeHotReload_Game.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClInclude Include="..\src\19_CodeHotReload\IGamePlugin.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

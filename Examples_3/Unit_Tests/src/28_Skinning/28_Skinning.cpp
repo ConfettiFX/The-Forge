@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -65,6 +65,10 @@
 // Memory
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -90,14 +94,12 @@ Buffer* pBoneVertexBuffer = NULL;
 int     gNumberOfJointPoints;
 int     gNumberOfBonePoints;
 
-Shader*        pPlaneDrawShader = NULL;
-Buffer*        pPlaneVertexBuffer = NULL;
-Pipeline*      pPlaneDrawPipeline = NULL;
-RootSignature* pRootSignature = NULL;
+Shader*   pPlaneDrawShader = NULL;
+Buffer*   pPlaneVertexBuffer = NULL;
+Pipeline* pPlaneDrawPipeline = NULL;
 
-Shader*        pShaderSkinning = NULL;
-RootSignature* pRootSignatureSkinning = NULL;
-Pipeline*      pPipelineSkinning = NULL;
+Shader*   pShaderSkinning = NULL;
+Pipeline* pPipelineSkinning = NULL;
 
 DescriptorSet* pDescriptorSet = NULL;
 DescriptorSet* pDescriptorSetSkinning[2] = { NULL };
@@ -268,10 +270,17 @@ public:
         //
 
         // Generate joint vertex buffer
-        generateQuad(&pJointPoints, &gNumberOfJointPoints, gJointRadius);
+        gNumberOfJointPoints = 0;
+        generateQuad(NULL, &gNumberOfJointPoints, gJointRadius);
+        pJointPoints = (float*)tf_malloc(sizeof(float) * gNumberOfJointPoints);
+        generateQuad(pJointPoints, &gNumberOfJointPoints, gJointRadius);
 
         // Generate bone vertex buffer
-        generateIndexedBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
+        gNumberOfBonePoints = 0;
+        generateIndexedBonePoints(NULL, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
+                                  &gStickFigureRig.mSkeleton.joint_parents()[0]);
+        pBonePoints = (float*)tf_malloc(sizeof(float) * gNumberOfBonePoints);
+        generateIndexedBonePoints(pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio, gStickFigureRig.mNumJoints,
                                   &gStickFigureRig.mSkeleton.joint_parents()[0]);
 
         // WINDOW AND RENDERER SETUP
@@ -307,6 +316,10 @@ public:
         // INITIALIZE RESOURCE/DEBUG SYSTEMS
         //
         initResourceLoaderInterface(pRenderer);
+
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
 
         // Load fonts
         FontDesc font = {};
@@ -486,7 +499,7 @@ public:
 
         // App Actions
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer, pGraphicsQueue);
+        initScreenshotCapturer(pRenderer, pGraphicsQueue, GetName());
         gFrameIndex = 0;
         waitForAllResourceLoads();
 
@@ -503,7 +516,7 @@ public:
         gClip.Exit();
         gAnimation.Exit();
         gStickFigureAnimObject.Exit();
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         exitCameraController(pCameraController);
 
         exitProfiler();
@@ -537,7 +550,7 @@ public:
 
         // Animation data
         gSkeletonBatcher.Exit();
-
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
@@ -550,7 +563,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -770,7 +782,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -1096,11 +1107,11 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gDataBufferCount };
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
-        setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
-        setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gDataBufferCount };
+        setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount, 0);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+        setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
     }
 
@@ -1109,31 +1120,6 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSet);
         removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
         removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
-    }
-
-    void addRootSignatures()
-    {
-        Shader*           shaders[] = { pPlaneDrawShader };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mShaderCount = 1;
-        rootDesc.ppShaders = shaders;
-        addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-        const char* staticSamplers[] = { "DefaultSampler" };
-
-        RootSignatureDesc skinningRootSignatureDesc = {};
-        skinningRootSignatureDesc.mShaderCount = 1;
-        skinningRootSignatureDesc.ppShaders = &pShaderSkinning;
-        skinningRootSignatureDesc.mStaticSamplerCount = 1;
-        skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
-        skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
-        addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
-    }
-
-    void removeRootSignatures()
-    {
-        removeRootSignature(pRenderer, pRootSignatureSkinning);
-        removeRootSignature(pRenderer, pRootSignature);
     }
 
     void addShaders()
@@ -1170,13 +1156,13 @@ public:
 
         PipelineDesc desc = {};
         desc.mType = PIPELINE_TYPE_GRAPHICS;
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), NULL, NULL, SRT_LAYOUT_DESC(SrtData, PerDraw));
         GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
         pipelineSettings.mRenderTargetCount = 1;
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
         pipelineSettings.pDepthState = &depthStateDesc;
 
@@ -1207,7 +1193,6 @@ public:
         pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pRootSignature = pRootSignatureSkinning;
         pipelineSettings.pShaderProgram = pShaderSkinning;
         pipelineSettings.pVertexLayout = &gVertexLayoutSkinned;
         pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
@@ -1224,21 +1209,23 @@ public:
 
     void prepareDescriptorSets()
     {
-        DescriptorData params[1] = {};
-        params[0].pName = "DiffuseTexture";
+        DescriptorData params[2] = {};
+        params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gDiffuseTexture);
         params[0].ppTextures = &pTextureDiffuse;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
+        params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gDdefaultSampler);
+        params[1].ppSamplers = &pDefaultSampler;
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 2, params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData uParams[2] = {};
-            uParams[0].pName = "uniformBlock";
+            uParams[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
             updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, uParams);
 
-            uParams[0].pName = "uniformBlock";
+            uParams[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
-            uParams[1].pName = "boneMatrices";
+            uParams[1].mIndex = SRT_RES_IDX(SrtData, PerDraw, gBoneMatrices);
             uParams[1].ppBuffers = &pUniformBufferBones[i];
             updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, uParams);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,15 +31,17 @@ STRUCT(VSOutput) {
     DATA(float, TexCoord, TEXCOORD);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
+
 float4 PS_MAIN( VSOutput In )
 {
     INIT_MAIN;
     float4 Out;
 
-    const uint textureIndex = particleRootConstant.textureIndex;
-	float4 ca = SampleTex1D(uTex0[textureIndex], uSampler0, In.TexCoord);
-    float4 cb = SampleTex1D(uTex0[(textureIndex + 1) % 5], uSampler0, In.TexCoord);
+    const uint textureIndex = gParticleConstants.mTextureIndex;
+	float4 ca = SampleTex1D(gTexture[textureIndex], gSampler, In.TexCoord);
+    float4 cb = SampleTex1D(gTexture[(textureIndex + 1) % 5], gSampler, In.TexCoord);
 
-    Out = 0.05*lerp(ca, cb, particleRootConstant.paletteFactor);
+    Out = 0.05*lerp(ca, cb, gParticleConstants.mPaletteFactor);
     RETURN(Out);
 }

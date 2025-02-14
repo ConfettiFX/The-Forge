@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,11 @@
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
 
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+#ifndef SAMPLE_COUNT
+    #define SAMPLE_COUNT 1
+#endif
+
 #define LIGHT_COUNT 128
 #define LIGHT_SIZE 30.0f
 
@@ -41,6 +46,9 @@
 
 #include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_structs.h.fsl"
 
+#define MAX_BLUR_KERNEL_SIZE 8
+
+
 STRUCT(MeshConstants)
 {
 	DATA(uint, indexOffset, None);
@@ -56,10 +64,15 @@ STRUCT(PerFrameConstantsData)
 	DATA(float4, lightDir, None);
 	//========================================
 	DATA(float4, lightColor, None);
+	// TonemapInfo
+    DATA(float, mLinearScale, None);
+    DATA(uint, mOutputMode, None);
+    DATA(uint, _pad0, None);
+    DATA(uint, _pad1, None);
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
 	DATA(uint, outputMode, None);
-	DATA(uint, _pad0, None);
+	DATA(float, mGodRayScatterFactor, None); // Godray scatter factor
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
@@ -71,7 +84,7 @@ STRUCT(PerFrameConstantsData)
 	DATA(float, aoIntensity, None);
 	DATA(uint, visualizeAo, None);
 };
-RES(CBUFFER(PerFrameConstantsData), PerFrameConstants, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+
 
 STRUCT(LightData)
 {
@@ -79,5 +92,19 @@ STRUCT(LightData)
 	DATA(float4, color, None);
 };
 
+STRUCT(GodRayRootConstantData)
+{
+	DATA(float, mScatterFactor, None);
+};
+
+
+// Godray blur: 
+STRUCT(BlurRootConstantData)
+{
+	DATA(uint, mBlurPassType, None);
+	DATA(uint, mFilterRadius, None);
+};
+
 #include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shader_defs.h.fsl"
+
 #endif

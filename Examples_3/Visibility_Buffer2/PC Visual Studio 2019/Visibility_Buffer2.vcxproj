@@ -18,15 +18,25 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer2.h" />
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
+    <ClInclude Include="..\src\Shaders\FSL\cluster_lights.srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\display.srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\godray_blur.srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\persistent_set.h" />
+    <ClInclude Include="..\src\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\src\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\structs.h" />
+    <ClInclude Include="..\src\Shaders\FSL\triangle_filtering.srt.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl" />
-    <None Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\debug_visualize.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl" />
+    <FSLShader Include="..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\Shaders\FSL\triangle_binning.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl" />
@@ -37,10 +47,8 @@
     <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\light_cull_resources.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\rasterizer.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\bin_rasterizer.comp.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shader_defs.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shading.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl" />
@@ -50,6 +58,7 @@
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_blitDepth.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
+    <None Include="..\src\GPUCfg\gpu.cfg" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>
@@ -129,6 +138,12 @@
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Language>DIRECT3D12</Language>
     </FSLShader>
+    <PreBuildEvent>
+      <Command>        %(Command)
+        xcopy /Y /D "$(TheForgeArtDir)cameraPath.txt" "$(OutDir)"
+        xcopy /Y /D "..\src\GPUCfg\gpu.cfg" "$(OutDir)"
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -158,12 +173,7 @@
       <EntryPointName>
       </EntryPointName>
     </FxCompile>
-    <PostBuildEvent>
-      <Command>
-        %(Command)
-        xcopy /Y /D "$(TheForgeArtDir)cameraPath.txt" "$(OutDir)"
-      </Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
@@ -172,6 +182,12 @@
       <BinaryOutDir>$(OutDir)CompiledShaders</BinaryOutDir>
       <Language>DIRECT3D12</Language>
     </FSLShader>
+    <PreBuildEvent>
+      <Command>        %(Command)
+        xcopy /Y /D "$(TheForgeArtDir)cameraPath.txt" "$(OutDir)"
+        xcopy /Y /D "..\src\GPUCfg\gpu.cfg" "$(OutDir)"
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

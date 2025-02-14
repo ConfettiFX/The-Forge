@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,17 +32,11 @@ STRUCT(UniformBlock)
 #else
 	DATA(float4x4, mvp, None);
 #endif
+    DATA(float4, color, None);
+    DATA(float2, scaleBias, None);
+    DATA(float2, pad, None);
 };
-RES(CBUFFER(UniformBlock), uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1);
 
-RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t2, binding = 2);
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s3, binding = 3);
-
-STRUCT(RootConstants)
-{
-	DATA(float4, color, None);
-	DATA(float2, scaleBias, None);
-};
-RES(ROOT_CONSTANT(RootConstants), uRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
+#include "fontstash.srt.h"
 
 #endif

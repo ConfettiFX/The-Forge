@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,24 +25,22 @@
 #ifndef _VB_RESOURCES_H
 #define _VB_RESOURCES_H
 
-#ifdef _VB_TRIANGLE_FILTERING_H
-RES(RWBuffer(uint), binBuffer, UPDATE_FREQ_PER_FRAME, u1, binding = 8);
 
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 3);
-
-STRUCT(batchData)
+STRUCT(TriangleFilteringBatchData)
 {
     DATA(FilterBatchData, filterBatchDataBuffer[FILTER_BATCH_COUNT], None);
 };
-RES(CBUFFER(batchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 2);
-#endif
+
+
+
+
 
 #ifdef _VB_PRE_SKIN_VERTEXES_H
-STRUCT(batchData)
+STRUCT(PreskinBatchData)
 {
     DATA(PreSkinBatchData, skinBatchDataBuffer[SKIN_BATCH_COUNT], None);
 };
-RES(CBUFFER(batchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0);
+RES(CBUFFER(PreskinBatchData), batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0);
 #endif
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -468,6 +468,16 @@ typedef struct PipelineCacheSaveDesc
     const char* pFileName;
 } PipelineCacheSaveDesc;
 
+typedef struct RootSignatureInitDesc
+{
+    const char* pGraphicsFileName;
+    const char* pComputeFileName;
+#if defined(VULKAN)
+    const StaticSamplerDesc* pStaticSamplers;
+    uint32_t                 mStaticSamplerCount;
+#endif
+} RootSignatureDesc;
+
 typedef uint64_t SyncToken;
 
 struct Material;
@@ -611,6 +621,9 @@ FORGE_RENDERER_API void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDe
 /// Save/Load pipeline cache from disk
 FORGE_RENDERER_API void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
 FORGE_RENDERER_API void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
+
+FORGE_RENDERER_API void initRootSignature(Renderer* pRenderer, const RootSignatureInitDesc* pDesc);
+FORGE_RENDERER_API void exitRootSignature(Renderer* pRenderer);
 
 /// Determines whether we are using Uniform Memory Architecture or not.
 /// Do not assume this variable will be the same, if code was compiled with multiple APIs result of this function might change per API.

@@ -31,6 +31,20 @@
 		EC417DE42C94E4F000950982 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EC417DDB2C94E39C00950982 /* LaunchScreen.storyboard */; };
 		EC417DE52C94E4F300950982 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC417DD62C94E38600950982 /* Assets.xcassets */; };
 		EC417DE82C94E50200950982 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EC417DC82C94E1CE00950982 /* Info.plist */; };
+		F25E311F2D4924B40002574A /* TestNonCenteredWindow.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311B2D4924B40002574A /* TestNonCenteredWindow.lua */; };
+		F25E31202D4924B40002574A /* TestReloadShaderCapture.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311D2D4924B40002574A /* TestReloadShaderCapture.lua */; };
+		F25E31212D4924B40002574A /* TestBorderless.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31182D4924B40002574A /* TestBorderless.lua */; };
+		F25E31222D4924B40002574A /* TestCenteredWindow.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31192D4924B40002574A /* TestCenteredWindow.lua */; };
+		F25E31232D4924B40002574A /* TestReloadShader.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311C2D4924B40002574A /* TestReloadShader.lua */; };
+		F25E31242D4924B40002574A /* TestFullScreen.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311A2D4924B40002574A /* TestFullScreen.lua */; };
+		F25E31252D4924B40002574A /* TestNonCenteredWindow.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311B2D4924B40002574A /* TestNonCenteredWindow.lua */; };
+		F25E31262D4924B40002574A /* TestReloadShaderCapture.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311D2D4924B40002574A /* TestReloadShaderCapture.lua */; };
+		F25E31272D4924B40002574A /* TestBorderless.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31182D4924B40002574A /* TestBorderless.lua */; };
+		F25E31282D4924B40002574A /* TestCenteredWindow.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31192D4924B40002574A /* TestCenteredWindow.lua */; };
+		F25E31292D4924B40002574A /* TestReloadShader.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311C2D4924B40002574A /* TestReloadShader.lua */; };
+		F25E312A2D4924B40002574A /* TestFullScreen.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311A2D4924B40002574A /* TestFullScreen.lua */; };
+		F2E84A9F2CDF5075002AA211 /* shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* shaders.list */; };
+		F2E84AA02CDF5075002AA211 /* shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* shaders.list */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,16 +111,19 @@
 		EC417DDC2C94E39C00950982 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = ../../../Build_Props/XCode/iOS/Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EC417DE02C94E3DA00950982 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		EC417DE12C94E3DA00950982 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
-		EC66B83A2C9268B80004DC3B /* TestFullScreen.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestFullScreen.lua; sourceTree = "<group>"; };
-		EC66B83B2C9268B80004DC3B /* TestCenteredWindow.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestCenteredWindow.lua; sourceTree = "<group>"; };
-		EC66B83C2C9268B80004DC3B /* TestNonCenteredWindow.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestNonCenteredWindow.lua; sourceTree = "<group>"; };
-		EC66B83D2C9268B80004DC3B /* TestBorderless.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TestBorderless.lua; sourceTree = "<group>"; };
 		EC66B84B2C926A540004DC3B /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.vert.fsl; sourceTree = "<group>"; };
-		EC66B84C2C926A540004DC3B /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ShaderList.fsl; sourceTree = "<group>"; };
 		EC66B84D2C926A540004DC3B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.vert.fsl; sourceTree = "<group>"; };
 		EC66B84E2C926A540004DC3B /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.frag.fsl; sourceTree = "<group>"; };
 		EC66B84F2C926A540004DC3B /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.h.fsl; sourceTree = "<group>"; };
 		EC66B8502C926A540004DC3B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.frag.fsl; sourceTree = "<group>"; };
+		F25E31182D4924B40002574A /* TestBorderless.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestBorderless.lua; sourceTree = "<group>"; };
+		F25E31192D4924B40002574A /* TestCenteredWindow.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestCenteredWindow.lua; sourceTree = "<group>"; };
+		F25E311A2D4924B40002574A /* TestFullScreen.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestFullScreen.lua; sourceTree = "<group>"; };
+		F25E311B2D4924B40002574A /* TestNonCenteredWindow.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestNonCenteredWindow.lua; sourceTree = "<group>"; };
+		F25E311C2D4924B40002574A /* TestReloadShader.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestReloadShader.lua; sourceTree = "<group>"; };
+		F25E311D2D4924B40002574A /* TestReloadShaderCapture.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestReloadShaderCapture.lua; sourceTree = "<group>"; };
+		F2C054512D02813700C81C33 /* srt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = srt.h; sourceTree = "<group>"; };
+		F2E84A9E2CDF5075002AA211 /* shaders.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shaders.list; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +211,7 @@
 				EC417DD42C94E34E00950982 /* 01_Transformations_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
+				F25E311E2D4924B40002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -233,21 +251,9 @@
 		EC66B8382C92687B0004DC3B /* Art */ = {
 			isa = PBXGroup;
 			children = (
-				EC66B8392C92689B0004DC3B /* Scripts */,
 			);
 			name = Art;
 			path = ../../../../Art;
-			sourceTree = "<group>";
-		};
-		EC66B8392C92689B0004DC3B /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B83D2C9268B80004DC3B /* TestBorderless.lua */,
-				EC66B83B2C9268B80004DC3B /* TestCenteredWindow.lua */,
-				EC66B83A2C9268B80004DC3B /* TestFullScreen.lua */,
-				EC66B83C2C9268B80004DC3B /* TestNonCenteredWindow.lua */,
-			);
-			path = Scripts;
 			sourceTree = "<group>";
 		};
 		EC66B8422C9268C00004DC3B /* Examples_3 */ = {
@@ -295,15 +301,30 @@
 		EC66B84A2C926A3E0004DC3B /* FSL */ = {
 			isa = PBXGroup;
 			children = (
+				F2C054512D02813700C81C33 /* srt.h */,
+				F2E84A9E2CDF5075002AA211 /* shaders.list */,
 				EC66B84E2C926A540004DC3B /* basic.frag.fsl */,
 				EC66B84B2C926A540004DC3B /* basic.vert.fsl */,
 				EC66B84F2C926A540004DC3B /* resources.h.fsl */,
-				EC66B84C2C926A540004DC3B /* ShaderList.fsl */,
 				EC66B8502C926A540004DC3B /* skybox.frag.fsl */,
 				EC66B84D2C926A540004DC3B /* skybox.vert.fsl */,
 			);
 			path = FSL;
 			sourceTree = "<group>";
+		};
+		F25E311E2D4924B40002574A /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				F25E31182D4924B40002574A /* TestBorderless.lua */,
+				F25E31192D4924B40002574A /* TestCenteredWindow.lua */,
+				F25E311A2D4924B40002574A /* TestFullScreen.lua */,
+				F25E311B2D4924B40002574A /* TestNonCenteredWindow.lua */,
+				F25E311C2D4924B40002574A /* TestReloadShader.lua */,
+				F25E311D2D4924B40002574A /* TestReloadShaderCapture.lua */,
+			);
+			name = Scripts;
+			path = ../../src/01_Transformations/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -416,7 +437,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				EC417DE52C94E4F300950982 /* Assets.xcassets in Resources */,
+				F25E311F2D4924B40002574A /* TestNonCenteredWindow.lua in Resources */,
+				F25E31202D4924B40002574A /* TestReloadShaderCapture.lua in Resources */,
+				F25E31212D4924B40002574A /* TestBorderless.lua in Resources */,
+				F25E31222D4924B40002574A /* TestCenteredWindow.lua in Resources */,
+				F25E31232D4924B40002574A /* TestReloadShader.lua in Resources */,
+				F25E31242D4924B40002574A /* TestFullScreen.lua in Resources */,
 				EC417DE42C94E4F000950982 /* LaunchScreen.storyboard in Resources */,
+				F2E84AA02CDF5075002AA211 /* shaders.list in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -424,7 +452,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F2E84A9F2CDF5075002AA211 /* shaders.list in Resources */,
 				EC417DCE2C94E28E00950982 /* Assets.xcassets in Resources */,
+				F25E31252D4924B40002574A /* TestNonCenteredWindow.lua in Resources */,
+				F25E31262D4924B40002574A /* TestReloadShaderCapture.lua in Resources */,
+				F25E31272D4924B40002574A /* TestBorderless.lua in Resources */,
+				F25E31282D4924B40002574A /* TestCenteredWindow.lua in Resources */,
+				F25E31292D4924B40002574A /* TestReloadShader.lua in Resources */,
+				F25E312A2D4924B40002574A /* TestFullScreen.lua in Resources */,
 				EC417DCC2C94E27100950982 /* MainMenu.xib in Resources */,
 				EC417DE82C94E50200950982 /* Info.plist in Resources */,
 			);
@@ -450,7 +485,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09934171284E89EB00215997 /* ShellScript */ = {
@@ -469,7 +504,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C589FF324D066DF00D1D6F3 /* Run Script */ = {

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,71 +24,9 @@
 
 #define THREAD_GROUP_SIZE 64
 
-struct VertexIndices
-{
-	uint globalStrandIndex;
-	uint localStrandIndex;
-	uint globalVertexIndex;
-	uint localVertexIndex;
-	uint indexSharedMem;
-};
-
-struct StrandIndices
-{
-	uint globalStrandIndex;
-	uint globalRootVertexIndex;
-};
-
-struct Capsule
-{
-	float4 center0AndRadius0;
-	float4 center1AndRadius1;
-};
-
-// cbuffer cbSimulation : register(b0, UPDATE_FREQ_PER_DRAW)
-STRUCT(Simulation)
-{
-	DATA(float4x4, Transform, None);
-	DATA(float4, QuatRotation, None);
-#if HAIR_MAX_CAPSULE_COUNT > 0
-	DATA(Capsule, Capsules[HAIR_MAX_CAPSULE_COUNT], None);
-	DATA(uint, mCapsuleCount, None);
-#endif
-	DATA(float, Scale, None);
-	DATA(uint, NumStrandsPerThreadGroup, None);
-	DATA(uint, NumFollowHairsPerGuideHair, None);
-	DATA(uint, NumVerticesPerStrand, None);
-	DATA(float, Damping, None);
-	DATA(float, GlobalConstraintStiffness, None);
-	DATA(float, GlobalConstraintRange, None);
-	DATA(float, VSPStrength, None);
-	DATA(float, VSPAccelerationThreshold, None);
-	DATA(float, LocalStiffness, None);
-	DATA(uint, LocalConstraintIterations, None);
-	DATA(uint, LengthConstraintIterations, None);
-	DATA(float, TipSeperationFactor, None);
-};
-RES(CBUFFER(Simulation), cbSimulation, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
-// cbuffer cbHairGlobal : register(b4, UPDATE_FREQ_PER_DRAW)
-STRUCT(HairGlobal)
-{
-	DATA(float4, Viewport, None);
-	DATA(float4, Gravity, None);
-	DATA(float4, Wind, None);
-	DATA(float, TimeStep, None);
-};
-RES(CBUFFER(HairGlobal), cbHairGlobal, UPDATE_FREQ_PER_DRAW, b4, binding = 1);
-
-RES(RWBuffer(float4),HairVertexPositions, UPDATE_FREQ_PER_DRAW, u0, binding = 2);
-RES(RWBuffer(float4),HairVertexPositionsPrev, UPDATE_FREQ_PER_DRAW, u1, binding = 3);
-RES(RWBuffer(float4),HairVertexPositionsPrevPrev, UPDATE_FREQ_PER_DRAW, u2, binding = 4);
-RES(RWBuffer(float4),HairVertexTangents, UPDATE_FREQ_PER_DRAW, u3, binding = 5);
-
-RES(Buffer(float4), HairRestPositions, UPDATE_FREQ_PER_DRAW, t0, binding = 6);
-RES(Buffer(float), HairRestLengths, UPDATE_FREQ_PER_DRAW, t1, binding = 7);
-RES(Buffer(float4), HairGlobalRotations, UPDATE_FREQ_PER_DRAW, t2, binding = 8);
-RES(Buffer(float4), HairRefsInLocalFrame, UPDATE_FREQ_PER_DRAW, t3, binding = 9);
-RES(Buffer(float4), FollowHairRootOffsets, UPDATE_FREQ_PER_DRAW, t4, binding = 10);
+#include "resources.comp.h.fsl"
+#include "resources.h.fsl"
+#include "hair.srt.h"
 
 float3 RotateVec(float4 q, float3 v)
 {
@@ -184,12 +122,12 @@ VertexIndices CalculateVertexIndices(uint localID, uint groupID)
 
 	result.indexSharedMem = localID;
 
-	result.localStrandIndex = localID % cbSimulation.NumStrandsPerThreadGroup;
-	result.globalStrandIndex = groupID * cbSimulation.NumStrandsPerThreadGroup + result.localStrandIndex;
-	result.globalStrandIndex *= cbSimulation.NumFollowHairsPerGuideHair + 1;
-	result.localVertexIndex = (localID - result.localStrandIndex) / cbSimulation.NumStrandsPerThreadGroup;
+	result.localStrandIndex = localID % gHairSimulation.NumStrandsPerThreadGroup;
+	result.globalStrandIndex = groupID * gHairSimulation.NumStrandsPerThreadGroup + result.localStrandIndex;
+	result.globalStrandIndex *= gHairSimulation.NumFollowHairsPerGuideHair + 1;
+	result.localVertexIndex = (localID - result.localStrandIndex) / gHairSimulation.NumStrandsPerThreadGroup;
 
-	result.globalVertexIndex = result.globalStrandIndex * cbSimulation.NumVerticesPerStrand + result.localVertexIndex;
+	result.globalVertexIndex = result.globalStrandIndex * gHairSimulation.NumVerticesPerStrand + result.localVertexIndex;
 
 	return result;
 }
@@ -198,8 +136,8 @@ StrandIndices CalculateStrandIndices(uint localID, uint groupID)
 {
 	StrandIndices result;
 	result.globalStrandIndex = THREAD_GROUP_SIZE * groupID + localID;
-	result.globalStrandIndex *= cbSimulation.NumFollowHairsPerGuideHair + 1;
-	result.globalRootVertexIndex = result.globalStrandIndex * cbSimulation.NumVerticesPerStrand;
+	result.globalStrandIndex *= gHairSimulation.NumFollowHairsPerGuideHair + 1;
+	result.globalRootVertexIndex = result.globalStrandIndex * gHairSimulation.NumVerticesPerStrand;
 	return result;
 }
 
@@ -207,8 +145,8 @@ float4 Integrate(float4 currentPosition, float4 prevPosition, float4 force, Vert
 {
 	float4 result = currentPosition;
 
-	force.xyz += cbHairGlobal.Gravity.xyz;
-	result.xyz += (1.0f - cbSimulation.Damping) * (currentPosition.xyz - prevPosition.xyz) + force.xyz * cbHairGlobal.TimeStep * cbHairGlobal.TimeStep;
+	force.xyz += gHairGlobal.Gravity.xyz;
+	result.xyz += (1.0f - gHairSimulation.Damping) * (currentPosition.xyz - prevPosition.xyz) + force.xyz * gHairGlobal.TimeStep * gHairGlobal.TimeStep;
 
 	return result;
 }

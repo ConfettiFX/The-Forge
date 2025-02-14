@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -86,17 +86,20 @@ STRUCT(PerFrameVBConstantsData)
 {
 	DATA(Transform, transform[NUM_CULLING_VIEWPORTS], None);
 	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);
+#if defined(TARGET_QUEST) || defined(QUEST_VR)
+	DATA(float4x4, cullingMVP[NUM_CULLING_VIEWPORTS], None);
+#endif
 	DATA(uint, numViewports, None);
 };
-RES(CBUFFER(PerFrameVBConstantsData), PerFrameVBConstants, UPDATE_FREQ_PER_FRAME, b1, binding = 1);
+
 
 STRUCT(VBConstantBufferData)
 {
     DATA(VBConstants, vbConstant[NUM_GEOMETRY_SETS], None);
 };
-RES(CBUFFER(VBConstantBufferData), VBConstantBuffer, UPDATE_FREQ_NONE, b2, binding = 2);
 
-#define INDEXBUFFER_OFFSET(GEOMSET) ( VBConstantBuffer.vbConstant[GEOMSET].indexOffset )
+
+#define INDEXBUFFER_OFFSET(GEOMSET) ( gVBConstantBuffer.vbConstant[GEOMSET].indexOffset )
 
 /************************************************************************/
 // OIT

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,32 +24,61 @@
 
 #ifndef vb_resources_h
 #define vb_resources_h
+#include "SDF_Constant.h.fsl"
+#include "Shader_Defs.h.fsl"
+
+#ifdef __cplusplus
+
+#define FLAT(X) X
+
+#else
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-#define MAX_TEXTURE_UNITS 256U
+#define DEBUG_OUTPUT_MODE_NONE 0
+#define DEBUG_OUTPUT_MODE_EDGE_MASK 1
+#define DEBUG_OUTPUT_MODE_THREAD_INDEX 2
+#define DEBUG_OUTPUT_MODE_WAVE_INDEX 3
+#endif
 
-RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t3, binding = 6);
-RES(SamplerState, nearClampSampler, UPDATE_FREQ_NONE, s0, binding = 5);
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 2);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t1, binding = 3);
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t2, binding = 4);
+#define MAX_TEXTURE_UNITS 256U
+#define QUADS_ARRAY_REGS 192
+
+#define MAX_BLUR_KERNEL_SIZE 16
+
+#define WAVE_SIZE 64
+#define SS_SAMPLE_COUNT 60
+#define HARD_SHADOW_SAMPLES 4
+#define FADE_OUT_SAMPLES 8
+#define SHADOW_MAX_VALUE 0xFFFF
+
+#ifndef SAMPLE_COUNT
+#define SAMPLE_COUNT 4
+#endif
+
+#define READ_COUNT (SS_SAMPLE_COUNT / WAVE_SIZE + 2)
+
+
+
+#define NEAR_DEPTH_VALUE 1.0f
+#define FAR_DEPTH_VALUE 0.0
+
+#if defined(METAL)
+#define TEXTURE_ATOMIC_SUPPORTED 0
+#else
+#define TEXTURE_ATOMIC_SUPPORTED 1
+#endif
+
+
+
+
 
 STRUCT(ObjectUniform)
 {
     DATA(float4x4, worldViewProjMat, None);
     DATA(uint, viewID, None);
 };
-RES(CBUFFER(ObjectUniform), objectUniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0);
 
-float4 PackMoments(float4 b)
-{
-    float4x4 mat =  make_f4x4_row_elems(1.5f,            0.0f, -2.0f,             0.0f,
-                                        0.0f,            4.0f,  0.0f,            -4.0f,
-                                        sqrt(3.0f)/2.0f, 0.0f, -sqrt(12.0f)/9.0f, 0.0f,
-                                        0.0f,            0.5f,  0.0f,             0.5f);
 
-    return mul(mat, b) + float4(0.5f, 0.0f, 0.5f, 0.0f);
-}
 
 STRUCT(PsInOpaque)
 {
@@ -63,14 +92,150 @@ STRUCT(PsInAlphaTested)
 	DATA(FLAT(uint), materialID, TEXCOORD1);
 };
 
-float4 LoadVertex(uint index)
+STRUCT(MeshSDFUniformBlock)
 {
-    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1.0f);
-}
+	DATA(float4x4, mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT], None);
+	DATA(float4, mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT], None);
+	DATA(float4, mLocalPositionExtent[SDF_MAX_OBJECT_COUNT], None);
+	DATA(float4, mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT], None);
+	DATA(float4, mSDFMAD[SDF_MAX_OBJECT_COUNT], None);
+	DATA(uint4, mNumObjects, None);
+};
 
-float2 LoadTexCoord(uint index)
+STRUCT(VSMInputConstantData)
 {
-	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
-}
+	DATA(float2, mBleedingReduction, None);
+	DATA(float, mMinVariance, None);
+	DATA(float, mPad, None);
+};
+
+STRUCT(MSMInputConstantData)
+{
+	DATA(float2, padding, None);
+	DATA(float, mRoundingErrorCorrection, None);
+	DATA(float, mBleedingReductionMultiplier, None);
+};
+
+STRUCT(LightUniformBlock)
+{
+	DATA(float4x4, mLightViewProj, None);
+	DATA(float4, lightPosition, None);
+	DATA(float4, lightColor, None);
+	DATA(float4, mLightUpVec, None);
+	DATA(float4, mTanLightAngleAndThresholdValue, None);
+	DATA(float4, mLightDir, None);
+};
+
+STRUCT(CameraUniformBlock)
+{
+    DATA(float4x4, View, None);
+    DATA(float4x4, Project, None);
+    DATA(float4x4, ViewProject, None);
+    DATA(float4x4, InvView, None);
+	DATA(float4x4, InvProj, None);
+	DATA(float4x4, InvViewProject, None);
+	DATA(float4x4, SkyProjView, None);
+	DATA(float4, mCameraPos, None);
+	DATA(float, mNear, None);
+	DATA(float, mFar, None);
+	DATA(float, mFarNearDiff, None);
+	DATA(float, mFarNear, None);
+	DATA(float2, mTwoOverRes, None);
+	DATA(float2, mWindowSize, None);
+	DATA(float4, mDeviceZToWorldZ, None);
+
+	DATA(VSMInputConstantData, mVSM, None);
+	DATA(MSMInputConstantData, mMSM, None);
+	DATA(LightUniformBlock, mLight, None);
+
+	DATA(int, ShadowType, None);
+	DATA(uint, mSSSEnabled, None);
+	DATA(float, mEsmControl, None);
+};
+
+
+STRUCT(PackedAtlasQuads)
+{
+	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
+};
+
+STRUCT(AtlasQuads)
+{
+	DATA(float4, mPosData, None);
+	DATA(float4, mMiscData, None);
+	DATA(float4, mTexCoordData, None);
+};
+
+
+STRUCT(MeshSDFPushConstant)
+{
+	DATA(uint, mNumObjects, None);
+};
+
+STRUCT(ASMUniform)
+{
+	DATA(float4x4, mIndexTexMat, None);
+	DATA(float4x4, mPrerenderIndexTexMat, None);
+	DATA(float4,   mSearchVector, None);
+	DATA(float4,   mPrerenderSearchVector, None);
+	DATA(float4,   mWarpVector, None);
+	DATA(float4,   mPrerenderWarpVector, None);
+	DATA(float4,   mMiscBool, None);
+};
+
+STRUCT(UpdateSDFVolumeTextureAtlas)
+{
+	DATA(uint4, mSourceAtlasVolumeMinCoord, None);
+	DATA(uint4, mSourceDimensionSize, None);
+	DATA(uint4, mSourceAtlasVolumeMaxCoord, None);
+};
+
+STRUCT(ASMFrustumDesc)
+{
+	DATA(float3, mIndexCoord, None);
+	DATA(int, mStartingMip, None);
+};
+
+STRUCT(SSSUniformData)
+{
+	DATA(float4, mLightCoordinate, None);
+	DATA(float4, mScreenSize, None);
+	DATA(float, mSurfaceThickness, None);
+	DATA(float, mBilinearThreshold, None);
+	DATA(float, mShadowContrast, None);
+	DATA(uint, mIgnoreEdgePixels, None);
+	DATA(uint, mBilinearSamplingOffsetMode, None);
+	DATA(uint, mDebugOutput, None);
+};
+
+STRUCT(ScreenSpaceShadowsUniforms)
+{
+	DATA(int2, WaveOffset, None);
+};
+
+
+STRUCT(BlurWeightData)
+{
+	DATA(float4, mBlurWeights[MAX_BLUR_KERNEL_SIZE/4], None);
+};
+
+STRUCT(GaussianBlurConfig)
+{
+	DATA(uint, mBlurPassType, None);
+	DATA(uint, mFilterRadius, None);
+};
+
+STRUCT(RootConstant)
+{
+	DATA(uint, drawId, None);
+};
+
+STRUCT(MeshConstants)
+{
+	DATA(uint, indexOffset, None);
+	DATA(uint, vertexOffset, None);
+	DATA(uint, materialID, None);
+	DATA(uint, twoSided, None); //0 or 1
+};
 
 #endif /* vb_resources_h */

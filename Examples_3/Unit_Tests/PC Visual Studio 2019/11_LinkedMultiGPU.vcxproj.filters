@@ -1,61 +1,58 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Examples_3\Unit_Tests\src\11_LinkedMultiGPU">
-      <UniqueIdentifier>{d64dd2e3-b0e1-40d9-a095-18f071a2cdf1}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{18c48953-167f-4ccc-8898-48ba4c4ffd84}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{db00cd13-a042-47fc-8439-59b2056504a3}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{af780568-8ba5-4537-99e5-9f7c780c5539}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{bc940ccf-8ba4-40eb-963d-7d16de23501d}</UniqueIdentifier>
+    <Filter Include="FSLShaders">
+      <UniqueIdentifier>{9a14c7df-0f94-4e95-a869-65504527b1cf}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{96202b12-386a-46ec-a7a6-7a6175c798e9}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{935946ae-849d-4af7-b44a-0d477c1a251a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL">
-      <UniqueIdentifier>{ed60f58a-15a2-44eb-be2d-918687c17a04}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders">
-      <UniqueIdentifier>{7bc9d08c-00a7-4187-a878-75b583a21f8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts\11_LinkedMultiGPU">
-      <UniqueIdentifier>{e5350dfb-0aa3-4daa-bbb0-1f4ae2273788}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art\Scripts">
-      <UniqueIdentifier>{a4bd9b75-7921-4ad4-84dc-97d2b7eee0ef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Art">
-      <UniqueIdentifier>{ec5de140-f8e6-43dc-8422-ca5a8dcc9b69}</UniqueIdentifier>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{57ec43d3-0951-4d45-abef-32b17cc5e728}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\11_LinkedMultiGPU\11_MultiGPU.cpp">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
+    <ClInclude Include="..\src\11_LinkedMultiGPU\Shaders\FSL\srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\basic.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\basic.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\copyQuad.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\copyQuad.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\ShaderList.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\resources.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\shaders.list">
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\11_LinkedMultiGPU\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\11_LinkedMultiGPU\Shaders\FSL</Filter>
+      <Filter>FSLShaders</Filter>
     </FSLShader>
-    <None Include="..\..\..\Art\Scripts\11_LinkedMultiGPU\Test0.lua">
-      <Filter>Art\Scripts\11_LinkedMultiGPU</Filter>
+    <None Include="..\src\11_LinkedMultiGPU\GPUCfg\gpu.cfg">
+      <Filter>Misc</Filter>
+    </None>
+    <None Include="..\src\11_LinkedMultiGPU\Scripts\Test0.lua">
+      <Filter>Scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

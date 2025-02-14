@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,23 +21,11 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
+#include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
+#include "srt.h"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "shader_defs.h.fsl"
-
-RES(SamplerState, pointClampSampler, UPDATE_FREQ_NONE, s2, binding = 28);
-RES(SamplerState, bilinearSampler, UPDATE_FREQ_NONE, s3, binding = 21);
-RES(Tex2D(float4), g_inputTexture, UPDATE_FREQ_NONE, t0, binding = 4);
-RES(Tex2D(float), shadowCollector, UPDATE_FREQ_NONE, t1, binding = 5);
-RES(Buffer(PackedParticleTransparencyNode), transparencyList, UPDATE_FREQ_NONE, t2, binding = 6);
-RES(Buffer(uint), transparencyListHeads, UPDATE_FREQ_NONE, t3, binding = 7);
-
-STRUCT(fsqRootConstantsData)
-{
-	DATA(uint2, size, None);
-};
-RES(ROOT_CONSTANT(fsqRootConstantsData), fsqRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 STRUCT(PsIn)
 {
@@ -45,18 +33,19 @@ STRUCT(PsIn)
 	DATA(float2, screenPos, TEXCOORD0);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
 	float4 Out;
 	uint2 screenCoords = uint2(In.position.xy);
 
-	float2 uv = float2(In.position.xy) / float2(fsqRootConstants.size.x, fsqRootConstants.size.y);
-	Out = SampleTex2D(g_inputTexture, bilinearSampler, uv);
-	Out.xyz *= SampleTex2D(shadowCollector, pointClampSampler, uv).x;
+	float2 uv = float2(In.position.xy) / float2(gPerFrameConstants.finalPresentSize.x, gPerFrameConstants.finalPresentSize.y);
+	Out = SampleTex2D(gInputTexture, gSamplerBilinearClamp, uv);
+	Out.xyz *= SampleTex2D(gShadowCollector, gSamplerPointBorder, uv).x;
 
-	uint bufferIdx = screenCoords.y * fsqRootConstants.size.x + screenCoords.x;
-	uint nodeCount = transparencyListHeads[bufferIdx];
+	uint bufferIdx = screenCoords.y * gPerFrameConstants.finalPresentSize.x + screenCoords.x;
+	uint nodeCount = gTransparencyListHeads[bufferIdx];
 	
 	PackedParticleTransparencyNode nodes[MAX_TRANSPARENCY_LAYERS];
 	uint validNodeCount = 0;
@@ -64,7 +53,7 @@ float4 PS_MAIN( PsIn In )
 	// Save all nodes for this pixel
 	for (uint i=0; i<nodeCount && i<MAX_TRANSPARENCY_LAYERS; i++)
 	{
-		nodes[i] = transparencyList[bufferIdx*MAX_TRANSPARENCY_LAYERS + i];
+		nodes[i] = gTransparencyList[bufferIdx*MAX_TRANSPARENCY_LAYERS + i];
 		validNodeCount++;
 	}
 

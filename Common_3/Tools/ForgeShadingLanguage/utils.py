@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -65,12 +65,13 @@ def get_target(platform: Platforms):
     return platform.name
 
 class Stages(Enum):
-    VERT =  0
-    FRAG =  1
-    COMP =  2
-    GEOM =  3
-    GRAPH = 4
-    NONE =  5
+    VERT =    0
+    FRAG =    1
+    COMP =    2
+    GEOM =    3
+    GRAPH =   4
+    ROOTSIG = 6
+    NONE =    7
 
 class Features(Enum):
     PRIM_ID = 0,
@@ -103,16 +104,6 @@ class WaveopsFlags(Flag):
 
 def str_to_WaveopsFlags(string: str) -> WaveopsFlags:
     return getattr(WaveopsFlags, string, WaveopsFlags.WAVE_OPS_NONE)
-
-class DescriptorSets(Enum):
-    UPDATE_FREQ_NONE = 0
-    UPDATE_FREQ_PER_FRAME = 1
-    UPDATE_FREQ_PER_BATCH = 2
-    UPDATE_FREQ_PER_DRAW = 3
-    UPDATE_FREQ_USER = 4
-    space4 = 5
-    space5 = 6
-    space6 = 7
 
 class StructType(Enum):
     CBUFFER = 0
@@ -337,15 +328,34 @@ class Shader:
     def getArrayLen(self, name):
         return getArrayLen(self.defines, name)
 
+    
+def line_is_srt_declaration( line ):
+    if 'DECLARE_SRT_RESOURCE(' in line.strip():
+        return True;
+    return False;    
+
+def get_srt_tuple(line):
+    result = tuple(getMacro(line))
+    return result
+
 def collect_resources(lines: list):
     decls, rs = { dt: {} for dt in StructType }, []
     dt: StructType = None
     decl = None
+    parsing_srt = False
     for fi, ln, line in iter_lines(lines):
+    
+        stripped_line = line.strip()
+        line_tokens = re.findall(r'\w+', line)
 
-        if 'RES(' in line:
-            rs += [tuple(getMacro(line))]
+        if line_is_srt_declaration(line):
+            rs += [get_srt_tuple(line)]
             fsl_assert(');' in line, fi, ln, message='Resource declaration requires ;-termination')
+            
+        if 'DECLARE_SRT_BEGIN' in line:
+            parsing_srt = True
+        if 'DECLARE_SRT_END' in line:
+            parsing_srt = False
 
         if decl:
             if 'DATA('in line:
@@ -387,6 +397,11 @@ def getShader(platform: Platforms, binary: ShaderBinary, fsl: list, dst=None, li
     # Graph shaders exception. #TODO: Check again
     if binary.stage is Stages.GRAPH:
         stage = Stages.GRAPH
+        entry_ret = 'void'
+        entry_args = []
+        waveops_flags = []
+    elif binary.stage is Stages.ROOTSIG:
+        stage = Stages.ROOTSIG
         entry_ret = 'void'
         entry_args = []
         waveops_flags = []
@@ -583,6 +598,8 @@ def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, bin
             stage = Stages.GEOM
         if line.startswith('#graph'):
             stage = Stages.GRAPH
+        if line.startswith('#rootsig'):
+            stage = Stages.ROOTSIG
         if stage is not Stages.NONE:
 
             binary = ShaderBinary()
@@ -660,6 +677,10 @@ def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, bin
                 else:
                     cmd += ['-MMD', '-MF', deps_filepath]
 
+            if binary.stage is Stages.ROOTSIG:
+                if platform_langs[platform] is 'DIRECT3D12':
+                    cmd += ['-z']
+
             cp = subprocess.run(cmd, input=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             if 0 != cp.returncode:
@@ -705,6 +726,9 @@ def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, bin
             doProcess = b'_MAIN(' in shaderSource
             if binary.stage is Stages.GRAPH:
                 doProcess = b'[Shader("node")]' in shaderSource
+            if binary.stage is Stages.ROOTSIG:
+                if platform_langs[platform] is 'DIRECT3D12':
+                    doProcess = True
             if doProcess:
                 binary.preprocessed_srcs[platform] = shaderSource.decode().splitlines(keepends=True)
 

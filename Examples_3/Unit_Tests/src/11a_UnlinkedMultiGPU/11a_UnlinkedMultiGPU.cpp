@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,6 +52,10 @@
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
+// fsl
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/srt.h"
+
 /// Demo structures
 struct PlanetInfoStruct
 {
@@ -68,6 +72,7 @@ struct PlanetInfoStruct
 struct UniformBlock
 {
     mat4 mProjectView;
+    mat4 mSkyProjectView;
     mat4 mToWorldMat[MAX_PLANETS];
     vec4 mColor[MAX_PLANETS];
 
@@ -114,28 +119,23 @@ SwapChain* pSwapChain = NULL;
 Shader*   pSphereShader[gViewCount] = { NULL };
 Pipeline* pSpherePipeline[gViewCount] = { NULL };
 
-RootSignature* pCopyQuadRootSignature = NULL;
 Shader*        pCopyQuadShader = NULL;
 Pipeline*      pCopyQuadPipeline = NULL;
-Sampler*       pCopyQuadSampler = NULL;
 Buffer*        pQuadVertexBuffer = NULL;
 DescriptorSet* pDescriptorSetCopyQuad = NULL;
 
 Shader*        pSkyBoxDrawShader[gViewCount] = { NULL };
 Pipeline*      pSkyBoxDrawPipeline[gViewCount] = { NULL };
-RootSignature* pRootSignature[gViewCount] = { NULL };
 Sampler*       pSamplerSkyBox[gViewCount] = { NULL };
 DescriptorSet* pDescriptorSetTexture[gViewCount] = { NULL };
 DescriptorSet* pDescriptorSetUniforms[gViewCount] = { NULL };
 
 Buffer* pProjViewUniformBuffer[gDataBufferCount][gViewCount] = { { NULL } };
-Buffer* pSkyboxUniformBuffer[gDataBufferCount][gViewCount] = { { NULL } };
 
 uint32_t gFrameIndex = 0;
 
 int              gNumberOfSpherePoints;
 UniformBlock     gUniformData;
-UniformBlock     gUniformDataSky;
 PlanetInfoStruct gPlanetInfoData[gNumPlanets];
 
 ICameraController* pCameraController = NULL;
@@ -172,15 +172,15 @@ uint32_t     gSelectedGpuIndices[gViewCount] = { 0, 1 };
 float*       pSpherePoints;
 
 uint32_t    gCurrentScriptIndex = 0;
-const char* gTestScripts[] = { "11a_UnlinkedMultiGPU/Test0.lua" };
+const char* gTestScripts[] = { "Test0.lua" };
 
 float gFoVH = 90.0f;
 
 #ifdef AUTOMATED_TESTING
 // For this UT the test ordering is done manually..
 // It is done based of the number of times we reset the APP..
-const char*    gSwapRendererTestScriptFileName = "11a_UnlinkedMultiGPU/Test_SwapRenderers_Swap.lua";
-const char*    gSwapRendererScreenshotTestScriptFileName = "11a_UnlinkedMultiGPU/Test_SwapRenderers_Screenshot.lua";
+const char*    gSwapRendererTestScriptFileName = "Test_SwapRenderers_Swap.lua";
+const char*    gSwapRendererScreenshotTestScriptFileName = "Test_SwapRenderers_Screenshot.lua";
 int32_t        gNumResetsFromTestScripts = 0; // number of times we have reset the app..
 const uint32_t gNumScripts = (sizeof(gTestScripts) / sizeof(gTestScripts[0])) + 1;
 #else
@@ -222,7 +222,12 @@ public:
 
         // Generate sphere vertex buffer
         if (!pSpherePoints)
-            generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
+        {
+            gNumberOfSpherePoints = 0;
+            generateSpherePoints(NULL, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
+            pSpherePoints = (float*)tf_malloc(sizeof(float) * gNumberOfSpherePoints);
+            generateSpherePoints(pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
+        }
 
         // Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
         // Sun
@@ -329,6 +334,9 @@ public:
         ExtendedSettings* extendedSettings = NULL;
         addGPUConfigurationRules(extendedSettings);
         initRendererContext(GetName(), &contextSettings, &pContext);
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+
         if (!pContext || pContext->mGpuCount < 1)
         {
             LOGF(LogLevel::eWARNING, "Unlinked multi GPU is not supported with the selected API Falling back to single GPU mode.");
@@ -345,6 +353,7 @@ public:
                 ShowUnsupportedMessage("Failed To Initialize renderer!");
                 return false;
             }
+            initRootSignature(pRenderer[0], &rootDesc);
             setupGPUConfigurationPlatformParameters(pRenderer[0], settings.pExtendedSettings);
             for (uint32_t i = 1; i < gViewCount; ++i)
                 pRenderer[i] = pRenderer[0];
@@ -383,6 +392,7 @@ public:
                         ShowUnsupportedMessage("Failed To Initialize renderer!");
                         return false;
                     }
+                    initRootSignature(pRenderer[i], &rootDesc);
                     setupGPUConfigurationPlatformParameters(pRenderer[i], settings.pExtendedSettings);
                 }
             }
@@ -506,15 +516,6 @@ public:
                 samplerDesc.mMinFilter = FILTER_NEAREST;
             }
         }
-        SamplerDesc samplerDesc = { FILTER_NEAREST,
-                                    FILTER_NEAREST,
-                                    MIPMAP_MODE_NEAREST,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE,
-                                    ADDRESS_MODE_CLAMP_TO_EDGE };
-
-        addSampler(pRenderer[0], &samplerDesc, &pCopyQuadSampler);
-
         uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
         BufferLoadDesc sphereVbDesc = {};
         sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -608,8 +609,6 @@ public:
                 ubDesc.mDesc.mNodeIndex = j;
                 ubDesc.ppBuffer = &pProjViewUniformBuffer[i][j];
                 addResource(&ubDesc, NULL);
-                ubDesc.ppBuffer = &pSkyboxUniformBuffer[i][j];
-                addResource(&ubDesc, NULL);
             }
         }
 
@@ -626,7 +625,6 @@ public:
                 for (uint32_t i = 0; i < gDataBufferCount; ++i)
                 {
                     pProjViewUniformBuffer[i][view] = pProjViewUniformBuffer[i][0];
-                    pSkyboxUniformBuffer[i][view] = pSkyboxUniformBuffer[i][0];
                 }
             }
         }
@@ -645,7 +643,7 @@ public:
         pCameraController->setMotionParameters(cmp);
 
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer[0], pGraphicsQueue[0]);
+        initScreenshotCapturer(pRenderer[0], pGraphicsQueue[0], GetName());
         gFrameIndex = 0;
         gMultiGPURestart = false;
 
@@ -660,7 +658,7 @@ public:
         // In case if SwapRenderer, this decides what scripts get executed...
         gNumResetsFromTestScripts++;
 #endif
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
         const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
 
         exitCameraController(pCameraController);
@@ -678,7 +676,6 @@ public:
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
                 removeResource(pProjViewUniformBuffer[i][view]);
-                removeResource(pSkyboxUniformBuffer[i][view]);
             }
 
             removeResource(pSphereVertexBuffer[view]);
@@ -686,10 +683,8 @@ public:
 
             for (uint i = 0; i < 6; ++i)
                 removeResource(pSkyBoxTextures[view][i]);
-
             removeSampler(pRenderer[view], pSamplerSkyBox[view]);
         }
-        removeSampler(pRenderer[0], pCopyQuadSampler);
 
         for (uint32_t j = 0; j < gViewCount; ++j)
         {
@@ -707,7 +702,11 @@ public:
         for (uint32_t view = 0; view < gViewCount; ++view)
         {
             if (view < rendererCount)
+            {
+                exitRootSignature(pRenderer[view]);
                 exitRenderer(pRenderer[view]);
+            }
+
             pRenderer[view] = NULL;
         }
         removeGPUConfigurationRules();
@@ -734,7 +733,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
-            addRootSignatures();
             addDescriptorSets();
         }
 
@@ -890,7 +888,6 @@ public:
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSets();
-            removeRootSignatures();
             removeShaders();
         }
     }
@@ -973,9 +970,8 @@ public:
             gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
         }
 
-        gUniformDataSky = gUniformData;
         viewMat.setTranslation(vec3(0));
-        gUniformDataSky.mProjectView = projMat * viewMat;
+        gUniformData.mSkyProjectView = projMat * viewMat;
     }
 
     void Draw()
@@ -996,11 +992,6 @@ public:
             beginUpdateResource(&viewProjCbv);
             memcpy(viewProjCbv.pMappedData, &gUniformData, sizeof(gUniformData));
             endUpdateResource(&viewProjCbv);
-
-            BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex][i] };
-            beginUpdateResource(&skyboxViewProjCbv);
-            memcpy(skyboxViewProjCbv.pMappedData, &gUniformDataSky, sizeof(gUniformDataSky));
-            endUpdateResource(&skyboxViewProjCbv);
         }
 
         for (int i = gViewCount - 1; i >= 0; --i)
@@ -1318,13 +1309,13 @@ public:
             }
             else
             {
-                DescriptorSetDesc setDesc = { pRootSignature[i], DESCRIPTOR_UPDATE_FREQ_NONE, 1, i };
+                DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
                 addDescriptorSet(pRenderer[i], &setDesc, &pDescriptorSetTexture[i]);
-                setDesc = { pRootSignature[i], DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount * 2, i };
+                setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount * 2, 0);
                 addDescriptorSet(pRenderer[i], &setDesc, &pDescriptorSetUniforms[i]);
             }
         }
-        DescriptorSetDesc setDesc = { pCopyQuadRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gDataBufferCount * gViewCount, 0 };
+        DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, gDataBufferCount * gViewCount, 0);
         addDescriptorSet(pRenderer[0], &setDesc, &pDescriptorSetCopyQuad);
     }
 
@@ -1338,48 +1329,6 @@ public:
             removeDescriptorSet(pRenderer[view], pDescriptorSetUniforms[view]);
         }
         removeDescriptorSet(pRenderer[0], pDescriptorSetCopyQuad);
-    }
-
-    void addRootSignatures()
-    {
-        for (uint32_t i = 0; i < gViewCount; ++i)
-        {
-            if (!gMultiGPUCurrent && i > 0)
-            {
-                pRootSignature[i] = pRootSignature[0];
-            }
-            else
-            {
-                Shader*           shaders[] = { pSphereShader[i], pSkyBoxDrawShader[i] };
-                const char*       staticSamplerNames[] = { "uSampler0" };
-                Sampler*          staticSamplers[] = { pSamplerSkyBox[i] };
-                RootSignatureDesc rootDesc = {};
-                rootDesc.mStaticSamplerCount = 1;
-                rootDesc.ppStaticSamplerNames = staticSamplerNames;
-                rootDesc.ppStaticSamplers = staticSamplers;
-                rootDesc.mShaderCount = 2;
-                rootDesc.ppShaders = shaders;
-                addRootSignature(pRenderer[i], &rootDesc, &pRootSignature[i]);
-            }
-        }
-        const char*       staticSamplerNames[] = { "uCopyQuadSampler" };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mStaticSamplerCount = 1;
-        rootDesc.ppStaticSamplerNames = staticSamplerNames;
-        rootDesc.ppStaticSamplers = &pCopyQuadSampler;
-        rootDesc.mShaderCount = 1;
-        rootDesc.ppShaders = &pCopyQuadShader;
-        addRootSignature(pRenderer[0], &rootDesc, &pCopyQuadRootSignature);
-    }
-
-    void removeRootSignatures()
-    {
-        const uint32_t rendererCount = gMultiGPUCurrent ? gViewCount : 1;
-        for (uint32_t view = 0; view < rendererCount; ++view)
-        {
-            removeRootSignature(pRenderer[view], pRootSignature[view]);
-        }
-        removeRootSignature(pRenderer[0], pCopyQuadRootSignature);
     }
 
     void addShaders()
@@ -1468,7 +1417,6 @@ public:
             pipelineSettings.pVertexLayout = &vertexLayout;
             pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 
-            pipelineSettings.pRootSignature = pRootSignature[i];
             pipelineSettings.pShaderProgram = pSphereShader[i];
             addPipeline(pRenderer[i], &desc, &pSpherePipeline[i]);
 
@@ -1518,7 +1466,6 @@ public:
         pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mFormat;
         pipelineSettings.pVertexLayout = &quadVertexLayout;
         pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-        pipelineSettings.pRootSignature = pCopyQuadRootSignature;
 
         desc.mGraphicsDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
         desc.mGraphicsDesc.pDepthState = &depthStateDesc;
@@ -1545,28 +1492,29 @@ public:
             if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
                 continue;
 
-            DescriptorData params[6] = {};
-            params[0].pName = "RightText";
+            DescriptorData params[7] = {};
+            params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gRightText);
             params[0].ppTextures = &pSkyBoxTextures[i][0];
-            params[1].pName = "LeftText";
+            params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gLeftText);
             params[1].ppTextures = &pSkyBoxTextures[i][1];
-            params[2].pName = "TopText";
+            params[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gTopText);
             params[2].ppTextures = &pSkyBoxTextures[i][2];
-            params[3].pName = "BotText";
+            params[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gBotText);
             params[3].ppTextures = &pSkyBoxTextures[i][3];
-            params[4].pName = "FrontText";
+            params[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gFrontText);
             params[4].ppTextures = &pSkyBoxTextures[i][4];
-            params[5].pName = "BackText";
+            params[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gBackText);
             params[5].ppTextures = &pSkyBoxTextures[i][5];
-            updateDescriptorSet(pRenderer[i], 0, pDescriptorSetTexture[i], 6, params);
+            params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gSamplerSkybox);
+            params[6].ppSamplers = pSamplerSkyBox;
+            updateDescriptorSet(pRenderer[i], 0, pDescriptorSetTexture[i], 7, params);
 
             for (uint32_t f = 0; f < gDataBufferCount; ++f)
             {
                 DescriptorData uParams[1] = {};
-                uParams[0].pName = "uniformBlock";
-                uParams[0].ppBuffers = &pSkyboxUniformBuffer[f][i];
-                updateDescriptorSet(pRenderer[i], f * 2 + 0, pDescriptorSetUniforms[i], 1, uParams);
+                uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
                 uParams[0].ppBuffers = &pProjViewUniformBuffer[f][i];
+                updateDescriptorSet(pRenderer[i], f * 2 + 0, pDescriptorSetUniforms[i], 1, uParams);
                 updateDescriptorSet(pRenderer[i], f * 2 + 1, pDescriptorSetUniforms[i], 1, uParams);
             }
         }
@@ -1576,7 +1524,7 @@ public:
             for (uint32_t view = 0; view < gViewCount; ++view)
             {
                 DescriptorData copyQuadParams[1] = {};
-                copyQuadParams[0].pName = "uTex";
+                copyQuadParams[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gTex);
                 copyQuadParams[0].ppTextures =
                     (view == 0 || !gMultiGPUCurrent) ? &pRenderTargets[f][view]->pTexture : &pRenderResult[f][view - 1];
                 updateDescriptorSet(pRenderer[0], f * gViewCount + view, pDescriptorSetCopyQuad, 1, copyQuadParams);

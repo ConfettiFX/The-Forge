@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -35,13 +35,13 @@ STRUCT(VSInput)
 	DATA(float3, position, POSITION);
 	DATA(float4, color, COLOR);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 PSInput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;
 	PSInput Out;
 
-	Out.position = mul(SceneConstantBuffer.orthProjMatrix, float4(In.position, 1.0f));
+	Out.position = mul(gSceneConstantBuffer.orthProjMatrix, float4(In.position, 1.0f));
 	Out.color = In.color;
 	
 	RETURN(Out);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -175,13 +175,13 @@ float3 EnvironmentBRDF(float NoV, float3 N, float3 V, float3 albedo, float3 F0, 
 	float3 kD = (float3(1.0f, 1.0f, 1.0f) - kS) * (1.0f - metalness);
 
 	// Sample Prefiltered specular map and Indirect light map..
-	float3 irradiance = SampleTexCube(irradianceMap, environmentSampler, N).rgb;
-	float3 specular = SampleLvlTexCube(specularMap, environmentSampler, R, roughness * 4).rgb;
+	float3 irradiance = SampleTexCube(gIrradianceMap, gEnvironmentSampler, N).rgb;
+	float3 specular = SampleLvlTexCube(gSpecularMap, gEnvironmentSampler, R, roughness * 4).rgb;
 
 	float2 maxNVRough = float2(NoV, roughness);
 
 	// Specular Integral map.
-	float2 brdf = SampleTex2D(brdfIntegrationMap, brdfIntegrationSampler, maxNVRough).rg;
+	float2 brdf = SampleTex2D(gBRDFIntegrationMap, gBRDFIntegrationSampler, maxNVRough).rg;
 
 	// Id & Is: diffuse & specular illumination
 	float3 Is = specular * (F * brdf.x + brdf.y);
@@ -222,7 +222,7 @@ float ShadowTest(float4 Pl, float2 shadowMapDimensions)
 		for (int y = -rowHalfSize; y <= rowHalfSize; ++y)
 		{
 			float2 texelOffset = float2(x, y) * texelSize;
-			float closestDepthInLSpace = SampleLvlTex2D(shadowMap, pointSampler, shadowTexCoords + texelOffset, 0).x;
+			float closestDepthInLSpace = SampleLvlTex2D(gShadowMap, gSamplerPointBorder, shadowTexCoords + texelOffset, 0).x;
 
 			// depth check
 			shadow += (pxDepthInLSpace + BIAS < closestDepthInLSpace) ? 1.0f : 0.0f;
@@ -232,7 +232,7 @@ float ShadowTest(float4 Pl, float2 shadowMapDimensions)
 	shadow /= (rowHalfSize * 2 + 1) * (rowHalfSize * 2 + 1);
 	return 1.0 - shadow;
 }
-
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN(VSOutput In)
 {
 	INIT_MAIN;
@@ -240,33 +240,33 @@ float4 PS_MAIN(VSOutput In)
 	// Read material surface properties
 	//
 	const float3 P = In.pos.xyz;
-	const float3 V = normalize(cbCamera.camPos.xyz - P);
-	const float2 uv = In.uv * cbObject.tiling;
+	const float3 V = normalize(gCamera.camPos.xyz - P);
+	const float2 uv = In.uv * gObject.tiling;
 
-	float3 _albedo = HasDiffuseTexture(cbObject.textureConfig)
-		? SampleTex2D(albedoMap, materialSampler, uv).rgb
-		: cbObject.albedoAndRoughness.rgb;
+	float3 _albedo = HasDiffuseTexture(gObject.textureConfig)
+		? SampleTex2D(gAlbedoMap, gMaterialSampler, uv).rgb
+		: gObject.albedoAndRoughness.rgb;
 
-	float _roughness = HasRoughnessTexture(cbObject.textureConfig)
-		? SampleTex2D(roughnessMap, materialSampler, uv).r
-		: cbObject.albedoAndRoughness.a;
+	float _roughness = HasRoughnessTexture(gObject.textureConfig)
+		? SampleTex2D(gRoughnessMap, gMaterialSampler, uv).r
+		: gObject.albedoAndRoughness.a;
 	if (_roughness < 0.04) _roughness = 0.04;
 
-	const float _metalness = HasMetallicTexture(cbObject.textureConfig)
-		? SampleTex2D(metallicMap, materialSampler, uv).r
-		: cbObject.baseMetalness;
+	const float _metalness = HasMetallicTexture(gObject.textureConfig)
+		? SampleTex2D(gMetallicMap, gMaterialSampler, uv).r
+		: gObject.baseMetalness;
 
-	const float _ao = HasAOTexture(cbObject.textureConfig)
-		? SampleTex2D(aoMap, materialSampler, uv).r
+	const float _ao = HasAOTexture(gObject.textureConfig)
+		? SampleTex2D(gAOMap, gMaterialSampler, uv).r
 		: 1.0f;
 
-	float3 normalvMF = UnpackNormals(uv, -V, vmfMap, materialSampler, In.normal, cbCamera.fNormalMapIntensity);
-	float3 normal = UnpackNormals(uv, -V, normalMap, materialSampler, In.normal, cbCamera.fNormalMapIntensity);
-	float3 N = HasNormalTexture(cbObject.textureConfig)
-		?  (HasVMFTexture(cbObject.textureConfig) ? normalvMF : normal)
+	float3 normalvMF = UnpackNormals(uv, -V, gVMFMap, gMaterialSampler, In.normal, gCamera.fNormalMapIntensity);
+	float3 normal = UnpackNormals(uv, -V, gNormalMap, gMaterialSampler, In.normal, gCamera.fNormalMapIntensity);
+	float3 N = HasNormalTexture(gObject.textureConfig)
+		?  (HasVMFTexture(gObject.textureConfig) ? normalvMF : normal)
 		: normalize(In.normal);
 	
-	const int isOrenNayar = IsOrenNayarDiffuse(cbObject.textureConfig) ? 1 : 0;
+	const int isOrenNayar = IsOrenNayarDiffuse(gObject.textureConfig) ? 1 : 0;
 
 	float3 Lo = float3(0.0f, 0.0f, 0.0f);	// outgoing radiance
 
@@ -278,52 +278,52 @@ float4 PS_MAIN(VSOutput In)
 
 	// Direct Lights
 	uint i;
-	for (i = 0; i < cbPointLights.NumPointLights; ++i)
+	for (i = 0; i < gPointLights.NumPointLights; ++i)
 	{
-		float3 L = P - cbPointLights.PointLights[i].positionAndRadius.xyz;
-		float3 lVec = L * (1.0 / cbPointLights.PointLights[i].positionAndRadius.w);
+		float3 L = P - gPointLights.PointLights[i].positionAndRadius.xyz;
+		float3 lVec = L * (1.0 / gPointLights.PointLights[i].positionAndRadius.w);
 		const float  attenuation = saturate(1.0f - dot(lVec, lVec));
 
 		L = normalize(L);
 		float NoL = max(dot(N, L), 0.0f);
 
-		const float3 color = cbPointLights.PointLights[i].colorAndIntensity.rgb;
-		const float  intensity = cbPointLights.PointLights[i].colorAndIntensity.a;
+		const float3 color = gPointLights.PointLights[i].colorAndIntensity.rgb;
+		const float  intensity = gPointLights.PointLights[i].colorAndIntensity.a;
 		const float3 radiance = color * intensity * attenuation;
 
 		Lo += BRDF(NoV, NoL, N, V, L, _albedo, F0, _roughness, _metalness, isOrenNayar) * radiance * NoL;
 	}
 
-	for (i = 0; i < cbDirectionalLights.NumDirectionalLights; ++i)
+	for (i = 0; i < gDirectionalLights.NumDirectionalLights; ++i)
 	{
-		const float3 L = cbDirectionalLights.DirectionalLights[i].directionAndShadowMap.xyz;
-		const float4 P_lightSpace = mul(cbDirectionalLights.DirectionalLights[i].viewProj, float4(P, 1.0f) );
+		const float3 L = gDirectionalLights.DirectionalLights[i].directionAndShadowMap.xyz;
+		const float4 P_lightSpace = mul(gDirectionalLights.DirectionalLights[i].viewProj, float4(P, 1.0f) );
 		const float  NoL = max(dot(N, L), 0.0f);
-		const float3 color = cbDirectionalLights.DirectionalLights[i].colorAndIntensity.rgb;
-		const float  intensity = cbDirectionalLights.DirectionalLights[i].colorAndIntensity.a;
+		const float3 color = gDirectionalLights.DirectionalLights[i].colorAndIntensity.rgb;
+		const float  intensity = gDirectionalLights.DirectionalLights[i].colorAndIntensity.a;
 		const float3 radiance = color * intensity;
-		const float  shadowing = ShadowTest(P_lightSpace, f2(cbDirectionalLights.DirectionalLights[i].shadowMapDimensions));
+		const float  shadowing = ShadowTest(P_lightSpace, f2(gDirectionalLights.DirectionalLights[i].shadowMapDimensions));
 
 		Lo += BRDF(NoV, NoL, N, V, L, _albedo, F0, _roughness, _metalness, isOrenNayar) * radiance * NoL * shadowing;
 	}
 
 	// Environment Lighting
-	if (cbCamera.bUseEnvironmentLight != 0)
+	if (gCamera.bUseEnvironmentLight != 0)
 	{
-		float aoWithIntensity = _ao  * cbCamera.fAOIntensity + (1.0f - cbCamera.fAOIntensity);
-		Lo += EnvironmentBRDF(NoV, N, V, _albedo, F0, _roughness, _metalness) * float3(aoWithIntensity, aoWithIntensity, aoWithIntensity) * cbCamera.fEnvironmentLightIntensity;
+		float aoWithIntensity = _ao  * gCamera.fAOIntensity + (1.0f - gCamera.fAOIntensity);
+		Lo += EnvironmentBRDF(NoV, N, V, _albedo, F0, _roughness, _metalness) * float3(aoWithIntensity, aoWithIntensity, aoWithIntensity) * gCamera.fEnvironmentLightIntensity;
 	}
 	else
 	{
-		if(HasAOTexture(cbObject.textureConfig))
-			Lo += _albedo * (_ao  * cbCamera.fAOIntensity + (1.0f - cbCamera.fAOIntensity)) * cbCamera.fAmbientLightIntensity;
+		if(HasAOTexture(gObject.textureConfig))
+			Lo += _albedo * (_ao  * gCamera.fAOIntensity + (1.0f - gCamera.fAOIntensity)) * gCamera.fAmbientLightIntensity;
 	}
 	
 	float3 color = Lo;
 	// Tone mapping
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
 	
-	int debugRenderMode = cbCamera.renderMode;
+	int debugRenderMode = gCamera.renderMode;
 	
 	// This define is set in the fmat file
 #ifdef MATERIAL_RENDER_MODE
@@ -339,7 +339,7 @@ float4 PS_MAIN(VSOutput In)
 	case 2: color = N; break;
 	case 3: color = f3(_roughness); break;
 	case 4: color = f3(_metalness); break;
-	case 5: color = (f3(_ao) * cbCamera.fAOIntensity + (1.0f - cbCamera.fAOIntensity)); break;
+	case 5: color = (f3(_ao) * gCamera.fAOIntensity + (1.0f - gCamera.fAOIntensity)); break;
 	}
 
 	Out = float4(color.r, color.g, color.b, 1.0f);

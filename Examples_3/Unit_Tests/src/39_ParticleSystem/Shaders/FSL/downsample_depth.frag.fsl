@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,9 +23,8 @@
 */
 
 #include "shader_defs.h.fsl"
-
-RES(SamplerState, pointClampSampler, UPDATE_FREQ_NONE, s2, binding = 28);
-RES(Tex2D(float), depthBuffer, UPDATE_FREQ_NONE, t4, binding = 29);
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 STRUCT(PsIn)
 {
@@ -33,13 +32,9 @@ STRUCT(PsIn)
 	DATA(float2, screenPos, TEXCOORD0);
 };
 
-STRUCT(downsampleRootConstantsData)
-{
-	DATA(uint2, size, None);
-};
-RES(ROOT_CONSTANT(downsampleRootConstantsData), downsampleRootConstants, UPDATE_FREQ_NONE, b0, binding = 0);
 
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float2 PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
@@ -50,14 +45,14 @@ float2 PS_MAIN( PsIn In )
 	float minDepth = 1.0;
 	float maxDepth = 0.0;
 
-	float2 uv = float2(otherCoords) / float2(downsampleRootConstants.size * 2);
-	float2 texelSize = 1.0 / float2(downsampleRootConstants.size * 2);
+	float2 uv = float2(otherCoords) / float2(gPerFrameConstants.downSampleSize * 2);
+	float2 texelSize = 1.0 / float2(gPerFrameConstants.downSampleSize * 2);
 
 	for (uint y=0; y<2; y++) 
 	{
 		for (uint x=0; x<2; x++)
 		{
-			float depth = SampleTex2D(depthBuffer, pointClampSampler, uv + float2(x, y) * texelSize).x;
+			float depth = SampleTex2D(gDepthBuffer, gSamplerPointBorder, uv + float2(x, y) * texelSize).x;
 			minDepth = min(minDepth, depth);
 			maxDepth = max(maxDepth, depth);
 		}

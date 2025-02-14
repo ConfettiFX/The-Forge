@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 // Shader for Skybox in Unit Test 01 - Transformations
 
-#define MAX_PLANETS 20
+#include "resources.h.fsl"
 
 STRUCT(VSOutput)
 {
@@ -32,13 +32,6 @@ STRUCT(VSOutput)
     DATA(float4, TexCoord, TEXCOORD);
 };
 
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s7, binding = 7);
-RES(Tex2D(float4), RightText, UPDATE_FREQ_NONE, t1, binding = 1);
-RES(Tex2D(float4), LeftText, UPDATE_FREQ_NONE, t2, binding = 2);
-RES(Tex2D(float4), TopText, UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Tex2D(float4), BotText, UPDATE_FREQ_NONE, t4, binding = 4);
-RES(Tex2D(float4), FrontText, UPDATE_FREQ_NONE, t5, binding = 5);
-RES(Tex2D(float4), BackText, UPDATE_FREQ_NONE, t6, binding = 6);
 
 float4 PS_MAIN( VSOutput In )
 {
@@ -51,37 +44,37 @@ float4 PS_MAIN( VSOutput In )
     {
         newtextcoord = (In.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        Out = SampleTex2D(RightText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gRightText, gSamplerSkybox, newtextcoord);
     }
     else if (side == 2.0f)
     {
         newtextcoord = (In.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        Out = SampleTex2D(LeftText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gLeftText, gSamplerSkybox, newtextcoord);
     }
     else if (side == 4.0f)
     {
         newtextcoord = (In.TexCoord.xz) / 20 +0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        Out = SampleTex2D(BotText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gBotText, gSamplerSkybox, newtextcoord);
     }
     else if (side == 5.0f)
     {
         newtextcoord = (In.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        Out = SampleTex2D(FrontText, uSampler0, newtextcoord);  
+        Out = SampleTex2D(gFrontText, gSamplerSkybox, newtextcoord);  
     }
     else if (side == 6.0f)
     {
         newtextcoord = (In.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(1-newtextcoord.x, 1 - newtextcoord.y);
-        Out = SampleTex2D(BackText, uSampler0, newtextcoord);  
+        Out = SampleTex2D(gBackText, gSamplerSkybox, newtextcoord);  
     }
 	else
     {
         newtextcoord = (In.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        Out = SampleTex2D(TopText, uSampler0, newtextcoord);
+        Out = SampleTex2D(gTopText, gSamplerSkybox, newtextcoord);
     }
 	RETURN(Out);
 }

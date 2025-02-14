@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,6 +23,8 @@
 */
 
 // USERMACRO: SAMPLE_COUNT [1,2,4]
+#include "vb_resources.h.fsl"
+#include "srt.h"
 
 #ifndef SAMPLE_COUNT
 #define SAMPLE_COUNT 4
@@ -33,8 +35,8 @@ STRUCT(PsIn)
     DATA(float4, Position, SV_Position);
 };
 
-RES(Tex2DMS(float4, SAMPLE_COUNT), msaaSource, UPDATE_FREQ_NONE, t0, binding = 0);
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PsIn In )
 {
     INIT_MAIN;
@@ -42,7 +44,7 @@ float4 PS_MAIN( PsIn In )
     value = f4(0);
     uint2 texCoord = uint2(In.Position.xy);
     for(int i = 0; i < SAMPLE_COUNT; ++i)
-        value += LoadTex2DMS(msaaSource, NO_SAMPLER, texCoord, i);
+        value += LoadTex2DMS(gMsaaSource, NO_SAMPLER, texCoord, i);
     value /= SAMPLE_COUNT;
     RETURN(value);
 }

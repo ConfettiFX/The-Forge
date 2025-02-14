@@ -17,6 +17,8 @@
 		64A4D5902C98AFF900B6B629 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
 		64A4D5922C98B00300B6B629 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5912C98B00300B6B629 /* UIKit.framework */; };
 		64A4D5942C98B00B00B6B629 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5932C98B00B00B6B629 /* CoreVideo.framework */; };
+		64C20DF52CACAABE0050262E /* ToolFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 64C20DF42CACAABE0050262E /* ToolFileSystem.c */; };
+		64C20DF92CACAAF60050262E /* CocoaToolsFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 64C20DF82CACAAF60050262E /* CocoaToolsFileSystem.mm */; };
 		650CCC7F2223CE11003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC7E2223CE11003533D9 /* MetalPerformanceShaders.framework */; };
 		7F6E00D32A93F81B00981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00D22A93F81B00981E7B /* QuartzCore.framework */; };
 		7F6E00D52A93F81F00981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00D42A93F81F00981E7B /* AppKit.framework */; };
@@ -38,6 +40,8 @@
 		EC2460642C94F4FF0002AE10 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC2460622C94F4FF0002AE10 /* Assets.xcassets */; };
 		EC2460672C94F51B0002AE10 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC2460662C94F51B0002AE10 /* macOSAppDelegate.m */; };
 		EC24606B2C94F5690002AE10 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC2460682C94F5630002AE10 /* iOSAppDelegate.m */; };
+		F25E31C22D4932D80002574A /* Test_HotReload.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31C02D4932D80002574A /* Test_HotReload.lua */; };
+		F25E31C32D4932D80002574A /* Test_HotReload.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31C02D4932D80002574A /* Test_HotReload.lua */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -116,6 +120,8 @@
 		5C55833721413EE30019960B /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		64A4D5912C98B00300B6B629 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		64A4D5932C98B00B00B6B629 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		64C20DF42CACAABE0050262E /* ToolFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ToolFileSystem.c; path = ../../../../Common_3/Utilities/FileSystem/ToolFileSystem.c; sourceTree = "<group>"; };
+		64C20DF82CACAAF60050262E /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../../../Common_3/OS/Darwin/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
 		650CCC7E2223CE11003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		7F6E005D2A93DA5800981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
 		7F6E005E2A93DA5800981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
@@ -149,7 +155,7 @@
 		EC2460682C94F5630002AE10 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		EC2460692C94F5630002AE10 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		EC66B8EA2C936BE60004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
-		EC66B8EF2C936C5D0004DC3B /* 19_CodeHotReload */ = {isa = PBXFileReference; lastKnownFileType = folder; path = 19_CodeHotReload; sourceTree = "<group>"; };
+		F25E31C02D4932D80002574A /* Test_HotReload.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = Test_HotReload.lua; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,6 +222,47 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		64C20DF12CACA9A30050262E /* Common_3 */ = {
+			isa = PBXGroup;
+			children = (
+				64C20DF62CACAACE0050262E /* OS */,
+				64C20DF22CACAA900050262E /* Utilities */,
+			);
+			name = Common_3;
+			sourceTree = "<group>";
+		};
+		64C20DF22CACAA900050262E /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				64C20DF32CACAA9F0050262E /* FileSystem */,
+			);
+			name = Utilities;
+			sourceTree = "<group>";
+		};
+		64C20DF32CACAA9F0050262E /* FileSystem */ = {
+			isa = PBXGroup;
+			children = (
+				64C20DF42CACAABE0050262E /* ToolFileSystem.c */,
+			);
+			name = FileSystem;
+			sourceTree = "<group>";
+		};
+		64C20DF62CACAACE0050262E /* OS */ = {
+			isa = PBXGroup;
+			children = (
+				64C20DF72CACAADC0050262E /* Darwin */,
+			);
+			name = OS;
+			sourceTree = "<group>";
+		};
+		64C20DF72CACAADC0050262E /* Darwin */ = {
+			isa = PBXGroup;
+			children = (
+				64C20DF82CACAAF60050262E /* CocoaToolsFileSystem.mm */,
+			);
+			name = Darwin;
+			sourceTree = "<group>";
+		};
 		7F6E000E2A93D9E400981E7B /* BuildConfigs */ = {
 			isa = PBXGroup;
 			children = (
@@ -263,7 +310,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				EC66B8ED2C936C180004DC3B /* Art */,
+				64C20DF12CACA9A30050262E /* Common_3 */,
 				EC66B8E52C936B770004DC3B /* Examples_3 */,
 				7F6E000E2A93D9E400981E7B /* BuildConfigs */,
 				B24B6FB127F5A6D900085495 /* 19a_CodeHotReload_Game.xcodeproj */,
@@ -272,6 +319,7 @@
 				C95132EE2010E68A002E584B /* 19_CodeHotReload_Main_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
 				28A5ABEA201F482F000E571F /* Frameworks */,
+				F25E31C12D4932D80002574A /* Scripts */,
 			);
 			sourceTree = "<group>";
 		};
@@ -331,22 +379,14 @@
 			path = 19_CodeHotReload;
 			sourceTree = "<group>";
 		};
-		EC66B8ED2C936C180004DC3B /* Art */ = {
+		F25E31C12D4932D80002574A /* Scripts */ = {
 			isa = PBXGroup;
 			children = (
-				EC66B8EE2C936C410004DC3B /* Scripts */,
+				F25E31C02D4932D80002574A /* Test_HotReload.lua */,
 			);
-			name = Art;
-			path = ../../../../Art;
-			sourceTree = "<group>";
-		};
-		EC66B8EE2C936C410004DC3B /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				EC66B8EF2C936C5D0004DC3B /* 19_CodeHotReload */,
-			);
-			path = Scripts;
-			sourceTree = "<group>";
+			name = Scripts;
+			path = ../../src/19_CodeHotReload/Scripts;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -481,6 +521,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
+				F25E31C32D4932D80002574A /* Test_HotReload.lua in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -492,6 +533,7 @@
 				EC2460632C94F4FF0002AE10 /* Info.plist in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 				EC2460642C94F4FF0002AE10 /* Assets.xcassets in Resources */,
+				F25E31C22D4932D80002574A /* Test_HotReload.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -514,7 +556,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/19_CodeHotReload/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/19_CodeHotReload/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09F9CC50284FD3B40064E142 /* ShellScript */ = {
@@ -533,7 +575,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/19_CodeHotReload/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/19_CodeHotReload/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C61B5A824D2E70E00EF5D20 /* Run Script */ = {
@@ -588,7 +630,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64C20DF52CACAABE0050262E /* ToolFileSystem.c in Sources */,
 				EC2460672C94F51B0002AE10 /* macOSAppDelegate.m in Sources */,
+				64C20DF92CACAAF60050262E /* CocoaToolsFileSystem.mm in Sources */,
 				B22BBEB121C432DC0071950F /* 19_CodeHotReload_Main.cpp in Sources */,
 				B2DA9AB6274E942200617414 /* flecs.c in Sources */,
 			);

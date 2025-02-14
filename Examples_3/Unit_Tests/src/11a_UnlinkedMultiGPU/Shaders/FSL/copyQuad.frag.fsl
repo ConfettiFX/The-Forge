@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,13 +28,12 @@ STRUCT(VSOutput)
     DATA(float2, TexCoords, TEXCOORD0);
 };
 
-RES(SamplerState, uCopyQuadSampler, UPDATE_FREQ_NONE, s0, binding = 0);
-RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t0, binding = 1);
+#include "resources.h.fsl"
 
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = SampleTex2D(uTex, uCopyQuadSampler, In.TexCoords);
+    Out = SampleTex2D(gTex, gSamplerPointClamp, In.TexCoords);
 	RETURN(Out);
 }

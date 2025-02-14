@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,8 +50,12 @@
 // Geometry
 #include "../../../Visibility_Buffer/src/SanMiguel.h"
 
+// fsl
+
 #define NO_FSL_DEFINITIONS
+#include "../../../../Common_3/Graphics/FSL/defaults.h"
 #include "Shaders/FSL/Shared.fsl.h"
+#include "Shaders/FSL/srt.h"
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
@@ -183,6 +187,10 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        RootSignatureDesc rootDesc = {};
+        INIT_RS_DESC(rootDesc, "default.rootsig", "compute.rootsig");
+        initRootSignature(pRenderer, &rootDesc);
+
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
@@ -225,14 +233,6 @@ public:
 
         if (gRaytracingTechniqueSupported[RAY_QUERY])
         {
-            SamplerDesc samplerDesc = { FILTER_NEAREST,
-                                        FILTER_NEAREST,
-                                        MIPMAP_MODE_NEAREST,
-                                        ADDRESS_MODE_CLAMP_TO_EDGE,
-                                        ADDRESS_MODE_CLAMP_TO_EDGE,
-                                        ADDRESS_MODE_CLAMP_TO_EDGE };
-            addSampler(pRenderer, &samplerDesc, &pSampler);
-
             VertexLayout vertexLayout = {};
             vertexLayout.mBindingCount = 3;
             vertexLayout.mAttribCount = 3;
@@ -375,10 +375,6 @@ public:
             removeAccelerationStructureScratch(pRaytracing, pSanMiguelBottomAS);
             removeAccelerationStructureScratch(pRaytracing, pSanMiguelAS);
 
-            samplerDesc = {
-                FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
-            };
-            addSampler(pRenderer, &samplerDesc, &pLinearSampler);
             /************************************************************************/
             // 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
             /************************************************************************/
@@ -407,7 +403,7 @@ public:
 
         // App Actions
         AddCustomInputBindings();
-        initScreenshotInterface(pRenderer, pQueue);
+        initScreenshotCapturer(pRenderer, pQueue, GetName());
         mFrameIdx = 0;
 
         waitForAllResourceLoads();
@@ -417,7 +413,7 @@ public:
 
     void Exit()
     {
-        exitScreenshotInterface();
+        exitScreenshotCapturer();
 
         exitCameraController(pCameraController);
 
@@ -446,8 +442,6 @@ public:
             }
             tf_free(SanMiguelProp.pTextureStorage);
 
-            removeSampler(pRenderer, pLinearSampler);
-
             for (uint32_t i = 0; i < gDataBufferCount; i++)
             {
                 removeResource(pRayGenConfigBuffer[i]);
@@ -457,13 +451,12 @@ public:
             removeAccelerationStructure(pRaytracing, pSanMiguelBottomAS);
             removeResource(SanMiguelProp.pGeom);
             removeResource(SanMiguelProp.pIndexBufferOffsetStream);
-
-            removeSampler(pRenderer, pSampler);
         }
 
         exitSemaphore(pRenderer, pImageAcquiredSemaphore);
         exitGpuCmdRing(pRenderer, &mCmdRing);
         exitQueue(pRenderer, pQueue);
+        exitRootSignature(pRenderer);
         exitResourceLoaderInterface(pRenderer);
         exitRaytracing(pRenderer, pRaytracing);
         exitRenderer(pRenderer);
@@ -541,7 +534,6 @@ public:
             if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
             {
                 addShaders();
-                addRootSignatures();
                 addDescriptorSets();
             }
 
@@ -668,7 +660,6 @@ public:
             if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
             {
                 removeDescriptorSets();
-                removeRootSignatures();
                 removeShaders();
             }
         }
@@ -884,6 +875,7 @@ public:
             cmdBindPipeline(pCmd, pPipeline[gRaytracingTechnique]);
 
             cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracing[gRaytracingTechnique]);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracingPerBatch[gRaytracingTechnique]);
             cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetUniforms[gRaytracingTechnique]);
 
             if (RAY_QUERY == gRaytracingTechnique)
@@ -911,7 +903,7 @@ public:
                             pDepthNormalRenderTarget[(mPathTracingData.mFrameIndex + 1) & 0x1]->pTexture, &denoisedTexture);
 
             DescriptorData params[1] = {};
-            params[0].pName = "uTex0";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gDisplayTexture);
             params[0].ppTextures = &denoisedTexture;
             updateDescriptorSet(pRenderer, mFrameIdx, pDescriptorSetTexture, 1, params);
 
@@ -949,6 +941,8 @@ public:
             /************************************************************************/
             // Draw computed results
             cmdBindPipeline(pCmd, pDisplayTexturePipeline);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracing[gRaytracingTechnique]);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracingPerBatch[gRaytracingTechnique]);
             cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetTexture);
             cmdDraw(pCmd, 3, 0);
             cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
@@ -1022,26 +1016,23 @@ public:
 
     void addDescriptorSets()
     {
-        DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+        for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
+        {
+            DescriptorSetDesc setDesc = SRT_SET_DESC_LARGE_RW(SrtData, Persistent, 1, 0);
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing[t]);
+            setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerFrame, gDataBufferCount, 0);
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[t]);
+            setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerBatch, 1, 0);
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracingPerBatch[t]);
+        }
+
+        DescriptorSetDesc setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerFrame, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
 
 #if USE_DENOISER
-        setDesc = { pDenoiserInputsRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
+        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0, pDescriptorSetRaytracing[0]);
         addDescriptorSet(pRenderer, &setDesc, &pDenoiserInputsDescriptorSet);
 #endif
-
-        for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
-        {
-            if (!pRootSignature[t])
-            {
-                continue;
-            }
-
-            setDesc = { pRootSignature[t], DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing[t]);
-            setDesc = { pRootSignature[t], DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gDataBufferCount };
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[t]);
-        }
     }
 
     void removeDescriptorSets()
@@ -1053,61 +1044,10 @@ public:
 
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
-            if (!pRootSignature[t])
-            {
-                continue;
-            }
+            removeDescriptorSet(pRenderer, pDescriptorSetRaytracingPerBatch[t]);
             removeDescriptorSet(pRenderer, pDescriptorSetRaytracing[t]);
             removeDescriptorSet(pRenderer, pDescriptorSetUniforms[t]);
         }
-    }
-
-    void addRootSignatures()
-    {
-        const char*       pStaticSamplers[] = { "uSampler0" };
-        RootSignatureDesc rootDesc = {};
-        rootDesc.mStaticSamplerCount = 1;
-        rootDesc.ppStaticSamplerNames = pStaticSamplers;
-        rootDesc.ppStaticSamplers = &pSampler;
-        rootDesc.mShaderCount = 1;
-        rootDesc.ppShaders = &pDisplayTextureShader;
-        addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
-
-        pStaticSamplers[0] = "linearSampler";
-
-        RootSignatureDesc signatureDesc = {};
-        signatureDesc.ppStaticSamplerNames = pStaticSamplers;
-        signatureDesc.ppStaticSamplers = &pLinearSampler;
-        signatureDesc.mStaticSamplerCount = 1;
-        if (gRaytracingTechniqueSupported[RAY_QUERY])
-        {
-            signatureDesc.ppShaders = &pShaderRayQuery;
-            signatureDesc.mShaderCount = 1;
-            addRootSignature(pRenderer, &signatureDesc, &pRootSignature[RAY_QUERY]);
-        }
-
-#if USE_DENOISER
-        RootSignatureDesc rootSignature = {};
-        rootSignature.ppShaders = &pDenoiserInputsShader;
-        rootSignature.mShaderCount = 1;
-        addRootSignature(pRenderer, &rootSignature, &pDenoiserInputsRootSignature);
-#endif
-    }
-
-    void removeRootSignatures()
-    {
-#if USE_DENOISER
-        removeRootSignature(pRenderer, pDenoiserInputsRootSignature);
-#endif
-        for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
-        {
-            if (pRootSignature[t])
-            {
-                removeRootSignature(pRenderer, pRootSignature[t]);
-                pRootSignature[t] = NULL;
-            }
-        }
-        removeRootSignature(pRenderer, pDisplayTextureSignature);
     }
 
     void addShaders()
@@ -1165,8 +1105,9 @@ public:
         {
             PipelineDesc rtPipelineDesc = {};
             rtPipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+            PIPELINE_LAYOUT_DESC(rtPipelineDesc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame),
+                                 SRT_LAYOUT_DESC(SrtData, PerBatch), NULL);
             ComputePipelineDesc& pipelineDesc = rtPipelineDesc.mComputeDesc;
-            pipelineDesc.pRootSignature = pRootSignature[RAY_QUERY];
             pipelineDesc.pShaderProgram = pShaderRayQuery;
             addPipeline(pRenderer, &rtPipelineDesc, &pPipeline[RAY_QUERY]);
 
@@ -1205,6 +1146,8 @@ public:
 
             PipelineDesc pipelineDesc = {};
             pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+            PIPELINE_LAYOUT_DESC(pipelineDesc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame),
+                                 SRT_LAYOUT_DESC(SrtData, PerBatch), NULL);
 
             TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
 
@@ -1242,6 +1185,8 @@ public:
 
         PipelineDesc graphicsPipelineDesc = {};
         graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+        PIPELINE_LAYOUT_DESC(graphicsPipelineDesc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame),
+                             SRT_LAYOUT_DESC(SrtData, PerBatch), NULL);
         GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.pRasterizerState = &rasterizerStateDesc;
@@ -1250,7 +1195,6 @@ public:
         pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.pVertexLayout = NULL;
-        pipelineSettings.pRootSignature = pDisplayTextureSignature;
         pipelineSettings.pShaderProgram = pDisplayTextureShader;
         addPipeline(pRenderer, &graphicsPipelineDesc, &pDisplayTexturePipeline);
     }
@@ -1263,77 +1207,72 @@ public:
 #endif
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
-            if (!pRootSignature[t])
-            {
-                continue;
-            }
             removePipeline(pRenderer, pPipeline[t]);
         }
     }
 
     void prepareDescriptorSets()
     {
-        DescriptorData params[11] = {};
+        DescriptorData perFrameParams[7] = {};
+        DescriptorData perBatchParams[5] = {};
 
-        params[0].pName = "indices";
-        params[0].ppBuffers = &SanMiguelProp.pGeom->pIndexBuffer;
-        params[1].pName = "positions";
-        params[1].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
-        params[2].pName = "normals";
-        params[2].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[1];
-        params[3].pName = "uvs";
-        params[3].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[2];
-        params[4].pName = "indexOffsets";
-        params[4].ppBuffers = &SanMiguelProp.pIndexBufferOffsetStream;
-        params[5].pName = "materialTextures";
-        params[5].ppTextures = SanMiguelProp.pTextureStorage;
-        params[5].mCount = SanMiguelProp.mMaterialCount;
-        params[6].pName = "gRtScene";
-        params[6].ppAccelerationStructures = &pSanMiguelAS;
-        params[7].pName = "gOutput";
-        params[7].ppTextures = &pComputeOutput;
+        perFrameParams[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gRtScene);
+        perFrameParams[0].ppAccelerationStructures = &pSanMiguelAS;
+        perFrameParams[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gIndexDataBuffer);
+        perFrameParams[1].ppBuffers = &SanMiguelProp.pGeom->pIndexBuffer;
+        perFrameParams[2].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexPositionBuffer);
+        perFrameParams[2].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[0];
+        perFrameParams[3].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexNormalBuffer);
+        perFrameParams[3].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[1];
+        perFrameParams[4].mIndex = SRT_RES_IDX(SrtData, Persistent, gVertexTexCoordBuffer);
+        perFrameParams[4].ppBuffers = &SanMiguelProp.pGeom->pVertexBuffers[2];
+        perFrameParams[5].mIndex = SRT_RES_IDX(SrtData, Persistent, gIndexOffsets);
+        perFrameParams[5].ppBuffers = &SanMiguelProp.pIndexBufferOffsetStream;
+        perFrameParams[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gMaterialTextures);
+        perFrameParams[6].ppTextures = SanMiguelProp.pTextureStorage;
+        perFrameParams[6].mCount = SanMiguelProp.mMaterialCount;
 
-        uint32_t paramIndex = 8;
+        perBatchParams[0].mIndex = SRT_RES_IDX(SrtData, PerBatch, gOutput);
+        perBatchParams[0].ppTextures = &pComputeOutput;
+
+        uint32_t paramIndex = 1;
         if (gUseUavRwFallback)
         {
-            params[paramIndex].pName = "gInput";
-            params[paramIndex].ppTextures = &pComputeOutput;
+            perBatchParams[paramIndex].mIndex = SRT_RES_IDX(SrtData, PerBatch, gInput);
+            perBatchParams[paramIndex].ppTextures = &pComputeOutput;
             ++paramIndex;
         }
 #if USE_DENOISER
-        params[paramIndex].pName = "gAlbedoOutput";
-        params[paramIndex].ppTextures = &pAlbedoTexture;
+        perBatchParams[paramIndex].mIndex = SRT_RES_IDX(SrtData, PerBatch, gAlbedoOutput);
+        perBatchParams[paramIndex].ppTextures = &pAlbedoTexture;
         ++paramIndex;
         if (gUseUavRwFallback)
         {
-            params[paramIndex].pName = "gAlbedoInput";
-            params[paramIndex].ppTextures = &pAlbedoTexture;
+            perBatchParams[paramIndex].mIndex = SRT_RES_IDX(SrtData, PerBatch, gAlbedoInput);
+            perBatchParams[paramIndex].ppTextures = &pAlbedoTexture;
             ++paramIndex;
         }
 #endif
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
-            if (!pRootSignature[t])
-            {
-                continue;
-            }
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing[t], paramIndex, params);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing[t], 7, perFrameParams);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracingPerBatch[t], paramIndex, perBatchParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
             {
                 DescriptorData uParams[1] = {};
-                uParams[0].pName = "gSettings";
+                uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gSettings);
                 uParams[0].ppBuffers = &pRayGenConfigBuffer[i];
                 updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms[t], 1, uParams);
             }
         }
-
+        DescriptorData params[7] = {};
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            params[0].pName = "uTex0";
+            params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gDisplayTexture);
             params[0].ppTextures = &pComputeOutput;
 #if USE_DENOISER
-            params[1].pName = "albedoTex";
+            params[1].mIndex = SRT_RES_IDX(SrtData, PerFrame, gAlbedoTex);
             params[1].ppTextures = &pAlbedoTexture;
 #endif
             updateDescriptorSet(pRenderer, i, pDescriptorSetTexture, 1 + USE_DENOISER, params);
@@ -1375,25 +1314,21 @@ private:
     AccelerationStructure* pSanMiguelBottomAS = NULL;
     AccelerationStructure* pSanMiguelAS = NULL;
     Shader*                pShaderRayQuery = NULL;
-
-    Shader*          pDisplayTextureShader = NULL;
-    Sampler*         pSampler = NULL;
-    Sampler*         pLinearSampler = NULL;
-    RootSignature*   pRootSignature[RAYTRACING_TECHNIQUE_COUNT] = {};
-    RootSignature*   pDisplayTextureSignature = NULL;
-    DescriptorSet*   pDescriptorSetRaytracing[RAYTRACING_TECHNIQUE_COUNT] = {};
-    DescriptorSet*   pDescriptorSetUniforms[RAYTRACING_TECHNIQUE_COUNT] = {};
-    DescriptorSet*   pDescriptorSetTexture = NULL;
-    Pipeline*        pPipeline[RAYTRACING_TECHNIQUE_COUNT] = {};
-    Pipeline*        pDisplayTexturePipeline = NULL;
-    SwapChain*       pSwapChain = NULL;
-    Texture*         pComputeOutput = NULL;
-    Semaphore*       pImageAcquiredSemaphore = NULL;
-    uint32_t         mFrameIdx = 0;
-    PathTracingData  mPathTracingData = {};
-    UIComponent*     pGuiWindow = NULL;
-    DynamicUIWidgets mDynamicWidgets[2] = {};
-    float3           mLightDirection = float3(0.2f, 1.8f, 0.1f);
+    Shader*                pDisplayTextureShader = NULL;
+    DescriptorSet*         pDescriptorSetRaytracing[RAYTRACING_TECHNIQUE_COUNT] = {};
+    DescriptorSet*         pDescriptorSetRaytracingPerBatch[RAYTRACING_TECHNIQUE_COUNT] = {};
+    DescriptorSet*         pDescriptorSetUniforms[RAYTRACING_TECHNIQUE_COUNT] = {};
+    DescriptorSet*         pDescriptorSetTexture = NULL;
+    Pipeline*              pPipeline[RAYTRACING_TECHNIQUE_COUNT] = {};
+    Pipeline*              pDisplayTexturePipeline = NULL;
+    SwapChain*             pSwapChain = NULL;
+    Texture*               pComputeOutput = NULL;
+    Semaphore*             pImageAcquiredSemaphore = NULL;
+    uint32_t               mFrameIdx = 0;
+    PathTracingData        mPathTracingData = {};
+    UIComponent*           pGuiWindow = NULL;
+    DynamicUIWidgets       mDynamicWidgets[2] = {};
+    float3                 mLightDirection = float3(0.2f, 1.8f, 0.1f);
 
 #if USE_DENOISER
     Texture*       pAlbedoTexture = NULL;

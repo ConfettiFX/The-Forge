@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,18 +26,13 @@
 #define vb_resources_h
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-RES(Tex2D(float4), diffuseMaps[256], UPDATE_FREQ_NONE, t3, binding = 6);
-RES(SamplerState, nearClampSampler, UPDATE_FREQ_NONE, s0, binding = 5);
-RES(Buffer(uint), indirectDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 2);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t1, binding = 3);
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t2, binding = 4);
+#include "Shader_Defs.h.fsl"
 
 STRUCT(objectUniformBlockData)
 {
     DATA(float4x4, worldViewProjMat, None);
     DATA(float4x4, prevWorldViewProjMat, None);
 };
-RES(CBUFFER(objectUniformBlockData), objectUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
 
 STRUCT(PsInOpaque)
 {
@@ -55,20 +50,115 @@ STRUCT(PsInAlphaTested)
 	DATA(FLAT(uint), materialID, TEXCOORD3);
 };
 
-STRUCT(PsOut)
+STRUCT(cbExtendCameraData)
 {
-	DATA(float4, VBData,       SV_Target0);
-	DATA(float2, MotionVector, SV_Target1);
+	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
+	DATA(float4x4, projMat, None);
+	DATA(float4x4, viewProjMat, None);
+	DATA(float4x4, InvViewProjMat, None);
+
+	DATA(float4, cameraWorldPos, None);
+
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
+
+	DATA(float4, mEnvColor, None);
+
+	DATA(float,  mGroundRoughness, None);
+	DATA(float,  mGroundMetallic, None);
+	DATA(uint,   mUseEnvMap, None);
 };
 
-float4 LoadVertex(uint index)
-{
-    return float4(asfloat(LoadByte4(vertexPositionBuffer, index * 12)).xyz, 1.0f);
-}
 
-float2 LoadTexCoord(uint index)
-{
-	return unpack2Floats(LoadByte(vertexTexCoordBuffer, index << 2));
-}
 
+STRUCT(cbPropertiesData)
+{
+	DATA(uint, renderMode, None);
+	DATA(float, useHolePatching, None);
+	DATA(float, useExpensiveHolePatching, None);
+	DATA(float, useNormalMap, None);
+
+	DATA(float, intensity, None);
+	DATA(float, useFadeEffect, None);
+	DATA(float, debugNonProjected, None);
+	DATA(float, padding01, None);
+};
+
+STRUCT(Light)
+{
+	DATA(float4, pos, None);
+	DATA(float4, col, None);
+	DATA(float,  radius, None);
+	DATA(float,  intensity, None);
+	DATA(float,  _pad0, None);
+	DATA(float,  _pad1, None);
+};
+
+STRUCT(DirectionalLight)
+{
+	DATA(float4, mCol, None); //alpha is the intesity
+	DATA(float4, mDir, None);
+};
+
+STRUCT(cbLightsData)
+{
+	DATA(Light, lights[16], None);
+	DATA(int, currAmountOflights, None);
+};
+STRUCT(cbDLightsData)
+{
+	DATA(DirectionalLight, dlights[16], None);
+	DATA(int, currAmountOfDLights, None);
+};
+
+STRUCT(uniformBlockData)
+{
+	DATA(float4x4, projView, None);
+};
+
+
+STRUCT(PlaneInfo)
+{
+	DATA(float4x4, rotMat, None);
+	DATA(float4, centerPoint, None);
+	DATA(float4, size, None);
+};
+
+STRUCT(planeInfoBufferData)
+{
+	DATA(PlaneInfo, planeInfo[MAX_PLANES], None);
+	DATA(uint, numPlanes, None);
+	DATA(uint, pad00, None);
+	DATA(uint, pad01, None);
+	DATA(uint, pad02, None);
+};
+
+
+
+
+
+// SSSR Common constants
+STRUCT(ConstantsData)
+{
+    DATA(float4x4, g_inv_view_proj, None);
+    DATA(float4x4, g_proj, None);
+    DATA(float4x4, g_inv_proj, None);
+    DATA(float4x4, g_view, None);
+    DATA(float4x4, g_inv_view, None);
+    DATA(float4x4, g_prev_view_proj, None);
+
+    DATA(uint, g_frame_index, None);
+    DATA(bool, g_clear_targets, None);
+    DATA(uint, g_max_traversal_intersections, None);
+    DATA(uint, g_min_traversal_occupancy, None);
+    DATA(uint, g_most_detailed_mip, None);
+    DATA(float, g_temporal_stability_factor, None);
+    DATA(float, g_depth_buffer_thickness, None);
+    DATA(uint, g_samples_per_quad, None);
+    DATA(uint, g_temporal_variance_guided_tracing_enabled, None);
+    DATA(float, g_roughness_threshold, None);
+    DATA(uint, g_skip_denoiser, None);
+};
 #endif /* vb_resources_h */

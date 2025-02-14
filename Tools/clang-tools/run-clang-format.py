@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# Copyright (c) 2017-2025 The Forge Interactive Inc.
 #
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -30,7 +30,14 @@ import sys
 
 scriptDirPath = os.path.dirname(os.path.abspath(__file__))
 theForgePath = os.path.dirname(os.path.dirname(scriptDirPath))
-customMiddlewarePath = os.path.join(os.path.dirname(theForgePath), "Custom-Middleware")
+
+# note(charlie): When we add more "neighbour repos" next to The-Forge,
+# we can add them here and they will be format-checked.
+formatDirs = [
+	"Custom-Middleware",
+	"Remote-Editor"
+];
+
 gitmodulesPath = os.path.join(theForgePath, ".gitmodules")
 filesToFormatFilePath = os.path.join(scriptDirPath, "clang-format-files.txt")
 outFilesFilePath = os.path.join(scriptDirPath, "out-files.txt")
@@ -127,35 +134,41 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true", help="If set, do not actually make the formatting changes. Files that require formatting are written to `out-files.txt`")
     args = parser.parse_args()
 
-    customMiddlewareFound = os.path.isdir(customMiddlewarePath)
-    if not customMiddlewareFound:
-        print("Custom-Middleware not found next to The-Forge repo", file = sys.stderr)
-
-    print("Started formatting")
-
-    if args.diff:
-        oldCwd = os.getcwd()
+    for dir in formatDirs:
+        dirPath = os.path.join(os.path.dirname(theForgePath), dir)
+        dirFound = os.path.isdir(dirPath)
+        if not dirFound:
+            print(f"{dir} not found next to The-Forge repo", file = sys.stderr)
+        print(dir)
+        print(dirPath);
+        print(dirFound)
         
-        walkRepoDiff(theForgePath, args.remote, args.branch)
-        walkSubmodulesDiffs(theForgePath, args.remote, args.branch)
+        print("Started formatting")
 
-        if customMiddlewareFound:
-            customMiddlewareBranchName = "master"
-
-            with open(gitmodulesPath, "r") as f:
-                for line in f:
-                    if line.startswith("#Custom-Middleware/Ephemeris"):
-                        customMiddlewareBranchName = line.split(":")[1].strip()
-                        break
-
-            walkRepoDiff(customMiddlewarePath, args.remote, customMiddlewareBranchName)
-
-        os.chdir(oldCwd)
-    else:
-        walkLocalDir(theForgePath)
-
-        if customMiddlewareFound:
-            walkLocalDir(customMiddlewarePath)
+        if args.diff:
+            oldCwd = os.getcwd()
+            
+            walkRepoDiff(theForgePath, args.remote, args.branch)
+            walkSubmodulesDiffs(theForgePath, args.remote, args.branch)
+        
+            if dirFound:
+                dirBranchName = "master"
+        
+                with open(gitmodulesPath, "r") as f:
+                    for line in f:
+                        if line.startswith("#Custom-Middleware/Ephemeris"):
+                            dirBranchName = line.split(":")[1].strip()
+                            break
+        
+                walkRepoDiff(dirPath, args.remote, dirBranchName)
+        
+            os.chdir(oldCwd)
+        
+        else:
+            walkLocalDir(theForgePath)
+        
+            if dirFound:
+                walkLocalDir(dirPath)
 
     if filesToFormat:
         print("Files to format written to", filesToFormatFilePath)

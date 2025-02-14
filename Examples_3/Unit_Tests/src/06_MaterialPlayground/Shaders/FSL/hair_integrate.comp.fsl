@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,21 +46,23 @@
 
 #include "hair.comp.h.fsl"
 
+ROOT_SIGNATURE(ComputeRootSignature)
+
 NUM_THREADS(THREAD_GROUP_SIZE, 1, 1)
 void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 {
 	INIT_MAIN;
 	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x);
 
-	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
-	restPosition.xyz = mul(cbSimulation.Transform, float4(restPosition.xyz, 1.0f)).xyz;
-	float4 currentPosition = sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	float4 restPosition = gHairRestPositions[indices.globalVertexIndex];
+	restPosition.xyz = mul(gHairSimulation.Transform, float4(restPosition.xyz, 1.0f)).xyz;
+	float4 currentPosition = sharedPos[indices.indexSharedMem] = gHairVertexPositions[indices.globalVertexIndex];
 	float weight = currentPosition.w;
 
 	GroupMemoryBarrier();
 
 	// Integrate
-	float4 prevPosition = HairVertexPositionsPrev[indices.globalVertexIndex];
+	float4 prevPosition = gHairVertexPositionsPrev[indices.globalVertexIndex];
 	float4 force = f4(0.0f);
 
 	if (weight > 0.0f)	// Is movable
@@ -69,16 +71,16 @@ void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )
 		sharedPos[indices.indexSharedMem] = restPosition;
 
 	// Global shape constraint
-	if (cbSimulation.GlobalConstraintStiffness > 0.0f && 
-		cbSimulation.GlobalConstraintRange > 0.0f && 
+	if (gHairSimulation.GlobalConstraintStiffness > 0.0f && 
+		gHairSimulation.GlobalConstraintRange > 0.0f && 
 		sharedPos[indices.indexSharedMem].w > 0.0f && 
-		float(indices.localVertexIndex) < cbSimulation.GlobalConstraintRange * float(cbSimulation.NumVerticesPerStrand))
+		float(indices.localVertexIndex) < gHairSimulation.GlobalConstraintRange * float(gHairSimulation.NumVerticesPerStrand))
 	{
-		sharedPos[indices.indexSharedMem].xyz += cbSimulation.GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
+		sharedPos[indices.indexSharedMem].xyz += gHairSimulation.GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
 	}
 
-	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = HairVertexPositionsPrev[indices.globalVertexIndex];
-	HairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
-	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+	gHairVertexPositionsPrevPrev[indices.globalVertexIndex] = gHairVertexPositionsPrev[indices.globalVertexIndex];
+	gHairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
+	gHairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 	RETURN();
 }

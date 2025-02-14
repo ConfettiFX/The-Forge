@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -121,7 +121,6 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     // Might fail to open the file for read+write if file doesn't exist
     if (fd < 0)
     {
-        LOGF(eERROR, "Error opening file '%s': %s", filePath, strerror(errno));
         return false;
     }
 
@@ -134,10 +133,6 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     if (fstat(stream->descriptor, &finfo) == 0)
     {
         stream->size = finfo.st_size;
-    }
-    else
-    {
-        LOGF(eERROR, "Failed to get size for file '%s': %s", filePath, strerror(errno));
     }
 
     fs->mMode = mode;

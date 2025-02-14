@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -1393,7 +1393,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     if (index > archive->nodeCount)
     {
-        LOGF(eERROR, "Cannot open archive file by UID %llu: bad UID", (unsigned long long)index);
         return false;
     }
 
@@ -1401,7 +1400,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     if (mode != FM_READ)
     {
-        LOGF(eERROR, "Cannot open archive file '%s': only FM_READ is supported", archive->nodeNames + node->namePointer.offset);
         return false;
     }
 
@@ -1417,8 +1415,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         if (node->originalFileSize == node->filePointer.size)
             break;
 
-        LOGF(eERROR, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
-             (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.size);
         return false;
     }
     case BUNYAR_FILE_FORMAT_LZ4_BLOCKS:
@@ -1426,7 +1422,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     {
         if (node->filePointer.size < sizeof(blocksHeader))
         {
-            LOGF(eERROR, "Currupted archive file '%s'", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1435,7 +1430,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
         if (blocksHeader.blockSize == 0)
         {
-            LOGF(eERROR, "Archive file '%s' is stored with 0 block size", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1445,8 +1439,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     break;
     default:
     {
-        LOGF(eERROR, "Archive contains file '%s' written with unsupported format %llu", archive->nodeNames + node->namePointer.offset,
-             (unsigned long long)node->format);
         return false;
     }
     }
@@ -1481,7 +1473,6 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         fs->zstd_ctx = ZSTD_createDCtx_advanced(ZSTD_MEMORY_ALLOCATOR);
         if (!fs->zstd_ctx)
         {
-            LOGF(eERROR, "Failed to create ZSTD decompression context");
             goto CANCEL;
         }
     }

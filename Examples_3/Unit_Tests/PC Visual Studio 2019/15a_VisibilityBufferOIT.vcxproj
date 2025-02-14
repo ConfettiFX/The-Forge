@@ -16,6 +16,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\persistent_set.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.srt.h" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\vb_resources_util.h.fsl" />
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent.srt.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_buffers.comp.fsl" />
@@ -28,23 +39,20 @@
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\gpu_pipeline.graph.fsl" />
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\light_cull_resources.h.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\oitClear.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.fsl" />
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.vert.fsl" />
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.comp.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering_impl.h.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\vrs_resources.h.fsl" />
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shader_defs.h.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass.vert.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.vert.fsl" />
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox.frag.fsl" />
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.frag.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.vert.fsl" />
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.comp.fsl" />
@@ -60,7 +68,9 @@
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Art\Scripts\15a_VisibilityBufferOIT\Test_MSAA.lua" />
+    <None Include="..\src\15a_VisibilityBufferOIT\GPUCfg\gpu.cfg" />
+    <None Include="..\src\15a_VisibilityBufferOIT\Scripts\Test_MSAA.lua" />
+    <None Include="..\src\15a_VisibilityBufferOIT\Scripts\Test_VRS.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{610C39FA-F02B-4237-BA8C-4EED56FA8D9F}</ProjectGuid>

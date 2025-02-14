@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,6 +37,13 @@
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
+#include "../../Graphics/FSL/fsl_srt.h"
+#include "../../Graphics/FSL/defaults.h"
+#include "./Shaders/FSL/imgui_srt.h"
+#if defined(ENABLE_FORGE_TOUCH_INPUT)
+#include "./Shaders/FSL/textured_srt.h"
+#endif
+
 #define FALLBACK_FONT_TEXTURE_INDEX 0
 
 #define MAX_LABEL_LENGTH            128
@@ -57,6 +64,13 @@ struct GUIDriverUpdate
     bool          showDemoWindow = false;
 };
 
+struct TexturedConstants
+{
+    float4 color;
+    float2 scaleBias;
+    int    _pad[2];
+};
+
 struct UIAppImpl
 {
     Renderer*     pRenderer = NULL;
@@ -73,6 +87,8 @@ typedef struct UserInterface
     uint32_t mMaxDynamicUIUpdatesPerBatch = 20u;
     uint32_t mMaxUIFonts = 10u;
     uint32_t mFrameCount = 2;
+    float2   mFramePadding = float2(0.0f, 0.0f);
+    float2   mWindowPadding = float2(0.0f, 0.0f);
 
     // Following var is useful for seeing UI capabilities and tweaking style settings.
     // Will only take effect if at least one GUI Component is active.
@@ -103,26 +119,25 @@ typedef struct UserInterface
     }* pTextureHashmap = NULL;
     uint32_t       mDynamicTexturesCount = 0;
     Shader*        pShaderTextured[SAMPLE_COUNT_COUNT] = { NULL };
-    RootSignature* pRootSignatureTextured = NULL;
-    RootSignature* pRootSignatureTexturedMs = NULL;
-    DescriptorSet* pDescriptorSetUniforms = NULL;
-    DescriptorSet* pDescriptorSetTexture = NULL;
+    DescriptorSet* pDescriptorSet = NULL;
+    // DescriptorSet* pDescriptorSetTexture = NULL;
     Pipeline*      pPipelineTextured[SAMPLE_COUNT_COUNT] = { NULL };
     Buffer*        pVertexBuffer = NULL;
     Buffer*        pIndexBuffer = NULL;
     Buffer*        pUniformBuffer[MAX_FRAMES] = { NULL };
     /// Default states
-    Sampler*       pDefaultSampler = NULL;
     VertexLayout   mVertexLayoutTextured = {};
 
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
     // Virtual joystick UI
-    Shader*        pVJShader = {};
-    RootSignature* pVJRootSignature = {};
+    Shader* pVJShader = {};
+
     DescriptorSet* pVJDescriptorSet = {};
     Pipeline*      pVJPipeline = {};
     Texture*       pVJTexture = {};
     uint32_t       mVJRootConstantIndex = {};
+
+    Buffer* pVJUniformBuffer[MAX_FRAMES] = { NULL };
 #endif
 
     uint32_t mLastUpdateCount = 0;
@@ -2172,6 +2187,10 @@ UIWidget* uiAddDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, 
 
     return arrpush(pDynamicUI->mDynamicProperties, cloneWidget(&widget));
 #else
+    (void)pDynamicUI;
+    (void)pLabel;
+    (void)pWidget;
+    (void)type;
     return NULL;
 #endif
 }
@@ -2185,6 +2204,9 @@ void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
         UIWidget* pNewWidget = uiAddComponentWidget(pGui, pWidget->mLabel, pWidget->pWidget, pWidget->mType, false);
         cloneWidgetBase(pNewWidget, pWidget);
     }
+#else
+    (void)pDynamicUI;
+    (void)pGui;
 #endif
 }
 
@@ -2197,6 +2219,9 @@ void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
         // in mDynamicPropHandles will not match once  UIComponent::mWidgets changes size.
         uiRemoveComponentWidget(pGui, pDynamicUI->mDynamicProperties[i]);
     }
+#else
+    (void)pDynamicUI;
+    (void)pGui;
 #endif
 }
 
@@ -2209,6 +2234,8 @@ void uiRemoveDynamicWidgets(DynamicUIWidgets* pDynamicUI)
     }
 
     arrfree(pDynamicUI->mDynamicProperties);
+#else
+    (void)pDynamicUI;
 #endif
 }
 
@@ -2227,12 +2254,12 @@ void uiAddComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponen
     pComponent->mFlags |= GUI_COMPONENT_FLAGS_START_COLLAPSED;
 #endif
 
+    bool useDefaultFallbackFont = false;
+
 #ifdef ENABLE_FORGE_FONTS
     // Functions not accessible via normal interface header
     extern void*    fntGetRawFontData(uint32_t fontID);
     extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
-
-    bool useDefaultFallbackFont = false;
 
     // Use Requested Forge Font
     void*    pFontBuffer = fntGetRawFontData(pDesc->mFontID);
@@ -2295,6 +2322,10 @@ void uiAddComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponen
     arrpush(pUserInterface->mComponents, pComponent);
 
     *ppUIComponent = pComponent;
+#else
+    (void)pTitle;
+    (void)pDesc;
+    (void)ppUIComponent;
 #endif
 }
 
@@ -2321,6 +2352,8 @@ void uiRemoveComponent(UIComponent* pGui)
     }
 
     tf_free(pGui);
+#else
+    (void)pGui;
 #endif
 }
 
@@ -2329,6 +2362,9 @@ void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 #ifdef ENABLE_FORGE_UI
     ASSERT(pUIComponent);
     pUIComponent->mActive = active;
+#else
+    (void)pUIComponent;
+    (void)active;
 #endif
 }
 
@@ -2352,6 +2388,11 @@ UIWidget* uiAddComponentWidget(UIComponent* pGui, const char* pLabel, const void
 
     return pGui->mWidgets[arrlen(pGui->mWidgets) - 1];
 #else
+    (void)pGui;
+    (void)pLabel;
+    (void)pWidget;
+    (void)type;
+    (void)clone;
     return NULL;
 #endif
 }
@@ -2372,6 +2413,9 @@ void uiRemoveComponentWidget(UIComponent* pGui, UIWidget* pWidget)
         arrdel(pGui->mWidgetsClone, i);
         arrdel(pGui->mWidgets, i);
     }
+#else
+    (void)pGui;
+    (void)pWidget;
 #endif
 }
 
@@ -2385,6 +2429,8 @@ void uiRemoveAllComponentWidgets(UIComponent* pGui)
 
     arrfree(pGui->mWidgets);
     arrfree(pGui->mWidgetsClone);
+#else
+    (void)pGui;
 #endif
 }
 
@@ -2398,6 +2444,9 @@ void uiSetComponentFlags(UIComponent* pGui, int32_t flags)
     ASSERT(pGui);
 
     pGui->mFlags = flags;
+#else
+    (void)pGui;
+    (void)flags;
 #endif
 }
 
@@ -2407,6 +2456,9 @@ void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred)
     ASSERT(pWidget);
 
     pWidget->mDeferred = deferred;
+#else
+    (void)pWidget;
+    (void)deferred;
 #endif
 }
 
@@ -2417,6 +2469,10 @@ void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* pUserData, WidgetCallba
 
     pWidget->pOnHoverUserData = pUserData;
     pWidget->pOnHover = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2427,6 +2483,10 @@ void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* pUserData, WidgetCallb
 
     pWidget->pOnActiveUserData = pUserData;
     pWidget->pOnActive = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2437,6 +2497,10 @@ void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* pUserData, WidgetCallba
 
     pWidget->pOnFocusUserData = pUserData;
     pWidget->pOnFocus = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2447,6 +2511,10 @@ void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* pUserData, WidgetCallb
 
     pWidget->pOnEditedUserData = pUserData;
     pWidget->pOnEdited = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2457,6 +2525,10 @@ void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserData, Widget
 
     pWidget->pOnDeactivatedUserData = pUserData;
     pWidget->pOnDeactivated = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2467,6 +2539,10 @@ void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserDat
 
     pWidget->pOnDeactivatedAfterEditUserData = pUserData;
     pWidget->pOnDeactivatedAfterEdit = callback;
+#else
+    (void)pWidget;
+    (void)pUserData;
+    (void)callback;
 #endif
 }
 
@@ -2475,6 +2551,9 @@ FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine)
 {
 #ifdef ENABLE_FORGE_UI
     pGuiComponent->mSameLine = sameLine;
+#else
+    (void)pGuiComponent;
+    (void)sameLine;
 #endif
 }
 
@@ -2524,6 +2603,8 @@ bool platformInitUserInterface()
     InputFillImguiKeyMap(gKeyMap);
 
     pUserInterface = pAppUI;
+    pUserInterface->mFramePadding = float2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y);
+    pUserInterface->mWindowPadding = float2(ImGui::GetStyle().WindowPadding.x, ImGui::GetStyle().WindowPadding.y);
 #endif
 
     return true;
@@ -2570,8 +2651,14 @@ void platformUpdateUserInterface(float deltaTime)
     io.DisplaySize.y = pUserInterface->mDisplayHeight;
     io.DisplayFramebufferScale.x = pUserInterface->mWidth / pUserInterface->mDisplayWidth;
     io.DisplayFramebufferScale.y = pUserInterface->mHeight / pUserInterface->mDisplayHeight;
-    io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+
+    float displayScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    io.FontGlobalScale = displayScale;
     io.DeltaTime = deltaTime;
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FramePadding = { pUserInterface->mFramePadding.x * displayScale, pUserInterface->mFramePadding.y * displayScale };
+    style.WindowPadding = { pUserInterface->mWindowPadding.x * displayScale, pUserInterface->mWindowPadding.y * displayScale };
 
     for (uint32_t k = ImGuiKey_NamedKey_BEGIN; k <= ImGuiKey_GamepadR3; ++k)
     {
@@ -2788,6 +2875,8 @@ void platformUpdateUserInterface(float deltaTime)
 
     extern void updateProfilerUI();
     updateProfilerUI();
+#else
+    (void)deltaTime;
 #endif
 }
 
@@ -2823,7 +2912,7 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
                        iOffset);
     cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
-    cmdBindDescriptorSet(pCmd, pUserInterface->frameIdx, pUserInterface->pDescriptorSetUniforms);
+    cmdBindDescriptorSet(pCmd, pUserInterface->frameIdx, pUserInterface->pDescriptorSet);
 }
 
 static void cmdDrawUICommand(Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float2& displayPos, const float2& displaySize,
@@ -2869,12 +2958,14 @@ static void cmdDrawUICommand(Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float
         }
         Texture* tex = hmgetp(pUserInterface->pTextureHashmap, id)->value;
 
-        DescriptorData params[1] = {};
-        params[0].pName = "uTex";
+        DescriptorData params[2] = {};
+        params[0].mIndex = SRT_RES_IDX(ImguiSrtData, PerBatch, gTexture);
         params[0].ppTextures = &tex;
-        updateDescriptorSet(pUserInterface->pRenderer, setIndex, pUserInterface->pDescriptorSetTexture, 1, params);
+        params[1].mIndex = SRT_RES_IDX(ImguiSrtData, PerBatch, gUniformBlock);
+        params[1].ppBuffers = &pUserInterface->pUniformBuffer[0];
+        updateDescriptorSet(pUserInterface->pRenderer, setIndex, pUserInterface->pDescriptorSet, 2, params);
 
-        uint32_t pipelineIndex = (uint32_t)log2(params[0].ppTextures[0]->mSampleCount);
+        uint32_t pipelineIndex = (uint32_t)log2((float)params[0].ppTextures[0]->mSampleCount);
         *ppPipelineInOut = pUserInterface->pPipelineTextured[pipelineIndex];
     }
     else
@@ -2890,7 +2981,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float
 
     if (setIndex != prevSetIndexInOut)
     {
-        cmdBindDescriptorSet(pCmd, setIndex, pUserInterface->pDescriptorSetTexture);
+        cmdBindDescriptorSet(pCmd, setIndex, pUserInterface->pDescriptorSet);
         prevSetIndexInOut = setIndex;
     }
 
@@ -2919,14 +3010,6 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                FILTER_LINEAR,
-                                MIPMAP_MODE_NEAREST,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE };
-    addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
-
     BufferLoadDesc vbDesc = {};
     vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -2984,14 +3067,14 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     // Add a default fallback font (at index 0)
     uint32_t fallbackFontTexId = addImguiFont(NULL, 0, NULL, UINT_MAX, 0.f, &pUserInterface->pDefaultFallbackFont);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
+#else
+    (void)pDesc;
 #endif
 }
 
 void exitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
-    removeSampler(pUserInterface->pRenderer, pUserInterface->pDefaultSampler);
-
     removeResource(pUserInterface->pVertexBuffer);
     removeResource(pUserInterface->pIndexBuffer);
     for (uint32_t i = 0; i < pUserInterface->mFrameCount; ++i)
@@ -3042,6 +3125,18 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat)
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
+    BufferLoadDesc ubDesc = {};
+    ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    ubDesc.mDesc.mSize = sizeof(TexturedConstants);
+    ubDesc.mDesc.pName = "VJ Uniform Buffer";
+    for (uint32_t i = 0; i < MAX_FRAMES; ++i)
+    {
+        ubDesc.ppBuffer = &pUserInterface->pVJUniformBuffer[i];
+        addResource(&ubDesc, NULL);
+    }
+
     Renderer* pRenderer = pUserInterface->pRenderer;
     if (loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
     {
@@ -3055,15 +3150,7 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat)
             texturedShaderDesc.mFrag.pFileName = "textured_mesh.frag";
             addShader(pRenderer, &texturedShaderDesc, &pUserInterface->pVJShader);
 
-            const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { &pUserInterface->pVJShader, 1 };
-            textureRootDesc.mStaticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-            textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
-            addRootSignature(pRenderer, &textureRootDesc, &pUserInterface->pVJRootSignature);
-            pUserInterface->mVJRootConstantIndex = getDescriptorIndexFromName(pUserInterface->pVJRootSignature, "uRootConstants");
-
-            DescriptorSetDesc descriptorSetDesc = { pUserInterface->pVJRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+            DescriptorSetDesc descriptorSetDesc = SRT_SET_DESC(SrtTexturedData, PerDraw, pUserInterface->mFrameCount, 0);
             addDescriptorSet(pRenderer, &descriptorSetDesc, &pUserInterface->pVJDescriptorSet);
         }
 
@@ -3100,6 +3187,8 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat)
         rasterizerStateDesc.mScissor = true;
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, NULL, NULL, NULL, SRT_LAYOUT_DESC(SrtTexturedData, PerDraw));
+        desc.pCache = pUserInterface->pPipelineCache;
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
         pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
@@ -3111,16 +3200,21 @@ bool loadVirtualJoystick(ReloadType loadType, TinyImageFormat colorFormat)
         pipelineDesc.pColorFormats = &colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
-        pipelineDesc.pRootSignature = pUserInterface->pVJRootSignature;
         pipelineDesc.pShaderProgram = pUserInterface->pVJShader;
         pipelineDesc.pVertexLayout = &vertexLayout;
         addPipeline(pRenderer, &desc, &pUserInterface->pVJPipeline);
     }
 
-    DescriptorData params[1] = {};
-    params[0].pName = "uTex";
+    DescriptorData params[2] = {};
+    params[0].mIndex = SRT_RES_IDX(SrtTexturedData, PerDraw, gTexture);
     params[0].ppTextures = &pUserInterface->pVJTexture;
-    updateDescriptorSet(pRenderer, 0, pUserInterface->pVJDescriptorSet, 1, params);
+
+    for (uint32_t i = 0; i < pUserInterface->mFrameCount; ++i)
+    {
+        params[1].mIndex = SRT_RES_IDX(SrtTexturedData, PerDraw, gUniformBlock);
+        params[1].ppBuffers = &pUserInterface->pVJUniformBuffer[i];
+        updateDescriptorSet(pUserInterface->pRenderer, i, pUserInterface->pVJDescriptorSet, 2, params);
+    }
 
     return true;
 }
@@ -3143,9 +3237,13 @@ void unloadVirtualJoystick(ReloadType unloadType)
         if (unloadType & RELOAD_TYPE_SHADER)
         {
             removeDescriptorSet(pRenderer, pUserInterface->pVJDescriptorSet);
-            removeRootSignature(pRenderer, pUserInterface->pVJRootSignature);
             removeShader(pRenderer, pUserInterface->pVJShader);
         }
+    }
+
+    for (uint32_t i = 0; i < MAX_FRAMES; ++i)
+    {
+        removeResource(pUserInterface->pVJUniformBuffer[i]);
     }
 }
 
@@ -3162,32 +3260,33 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color, uint64_t vOffset)
     {
         return;
     }
-    struct RootConstants
-    {
-        float4 color;
-        float2 scaleBias;
-        int    _pad[2];
-    } data = {};
+
+    TexturedConstants data = {};
 
     float2 renderSize = { (float)pUserInterface->mWidth, (float)pUserInterface->mHeight };
     float2 renderScale = { (float)pUserInterface->mWidth / pUserInterface->mDisplayWidth,
                            (float)pUserInterface->mHeight / pUserInterface->mDisplayHeight };
 
+    data.color = *color;
+    data.scaleBias = { 2.0f / (float)renderSize[0], -2.0f / (float)renderSize[1] };
+
+    BufferUpdateDesc update = { pUserInterface->pVJUniformBuffer[pUserInterface->frameIdx] };
+    beginUpdateResource(&update);
+    memcpy(update.pMappedData, &data, sizeof(TexturedConstants));
+    endUpdateResource(&update);
+
     cmdSetViewport(pCmd, 0.0f, 0.0f, renderSize[0], renderSize[1], 0.0f, 1.0f);
     cmdSetScissor(pCmd, 0u, 0u, (uint32_t)renderSize[0], (uint32_t)renderSize[1]);
 
     cmdBindPipeline(pCmd, pUserInterface->pVJPipeline);
-    cmdBindDescriptorSet(pCmd, 0, pUserInterface->pVJDescriptorSet);
-    data.color = *color;
-    data.scaleBias = { 2.0f / (float)renderSize[0], -2.0f / (float)renderSize[1] };
-    cmdBindPushConstants(pCmd, pUserInterface->pVJRootSignature, pUserInterface->mVJRootConstantIndex, &data);
+    cmdBindDescriptorSet(pCmd, pUserInterface->frameIdx, pUserInterface->pVJDescriptorSet);
 
     float extSide = radius;
     float intSide = radius * 0.5f;
 
     // Outer stick
     float2 joystickSize = float2(extSide) * renderScale;
-    float2 joystickCenter = startPos * renderScale - float2(0.0f, renderSize.y * 0.1f);
+    float2 joystickCenter = startPos * renderScale;
     float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
     const uint32_t   vertexStride = sizeof(float4);
@@ -3211,8 +3310,8 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color, uint64_t vOffset)
         stickPos = startPos + halfRad * normalize(delta);
     }
     joystickSize = float2(intSide) * renderScale;
-    joystickCenter = stickPos * renderScale - float2(0.0f, renderSize.y * 0.1f);
-    joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
+    joystickCenter = stickPos * renderScale;
+    joystickPos = joystickCenter - joystickSize * 0.5f;
     updateDesc = { pUserInterface->pVertexBuffer, vOffset };
     beginUpdateResource(&updateDesc);
     TexVertex verticesInner[4] = {};
@@ -3244,30 +3343,18 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
                 addShader(pUserInterface->pRenderer, &texturedShaderDesc, &pUserInterface->pShaderTextured[s]);
             }
 
-            const char*       pStaticSamplerNames[] = { "uSampler" };
-            RootSignatureDesc textureRootDesc = { pUserInterface->pShaderTextured, 1 };
-            textureRootDesc.mStaticSamplerCount = 1;
-            textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-            textureRootDesc.ppStaticSamplers = &pUserInterface->pDefaultSampler;
-            addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTextured);
-
-            textureRootDesc.mShaderCount = TF_ARRAY_COUNT(pUserInterface->pShaderTextured) - 1;
-            textureRootDesc.ppShaders = pUserInterface->pShaderTextured + 1;
-            addRootSignature(pUserInterface->pRenderer, &textureRootDesc, &pUserInterface->pRootSignatureTexturedMs);
-
-            DescriptorSetDesc setDesc = { pUserInterface->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
-                                          pUserInterface->mMaxUIFonts +
-                                              (pUserInterface->mMaxDynamicUIUpdatesPerBatch * pUserInterface->mFrameCount) };
-            addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetTexture);
-            setDesc = { pUserInterface->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_NONE, pUserInterface->mFrameCount };
-            addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSetUniforms);
+            // deduction of set index from frequency
+            const uint32_t maxSets =
+                pUserInterface->mMaxUIFonts + (pUserInterface->mMaxDynamicUIUpdatesPerBatch * pUserInterface->mFrameCount);
+            DescriptorSetDesc setDesc = SRT_SET_DESC(ImguiSrtData, PerBatch, maxSets, 0);
+            addDescriptorSet(pUserInterface->pRenderer, &setDesc, &pUserInterface->pDescriptorSet);
 
             for (uint32_t i = 0; i < pUserInterface->mFrameCount; ++i)
             {
                 DescriptorData params[1] = {};
-                params[0].pName = "uniformBlockVS";
+                params[0].mIndex = SRT_RES_IDX(ImguiSrtData, PerBatch, gUniformBlock);
                 params[0].ppBuffers = &pUserInterface->pUniformBuffer[i];
-                updateDescriptorSet(pUserInterface->pRenderer, i, pUserInterface->pDescriptorSetUniforms, 1, params);
+                updateDescriptorSet(pUserInterface->pRenderer, i, pUserInterface->pDescriptorSet, 1, params);
             }
         }
 
@@ -3289,6 +3376,7 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         rasterizerStateDesc.mScissor = true;
 
         PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, NULL, NULL, SRT_LAYOUT_DESC(ImguiSrtData, PerBatch), NULL);
         desc.pCache = pUserInterface->pPipelineCache;
         desc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
@@ -3300,17 +3388,12 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         pipelineDesc.pColorFormats = (TinyImageFormat*)&pDesc->mColorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
-        pipelineDesc.pRootSignature = pUserInterface->pRootSignatureTextured;
         pipelineDesc.pVertexLayout = &pUserInterface->mVertexLayoutTextured;
         pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineDesc.mVRFoveatedRendering = true;
         for (uint32_t s = 0; s < TF_ARRAY_COUNT(pUserInterface->pShaderTextured); ++s)
         {
             pipelineDesc.pShaderProgram = pUserInterface->pShaderTextured[s];
-            if (s > 0)
-            {
-                pipelineDesc.pRootSignature = pUserInterface->pRootSignatureTexturedMs;
-            }
             addPipeline(pUserInterface->pRenderer, &desc, &pUserInterface->pPipelineTextured[s]);
         }
     }
@@ -3326,14 +3409,16 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
     for (ptrdiff_t tex = 0; tex < arrlen(pUserInterface->pCachedFontsArr); ++tex)
     {
         DescriptorData params[1] = {};
-        params[0].pName = "uTex";
+        params[0].mIndex = SRT_RES_IDX(ImguiSrtData, PerBatch, gTexture);
         params[0].ppTextures = &pUserInterface->pCachedFontsArr[tex].pFontTex;
-        updateDescriptorSet(pUserInterface->pRenderer, (uint32_t)tex, pUserInterface->pDescriptorSetTexture, 1, params);
+        updateDescriptorSet(pUserInterface->pRenderer, (uint32_t)tex, pUserInterface->pDescriptorSet, 1, params);
     }
 
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
     loadVirtualJoystick((ReloadType)pDesc->mLoadType, (TinyImageFormat)pDesc->mColorFormat);
 #endif
+#else
+    (void)pDesc;
 #endif
 }
 
@@ -3357,12 +3442,11 @@ void unloadUserInterface(uint32_t unloadType)
             {
                 removeShader(pUserInterface->pRenderer, pUserInterface->pShaderTextured[s]);
             }
-            removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetTexture);
-            removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetUniforms);
-            removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTextured);
-            removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTexturedMs);
+            removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSet);
         }
     }
+#else
+    (void)unloadType;
 #endif
 }
 
@@ -3480,6 +3564,8 @@ void cmdDrawUserInterface(Cmd* pCmd)
     float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
     drawVirtualJoystick(pCmd, &color, vtxDst);
 #endif
+#else
+    (void)pCmd;
 #endif
 }
 
@@ -3491,6 +3577,8 @@ void uiOnText(const wchar_t* pText)
     uint32_t len = (uint32_t)wcslen(pText);
     for (uint32_t i = 0; i < len; ++i)
         io.AddInputCharacter(pText[i]);
+#else
+    (void)pText;
 #endif
 }
 
@@ -3547,6 +3635,8 @@ void uiToggleRendering(bool enabled)
 #ifdef ENABLE_FORGE_UI
     ASSERT(pUserInterface);
     pUserInterface->mEnableRendering = enabled;
+#else
+    (void)enabled;
 #endif
 }
 

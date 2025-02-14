@@ -31,8 +31,17 @@
     <Filter Include="Tools\ReloadServer">
       <UniqueIdentifier>{e38353cf-9e2b-415e-a269-495b621ec3bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\FSL">
+      <UniqueIdentifier>{dcda0864-e5f8-41ca-90d8-83a703f77f40}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Graphics\Interfaces">
       <UniqueIdentifier>{2a384d29-454f-44e0-b221-fd282ad3f1e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ForgeShadingLanguage\includes">
+      <UniqueIdentifier>{3ba37d9b-7b10-4340-9c65-f96c8f3b5fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ForgeShadingLanguage">
+      <UniqueIdentifier>{1ae4c353-3d97-4b9f-82f3-62a3cf850a95}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\ThirdParty\OpenSource\ags">
       <UniqueIdentifier>{fa35f3c3-5033-44f9-b555-40d754e505af}</UniqueIdentifier>
@@ -108,6 +117,15 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h">
       <Filter>Graphics\Direct3D12</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\d3d12_srt.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\defaults.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\fsl_srt.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -119,6 +137,27 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
       <Filter>Graphics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d12_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\fsl_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h">
       <Filter>Graphics\ThirdParty\OpenSource\ags</Filter>
@@ -150,16 +189,7 @@
     <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl">
       <Filter>Graphics</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.frag.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle.vert.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_clear_sorting_structs.comp.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
@@ -175,9 +205,6 @@
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_simulate.comp.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
     <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_utils.h.fsl">

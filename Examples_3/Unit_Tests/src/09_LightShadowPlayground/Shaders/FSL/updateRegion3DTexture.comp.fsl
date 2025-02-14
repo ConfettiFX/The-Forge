@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2024 The Forge Interactive Inc.
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,35 +22,27 @@
 * under the License.
 */
 #include "SDF_Constant.h.fsl"
+#include "vb_resources.h.fsl"
+#include "updateRegion3DTexture.srt.h"
 
-RES(Buffer(float), SDFVolumeDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
-RES(RWTex3D(half), SDFVolumeTextureAtlas, UPDATE_FREQ_NONE, u0, binding = 2);
-
-STRUCT(UpdateSDFVolumeTextureAtlas)
-{
-	DATA(uint4, mSourceAtlasVolumeMinCoord, None);
-	DATA(uint4, mSourceDimensionSize, None);
-	DATA(uint4, mSourceAtlasVolumeMaxCoord, None);
-};
-RES(CBUFFER(UpdateSDFVolumeTextureAtlas), updateSDFVolumeAtlas, UPDATE_FREQ_PER_FRAME, b1, binding = 1);
-
+ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(8, 8, 8)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID, SV_GroupThreadID(uint3) GTid )
 {
 	INIT_MAIN;
-	if(updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.x > threadID.x || 
-		updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.y > threadID.y ||
-		updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.z > threadID.z || 
-		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.x < threadID.x || 
-		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.y < threadID.y ||
-		updateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.z < threadID.z)
+	if(gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.x > threadID.x || 
+		gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.y > threadID.y ||
+		gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.z > threadID.z || 
+		gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.x < threadID.x || 
+		gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.y < threadID.y ||
+		gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMaxCoord.z < threadID.z)
 		RETURN();
 
-	uint3 localThreadID = threadID - updateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.xyz;
+	uint3 localThreadID = threadID - gUpdateSDFVolumeAtlas.mSourceAtlasVolumeMinCoord.xyz;
 
-	uint finalLocalIndex = localThreadID.z * updateSDFVolumeAtlas.mSourceDimensionSize.x * 
-		updateSDFVolumeAtlas.mSourceDimensionSize.y + localThreadID.y * updateSDFVolumeAtlas.mSourceDimensionSize.x + localThreadID.x;
+	uint finalLocalIndex = localThreadID.z * gUpdateSDFVolumeAtlas.mSourceDimensionSize.x * 
+		gUpdateSDFVolumeAtlas.mSourceDimensionSize.y + localThreadID.y * gUpdateSDFVolumeAtlas.mSourceDimensionSize.x + localThreadID.x;
 
-	Write3D(SDFVolumeTextureAtlas, threadID, half(SDFVolumeDataBuffer[finalLocalIndex]));
+	Write3D(gSDFVolumeTextureAtlasRW, threadID, half(gSDFVolumeDataBuffer[finalLocalIndex]));
 	RETURN();
 }

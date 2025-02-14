@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -114,19 +114,6 @@ struct AccelerationStructure
     uint32_t                                            mDescCount;
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS mFlags;
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE        mType;
-};
-
-struct RaytracingShaderTable
-{
-    Pipeline*                   pPipeline;
-    Buffer*                     pBuffer;
-    D3D12_GPU_DESCRIPTOR_HANDLE mViewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    D3D12_GPU_DESCRIPTOR_HANDLE mSamplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint32_t                    mViewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint32_t                    mSamplerDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
-    uint64_t                    mMaxEntrySize;
-    uint64_t                    mMissRecordSize;
-    uint64_t                    mHitGroupRecordSize;
 };
 
 bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)

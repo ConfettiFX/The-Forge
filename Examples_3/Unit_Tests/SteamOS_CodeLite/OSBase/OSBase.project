@@ -5,6 +5,15 @@
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
+  <VirtualDirectory Name="Screenshot">
+    <VirtualDirectory Name="Shaders">
+      <VirtualDirectory Name="FSL">
+        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/copy.comp.fsl"/>
+        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/screenshot_shaders.list"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <File Name="../../../../Common_3/Application/Screenshot/Screenshot.cpp"/>
+  </VirtualDirectory>
   <VirtualDirectory Name="Tools">
     <VirtualDirectory Name="ReloadServer">
       <File Name="../../../../Common_3/Tools/ReloadServer/ReloadClient.cpp"/>
@@ -19,7 +28,7 @@
     <VirtualDirectory Name="Animation">
       <VirtualDirectory Name="Shaders">
         <VirtualDirectory Name="FSL">
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Animation_ShaderList.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/animation_shaders.list"/>
           <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.vert.fsl"/>
           <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.frag.fsl"/>
           <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/bone.vert.fsl"/>
@@ -60,7 +69,6 @@
     <File Name="../../../../Common_3/Utilities/Timer.c"/>
     <File Name="../../../../Common_3/OS/CPUConfig.cpp"/>
     <File Name="../../../../Common_3/Application/DLL.h"/>
-    <File Name="../../../../Common_3/Application/Screenshot.cpp"/>
     <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Input">
@@ -303,16 +311,22 @@
       <AdditionalRules>
         <CustomPostBuild/>
         <CustomPreBuild>shaders
-SRC_UI        = $(ProjectPath)/../../../../Common_3/Application/UI/Shaders/FSL/
-SRC_TEXT      = $(ProjectPath)/../../../../Common_3/Application/Fonts/Shaders/FSL/
-SRC_ANIMATION = $(ProjectPath)/../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
+SRC_UI         = $(ProjectPath)/../../../../Common_3/Application/UI/Shaders/FSL/
+SRC_TEXT       = $(ProjectPath)/../../../../Common_3/Application/Fonts/Shaders/FSL/
+SRC_SCREENSHOT = $(ProjectPath)/../../../../Common_3/Application/Screenshot/Shaders/FSL/
+SRC_ANIMATION  = $(ProjectPath)/../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose --debug -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_UI)/*.list), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_TEXT)/*.list), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.list), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_SCREENSHOT)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_SCREENSHOT)/*.list), $(fsl) $(file);)&#xD;
 
 AS=$(CC) -O3 -c
 </CustomPreBuild>
@@ -358,13 +372,19 @@ AS=$(CC) -O3 -c
 SRC_UI        = $(ProjectPath)/../../../../Common_3/Application/UI/Shaders/FSL/
 SRC_TEXT      = $(ProjectPath)/../../../../Common_3/Application/Fonts/Shaders/FSL/
 SRC_ANIMATION = $(ProjectPath)/../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
+SRC_SCREENSHOT = $(ProjectPath)/../../../../Common_3/Application/Screenshot/Shaders/FSL/
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_UI)/*.list), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_TEXT)/*.list), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.list), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_SCREENSHOT)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_SCREENSHOT)/*.list), $(fsl) $(file);)&#xD;
 
 AS=$(CC) -O3 -c</CustomPreBuild>
       </AdditionalRules>

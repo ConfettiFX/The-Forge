@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,15 +25,6 @@
 #ifndef _VB_STRUCTS_H
 #define _VB_STRUCTS_H
 
-#if !defined(__fsl)
-	#define STATIC static
-	#define STRUCT(NAME) struct NAME
-	#define DATA(TYPE, NAME, SEM) TYPE NAME
-	#define CBUFFER(NAME) struct NAME
-	#define RES(RESOURCE, NANE, FREQ, REGISTER, BINDING) 
-	#define float4x4 mat4
-	#define uint uint32_t
-#endif
 
 // Input to pre skin vertexes shader
 STRUCT(PreSkinBatchData)

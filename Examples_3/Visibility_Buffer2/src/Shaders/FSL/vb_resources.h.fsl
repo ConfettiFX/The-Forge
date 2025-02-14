@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,49 +25,10 @@
 #ifndef vb_resources_h
 #define vb_resources_h
 
-RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 2);
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  UPDATE_FREQ_NONE, t6, binding = 21);
-#else
-	RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE],  space4, t6, binding = 21);
-#endif
-
-RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 11);
-RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t1, binding = 12);
-RES(Buffer(uint), indirectFilteredBatches, UPDATE_FREQ_PER_FRAME, t2, binding = 13);
-RES(ByteBuffer, vertexTexCoordBuffer, UPDATE_FREQ_NONE, t5, binding = 18);
-
-STRUCT(RootConstantViewData)
-{
-	DATA(uint, view, None);
-    DATA(int, targetWidth, None);
-    DATA(int, targetHeight, None);
-};
-RES(ROOT_CONSTANT(RootConstantViewData), RootConstantViewInfo, UPDATE_FREQ_NONE, b0, binding = 0);
-
-#if defined(INDIRECT_ROOT_CONSTANT)
-	STRUCT(indirectRootConstantData)
-	{
-		DATA(uint, indirectDrawId, None);
-	};
-	RES(ROOT_CONSTANT(indirectRootConstantData), indirectRootConstant, UPDATE_FREQ_NONE, b1, binding = 0);
-	#define getDrawID() indirectRootConstant.indirectDrawId
-#else
-    #define getDrawID() In.drawId
-#endif
-
-STRUCT(VsInVBAlphaTested)
-{
-    DATA(float3, position, POSITION);
-    DATA(uint, texCoord, TEXCOORD);
-};
-
-STRUCT(PsInVBAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-	DATA(FLAT(uint), vbData, TEXCOORD1);
-	DATA(FLAT(uint), batchData, TEXCOORD2);
-};
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_shader_defs.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_structs.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer2/Shaders/FSL/vb_resources.h.fsl"
+#include "shading.h.fsl"
+#include "structs.h"
 
 #endif /* vb_resources_h */

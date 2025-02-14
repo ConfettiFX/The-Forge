@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,18 +22,10 @@
  * under the License.
 */
 
-STRUCT(uniformBlockData)
-{
-#if FT_MULTIVIEW
-	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
-#else
-	DATA(float4x4, ProjectionViewMat, None);
-#endif
-    DATA(float4x4, ModelMatrixCapsule, None);
-    DATA(float4x4, ModelMatrixCube, None);
-    DATA(float4x4, ModelMatrixOcclusion, None);
-};
-RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+#include "structs.h"
+#include "srt.h"
+
+
 
 STRUCT(VSOutput)
 {
@@ -45,7 +37,7 @@ STRUCT(VSInput)
 {
 	DATA(float4, Position, POSITION);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;
@@ -54,9 +46,9 @@ VSOutput VS_MAIN( VSInput In )
     float4 p = float4(In.Position.x*9.0, In.Position.y*9.0, In.Position.z*9.0, 1.0);
     
 #if FT_MULTIVIEW
-    float4x4 m = uniformBlock.ProjectionViewMat[VR_VIEW_ID];
+    float4x4 m = gUniformBlock.ProjectionViewMat[VR_VIEW_ID];
 #else
-    float4x4 m = uniformBlock.ProjectionViewMat;
+    float4x4 m = gUniformBlock.ProjectionViewMat;
 #endif
     // clear translation for skybox
     setCol3(m, float4(0.0, 0.0, 0.0, 1.0));

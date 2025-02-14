@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
+#include "animation_resources.h"
 // Shader for simple shading with a point light
 // for skeletons in Unit Test Animation
 
@@ -31,6 +31,7 @@ STRUCT(VSOutput)
     DATA(float4, Color, COLOR);
 };
 
+ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN(VSOutput In)
 {
     INIT_MAIN;

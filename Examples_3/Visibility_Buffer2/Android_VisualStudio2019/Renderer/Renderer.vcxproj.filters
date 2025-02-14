@@ -1,121 +1,100 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Graphics">
-      <UniqueIdentifier>{593e1415-0a3e-4b3c-9bfc-8cdc8f4b50c0}</UniqueIdentifier>
+    <Filter Include="Source\Shared">
+      <UniqueIdentifier>{e90b65ab-fcab-4a02-8163-9c43a88e049d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Vulkan">
-      <UniqueIdentifier>{9703985a-97b9-4c10-b587-b50bf5047120}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{524bb544-a78d-476e-870c-8323327a89d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources\ResourceLoader">
-      <UniqueIdentifier>{04f2cd7c-68fa-485e-b756-da1c6460d130}</UniqueIdentifier>
+    <Filter Include="Headers\Shared">
+      <UniqueIdentifier>{824a4121-2e70-48cd-b5fa-dbb7ac3c293e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources">
-      <UniqueIdentifier>{281db319-c424-4f05-b31b-90018cfc77fb}</UniqueIdentifier>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{a463a541-d5b7-4310-bc2b-1232f99442fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Tools\Network">
-      <UniqueIdentifier>{15dcb90b-d96a-46b8-b503-4aa11b3fefa0}</UniqueIdentifier>
+    <Filter Include="Misc\Shared">
+      <UniqueIdentifier>{f8b0b675-64ff-4f45-8cfd-fee5de54c83d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Tools">
-      <UniqueIdentifier>{7962785e-ba5c-4169-ad4c-6772fda0069f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Tools\ReloadServer">
-      <UniqueIdentifier>{06098935-50b7-4384-8df0-1074252c1b5a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\VisibilityBuffer2">
-      <UniqueIdentifier>{882f4aa7-439c-4b96-b322-44d7bc5fa242}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer">
-      <UniqueIdentifier>{cb9abde3-fc61-410f-94cf-fcf129a3156d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Interfaces">
-      <UniqueIdentifier>{31d902f2-d768-47e4-b5fb-d7b0a8dd39b7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resources\ResourceLoader\Interfaces">
-      <UniqueIdentifier>{0582b247-33de-4b9c-b0e5-301bfaccc819}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\VisibilityBuffer2\Shaders\FSL">
-      <UniqueIdentifier>{1fe704b0-c1e0-4162-9717-41f86e8ee97f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\VisibilityBuffer2\Shaders">
-      <UniqueIdentifier>{642b870f-2fcf-4e04-8c69-7a61809d9db3}</UniqueIdentifier>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{8cfed7ae-0b3d-4e67-9caa-104b012f5516}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
-      <Filter>Graphics</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
-      <Filter>Graphics</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
-      <Filter>Graphics\Vulkan</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
-      <Filter>Graphics\Vulkan</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
-      <Filter>Graphics\Vulkan</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
-      <Filter>Resources\ResourceLoader</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Tools\Network\Network.c">
-      <Filter>Tools\Network</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp">
-      <Filter>Tools\ReloadServer</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\VisibilityBuffer2.cpp">
-      <Filter>Renderer\VisibilityBuffer2</Filter>
+      <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.h">
-      <Filter>Graphics</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
-      <Filter>Graphics\Interfaces</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
-      <Filter>Graphics\Interfaces</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
-      <Filter>Graphics\Interfaces</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
-      <Filter>Graphics\Vulkan</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h">
-      <Filter>Graphics\Vulkan</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h">
-      <Filter>Resources\ResourceLoader\Interfaces</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Tools\Network\Network.h">
-      <Filter>Tools\Network</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
-      <Filter>Tools\ReloadServer</Filter>
+      <Filter>Headers\Shared</Filter>
     </ClInclude>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
     <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl">
-      <Filter>Renderer\VisibilityBuffer2\Shaders\FSL</Filter>
+      <Filter>Misc\Shared</Filter>
     </None>
   </ItemGroup>
 </Project>

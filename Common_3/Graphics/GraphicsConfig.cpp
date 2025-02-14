@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -102,6 +102,7 @@ const GPUProperty availableGpuProperties[] = {
 #if defined(VULKAN)
     GPU_CONFIG_PROPERTY("dynamicrenderingenabled", mDynamicRenderingSupported),
     GPU_CONFIG_PROPERTY("xclipsetransferqueueworkaroundenabled", mXclipseTransferQueueWorkaround),
+    GPU_CONFIG_PROPERTY("devicememoryreportcrashworkaround", mDeviceMemoryReportCrashWorkaround),
 
     GPU_CONFIG_PROPERTY("ycbcrextension", mYCbCrExtension),
     GPU_CONFIG_PROPERTY("fillmodenonSolid", mFillModeNonSolid),
@@ -146,6 +147,7 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY("indirectcommandbuffer", mIndirectCommandBuffer),
     GPU_CONFIG_PROPERTY("indirectrootconstant", mIndirectRootConstant),
     GPU_CONFIG_PROPERTY("maxboundtextures", mMaxBoundTextures),
+    GPU_CONFIG_PROPERTY("maxtotalcomputethreads", mMaxTotalComputeThreads),
 #if defined(DIRECT3D12)
     GPU_CONFIG_PROPERTY("maxrootsignaturedwords", mMaxRootSignatureDWORDS),
 #endif
@@ -224,6 +226,7 @@ void setDefaultGPUProperties(GpuDesc* pGpuDesc)
 #if defined(VULKAN)
     pGpuDesc->mDynamicRenderingSupported = 0;
     pGpuDesc->mXclipseTransferQueueWorkaround = 0;
+    pGpuDesc->mDeviceMemoryReportCrashWorkaround = 0;
     pGpuDesc->mYCbCrExtension = 0;
     pGpuDesc->mFillModeNonSolid = 0;
     pGpuDesc->mKHRRayQueryExtension = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,18 +24,8 @@
 
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-STRUCT(uniformBlockData)
-{
-#if FT_MULTIVIEW
-	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
-#else
-	DATA(float4x4, ProjectionViewMat, None);
-#endif
-    DATA(float4x4, ModelMatrixCapsule, None);
-    DATA(float4x4, ModelMatrixCube, None);
-    DATA(float4x4, ModelMatrixOcclusion, None);
-};
-RES(CBUFFER(uniformBlockData), uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0);
+#include "structs.h"
+#include "srt.h"
 
 STRUCT(VSInput)
 {
@@ -50,7 +40,7 @@ STRUCT(VSOutput)
     DATA(float4, Diffuse, COLOR);
 	DATA(float2, texcoords, TEXCOORD);
 };
-
+ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( VSInput In )
 {
 	INIT_MAIN;
@@ -60,14 +50,14 @@ VSOutput VS_MAIN( VSInput In )
 	float3 lightCol = float3(1.0f,1.0f,1.0f);
 
 #if FT_MULTIVIEW
-    float4x4 tempMat = mul(uniformBlock.ProjectionViewMat[VR_VIEW_ID], uniformBlock.ModelMatrixCapsule);
+    float4x4 tempMat = mul(gUniformBlock.ProjectionViewMat[VR_VIEW_ID], gUniformBlock.ModelMatrixCapsule);
 #else
-    float4x4 tempMat = mul(uniformBlock.ProjectionViewMat, uniformBlock.ModelMatrixCapsule);
+    float4x4 tempMat = mul(gUniformBlock.ProjectionViewMat, gUniformBlock.ModelMatrixCapsule);
 #endif
     Out.Position = mul(tempMat, In.Position);
 
-    float4 normal = normalize(mul(uniformBlock.ModelMatrixCapsule, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f))); // Assume uniform scaling
-    float4 pos = mul(uniformBlock.ModelMatrixCapsule, float4(In.Position.xyz, 1.0f));
+    float4 normal = normalize(mul(gUniformBlock.ModelMatrixCapsule, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f))); // Assume uniform scaling
+    float4 pos = mul(gUniformBlock.ModelMatrixCapsule, float4(In.Position.xyz, 1.0f));
 
     float lightIntensity = 1.0f;
     float quadraticCoeff = 1.2;
