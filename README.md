@@ -1,16 +1,10 @@
 <img src="Screenshots/The Forge - Colour Black Landscape.png" width="108" height="46" />
 
 The Forge Framework (TM) is a cross-platform programming framework supporting the following platforms:
-- Windows 10/11 
-    * with DirectX 12 
-    * with DXR 
-    * DirectX 11 fallback for older Windows platforms
-* Steam Deck
-    * with Vulkan 1.1
-    * with VK_KHR_ray_query Ray Tracing API
-- Android Pie or higher
-  * with Vulkan 1.1
-* Apple
+- Windows 10/11 with DirectX 12 / DXR
+- Steam Deck with Vulkan 1.1 with VK_KHR_ray_query Ray Tracing API
+- Android Pie or higher with Vulkan 1.1
+- Apple
     * iOS 14.1 / 17.0
     * iPad OS 14.1 / 17.0
     * macOS 11.0 / 14.0, with Intel and Apple silicon support
@@ -81,6 +75,41 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 --->
 
 # News
+
+## Release 1.61 - February 13th, 2025 - FSL 2 | Browserstack | Android / Vulkan | DirectX 11 | Quest | flecs
+
+### FSL 2
+We are enforcing now a better memory access pattern for root signatures. We unified root signature usage, so that in best case only one or two need to be used for a game. To do this we added a unified shader resource table that is shared between FSL and C++. 
+We wrote a more thorough documentation here:
+
+https://github.com/ConfettiFX/The-Forge/wiki/FSL-Programming-Guide
+
+
+This is a good example how shader languages should evolve. Instead of mimicking the misguided efforts in writing a C++ shader language, a shader language should mimic the memory access patterns of a GPU and guide the user towards the "best and most performant" results. 
+From a practical standpoint, unreliable and non-functioning shader compilers are a bigger problem than any language syntax to please some twisted abstraction that has no performance benefit and happens for no good reason. 
+
+### Browserstack
+For testing mobile phones we integrate Browserstack more and more into our workflows. 
+
+### Android / Vulkan
+After having finished our more than four year stint on the Warzone Mobile project, making and keeping the game run on Android phones, this same team is now making sure our internal Android / Vulkan run-time lives up to the same or higher expectations. Browserstack is used to test a larger number of phones now. Higher-end phones will now support our Triangle Visibility Buffer unit tests.
+It appears that a lot of our priorities in the game industry are shifting towards mobile and also to a lesser extend consoles, as the most important gaming platforms now.
+We are trying to find ways to make sure mobile is the first class citizen.
+
+### DirectX 11
+We removed DirectX 11 support with the retirement of Windows 10.
+
+### Quest Support
+We help developing the Quest since 2016 now. We somehow missed to take care of our own Quest run-time :-) ... we are currently catching up on all the missed opportunities here and updating and upgrading it. Making it a better part of our test suite and adding more unit test support. 
+
+### flecs
+We improved our flecs integration and upgraded to latest.
+
+
+
+
+
+
 
 ## Release 1.60 - October 11th, 2024 - GPU Work Graphs | Filesystem Refactor | Window System Refactor Phase 1 
 
