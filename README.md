@@ -97,7 +97,7 @@ We found several issues with TVB 2.0 and fixed those. Next step is to make anoth
 
 ### In-Flight Motion Vectors
 Many people still store motion vectors in render targets. For the last 15+ years that didn't make much sense anymore because the memory access pattern to write and read those motion vectors was so costly that calculating them on the fly made more sense. 
-This approach is based on Ben Padget's article in one of the ShaderX books ... he will a laugh about the fact that after all this time we are quoting his article ...
+This approach is based on Ben Padget's article in one of the ShaderX books ... he will smile about the fact that after all this time we are still quoting his article ...
 
 
 
