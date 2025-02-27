@@ -76,6 +76,31 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+
+## Release 1.62 - February 27th, 2025 - C99 Vulkan/DirectX rewrite | Scene resolution using GPUCfg | SRT updates | In-Flight Motion Vector
+
+### C99 Vulkan/DirectX API rewrite
+Our quest to move as much code to C99 as possible is motivated by the idea that small teams deal better with a C99 code base. We are targeting this framework at small teams that need to be agile and quick.
+We finished a first pass on the Vulkan and DirectX run-time. There is more to come.
+
+### Scene Resolution using GPUCfg
+On mobile phones and mobile devices, the scene resolution is quite often very different even for one category of devices like Android Phones. So we have a better system now in place to really define scene and screen resolution with the GPU config system.
+
+### FSL 2 improvements
+After having shipped a Shader Resource Table based FSL language two weeks ago, we have done a bit more clean-up work and unified and simplified naming conventions.
+
+### Quest Support
+We make on-going improvements for the Quest support.
+
+### Triangle Visibility Buffer 2.0
+We found several issues with TVB 2.0 and fixed those. Next step is to make another pass on the architecture and see how much better we can make the memory access patterns to improve performance.
+
+### In-Flight Motion Vectors
+Many people still store motion vectors in render targets. For the last 15+ years that didn't make much sense anymore because the memory access pattern to write and read those motion vectors was so costly that calculating them on the fly made more sense. 
+This approach is based on Ben Padget's article in one of the ShaderX books ... he will a laugh about the fact that after all this time we are quoting his article ...
+
+
+
 ## Release 1.61 - February 13th, 2025 - FSL 2 | Browserstack | Android / Vulkan | DirectX 11 | Quest | flecs
 
 ### FSL 2
