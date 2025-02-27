@@ -531,6 +531,10 @@ void platformUpdateWindowSystem()
 #endif
 }
 
+extern Resolution gAvailableSceneResolutions[];
+extern uint32_t   gAvailableSceneResolutionCount;
+extern uint32_t   gSceneResolutionIndex;
+
 void platformSetupWindowSystemUI(IApp* pApp)
 {
 #ifdef ENABLE_FORGE_UI
@@ -956,6 +960,55 @@ void platformSetupWindowSystemUI(IApp* pApp)
 
     REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
 #endif
+
+    if (gAvailableSceneResolutionCount)
+    {
+        // Scene resolution options
+        uint32_t  resolutionWidgetCount = 1;
+        UIWidget  resolutionWidgets[32] = {};
+        UIWidget* resolutionWidgetPtr[32] = {};
+        for (uint32_t w = 0; w < TF_ARRAY_COUNT(resolutionWidgetPtr); ++w)
+        {
+            resolutionWidgetPtr[w] = &resolutionWidgets[w];
+        }
+        CollapsingHeaderWidget resolutionWidgetHeader = {};
+        resolutionWidgetHeader.pGroupedWidgets = resolutionWidgetPtr;
+        resolutionWidgetHeader.mWidgetsCount = resolutionWidgetCount;
+
+        static char        sceneResLabels[64][MAX_DEBUG_NAME_LENGTH + 1] = {};
+        static const char* sceneResLabelPtr[64] = {};
+        for (uint32_t r = 0; r < gAvailableSceneResolutionCount; ++r)
+        {
+            const Resolution* res = &gAvailableSceneResolutions[r];
+            if (res->mWidth && res->mHeight)
+            {
+                snprintf(sceneResLabels[r], MAX_DEBUG_NAME_LENGTH, "%ux%u", res->mWidth, res->mHeight);
+            }
+            else
+            {
+                strncpy(sceneResLabels[r], "native", MAX_DEBUG_NAME_LENGTH);
+            }
+            sceneResLabelPtr[r] = sceneResLabels[r];
+        }
+
+        DropdownWidget sceneResolutionDropdown = {};
+        sceneResolutionDropdown.mCount = gAvailableSceneResolutionCount;
+        sceneResolutionDropdown.pData = &gSceneResolutionIndex;
+        sceneResolutionDropdown.pNames = sceneResLabelPtr;
+        strcpy(resolutionWidgets[0].mLabel, "Scene resolutions");
+        resolutionWidgets[0].mType = WIDGET_TYPE_DROPDOWN;
+        resolutionWidgets[0].pWidget = &sceneResolutionDropdown;
+        resolutionWidgets[0].pOnEditedUserData = pApp;
+        resolutionWidgets[0].pOnEdited = [](void*)
+        {
+            ReloadDesc reloadDesc = {};
+            reloadDesc.mType = RELOAD_TYPE_SCENE_RESOLUTION;
+            requestReload(&reloadDesc);
+        };
+
+        REGISTER_LUA_WIDGET(uiAddComponentWidget(pWindowControlsComponent, "Scene Resolutions Options", &resolutionWidgetHeader,
+                                                 WIDGET_TYPE_COLLAPSING_HEADER));
+    }
 #else
     (void)pApp;
 #endif

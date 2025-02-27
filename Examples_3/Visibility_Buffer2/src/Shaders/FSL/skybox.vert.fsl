@@ -23,8 +23,8 @@
 */
 
 
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 STRUCT(VSInput) {
 	DATA(float4, Position, POSITION);

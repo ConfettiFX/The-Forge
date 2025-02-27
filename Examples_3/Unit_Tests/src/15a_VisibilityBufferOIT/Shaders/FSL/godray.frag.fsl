@@ -32,8 +32,8 @@
     #define USE_VRS 0
 #endif
 
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
 
 
 STRUCT(PsIn)
@@ -51,7 +51,7 @@ STRUCT(FSOutput)
 
 
 
-#include "srt.h"
+#include "Global.srt.h"
 
 
 float GetShadowFactor(float3 position)

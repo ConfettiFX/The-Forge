@@ -20,17 +20,17 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
     <ClInclude Include="..\src\19_CodeHotReload\IGamePlugin.h" />
-    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\srt.h" />
-    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\structs.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.frag.fsl" />
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\shaders.list" />
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\Global.srt.h" />
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\Structs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\19_CodeHotReload\GPUCfg\gpu.cfg" />
     <None Include="..\src\19_CodeHotReload\Scripts\Test_HotReload.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Basic.frag.fsl" />
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Basic.vert.fsl" />
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Shaders.list" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{28DEB3EA-DDBA-4F84-BF3E-D5A210989BE4}</ProjectGuid>

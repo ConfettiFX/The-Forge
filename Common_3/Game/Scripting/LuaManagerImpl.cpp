@@ -175,8 +175,10 @@ bool RunScriptFile(const char* scriptFile, lua_State* L)
     if (!fsOpenStreamFromPath(RD_SCRIPTS, scriptFile, FM_READ, &fh))
     {
 #ifdef AUTOMATED_TESTING
-        ASSERTFAIL("Can't load script %s\n", scriptFile);
+        ASSERTFAIL("Can't open script %s\n", scriptFile);
 #endif
+        LOGF(eERROR, "Failed to open script file %s. Function %s failed with error: %s", scriptFile, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 
@@ -184,7 +186,7 @@ bool RunScriptFile(const char* scriptFile, lua_State* L)
     fsCloseStream(&fh);
     if (loadfile_error != 0)
     {
-        LOGF(eERROR, "Can't load script %s\n", scriptFile);
+        LOGF(eERROR, "Can't load script %s\n ", scriptFile);
         return false;
     }
 
@@ -241,6 +243,8 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptFile, const char* upda
     FileStream fHandle = {};
     if (!fsOpenStreamFromPath(RD_SCRIPTS, scriptFile, FM_READ, &fHandle))
     {
+        LOGF(eERROR, "Failed to open script file %s. Function %s failed with error: %s", scriptFile, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 

@@ -13,27 +13,18 @@
     <Filter Include="Headers">
       <UniqueIdentifier>{a463a541-d5b7-4310-bc2b-1232f99442fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Misc\Shared">
-      <UniqueIdentifier>{f8b0b675-64ff-4f45-8cfd-fee5de54c83d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Misc">
-      <UniqueIdentifier>{8cfed7ae-0b3d-4e67-9caa-104b012f5516}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
-      <Filter>Source\Shared</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Source\Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.c">
       <Filter>Source\Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan_cxx.cpp">
       <Filter>Source\Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.c">
       <Filter>Source\Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
@@ -57,9 +48,6 @@
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
       <Filter>Headers\Shared</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
-      <Filter>Headers\Shared</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
       <Filter>Headers\Shared</Filter>
     </ClInclude>
@@ -75,26 +63,5 @@
     <ClInclude Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
       <Filter>Headers\Shared</Filter>
     </ClInclude>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\clear_buffers.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\pre_skin_vertexes.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\triangle_filtering.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shader_defs.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_shading_utilities.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer2\Shaders\FSL\vb_structs.h.fsl">
-      <Filter>Misc\Shared</Filter>
-    </None>
   </ItemGroup>
 </Project>

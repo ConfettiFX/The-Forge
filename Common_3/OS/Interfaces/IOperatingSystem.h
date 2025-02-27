@@ -300,175 +300,185 @@ typedef enum ThermalStatus
     THERMAL_STATUS_MAX,
 } ThermalStatus;
 
-inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
-inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
-
-// Window handling
-FORGE_API void openWindow(const char* app_name, WindowDesc* winDesc);
-FORGE_API void closeWindow(WindowDesc* winDesc);
-// Note: All window rectangle and window size functions are not meant to be used in fullscreen mode
-// Sets window rectangle. The dimensions of rectangle include window border and title bar.
-FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
-// Sets window size. The size of the window includes window border and title bar
-FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
-// Sets window client rectangle. The dimensions of rectangle don't include window border or title bar.
-FORGE_API void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect);
-// Sets window client rectangle. The size of the client doesn't include window border or title bar.
-FORGE_API void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height);
-
-// Set Window mode
-// Restores to previously saved client size
-FORGE_API void setWindowed(WindowDesc* winDesc);
-FORGE_API void setBorderless(WindowDesc* winDesc);
-FORGE_API void setFullscreen(WindowDesc* winDesc);
-FORGE_API void toggleFullscreen(WindowDesc* winDesc);
-
-FORGE_API void showWindow(WindowDesc* winDesc);
-FORGE_API void hideWindow(WindowDesc* winDesc);
-FORGE_API void maximizeWindow(WindowDesc* winDesc);
-FORGE_API void minimizeWindow(WindowDesc* winDesc);
-FORGE_API void centerWindow(WindowDesc* winDesc);
-FORGE_API void captureCursor(WindowDesc* winDesc, bool bEnable);
-
-// Mouse and cursor handling
-FORGE_API void* createCursor(const char* path);
-FORGE_API void  setCursor(void* cursor);
-FORGE_API void  showCursor(void);
-FORGE_API void  hideCursor(void);
-FORGE_API bool  isCursorInsideTrackingArea(void);
-FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
-FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
-
-// Returns recommended windowed client rectangle for active monitor
-FORGE_API void getRecommendedResolution(RectDesc* rect);
-FORGE_API void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
-// Sets video mode for specified display
-FORGE_API void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
-
-FORGE_API MonitorDesc* getMonitor(uint32_t index);
-FORGE_API uint32_t     getMonitorCount(void);
-FORGE_API uint32_t     getActiveMonitorIdx(void);
-// pArray pointer to array with at least 2 elements(x,y)
-FORGE_API void         getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2]);
-
-FORGE_API bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
-
-FORGE_API ThermalStatus getThermalStatus(void);
-
-inline const char* getThermalStatusString(ThermalStatus thermalStatus)
+#ifdef __cplusplus
+extern "C"
 {
-    switch (thermalStatus)
+#endif
+
+    inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
+    inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
+
+    // Window handling
+    FORGE_API void openWindow(const char* app_name, WindowDesc* winDesc);
+    FORGE_API void closeWindow(WindowDesc* winDesc);
+    // Note: All window rectangle and window size functions are not meant to be used in fullscreen mode
+    // Sets window rectangle. The dimensions of rectangle include window border and title bar.
+    FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
+    // Sets window size. The size of the window includes window border and title bar
+    FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
+    // Sets window client rectangle. The dimensions of rectangle don't include window border or title bar.
+    FORGE_API void setWindowClientRect(WindowDesc* winDesc, const RectDesc* rect);
+    // Sets window client rectangle. The size of the client doesn't include window border or title bar.
+    FORGE_API void setWindowClientSize(WindowDesc* winDesc, unsigned width, unsigned height);
+
+    // Set Window mode
+    // Restores to previously saved client size
+    FORGE_API void setWindowed(WindowDesc* winDesc);
+    FORGE_API void setBorderless(WindowDesc* winDesc);
+    FORGE_API void setFullscreen(WindowDesc* winDesc);
+    FORGE_API void toggleFullscreen(WindowDesc* winDesc);
+
+    FORGE_API void showWindow(WindowDesc* winDesc);
+    FORGE_API void hideWindow(WindowDesc* winDesc);
+    FORGE_API void maximizeWindow(WindowDesc* winDesc);
+    FORGE_API void minimizeWindow(WindowDesc* winDesc);
+    FORGE_API void centerWindow(WindowDesc* winDesc);
+    FORGE_API void captureCursor(WindowDesc* winDesc, bool bEnable);
+
+    // Mouse and cursor handling
+    FORGE_API void* createCursor(const char* path);
+    FORGE_API void  setCursor(void* cursor);
+    FORGE_API void  showCursor(void);
+    FORGE_API void  hideCursor(void);
+    FORGE_API bool  isCursorInsideTrackingArea(void);
+    FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
+    FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
+
+    // Returns recommended windowed client rectangle for active monitor
+    FORGE_API void getRecommendedResolution(RectDesc* rect);
+    FORGE_API void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
+    // Sets video mode for specified display
+    FORGE_API void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+    FORGE_API MonitorDesc* getMonitor(uint32_t index);
+    FORGE_API uint32_t     getMonitorCount(void);
+    FORGE_API uint32_t     getActiveMonitorIdx(void);
+    // pArray pointer to array with at least 2 elements(x,y)
+    FORGE_API void         getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2]);
+
+    FORGE_API bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+    FORGE_API ThermalStatus getThermalStatus(void);
+
+    inline const char* getThermalStatusString(ThermalStatus thermalStatus)
     {
-    case THERMAL_STATUS_NOT_SUPPORTED:
-        return "NotSupported";
-    case THERMAL_STATUS_ERROR:
-        return "Error";
-    case THERMAL_STATUS_NONE:
-        return "None";
-    case THERMAL_STATUS_LIGHT:
-        return "Light";
-    case THERMAL_STATUS_MODERATE:
-        return "Moderate";
-    case THERMAL_STATUS_SEVERE:
-        return "Severe";
-    case THERMAL_STATUS_CRITICAL:
-        return "Critical";
-    case THERMAL_STATUS_EMERGENCY:
-        return "Emergency";
-    case THERMAL_STATUS_SHUTDOWN:
-        return "Shutdown";
-    default:
-        return "Invalid";
+        switch (thermalStatus)
+        {
+        case THERMAL_STATUS_NOT_SUPPORTED:
+            return "NotSupported";
+        case THERMAL_STATUS_ERROR:
+            return "Error";
+        case THERMAL_STATUS_NONE:
+            return "None";
+        case THERMAL_STATUS_LIGHT:
+            return "Light";
+        case THERMAL_STATUS_MODERATE:
+            return "Moderate";
+        case THERMAL_STATUS_SEVERE:
+            return "Severe";
+        case THERMAL_STATUS_CRITICAL:
+            return "Critical";
+        case THERMAL_STATUS_EMERGENCY:
+            return "Emergency";
+        case THERMAL_STATUS_SHUTDOWN:
+            return "Shutdown";
+        default:
+            return "Invalid";
+        }
     }
-}
 
 // Reset
 #if defined(_WINDOWS) || defined(__ANDROID__)
-typedef enum ResetType
-{
-    RESET_TYPE_NONE = 0,
-    RESET_TYPE_API_SWITCH = 0x1,
-    RESET_TYPE_GRAPHIC_CARD_SWITCH = 0x2,
+    typedef enum ResetType
+    {
+        RESET_TYPE_NONE = 0,
+        RESET_TYPE_API_SWITCH = 0x1,
+        RESET_TYPE_GRAPHIC_CARD_SWITCH = 0x2,
 #if defined(_WINDOWS)
-    RESET_TYPE_DEVICE_LOST = 0x4,
-    RESET_TYPE_GPU_MODE_SWITCH = 0x8,
+        RESET_TYPE_DEVICE_LOST = 0x4,
+        RESET_TYPE_GPU_MODE_SWITCH = 0x8,
 #endif
-} ResetType;
+    } ResetType;
 
-typedef struct ResetDesc
-{
-    ResetType mType;
-} ResetDesc;
+    typedef struct ResetDesc
+    {
+        ResetType mType;
+    } ResetDesc;
 
-FORGE_API void requestReset(const ResetDesc* pResetDesc);
+    FORGE_API void requestReset(const ResetDesc* pResetDesc);
 #endif
 
-// Reload
-typedef enum ReloadType
-{
-    RELOAD_TYPE_RESIZE = 0x1,
-    RELOAD_TYPE_SHADER = 0x2,
-    RELOAD_TYPE_RENDERTARGET = 0x4,
-    RELOAD_TYPE_ALL = UINT32_MAX,
-    RELOAD_TYPE_COUNT = 3,
-} ReloadType;
-COMPILE_ASSERT(RELOAD_TYPE_COUNT == 3);
+    // Reload
+    typedef enum ReloadType
+    {
+        RELOAD_TYPE_RESIZE = 0x1,
+        RELOAD_TYPE_SHADER = 0x2,
+        RELOAD_TYPE_RENDERTARGET = 0x4,
+        RELOAD_TYPE_SCENE_RESOLUTION = 0x8,
+        RELOAD_TYPE_ALL = UINT32_MAX,
+        RELOAD_TYPE_COUNT = 4,
+    } ReloadType;
+    COMPILE_ASSERT(RELOAD_TYPE_COUNT == 4);
 
-typedef struct ReloadDesc
-{
-    ReloadType mType;
-} ReloadDesc;
+    typedef struct ReloadDesc
+    {
+        ReloadType mType;
+    } ReloadDesc;
 
 #if defined(ANDROID)
 #define TF_MEMORY_STATE_API
-typedef enum MemoryState
-{
-    MEMORY_STATE_UNKNOWN,
-    MEMORY_STATE_OK,
-    MEMORY_STATE_APPROACHING_LIMIT,
-    MEMORY_STATE_CRITICAL,
-} MemoryState;
-
-inline const char* getMemoryStateString(MemoryState state)
-{
-    switch (state)
+    typedef enum MemoryState
     {
-    case MEMORY_STATE_UNKNOWN:
-        return "Unknown";
-    case MEMORY_STATE_OK:
-        return "Okay";
-    case MEMORY_STATE_APPROACHING_LIMIT:
-        return "Approaching Limit";
-    case MEMORY_STATE_CRITICAL:
-        return "Critical";
-    default:
-        return "Invalid";
-    }
-}
+        MEMORY_STATE_UNKNOWN,
+        MEMORY_STATE_OK,
+        MEMORY_STATE_APPROACHING_LIMIT,
+        MEMORY_STATE_CRITICAL,
+    } MemoryState;
 
-FORGE_API MemoryState getMemoryState(void);
+    inline const char* getMemoryStateString(MemoryState state)
+    {
+        switch (state)
+        {
+        case MEMORY_STATE_UNKNOWN:
+            return "Unknown";
+        case MEMORY_STATE_OK:
+            return "Okay";
+        case MEMORY_STATE_APPROACHING_LIMIT:
+            return "Approaching Limit";
+        case MEMORY_STATE_CRITICAL:
+            return "Critical";
+        default:
+            return "Invalid";
+        }
+    }
+
+    FORGE_API MemoryState getMemoryState(void);
 #endif
 
-typedef struct OSInfo
-{
-    char osName[256];
-    char osVersion[256];
-    char osDeviceName[256];
-} OSInfo;
+    typedef struct OSInfo
+    {
+        char osName[256];
+        char osVersion[256];
+        char osDeviceName[256];
+    } OSInfo;
 
-FORGE_API OSInfo* getOsInfo(void);
+    FORGE_API OSInfo* getOsInfo(void);
 
-//------------------------------------------------------------------------
-// PLATFORM LAYER
-//------------------------------------------------------------------------
+    //------------------------------------------------------------------------
+    // PLATFORM LAYER
+    //------------------------------------------------------------------------
 
-FORGE_API void requestReload(const ReloadDesc* pReloadDesc);
+    FORGE_API void requestReload(const ReloadDesc* pReloadDesc);
 
-// API functions
-FORGE_API void requestShutdown(void);
-typedef void (*errorMessagePopupCallbackFn)(void);
-FORGE_API void errorMessagePopup(const char* title, const char* msg, WindowHandle* windowHandle, errorMessagePopupCallbackFn callback);
+    // API functions
+    FORGE_API void requestShutdown(void);
+    typedef void (*errorMessagePopupCallbackFn)(void);
+    FORGE_API void errorMessagePopup(const char* title, const char* msg, WindowHandle* windowHandle, errorMessagePopupCallbackFn callback);
 
-// Custom processing of OS pipe messages
-typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
-FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
+    // Custom processing of OS pipe messages
+    typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
+    FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
+
+#ifdef __cplusplus
+}
+#endif

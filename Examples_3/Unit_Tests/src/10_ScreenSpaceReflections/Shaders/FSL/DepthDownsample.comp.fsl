@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_DEPTH_DOWNSAMPLE
 #define FFX_SSSR_DEPTH_DOWNSAMPLE
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "DepthDownsample.srt.h"
 
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_SHUFFLE_BIT)

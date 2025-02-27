@@ -24,7 +24,7 @@
     <ClInclude Include="..\..\src\03_MultiThread\Shaders\FSL\resources.h.fsl">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\03_MultiThread\Shaders\FSL\srt.h">
+    <ClInclude Include="..\..\src\03_MultiThread\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Graph.frag.fsl">
@@ -39,7 +39,7 @@
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl">

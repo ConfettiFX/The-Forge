@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_INDIRECT_ARGS
 #define FFX_SSSR_INDIRECT_ARGS
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "SSSR.srt.h"
 
 ROOT_SIGNATURE(ComputeRootSignature)

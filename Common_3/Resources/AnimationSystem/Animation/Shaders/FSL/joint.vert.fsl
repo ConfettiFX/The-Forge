@@ -25,7 +25,7 @@
 // Shader for simple shading with a point light
 // for skeletons in Unit Tests Animation
 
-#include "animation_resources.h"
+#include "AnimationResources.h"
 
 STRUCT(VSInput)
 {

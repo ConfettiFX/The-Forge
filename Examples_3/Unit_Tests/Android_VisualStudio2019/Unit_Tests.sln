@@ -43,8 +43,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\runtime\ozz_animation\ozz_animation.vcxproj", "{2F0E7E67-FF8E-4A4E-8271-11614A284790}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "Libraries\Tools\SpirvTools\SpirvTools.vcxproj", "{5E22FFEA-7871-4E40-96B0-269809340C5F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "28_Skinning", "28_Skinning\28_Skinning.vcxproj", "{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ozz-animation", "ozz-animation", "{945448D4-52AC-406B-9C18-BD54E83D1BA4}"
@@ -125,10 +123,6 @@ Global
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
-		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
-		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
-		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
-		{5E22FFEA-7871-4E40-96B0-269809340C5F}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
@@ -183,7 +177,6 @@ Global
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{7EA11457-ECF2-4106-B963-3BEE3AFEC428} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
 		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {945448D4-52AC-406B-9C18-BD54E83D1BA4}
-		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{ADBCFAE4-6B8F-4B7B-B5FF-B256D687B365} = {28423D1E-F232-4C3F-9872-F24CFC9D8493}
 		{945448D4-52AC-406B-9C18-BD54E83D1BA4} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{20D3F062-EB43-4696-9005-EF3F7FA3747B} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}

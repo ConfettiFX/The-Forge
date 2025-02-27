@@ -26,9 +26,9 @@
 #define SAMPLE_COUNT 4
 #endif
 
-#include "SDF_Constant.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "SDFConstants.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 
 

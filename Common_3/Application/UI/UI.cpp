@@ -39,9 +39,9 @@
 
 #include "../../Graphics/FSL/fsl_srt.h"
 #include "../../Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/imgui_srt.h"
+#include "./Shaders/FSL/ImGui.srt.h"
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
-#include "./Shaders/FSL/textured_srt.h"
+#include "./Shaders/FSL/Textured.srt.h"
 #endif
 
 #define FALLBACK_FONT_TEXTURE_INDEX 0
@@ -150,24 +150,33 @@ typedef struct UserInterface
 } UserInterface;
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING) || defined(GFX_DEVICE_MEMORY_TRACKING)
-extern uint32_t    GetTrackedObjectTypeCount();
-extern const char* GetTrackedObjectName(uint32_t obj);
+extern "C"
+{
+    extern uint32_t    GetTrackedObjectTypeCount();
+    extern const char* GetTrackedObjectName(uint32_t obj);
+}
 #endif
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING)
 // Driver memory getters
-extern uint64_t GetDriverAllocationsCount();
-extern uint64_t GetDriverMemoryAmount();
-extern uint64_t GetDriverAllocationsPerObject(uint32_t obj);
-extern uint64_t GetDriverMemoryPerObject(uint32_t obj);
+extern "C"
+{
+    extern uint64_t GetDriverAllocationsCount();
+    extern uint64_t GetDriverMemoryAmount();
+    extern uint64_t GetDriverAllocationsPerObject(uint32_t obj);
+    extern uint64_t GetDriverMemoryPerObject(uint32_t obj);
+}
 #endif
 
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
 // Device memory getters
-extern uint64_t GetDeviceAllocationsCount();
-extern uint64_t GetDeviceMemoryAmount();
-extern uint64_t GetDeviceAllocationsPerObject(uint32_t obj);
-extern uint64_t GetDeviceMemoryPerObject(uint32_t obj);
+extern "C"
+{
+    extern uint64_t GetDeviceAllocationsCount();
+    extern uint64_t GetDeviceMemoryAmount();
+    extern uint64_t GetDeviceAllocationsPerObject(uint32_t obj);
+    extern uint64_t GetDeviceMemoryPerObject(uint32_t obj);
+}
 #endif
 
 #ifdef ENABLE_FORGE_UI

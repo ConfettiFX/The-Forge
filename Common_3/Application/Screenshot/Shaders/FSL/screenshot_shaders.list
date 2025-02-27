@@ -1,6 +1,0 @@
-#include "../../../../Graphics/FSL/defaults.h"
-
-
-#comp FT_NO_AB copy.comp
-#include "copy.comp.fsl"
-#end

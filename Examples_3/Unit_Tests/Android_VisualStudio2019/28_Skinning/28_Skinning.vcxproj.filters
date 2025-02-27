@@ -5,7 +5,7 @@
       <UniqueIdentifier>{75023a42-51d6-4f51-a666-767bf261e54a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Headers">
-      <UniqueIdentifier>{a47516df-e1cb-4e79-ac05-38a6cfc04880}</UniqueIdentifier>
+      <UniqueIdentifier>{908af5b3-f599-461b-843f-460c088ef64d}</UniqueIdentifier>
     </Filter>
     <Filter Include="FSLShaders">
       <UniqueIdentifier>{ec5e544a-699d-4dad-9333-711bc46216fe}</UniqueIdentifier>
@@ -18,22 +18,28 @@
     <ClCompile Include="..\..\src\28_Skinning\28_Skinning.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClInclude Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h.fsl">
+    <ClInclude Include="..\..\src\28_Skinning\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.frag.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Plane.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.vert.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Plane.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Resources.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Skinning.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Skinning.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Skinning.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\28_Skinning\GPUCfg\gpu.cfg">

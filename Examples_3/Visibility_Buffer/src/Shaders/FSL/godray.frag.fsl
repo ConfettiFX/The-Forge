@@ -28,9 +28,9 @@
     #define SAMPLE_COUNT 1
 #endif
 
-#include "vb_resources.h.fsl"
-#include "srt.h"
-#include "vb_resources_util.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "GLobal.srt.h"
+#include "VisibilityBufferResourcesUtil.h.fsl"
 
 
 

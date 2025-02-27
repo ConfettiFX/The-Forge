@@ -22,22 +22,24 @@
  * under the License.
 */
 
-#include "vrs_resources.h.fsl"
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "shader_defs.h.fsl"
+#include "VRSResources.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShadingUtilities.h.fsl"
 
 
 
 #define SAMPLE_COUNT 4
 
 
-#include "srt.h"
+#include "Global.srt.h"
 
 STRUCT(PsIn)
 {
     DATA(float4, position,    SV_POSITION);
-    DATA(float4, uv,          TEXCOORD0);
+		DATA(float2, screenPos,   TEXCOORD0);
 };
 
 STRUCT(PSOut)
@@ -142,23 +144,100 @@ uint calcRate4Samples(int2 pixelPos, float qualityThreshold, float black)
 	return rate;
 }
 
+float2 calcPrevPixelPos(float2 screenPos, uint primitiveID, uint geomSet)
+{
+
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 0;
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 1;
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 2;
+
+	float4x4 mvp = gPerFrameConstants.transform[VIEW_CAMERA].mvp.mat;
+	float4x4 invMvp = gPerFrameConstants.transform[VIEW_CAMERA].invMVP.mat;
+	float4x4 prevMvp = gPerFrameConstants.transform[VIEW_CAMERA].prevMVP.mat;
+
+	uint indirectIndex0 = LoadByte(gFilteredIndexBuffer, (triIdx0 << 2));
+	uint indirectIndex1 = LoadByte(gFilteredIndexBuffer, (triIdx1 << 2));
+	uint indirectIndex2 = LoadByte(gFilteredIndexBuffer, (triIdx2 << 2));
+
+	uint meshIndex = gIndirectDataBuffer[indirectIndex0];
+	MeshData meshConstant = gMeshDataBuffer[meshIndex];
+
+	uint index0 = indirectIndex0 - meshConstant.indirectVertexOffset;
+	uint index1 = indirectIndex1 - meshConstant.indirectVertexOffset;
+	uint index2 = indirectIndex2 - meshConstant.indirectVertexOffset;
+
+	uint animatedAttrVertexOffset = 0;
+	uint preSkinnedVtxOffset = meshConstant.preSkinnedVertexOffset;
+  if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
+    {
+        // Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
+        //       therefore we don't need thi assignment.
+        animatedAttrVertexOffset = preSkinnedVtxOffset - meshConstant.vertexOffset;
+		mvp = mul(mvp, meshConstant.modelMtx);
+		invMvp = mul(meshConstant.invModelMtx, invMvp);
+		prevMvp = mul(prevMvp, meshConstant.prevModelMtx);
+	}
+
+	uint animIndex0 = index0 - animatedAttrVertexOffset;
+	uint animIndex1 = index1 - animatedAttrVertexOffset;
+	uint animIndex2 = index2 - animatedAttrVertexOffset;
+
+	// Load vertex data of the 3 vertices
+	float3 v0pos = asfloat(LoadByte4(gVertexPositionBuffer, index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
+
+	// Transform positions to clip space
+	float4 pos0 = mul(mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(mvp, float4(v2pos, 1.0f));
+
+	float2 two_over_windowsize = gPerFrameConstants.twoOverRes;
+
+	// Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,screenPos, two_over_windowsize);
+
+	// Interpolate the 1/w (one_over_w) for all three vertices of the triangle
+	// using the barycentric coordinates and the delta vector
+	float w = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
+
+	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
+	// operations that involve computing Z
+	float z = w * getElem(gPerFrameConstants.transform[VIEW_CAMERA].projection.mat, 2, 2) + getElem(gPerFrameConstants.transform[VIEW_CAMERA].projection.mat, 3, 2);
+
+	float4 worldPos = mul(invMvp, float4(screenPos * w, z, w));
+	worldPos.xyz /= worldPos.w;
+
+	float4 screenPosRes = mul(prevMvp, float4(worldPos.xyz, 1.0f));
+	screenPosRes.xy /= screenPosRes.w;
+
+	return screenPosRes.xy;
+}
+
 SET_OUTPUT_FORMAT(0, FMT_32_R)
 ROOT_SIGNATURE(DefaultRootSignature)
-#if USE_SINGLE_SAMPLE
-PSOut PS_MAIN( PsIn In )
-#else
 PSOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
-#endif
 {
     INIT_MAIN;
     PSOut Out;
 
-#if USE_SINGLE_SAMPLE
-	uint i = 0;
-#endif
-
 	int2 pixelPos = int2(In.position.xy);
-	int2 prevPixelPos = pixelPos;
+	float4 visRaw = LoadTex2DMS(gVBTex, gSamplerTrilinearClamp, pixelPos, i);
+	uint geomSetPrimID = packUnorm4x8(visRaw);
+
+	float2 prevPos = In.position.xy;
+	if (geomSetPrimID != ~0u)
+	{
+		// Extract packed data
+		uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+		uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
+		
+		prevPos = calcPrevPixelPos(In.screenPos.xy, primitiveID, geomSet);
+		prevPos.y = 0.5f * (1.f - prevPos.y);
+		prevPos.x = 0.5f * (prevPos.x + 1.f);
+		prevPos *= (float2(gPerFrameConstants.screenWidth, gPerFrameConstants.screenHeight) * 0.5f);
+	}
+	int2 prevPixelPos = int2(prevPos);
 
 	uint history = SHADING_RATE_2X2;
 

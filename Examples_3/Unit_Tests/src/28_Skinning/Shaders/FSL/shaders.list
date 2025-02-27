@@ -7,18 +7,18 @@
 #end
 
 #frag FT_MULTIVIEW plane.frag
-#include "plane.frag.fsl"
+#include "Plane.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW plane.vert
-#include "plane.vert.fsl"
+#include "Plane.vert.fsl"
 #end
 
 #frag FT_MULTIVIEW skinning.frag
-#include "skinning.frag.fsl"
+#include "Skinning.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW skinning.vert
-#include "skinning.vert.fsl"
+#include "Skinning.vert.fsl"
 #end
 

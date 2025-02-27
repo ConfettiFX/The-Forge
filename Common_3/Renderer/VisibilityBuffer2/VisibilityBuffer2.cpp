@@ -31,7 +31,7 @@
 #include "../../../Common_3/Utilities/RingBuffer.h"
 
 #define NO_FSL_DEFINITIONS
-#include "../VisibilityBuffer2/Shaders/FSL/vb_structs.h.fsl"
+#include "../VisibilityBuffer2/Shaders/FSL/VisibilityBufferStructs.h.fsl"
 
 #include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 

@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Graphics">
-      <UniqueIdentifier>{ba51f083-98fd-459f-8347-a38f480b081d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Direct3D12">
       <UniqueIdentifier>{2addb92f-5019-4cc8-8e41-430106b62249}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{ba51f083-98fd-459f-8347-a38f480b081d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Renderer\ParticleSystem">
       <UniqueIdentifier>{3bac518d-6064-484d-9b08-f87620defe28}</UniqueIdentifier>
@@ -75,19 +75,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.c">
       <Filter>Graphics\Direct3D12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.c">
       <Filter>Graphics\Direct3D12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.c">
       <Filter>Graphics\Direct3D12</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12_cxx.cpp">
       <Filter>Graphics\Direct3D12</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
@@ -117,6 +114,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h">
       <Filter>Graphics\Direct3D12</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12_cxx.h">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\d3d12_srt.h">
       <Filter>Graphics\FSL</Filter>
     </ClInclude>
@@ -133,9 +133,6 @@
       <Filter>Graphics\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
-      <Filter>Graphics\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
       <Filter>Graphics\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d.h">
@@ -189,49 +186,49 @@
     <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl">
       <Filter>Graphics</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleBoids.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleDefs.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticlePacking.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleRandom.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleSets.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleShared.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_utils.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleUtils.h.fsl">
       <Filter>Renderer\ParticleSystem\Shaders</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\BatchCompaction.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\clear_buffers.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\ClearBuffers.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\pre_skin_vertexes.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\PreSkinVertexes.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\triangle_filtering.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\TriangleFiltering.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_resources.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferResources.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shader_defs.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShaderDefs.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shading_utilities.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShadingUtilities.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_structs.h.fsl">
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferStructs.h.fsl">
       <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
     </None>
   </ItemGroup>

@@ -70,10 +70,10 @@
 // fsl
 #define SHORT_CUT_RESOLVE_DEPTH
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
-#include "./Shaders/FSL/hair.srt.h"
-#include "./Shaders/FSL/compute_specular_comp.srt.h"
-#include "./Shaders/FSL/capsules.srt.h"
+#include "./Shaders/FSL/Global.srt.h"
+#include "./Shaders/FSL/Hair.srt.h"
+#include "./Shaders/FSL/PBR.srt.h"
+#include "./Shaders/FSL/Capsules.srt.h"
 
 #define HAIR_DEV_UI                  false
 #define MAX_FILENAME_LENGTH          128
@@ -1877,59 +1877,8 @@ public:
             // Draw hair - shadow map
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair rendering");
 
-            uint32_t            shadowDescriptorSetIndex[2] = { gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
-                                                     gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS };
             RenderTargetBarrier rtBarriers[2] = {};
             BufferBarrier       bufferBarrier[1] = {};
-
-            cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair shadow");
-
-            for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
-            {
-                if (!gHairTypeInfo[hairType].mInView)
-                {
-                    shadowDescriptorSetIndex[0] += MAX_NUM_DIRECTIONAL_LIGHTS;
-                    shadowDescriptorSetIndex[1] += MAX_NUM_DIRECTIONAL_LIGHTS * gHairTypeIndicesCount[hairType];
-                    continue;
-                }
-
-                for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
-                {
-                    cmdBindRenderTargets(cmd, NULL);
-                    rtBarriers[0].pRenderTarget = pRenderTargetHairShadows[hairType][i];
-                    rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
-                    rtBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
-                    cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
-
-                    bindRenderTargets = {};
-                    bindRenderTargets.mDepthStencil = { pRenderTargetHairShadows[hairType][i], LOAD_ACTION_CLEAR };
-                    cmdBindRenderTargets(cmd, &bindRenderTargets);
-                    cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mWidth,
-                                   (float)pRenderTargetHairShadows[hairType][i]->mHeight, 0.0f, 1.0f);
-                    cmdSetScissor(cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth, pRenderTargetHairShadows[hairType][i]->mHeight);
-
-                    cmdBindPipeline(cmd, pPipelineHairShadow);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
-
-                    for (size_t j = 0; j < gHairTypeIndicesCount[hairType]; ++j)
-                    {
-                        uint k = gHairTypeIndices[hairType][j];
-
-                        cmdBindDescriptorSet(cmd, shadowDescriptorSetIndex[1], pDescriptorSetHairShadow);
-                        cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, gHair[k].pGeom->mIndexType, 0);
-                        cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
-
-                        ++shadowDescriptorSetIndex[1];
-                    }
-
-                    ++shadowDescriptorSetIndex[0];
-                }
-            }
-
-            // Draw hair - clear hair depths texture
-            cmdBindRenderTargets(cmd, NULL);
-
-            cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
             TextureBarrier textureBarriers[2] = {};
 
@@ -2048,6 +1997,57 @@ public:
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdDraw(cmd, 3, 0);
+
+            cmdBindRenderTargets(cmd, NULL);
+
+            cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
+
+            uint32_t shadowDescriptorSetIndex[2] = { gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
+                                                     gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS };
+
+            cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair shadow");
+
+            for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
+            {
+                if (!gHairTypeInfo[hairType].mInView)
+                {
+                    shadowDescriptorSetIndex[0] += MAX_NUM_DIRECTIONAL_LIGHTS;
+                    shadowDescriptorSetIndex[1] += MAX_NUM_DIRECTIONAL_LIGHTS * gHairTypeIndicesCount[hairType];
+                    continue;
+                }
+
+                for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
+                {
+                    cmdBindRenderTargets(cmd, NULL);
+                    rtBarriers[0].pRenderTarget = pRenderTargetHairShadows[hairType][i];
+                    rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
+                    rtBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
+                    cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
+
+                    bindRenderTargets = {};
+                    bindRenderTargets.mDepthStencil = { pRenderTargetHairShadows[hairType][i], LOAD_ACTION_CLEAR };
+                    cmdBindRenderTargets(cmd, &bindRenderTargets);
+                    cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mWidth,
+                                   (float)pRenderTargetHairShadows[hairType][i]->mHeight, 0.0f, 1.0f);
+                    cmdSetScissor(cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth, pRenderTargetHairShadows[hairType][i]->mHeight);
+
+                    cmdBindPipeline(cmd, pPipelineHairShadow);
+                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+
+                    for (size_t j = 0; j < gHairTypeIndicesCount[hairType]; ++j)
+                    {
+                        uint k = gHairTypeIndices[hairType][j];
+
+                        cmdBindDescriptorSet(cmd, shadowDescriptorSetIndex[1], pDescriptorSetHairShadow);
+                        cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, gHair[k].pGeom->mIndexType, 0);
+                        cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
+
+                        ++shadowDescriptorSetIndex[1];
+                    }
+
+                    ++shadowDescriptorSetIndex[0];
+                }
+            }
 
             cmdBindRenderTargets(cmd, NULL);
 
@@ -4257,27 +4257,60 @@ public:
 
     void addRenderTargets()
     {
-        RenderTargetDesc depthPeelingRenderTargetDesc = {};
-        depthPeelingRenderTargetDesc.mWidth = mSettings.mWidth;
-        depthPeelingRenderTargetDesc.mHeight = mSettings.mHeight;
-        depthPeelingRenderTargetDesc.mDepth = 1;
-        depthPeelingRenderTargetDesc.mArraySize = 1;
-        depthPeelingRenderTargetDesc.mMipLevels = 1;
-        depthPeelingRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
-        depthPeelingRenderTargetDesc.mFormat = TinyImageFormat_R16_SFLOAT;
-        depthPeelingRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.a = 1.0f;
-        depthPeelingRenderTargetDesc.mSampleQuality = 0;
-        depthPeelingRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
-        depthPeelingRenderTargetDesc.pName = "Depth peeling RT";
-        addRenderTarget(pRenderer, &depthPeelingRenderTargetDesc, &pRenderTargetDepthPeeling);
+        uint32_t currentOffsetESRAM = 0;
 
+        ESRAM_BEGIN_ALLOC(pRenderer, "Shadow Map", currentOffsetESRAM);
+        RenderTargetDesc shadowPassRenderTargetDesc = {};
+        shadowPassRenderTargetDesc.mArraySize = 1;
+        shadowPassRenderTargetDesc.mClearValue.depth = 0.0f;
+        shadowPassRenderTargetDesc.mClearValue.stencil = 0;
+        shadowPassRenderTargetDesc.mDepth = 1;
+        shadowPassRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        shadowPassRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        shadowPassRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
+        shadowPassRenderTargetDesc.mWidth = gShadowMapDimensions;
+        shadowPassRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
+        shadowPassRenderTargetDesc.mSampleQuality = 0;
+        shadowPassRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+        shadowPassRenderTargetDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
+        shadowPassRenderTargetDesc.pName = "Shadow Map Render Target";
+        addRenderTarget(pRenderer, &shadowPassRenderTargetDesc, &pRenderTargetShadowMap);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, shadowOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        ESRAM_BEGIN_ALLOC(pRenderer, "Hair Shadow", 0);
+        RenderTargetDesc hairShadowRenderTargetDesc = {};
+        hairShadowRenderTargetDesc.mWidth = 1024;
+        hairShadowRenderTargetDesc.mHeight = 1024;
+        hairShadowRenderTargetDesc.mDepth = 1;
+        hairShadowRenderTargetDesc.mArraySize = 1;
+        hairShadowRenderTargetDesc.mMipLevels = 1;
+        hairShadowRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
+        hairShadowRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        hairShadowRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        hairShadowRenderTargetDesc.mClearValue.depth = 0.0f;
+        hairShadowRenderTargetDesc.mClearValue.stencil = 0;
+        hairShadowRenderTargetDesc.mSampleQuality = 0;
+        hairShadowRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        hairShadowRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+        hairShadowRenderTargetDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
+        hairShadowRenderTargetDesc.pName = "Hair shadow RT";
+        for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
+        {
+            for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
+            {
+                addRenderTarget(pRenderer, &hairShadowRenderTargetDesc, &pRenderTargetHairShadows[hairType][i]);
+            }
+        }
+        ESRAM_CURRENT_OFFSET(pRenderer, hairShadowOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        uint32_t hairDepthsOffsetESRAM = currentOffsetESRAM;
         if (gSupportTextureAtomics)
         {
+            ESRAM_BEGIN_ALLOC(pRenderer, "Hair depths", currentOffsetESRAM);
             TextureDesc hairDepthsTextureDesc = {};
             hairDepthsTextureDesc.mWidth = mSettings.mWidth;
             hairDepthsTextureDesc.mHeight = mSettings.mHeight;
@@ -4293,12 +4326,17 @@ public:
             hairDepthsTextureDesc.mClearValue.a = 1.0f;
             hairDepthsTextureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
             hairDepthsTextureDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+            hairDepthsTextureDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
             hairDepthsTextureDesc.pName = "Hair depths texture";
 
             TextureLoadDesc hairDepthsTextureLoadDesc = {};
             hairDepthsTextureLoadDesc.pDesc = &hairDepthsTextureDesc;
             hairDepthsTextureLoadDesc.ppTexture = &pTextureHairDepth;
             addResource(&hairDepthsTextureLoadDesc, NULL);
+
+            ESRAM_CURRENT_OFFSET(pRenderer, currentOffset);
+            hairDepthsOffsetESRAM = currentOffset;
+            ESRAM_END_ALLOC(pRenderer);
         }
         else
         {
@@ -4314,6 +4352,32 @@ public:
             hairDepthsBufferLoadDesc.ppBuffer = &pBufferHairDepth;
             addResource(&hairDepthsBufferLoadDesc, NULL);
         }
+
+        currentOffsetESRAM = max(shadowOffsetESRAM, currentOffsetESRAM);
+        currentOffsetESRAM = max(hairShadowOffsetESRAM, currentOffsetESRAM);
+        currentOffsetESRAM = max(hairDepthsOffsetESRAM, currentOffsetESRAM);
+
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth", currentOffsetESRAM);
+        RenderTargetDesc depthRenderTargetDesc = {};
+        depthRenderTargetDesc.mArraySize = 1;
+        depthRenderTargetDesc.mClearValue.depth = 0.0f;
+        depthRenderTargetDesc.mClearValue.stencil = 0;
+        depthRenderTargetDesc.mDepth = 1;
+        depthRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        depthRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+        depthRenderTargetDesc.mStartState = RESOURCE_STATE_DEPTH_WRITE;
+        depthRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
+        depthRenderTargetDesc.mSampleQuality = 0;
+        depthRenderTargetDesc.mWidth = mSettings.mWidth;
+        depthRenderTargetDesc.mHeight = mSettings.mHeight;
+        depthRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRenderTargetDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
+        depthRenderTargetDesc.pName = "Depth buffer";
+        addRenderTarget(pRenderer, &depthRenderTargetDesc, &pRenderTargetDepth);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, depthOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+        currentOffsetESRAM = max(depthOffsetESRAM, currentOffsetESRAM);
 
         RenderTargetDesc fillColorsRenderTargetDesc = {};
         fillColorsRenderTargetDesc.mWidth = mSettings.mWidth;
@@ -4334,60 +4398,25 @@ public:
         fillColorsRenderTargetDesc.pName = "Fill colors RT";
         addRenderTarget(pRenderer, &fillColorsRenderTargetDesc, &pRenderTargetFillColors);
 
-        RenderTargetDesc hairShadowRenderTargetDesc = {};
-        hairShadowRenderTargetDesc.mWidth = 1024;
-        hairShadowRenderTargetDesc.mHeight = 1024;
-        hairShadowRenderTargetDesc.mDepth = 1;
-        hairShadowRenderTargetDesc.mArraySize = 1;
-        hairShadowRenderTargetDesc.mMipLevels = 1;
-        hairShadowRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
-        hairShadowRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
-        hairShadowRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        hairShadowRenderTargetDesc.mClearValue.depth = 0.0f;
-        hairShadowRenderTargetDesc.mClearValue.stencil = 0;
-        hairShadowRenderTargetDesc.mSampleQuality = 0;
-        hairShadowRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        hairShadowRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-        hairShadowRenderTargetDesc.pName = "Hair shadow RT";
-        for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
-        {
-            for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
-            {
-                addRenderTarget(pRenderer, &hairShadowRenderTargetDesc, &pRenderTargetHairShadows[hairType][i]);
-            }
-        }
-
-        RenderTargetDesc depthRenderTargetDesc = {};
-        depthRenderTargetDesc.mArraySize = 1;
-        depthRenderTargetDesc.mClearValue.depth = 0.0f;
-        depthRenderTargetDesc.mClearValue.stencil = 0;
-        depthRenderTargetDesc.mDepth = 1;
-        depthRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        depthRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
-        depthRenderTargetDesc.mStartState = RESOURCE_STATE_DEPTH_WRITE;
-        depthRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
-        depthRenderTargetDesc.mSampleQuality = 0;
-        depthRenderTargetDesc.mWidth = mSettings.mWidth;
-        depthRenderTargetDesc.mHeight = mSettings.mHeight;
-        depthRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
-        depthRenderTargetDesc.pName = "Depth buffer";
-        addRenderTarget(pRenderer, &depthRenderTargetDesc, &pRenderTargetDepth);
-
-        RenderTargetDesc shadowPassRenderTargetDesc = {};
-        shadowPassRenderTargetDesc.mArraySize = 1;
-        shadowPassRenderTargetDesc.mClearValue.depth = 0.0f;
-        shadowPassRenderTargetDesc.mClearValue.stencil = 0;
-        shadowPassRenderTargetDesc.mDepth = 1;
-        shadowPassRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        shadowPassRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
-        shadowPassRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
-        shadowPassRenderTargetDesc.mWidth = gShadowMapDimensions;
-        shadowPassRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
-        shadowPassRenderTargetDesc.mSampleQuality = 0;
-        shadowPassRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-        shadowPassRenderTargetDesc.pName = "Shadow Map Render Target";
-        addRenderTarget(pRenderer, &shadowPassRenderTargetDesc, &pRenderTargetShadowMap);
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth Peeling", currentOffsetESRAM);
+        RenderTargetDesc depthPeelingRenderTargetDesc = {};
+        depthPeelingRenderTargetDesc.mWidth = mSettings.mWidth;
+        depthPeelingRenderTargetDesc.mHeight = mSettings.mHeight;
+        depthPeelingRenderTargetDesc.mDepth = 1;
+        depthPeelingRenderTargetDesc.mArraySize = 1;
+        depthPeelingRenderTargetDesc.mMipLevels = 1;
+        depthPeelingRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
+        depthPeelingRenderTargetDesc.mFormat = TinyImageFormat_R16_SFLOAT;
+        depthPeelingRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+        depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.a = 1.0f;
+        depthPeelingRenderTargetDesc.mSampleQuality = 0;
+        depthPeelingRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthPeelingRenderTargetDesc.pName = "Depth peeling RT";
+        addRenderTarget(pRenderer, &depthPeelingRenderTargetDesc, &pRenderTargetDepthPeeling);
     }
 
     void removeRenderTargets()

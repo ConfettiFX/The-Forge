@@ -21,7 +21,6 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-
 #ifndef _VULKAN_H
 #define _VULKAN_H
 

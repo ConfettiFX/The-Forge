@@ -48,6 +48,6 @@ STRUCT(UniformData)
     DATA(float4, lightColor, None);
 };
 
-#include "srt.h"
+#include "Global.srt.h"
 
 #endif

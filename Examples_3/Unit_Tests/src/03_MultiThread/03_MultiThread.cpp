@@ -53,7 +53,7 @@
 
 // fsl
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
+#include "./Shaders/FSL/Global.srt.h"
 
 // startdust hash function, use this to generate all the seed and update the position of all particles
 #define RND_GEN(x)                  ((x) = (x)*196314165 + 907633515)

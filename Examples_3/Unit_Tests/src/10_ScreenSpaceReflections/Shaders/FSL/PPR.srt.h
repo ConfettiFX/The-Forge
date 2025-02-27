@@ -26,8 +26,8 @@
 #define ppr_srt_h
 
 BEGIN_SRT(PPRSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
 		DECL_RWBUFFER(PerBatch, RWBuffer(uint), gIntermediateBuffer)
 	END_SRT_SET(PerBatch)

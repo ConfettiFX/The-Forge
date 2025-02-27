@@ -28,7 +28,7 @@
 
 #include "../../../Graphics/FSL/fsl_srt.h"
 #include "../../../Graphics/FSL/defaults.h"
-#include "Shaders/FSL/animation_srt.h"
+#include "Shaders/FSL/Animation.srt.h"
 
 #include "../../../Utilities/Interfaces/IMemory.h"
 

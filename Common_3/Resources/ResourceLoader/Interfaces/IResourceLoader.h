@@ -468,7 +468,7 @@ typedef struct PipelineCacheSaveDesc
     const char* pFileName;
 } PipelineCacheSaveDesc;
 
-typedef struct RootSignatureInitDesc
+typedef struct RootSignatureDesc
 {
     const char* pGraphicsFileName;
     const char* pComputeFileName;
@@ -622,9 +622,9 @@ FORGE_RENDERER_API void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDe
 FORGE_RENDERER_API void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
 FORGE_RENDERER_API void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
 
-FORGE_RENDERER_API void initRootSignature(Renderer* pRenderer, const RootSignatureInitDesc* pDesc);
+FORGE_RENDERER_API void initRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc);
 FORGE_RENDERER_API void exitRootSignature(Renderer* pRenderer);
 
 /// Determines whether we are using Uniform Memory Architecture or not.
 /// Do not assume this variable will be the same, if code was compiled with multiple APIs result of this function might change per API.
-FORGE_RENDERER_API bool isUma();
+FORGE_RENDERER_API UMASupportFlags getUmaFlags();

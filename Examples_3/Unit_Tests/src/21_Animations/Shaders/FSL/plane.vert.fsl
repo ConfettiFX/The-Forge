@@ -34,7 +34,7 @@ STRUCT(UniformBlock)
     DATA(float4x4, toWorld, None);
 };
 
-#include "srt.h"
+#include "Global.srt.h"
 
 STRUCT(VSInput)
 {

@@ -1,0 +1,160 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef vb_resources_h
+#define vb_resources_h
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+
+#include "ShaderDefs.h.fsl"
+
+STRUCT(objectUniformBlockData)
+{
+    DATA(float4x4, worldViewProjMat, None);
+    DATA(float4x4, prevWorldViewProjMat, None);
+};
+
+STRUCT(PsInOpaque)
+{
+	DATA(float4, position,     SV_Position);
+};
+
+STRUCT(PsInAlphaTested)
+{
+	DATA(float4, position,     SV_Position);
+	DATA(float2, texCoord,     TEXCOORD0);
+	DATA(FLAT(uint), materialID, TEXCOORD1);
+};
+
+STRUCT(cbExtendCameraData)
+{
+	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
+	DATA(float4x4, projMat, None);
+	DATA(float4x4, viewProjMat, None);
+	DATA(float4x4, InvViewProjMat, None);
+
+	DATA(float4, cameraWorldPos, None);
+
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
+
+	DATA(float4, mEnvColor, None);
+
+	DATA(float,  mGroundRoughness, None);
+	DATA(float,  mGroundMetallic, None);
+	DATA(uint,   mUseEnvMap, None);
+};
+
+
+
+STRUCT(cbPropertiesData)
+{
+	DATA(uint, renderMode, None);
+	DATA(float, useHolePatching, None);
+	DATA(float, useExpensiveHolePatching, None);
+	DATA(float, useNormalMap, None);
+
+	DATA(float, intensity, None);
+	DATA(float, useFadeEffect, None);
+	DATA(float, debugNonProjected, None);
+	DATA(float, padding01, None);
+};
+
+STRUCT(Light)
+{
+	DATA(float4, pos, None);
+	DATA(float4, col, None);
+	DATA(float,  radius, None);
+	DATA(float,  intensity, None);
+	DATA(float,  _pad0, None);
+	DATA(float,  _pad1, None);
+};
+
+STRUCT(DirectionalLight)
+{
+	DATA(float4, mCol, None); //alpha is the intesity
+	DATA(float4, mDir, None);
+};
+
+STRUCT(cbLightsData)
+{
+	DATA(Light, lights[16], None);
+	DATA(int, currAmountOflights, None);
+};
+STRUCT(cbDLightsData)
+{
+	DATA(DirectionalLight, dlights[16], None);
+	DATA(int, currAmountOfDLights, None);
+};
+
+STRUCT(uniformBlockData)
+{
+	DATA(float4x4, projView, None);
+};
+
+
+STRUCT(PlaneInfo)
+{
+	DATA(float4x4, rotMat, None);
+	DATA(float4, centerPoint, None);
+	DATA(float4, size, None);
+};
+
+STRUCT(planeInfoBufferData)
+{
+	DATA(PlaneInfo, planeInfo[MAX_PLANES], None);
+	DATA(uint, numPlanes, None);
+	DATA(uint, pad00, None);
+	DATA(uint, pad01, None);
+	DATA(uint, pad02, None);
+};
+
+
+
+
+
+// SSSR Common constants
+STRUCT(ConstantsData)
+{
+    DATA(float4x4, g_inv_view_proj, None);
+    DATA(float4x4, g_proj, None);
+    DATA(float4x4, g_inv_proj, None);
+    DATA(float4x4, g_view, None);
+    DATA(float4x4, g_inv_view, None);
+    DATA(float4x4, g_prev_view_proj, None);
+
+    DATA(uint, g_frame_index, None);
+    DATA(bool, g_clear_targets, None);
+    DATA(uint, g_max_traversal_intersections, None);
+    DATA(uint, g_min_traversal_occupancy, None);
+    DATA(uint, g_most_detailed_mip, None);
+    DATA(float, g_temporal_stability_factor, None);
+    DATA(float, g_depth_buffer_thickness, None);
+    DATA(uint, g_samples_per_quad, None);
+    DATA(uint, g_temporal_variance_guided_tracing_enabled, None);
+    DATA(float, g_roughness_threshold, None);
+    DATA(uint, g_skip_denoiser, None);
+};
+#endif /* vb_resources_h */

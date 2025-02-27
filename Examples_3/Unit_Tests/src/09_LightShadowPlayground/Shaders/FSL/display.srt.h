@@ -26,8 +26,8 @@
 #define display_srt_h
 
 BEGIN_SRT(DisplaySrtData)
-	#include "persistent_set.h"
-	#include "perframe_set.h"
+	#include "PersistentSet.h"
+	#include "PerFrameSet.h"
 BEGIN_SRT_SET(PerDraw)
 	DECL_TEXTURE(PerDraw, Tex2D(float4), gSourceTexture)
 END_SRT_SET(PerDraw)

@@ -20,7 +20,7 @@ typedef struct {
 	NvAPI_ShortString buildBranch;
 } NvGPUInfo;
 static NvAPI_Status gNvStatus = NVAPI_ERROR;
-static NvGPUInfo  gNvGpuInfo = {};
+static NvGPUInfo  gNvGpuInfo = {0};
 #endif
 
 static NvAPI_Status nvapiInit()
@@ -29,7 +29,7 @@ static NvAPI_Status nvapiInit()
 	gNvStatus = NvAPI_Initialize();
 	return gNvStatus;
 #else
-	return NvAPI_Status::NVAPI_OK;
+	return NVAPI_OK;
 #endif
 }
 
@@ -45,7 +45,7 @@ static void nvapiPrintDriverInfo()
 #if defined(NVAPI)
 	NvAPI_Status status = NvAPI_SYS_GetDriverAndBranchVersion(
 		&gNvGpuInfo.driverVersion, gNvGpuInfo.buildBranch);
-	if (NvAPI_Status::NVAPI_OK == status)
+	if (NVAPI_OK == status)
 	{
 		LOGF(eINFO, "NVIDIA Display Driver Version %u", gNvGpuInfo.driverVersion);
 		LOGF(eINFO, "NVIDIA Build Branch %s", gNvGpuInfo.buildBranch);

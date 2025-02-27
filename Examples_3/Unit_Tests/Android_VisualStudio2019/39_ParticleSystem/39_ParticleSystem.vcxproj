@@ -17,65 +17,59 @@
     <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
       <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
-      <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp" />
     <ClCompile Include="..\..\src\39_ParticleSystem\39_ParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_boids.h.fsl" />
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl" />
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl" />
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl" />
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl" />
-    <FSLShader Include="..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\batch_compaction.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_buffers.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_light_clusters.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\clear_texture.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\cluster_lights.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\compute_depth_bounds.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\compute_depth_clusters.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\downsample_depth.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\fsq.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\fsq.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\light_cull_resources.h.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\particle.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\particle.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\particle_simulate.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\resolve.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shaders.list" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shader_defs.h.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_filtering.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\triangle_filtering.comp.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\vb_resources.h.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
-    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\src\39_ParticleSystem\GPUCfg\gpu.cfg" />
     <None Include="..\..\src\39_ParticleSystem\Scripts\Test_AllSets.lua" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\cluster_lights.srt.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\particle.srt.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\perframe_set.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\persistent_set.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_filtering.srt.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\shadow_pass.srt.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\triangle_filtering.srt.h" />
-    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\visibilityBuffer_shade.srt.h" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\BatchCompaction.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\DownSampleDepth.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\OitCompose.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\FullScreenQuad.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightClusters.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightClustersClear.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightClustersDepthBounds.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightClustersDepthClusters.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightCullResources.h.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Particle.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Particle.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ParticleSimulate.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Resolve.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShaderDefs.h.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Shaders.list" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Shading.h.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowFiltering.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPass.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPass.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPassAlpha.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPassAlpha.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFiltering.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFilteringClear.comp.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferPass.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferPass.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferPassAlpha.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferPassAlpha.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferResources.h.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferResourcesUtil.h.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferShade.frag.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferShade.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferShadeClearTexture.comp.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\LightClusters.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\Particle.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\PerFrameSet.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\PersistentSet.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowFiltering.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPass.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\Global.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFiltering.srt.h" />
+    <ClInclude Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferShade.srt.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8ACC82DD-1721-45DC-9244-E07D9A177070}</ProjectGuid>

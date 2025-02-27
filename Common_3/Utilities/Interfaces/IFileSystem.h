@@ -227,13 +227,123 @@ extern "C"
 
     /// Default file system using C File IO or Bundled File IO (Android) based on the ResourceDirectory
     FORGE_API extern IFileSystem* pSystemFileIO;
+
+/************************************************************************/
+// MARK: - Error handling
+/************************************************************************/
+#define LOG_FS_ERRORS 0
+
+    typedef enum FSErrorCode
+    {
+        // No error occured
+        FS_SUCCESS = 0,
+
+        // Generic erro code to handle errors internal to the FileSystem implementation
+        FS_INTERNAL_ERR,
+
+        // Invalid arguments passed into the function
+        FS_INVALID_PARAM_ERR,
+
+        // Error to indicate the filesystem isn't in a valid state to perform the op
+        FS_INVALID_STATE_ERR,
+
+        // Operation isn't permitted
+        FS_NOT_PERMITTED_ERR,
+
+        // File or directory not found
+        FS_NOT_FOUND_ERR,
+
+        // Insufficient permissions to perform the operation
+        FS_ACCESS_DENIED_ERR,
+
+        // Handle is not a directory when expecting a directory
+        FS_NOT_DIR_ERR,
+
+        // Handle is a directory when expecting a file
+        FS_IS_DIR_ERR,
+
+        // No space left in file system
+        FS_INSUFFICIENT_SPACE,
+
+        // Invalid operation on a read-only file system
+        FS_READ_ONLY_ERR,
+
+    } FSErrorCode;
+
+    typedef struct FSErrorContext
+    {
+        FSErrorCode code;
+        const char* func;
+        // We can also have another uint32_t(?) member here for error codes returned by system calls like errno or GetLastError()
+    } FSErrorContext;
+
+    extern FSErrorContext* __fs_err_ctx(void);
+#define FS_ERR_CTX (*__fs_err_ctx())
+
+// Operation resulted in no error
+#define __FS_NO_ERR               \
+    FS_ERR_CTX.code = FS_SUCCESS; \
+    FS_ERR_CTX.func = NULL
+
+// Operation resulted in an error specified by errCode
+#define __FS_SET_ERR(errCode)               \
+    FS_ERR_CTX.code = (FSErrorCode)errCode; \
+    FS_ERR_CTX.func = __FUNCTION__;         \
+    if (LOG_FS_ERRORS)                      \
+    LOGF(eERROR, "%s failed. | %s", FS_ERR_CTX.func, getFSErrCodeString(FS_ERR_CTX.code))
+
+    // Translate the system errno into FSErrorCode
+    FSErrorCode translateErrno(uint32_t err);
+
+    static inline const char* getFSErrCodeString(FSErrorCode err)
+    {
+        switch (err)
+        {
+        case (FS_SUCCESS):
+            return "Operation Successful";
+
+        case (FS_INTERNAL_ERR):
+            return "FileSystem Internal Error";
+
+        case (FS_INVALID_PARAM_ERR):
+            return "FileSystem Invalid Paramater error. Invalid arguments passed into the function";
+
+        case (FS_INVALID_STATE_ERR):
+            return "Filesystem Invalid State error. Filesystem isn't in a valid state to perform the operation";
+
+        case (FS_NOT_PERMITTED_ERR):
+            return "Filesystem Not Permitted error. Operation isn't permitted";
+
+        case (FS_NOT_FOUND_ERR):
+            return "Filesystem Not Found error. File or directory not found";
+
+        case (FS_ACCESS_DENIED_ERR):
+            return "Filesystem Access Denied error. Insufficient permissions to perform the operation";
+
+        case (FS_NOT_DIR_ERR):
+            return "Filesystem Not a Directory error. Handle is not a directory when expecting a directory";
+
+        case (FS_IS_DIR_ERR):
+            return "Filesystem Is a Directory error. Handle is a directory when expecting a file";
+
+        case (FS_INSUFFICIENT_SPACE):
+            return "Filesystem Insufficient Space error. No space left in file system";
+
+        case (FS_READ_ONLY_ERR):
+            return "Filesystem Read Only error. Invalid operation on a read-only file system";
+
+        default:
+            return "Filesystem Unknown error.";
+        }
+    }
+
     /************************************************************************/
     // MARK: - Initialization
     /************************************************************************/
     /// Initializes the FileSystem API
     /// utlize PathStatement.txt file in Art directory
     /// unless FileSystemInitDesc::toolsFilesystem = true
-    FORGE_API bool                initFileSystem(FileSystemInitDesc* pDesc);
+    FORGE_API bool initFileSystem(FileSystemInitDesc* pDesc);
 
     /// Frees resources associated with the FileSystem API
     FORGE_API void exitFileSystem(void);

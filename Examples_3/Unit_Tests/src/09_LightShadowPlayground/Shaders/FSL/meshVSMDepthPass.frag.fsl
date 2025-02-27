@@ -22,10 +22,10 @@
  * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
+#include "ShaderDefs.h.fsl"
 #define MESH_PASS
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 
 STRUCT(PsOut)

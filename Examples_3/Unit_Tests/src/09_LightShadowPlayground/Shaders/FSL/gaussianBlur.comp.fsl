@@ -24,8 +24,8 @@
 
 #define THREADX 16
 #define THREADY 16
-#include "vb_resources.h.fsl"
-#include "gaussian_blur.srt.h"
+#include "VisibilityBufferResources.h.fsl"
+#include "GaussianBlur.srt.h"
 
 #define PASS_TYPE_HORIZONTAL 0
 #define PASS_TYPE_VERTICAL 1

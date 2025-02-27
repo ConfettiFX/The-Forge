@@ -45,19 +45,19 @@
     <ClInclude Include="..\src\19_CodeHotReload\IGamePlugin.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\srt.h">
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\structs.h">
+    <ClInclude Include="..\src\19_CodeHotReload\Shaders\FSL\Structs.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.frag.fsl">
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Basic.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl">
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Basic.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\src\19_CodeHotReload\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\src\19_CodeHotReload\GPUCfg\gpu.cfg">

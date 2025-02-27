@@ -8,8 +8,8 @@
   <VirtualDirectory Name="Screenshot">
     <VirtualDirectory Name="Shaders">
       <VirtualDirectory Name="FSL">
-        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/copy.comp.fsl"/>
-        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/screenshot_shaders.list"/>
+        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/Copy.comp.fsl"/>
+        <File Name="../../../../Common_3/Application/Screenshot/Shaders/FSL/ScreenshotShaders.list"/>
       </VirtualDirectory>
     </VirtualDirectory>
     <File Name="../../../../Common_3/Application/Screenshot/Screenshot.cpp"/>
@@ -28,11 +28,11 @@
     <VirtualDirectory Name="Animation">
       <VirtualDirectory Name="Shaders">
         <VirtualDirectory Name="FSL">
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/animation_shaders.list"/>
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.vert.fsl"/>
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.frag.fsl"/>
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/bone.vert.fsl"/>
-          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/bone.frag.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/AnimationShaders.list"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Joint.vert.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Joint.frag.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Bone.vert.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Bone.frag.fsl"/>
         </VirtualDirectory>
       </VirtualDirectory>
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.cpp"/>
@@ -242,10 +242,10 @@
   <VirtualDirectory Name="Fonts">
     <VirtualDirectory Name="Shaders">
       <VirtualDirectory Name="FSL">
-        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash.frag.fsl"/>
-        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash2D.vert.fsl"/>
-        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash3D.vert.fsl"/>
-        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/resources.h"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/FontStash.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/FontStash2D.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/FontStash3D.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/Resources.h"/>
       </VirtualDirectory>
     </VirtualDirectory>
     <File Name="../../../../Common_3/Application/Fonts/FontSystem.cpp"/>
@@ -254,10 +254,10 @@
   <VirtualDirectory Name="UI">
     <VirtualDirectory Name="Shaders">
       <VirtualDirectory Name="FSL">
-        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/imgui.frag.fsl"/>
-        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/imgui.vert.fsl"/>
-        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/textured_mesh.frag.fsl"/>
-        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/textured_mesh.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/ImGui.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/ImGui.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/TexturedMesh.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/TexturedMesh.vert.fsl"/>
       </VirtualDirectory>
     </VirtualDirectory>
     <File Name="../../../../Common_3/Application/UI/UI.cpp"/>

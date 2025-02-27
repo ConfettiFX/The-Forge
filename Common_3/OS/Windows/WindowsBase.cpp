@@ -470,18 +470,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
         // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
         // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
         // but for projects where we compile without our lua interface we cannot do this.
-#if defined(DIRECT3D11)
-        else if (strcmp(argv[i], "--d3d11") == 0)
-        {
-            if (paramRenderingAPIFound)
-            {
-                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
-                ASSERT(false);
-                return -1;
-            }
-            paramRenderingAPIFound = true;
-        }
-#endif
 #if defined(DIRECT3D12)
         else if (strcmp(argv[i], "--d3d12") == 0)
         {

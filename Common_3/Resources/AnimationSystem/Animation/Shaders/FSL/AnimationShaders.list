@@ -1,0 +1,18 @@
+#include "../../../../../Graphics/FSL/defaults.h"
+
+
+#frag joint.frag
+#include "Joint.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW joint.vert
+#include "Joint.vert.fsl"
+#end
+
+#frag bone.frag
+#include "Bone.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW bone.vert
+#include "Bone.vert.fsl"
+#end

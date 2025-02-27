@@ -14,19 +14,19 @@
     <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.frag.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\occlusion.frag.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\occlusion.vert.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\shaders.list" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.frag.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.vert.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.frag.fsl" />
-    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.vert.fsl" />
+    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\Global.srt.h" />
+    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\Structs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\srt.h" />
-    <ClInclude Include="..\src\12_ZipFileSystem\Shaders\FSL\structs.h" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Basic.frag.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Basic.vert.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Occlusion.frag.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Occlusion.vert.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Shaders.list" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Skybox.frag.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\Skybox.vert.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\ZipTexture.frag.fsl" />
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\ZipTexture.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{66C74525-1E43-483E-8DAE-A7C5836FDBDF}</ProjectGuid>

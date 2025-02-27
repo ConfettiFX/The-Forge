@@ -45,6 +45,11 @@
 #else
 #endif
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtypedef-redefinition"
+#endif
+
 #define VOLK_VULKAN_H_PATH "../VulkanSDK/include/vulkan/vulkan.h"
 #include "../ThirdParty/OpenSource/volk/volk.h"
 
@@ -74,10 +79,17 @@
 #define VK_OVERRIDE_LAYER_PATH 1
 #endif
 
-extern void OnVkDeviceLost(struct Renderer*);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    struct Renderer;
+    extern void OnVkDeviceLost(struct Renderer*);
 
 // Validate VkResult for functions that take a VkDevice or object created using VkDevice
 // Needs Renderer* pRenderer to be declared in scope
+//-V:CHECK_VKRESULT:627
 #define CHECK_VKRESULT(exp)                                            \
     {                                                                  \
         VkResult vkres = (exp);                                        \
@@ -93,6 +105,7 @@ extern void OnVkDeviceLost(struct Renderer*);
     }
 
 // Validate VkResult for functions that take a VkInstance or object created using VkInstance
+//-V:CHECK_VKRESULT_INSTANCE:627
 #define CHECK_VKRESULT_INSTANCE(exp)                                   \
     {                                                                  \
         VkResult vkres = (exp);                                        \
@@ -107,8 +120,12 @@ extern void OnVkDeviceLost(struct Renderer*);
 #define GFX_ENABLE_SWAPPY
 #endif
 
-// #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
-extern bool gEnableDynamicRenderingExtension;
+    // #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
+    extern bool gEnableDynamicRenderingExtension;
 
 // Amount of memory tracked objects
 #define TRACKED_OBJECT_TYPE_COUNT_MAX 40
+
+#ifdef __cplusplus
+}
+#endif

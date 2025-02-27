@@ -326,6 +326,17 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                 line = 'groupshared '+dtype+' '+dname+';\n'
             else:
                 line = 'thread_group_memory '+dtype+' '+dname+';\n'
+                
+                
+        # create comment hint for shader reflection
+        if 'NUM_THREADS(' in line:
+            elems = getMacro(line)
+            for i, elem in enumerate(elems):
+                if not elem.isnumeric():
+                    assert elem in shader.defines, "arg {} to NUM_THREADS needs to be defined!".format(elem)
+                    elems[i] = shader.defines[elem]
+            binary.num_threads = [ int(d) for d in elems ]
+                
 
         if line.strip().startswith('STRUCT('):
             parsing_struct = getMacro(line)

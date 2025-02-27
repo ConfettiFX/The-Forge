@@ -75,6 +75,7 @@ static const char* getFileName(const struct UnixFileStream* stream, char* buffer
 
 static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char* fileName, FileMode mode, FileStream* fs)
 {
+    __FS_NO_ERR;
     memset(fs, 0, sizeof *fs);
 
 #if !defined(ANDROID)
@@ -121,6 +122,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     // Might fail to open the file for read+write if file doesn't exist
     if (fd < 0)
     {
+        __FS_SET_ERR(translateErrno(errno));
         return false;
     }
 
@@ -152,11 +154,15 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
 
 static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
+    __FS_NO_ERR;
     *outSize = 0;
     *outData = NULL;
 
     if (fs->mMode & FM_WRITE)
+    {
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
+    }
 
     USD(stream, fs);
 
@@ -164,7 +170,10 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     if (!stream->mapping)
     {
         if (stream->size < 0)
+        {
+            __FS_SET_ERR(FS_INVALID_STATE_ERR);
             return false;
+        }
         if (stream->size == 0)
             return true;
 
@@ -172,8 +181,7 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
 
         if (mem == MAP_FAILED)
         {
-            char buffer[1024];
-            LOGF(eERROR, "mmap is failed for file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+            __FS_SET_ERR(translateErrno(errno));
             return false;
         }
 
@@ -187,14 +195,14 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
 
 static bool ioUnixFsClose(FileStream* fs)
 {
+    __FS_NO_ERR;
     USD(stream, fs);
 
     if (stream->mapping)
     {
         if (munmap(stream->mapping, (size_t)stream->size))
         {
-            char buffer[1024];
-            LOGF(eERROR, "Error unmapping file '%s': '%s'", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+            __FS_SET_ERR(translateErrno(errno));
         }
         else
         {
@@ -202,19 +210,10 @@ static bool ioUnixFsClose(FileStream* fs)
         }
     }
 
-#if defined(FORGE_DEBUG) // we can't get file name after closing it
-    char buffer[1024];
-    getFileName(stream, buffer, sizeof buffer);
-#endif
-
     bool success = stream->descriptor < 0 || close(stream->descriptor) == 0;
     if (!success)
     {
-#if defined(FORGE_DEBUG)
-        LOGF(eERROR, "Error after closing file '%s': '%s'", buffer, strerror(errno));
-#else
-        LOGF(eERROR, "Error after closing file: '%s'", strerror(errno));
-#endif
+        __FS_SET_ERR(translateErrno(errno));
     }
     stream->descriptor = -1;
     return success;
@@ -222,45 +221,44 @@ static bool ioUnixFsClose(FileStream* fs)
 
 static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t size)
 {
+    __FS_NO_ERR;
     USD(stream, fs);
     ssize_t res = read(stream->descriptor, dst, size);
     if (res >= 0)
         return (size_t)res;
 
-    char buffer[1024];
-    LOGF(eERROR, "Error reading %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
-         strerror(errno));
+    __FS_SET_ERR(translateErrno(errno));
     return 0;
 }
 
 static ssize_t ioUnixFsGetPosition(FileStream* fs)
 {
+    __FS_NO_ERR;
     USD(stream, fs);
 
     off_t res = lseek(stream->descriptor, 0, SEEK_CUR);
     if (res >= 0)
         return res;
 
-    char buffer[1024];
-    LOGF(eERROR, "Error getting file position '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    __FS_SET_ERR(translateErrno(errno));
     return false;
 }
 
 static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t size)
 {
+    __FS_NO_ERR;
     USD(stream, fs);
     ssize_t res = write(stream->descriptor, src, size);
     if (res >= 0)
         return (size_t)res;
 
-    char buffer[1024];
-    LOGF(eERROR, "Error writing %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
-         strerror(errno));
+    __FS_SET_ERR(translateErrno(errno));
     return 0;
 }
 
 static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offset)
 {
+    __FS_NO_ERR;
     USD(stream, fs);
 
     int whence = SEEK_SET;
@@ -281,13 +279,13 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
     if (res >= 0)
         return true;
 
-    char buffer[1024];
-    LOGF(eERROR, "Error seeking file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    __FS_SET_ERR(translateErrno(errno));
     return false;
 }
 
 static bool ioUnixFsFlush(FileStream* fs)
 {
+    __FS_NO_ERR;
     if (!(fs->mMode & FM_WRITE))
         return true;
 
@@ -303,19 +301,26 @@ static bool ioUnixFsFlush(FileStream* fs)
         return true;
 #endif
 
-    char buffer[1024];
-    LOGF(eERROR, "Failed to flush file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    __FS_SET_ERR(translateErrno(errno));
     return false;
 }
 
 static bool unixFsUpdateSize(struct UnixFileStream* stream)
 {
+    __FS_NO_ERR;
+
     off_t offset = lseek(stream->descriptor, 0, SEEK_CUR);
     if (offset < 0)
+    {
+        __FS_SET_ERR(translateErrno(errno));
         return false;
+    }
     off_t size = lseek(stream->descriptor, 0, SEEK_END);
     if (size < 0)
+    {
+        __FS_SET_ERR(translateErrno(errno));
         return false;
+    }
 
     if (offset == size)
     {
@@ -327,7 +332,9 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
     if (offset2 < 0 || offset2 != offset)
     {
         char buffer[1024];
-        LOGF(eERROR, "File position is broken and so file is closed '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+        LOGF(eWARNING, "File position is broken and so file is closed '%s': %s", getFileName(stream, buffer, sizeof buffer),
+             strerror(errno));
+        __FS_SET_ERR(translateErrno(errno));
         close(stream->descriptor);
         stream->descriptor = -1;
     }

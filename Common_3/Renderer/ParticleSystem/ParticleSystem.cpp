@@ -32,13 +32,13 @@
 #include "../Interfaces/IParticleSystem.h"
 
 #define NO_FSL_DEFINITIONS
-#include "Shaders/particle_shared.h.fsl"
+#include "Shaders/ParticleShared.h.fsl"
 #undef NO_FSL_DEFINITIONS
 
 #include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+extern "C" void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+extern "C" void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 struct ParticleSystemSettings
 {

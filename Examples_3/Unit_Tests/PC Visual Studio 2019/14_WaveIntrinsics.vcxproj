@@ -14,16 +14,8 @@
     <ClCompile Include="..\src\14_WaveIntrinsics\14_WaveIntrinsics.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl" />
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl" />
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\resources.h.fsl" />
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\shaders.list" />
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl" />
-    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\14_WaveIntrinsics\Shaders\FSL\srt.h" />
-    <ClInclude Include="..\src\14_WaveIntrinsics\Shaders\FSL\structs.h" />
+    <ClInclude Include="..\src\14_WaveIntrinsics\Shaders\FSL\Global.srt.h" />
+    <ClInclude Include="..\src\14_WaveIntrinsics\Shaders\FSL\Structs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\14_WaveIntrinsics\GPUCfg\gpu.cfg" />
@@ -36,6 +28,14 @@
     <None Include="..\src\14_WaveIntrinsics\Scripts\Test_WaveIsFirstLane.lua" />
     <None Include="..\src\14_WaveIntrinsics\Scripts\Test_WavePrefixSum.lua" />
     <None Include="..\src\14_WaveIntrinsics\Scripts\Test_WaveReadLaneFirst.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Magnify.frag.fsl" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Magnify.vert.fsl" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Resources.h.fsl" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Shaders.list" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Wave.frag.fsl" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\Wave.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A0DFEBA1-D274-4421-AE87-ABB303CD2516}</ProjectGuid>

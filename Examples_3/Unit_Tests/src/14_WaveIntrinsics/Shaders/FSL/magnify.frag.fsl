@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 STRUCT(PSInput)
 {

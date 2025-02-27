@@ -36,13 +36,22 @@ typedef struct ScreenshotDesc
     bool          flipRedBlue;
 } ScreenshotDesc;
 
-// Schedules the next drawn frame to  captured
-FORGE_API void requestScreenshotCapture(const char* name);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-FORGE_API bool isScreenshotCaptureRequested();
+    // Schedules the next drawn frame to  captured
+    FORGE_API void requestScreenshotCapture(const char* name);
 
-FORGE_API void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphcisQueue, const char* appName);
+    FORGE_API bool isScreenshotCaptureRequested();
 
-FORGE_API void exitScreenshotCapturer();
+    FORGE_API void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphcisQueue, const char* appName);
 
-FORGE_API void captureScreenshot(ScreenshotDesc* pDesc);
+    FORGE_API void exitScreenshotCapturer();
+
+    FORGE_API void captureScreenshot(ScreenshotDesc* pDesc);
+
+#ifdef __cplusplus
+}
+#endif

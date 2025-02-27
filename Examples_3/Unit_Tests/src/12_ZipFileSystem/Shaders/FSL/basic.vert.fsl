@@ -24,8 +24,8 @@
 
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
-#include "structs.h"
-#include "srt.h"
+#include "Structs.h"
+#include "Global.srt.h"
 
 STRUCT(VSInput)
 {

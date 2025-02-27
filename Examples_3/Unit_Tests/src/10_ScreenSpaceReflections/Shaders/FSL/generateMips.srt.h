@@ -26,8 +26,8 @@
 #define vb_generate_mips_srt_h
 
 BEGIN_SRT(GenerateMipsSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerDraw)
 		DECL_CBUFFER(PerDraw, CBUFFER(GenMipsConstantData), gGenMipsConstants)
 		DECL_RWTEXTURE(PerDraw, RWTex2D(float), gSourceTexture)

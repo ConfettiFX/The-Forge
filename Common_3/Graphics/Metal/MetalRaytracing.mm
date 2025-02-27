@@ -47,8 +47,11 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pTextu
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+extern "C"
+{
+    void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+    void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+}
 
 struct Raytracing
 {

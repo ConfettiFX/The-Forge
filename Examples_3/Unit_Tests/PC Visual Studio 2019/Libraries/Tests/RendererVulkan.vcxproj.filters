@@ -1,106 +1,58 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Common_3\Graphics\Vulkan">
-      <UniqueIdentifier>{65078316-b77d-461d-8c5f-676e0ed0de59}</UniqueIdentifier>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{1f03fa13-fc22-45c1-8f88-99af39f88bee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics">
-      <UniqueIdentifier>{37c9b7cc-a941-47ba-8f7b-980337b34ab2}</UniqueIdentifier>
+    <Filter Include="FSL">
+      <UniqueIdentifier>{2aad2722-bc0f-4f65-bfd7-05935e2590ee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3">
-      <UniqueIdentifier>{9ba436b3-40ef-457c-8503-7984c4e0f9f9}</UniqueIdentifier>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{75089a1d-58a5-415b-b255-9f91134de3e0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics\FSL">
-      <UniqueIdentifier>{b15bbde3-7898-450c-944d-bc68c96647fe}</UniqueIdentifier>
+    <Filter Include="ThirdParty\OpenSource\VulkanMemoryAllocator">
+      <UniqueIdentifier>{68162f05-792a-47f4-ab30-e5b77548d435}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics\Interfaces">
-      <UniqueIdentifier>{671c7446-bb8a-41a9-8032-9769bacb898c}</UniqueIdentifier>
+    <Filter Include="ThirdParty\OpenSource">
+      <UniqueIdentifier>{dbaa15eb-ad48-4621-8a17-391fb3178ce2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator">
-      <UniqueIdentifier>{c0d0aea6-58dc-49f9-b4bb-663c946898a6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Graphics\ThirdParty\OpenSource">
-      <UniqueIdentifier>{7808c46e-a9bc-48cb-9883-69b948eaa6cd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Graphics\ThirdParty">
-      <UniqueIdentifier>{d3a324f0-0472-4191-bbb0-42ee787257b7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL">
-      <UniqueIdentifier>{d5119a42-b5cc-4cd0-9cf7-6b22b025f408}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations\Shaders">
-      <UniqueIdentifier>{6ee7a427-c029-4daf-af9c-337291ea3dc0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src\01_Transformations">
-      <UniqueIdentifier>{d4055dd0-e6ef-48ae-8035-0387661c3716}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests\src">
-      <UniqueIdentifier>{6fa78e03-9ea6-445f-8fc9-0d2b375469ee}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3\Unit_Tests">
-      <UniqueIdentifier>{84ce330a-dda3-4b66-bb9d-9324de0ba48a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Examples_3">
-      <UniqueIdentifier>{27c27a3e-dcb9-4dcb-bf38-fd6f7d11de60}</UniqueIdentifier>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{263e00a3-46f9-4533-8891-5b0d7b57becd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
-      <Filter>Common_3\Graphics\Vulkan</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.c">
+      <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
-      <Filter>Common_3\Graphics\Vulkan</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan_cxx.cpp">
+      <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
-      <Filter>Common_3\Graphics\Vulkan</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.c">
+      <Filter>Vulkan</Filter>
     </ClCompile>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\defaults.h">
-      <Filter>Common_3\Graphics\FSL</Filter>
+      <Filter>FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\fsl_srt.h">
-      <Filter>Common_3\Graphics\FSL</Filter>
+      <Filter>FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\vulkan_srt.h">
-      <Filter>Common_3\Graphics\FSL</Filter>
+      <Filter>FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
-      <Filter>Common_3\Graphics\Interfaces</Filter>
+      <Filter>Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
-      <Filter>Common_3\Graphics\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
-      <Filter>Common_3\Graphics\Interfaces</Filter>
+      <Filter>Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
-      <Filter>Common_3\Graphics\Vulkan</Filter>
+      <Filter>Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h">
-      <Filter>Common_3\Graphics\Vulkan</Filter>
+      <Filter>Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
-      <Filter>Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator</Filter>
+      <Filter>ThirdParty\OpenSource\VulkanMemoryAllocator</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\01_Transformations\Shaders\FSL\srt.h">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </ClInclude>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\basic.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\basic.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\resources.h.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\shaders.list">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
-      <Filter>Examples_3\Unit_Tests\src\01_Transformations\Shaders\FSL</Filter>
-    </FSLShader>
   </ItemGroup>
 </Project>

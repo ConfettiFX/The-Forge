@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "renderSceneBRDF_resources.h.fsl"
+#include "RenderSceneBRDFResources.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
 STRUCT(VSInput)

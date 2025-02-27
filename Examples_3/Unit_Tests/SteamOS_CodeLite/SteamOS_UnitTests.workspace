@@ -2,7 +2,6 @@
 <CodeLite_Workspace Name="SteamOS_UnitTests" Database="" Version="10.0.0">
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
-  <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
   <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
@@ -25,7 +24,6 @@
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
       <Environment/>
-      <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="01_Transformations" ConfigName="Debug"/>
@@ -59,7 +57,6 @@
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release">
       <Environment/>
-      <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="ozz_base" ConfigName="Release"/>
       <Project Name="ozz_animation_offline" ConfigName="Release"/>

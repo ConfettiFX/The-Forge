@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "structs.h"
-#include "srt.h"
+#include "Structs.h"
+#include "Global.srt.h"
 
 STRUCT(VSOutput)
 {

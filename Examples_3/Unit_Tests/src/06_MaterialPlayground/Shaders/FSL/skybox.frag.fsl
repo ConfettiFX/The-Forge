@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "resources.h.fsl"
-#include "srt.h"
+#include "Resources.h.fsl"
+#include "Global.srt.h"
 
 
 STRUCT(VSOutput)

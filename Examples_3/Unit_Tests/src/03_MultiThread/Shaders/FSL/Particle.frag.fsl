@@ -23,7 +23,7 @@
 */
 
 #define PARTICLE
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 STRUCT(VSOutput) {
 	DATA(float4, Position, SV_Position);

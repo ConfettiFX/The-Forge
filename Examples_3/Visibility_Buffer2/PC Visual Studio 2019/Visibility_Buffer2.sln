@@ -8,18 +8,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visibility_Buffer2", "Visib
 		{DB6193E0-3C12-450F-B344-DC4DAED8C421} = {DB6193E0-3C12-450F-B344-DC4DAED8C421}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{21A6980D-04AA-430D-BE3D-74F151226C8B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6CF62059-3AC3-43CD-A29E-2F1E01EA4115}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\Tools\SpirvCross.vcxproj", "{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "..\..\Unit_Tests\PC Visual Studio 2019\Libraries\Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
-	ProjectSection(ProjectDependencies) = postProject
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF} = {F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EDE9152B-EFA0-4CF1-A455-72AB206C0DB5}"
 	ProjectSection(SolutionItems) = preProject
@@ -36,10 +29,6 @@ Global
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.Debug|x64.Build.0 = Debug|x64
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.Release|x64.ActiveCfg = Release|x64
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.Release|x64.Build.0 = Release|x64
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}.Debug|x64.ActiveCfg = Debug|x64
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}.Debug|x64.Build.0 = Debug|x64
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}.Release|x64.ActiveCfg = Release|x64
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}.Release|x64.Build.0 = Release|x64
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug|x64.ActiveCfg = Debug|x64
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug|x64.Build.0 = Debug|x64
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release|x64.ActiveCfg = Release|x64
@@ -54,7 +43,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
-		{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {82CAE356-DDF7-45D6-BE15-E529BDB0F93E}

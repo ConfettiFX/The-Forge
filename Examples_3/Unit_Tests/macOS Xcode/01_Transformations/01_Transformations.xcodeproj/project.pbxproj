@@ -43,8 +43,8 @@
 		F25E31282D4924B40002574A /* TestCenteredWindow.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E31192D4924B40002574A /* TestCenteredWindow.lua */; };
 		F25E31292D4924B40002574A /* TestReloadShader.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311C2D4924B40002574A /* TestReloadShader.lua */; };
 		F25E312A2D4924B40002574A /* TestFullScreen.lua in Resources */ = {isa = PBXBuildFile; fileRef = F25E311A2D4924B40002574A /* TestFullScreen.lua */; };
-		F2E84A9F2CDF5075002AA211 /* shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* shaders.list */; };
-		F2E84AA02CDF5075002AA211 /* shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* shaders.list */; };
+		F2E84A9F2CDF5075002AA211 /* Shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* Shaders.list */; };
+		F2E84AA02CDF5075002AA211 /* Shaders.list in Resources */ = {isa = PBXBuildFile; fileRef = F2E84A9E2CDF5075002AA211 /* Shaders.list */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,11 +111,11 @@
 		EC417DDC2C94E39C00950982 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = ../../../Build_Props/XCode/iOS/Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EC417DE02C94E3DA00950982 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		EC417DE12C94E3DA00950982 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
-		EC66B84B2C926A540004DC3B /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.vert.fsl; sourceTree = "<group>"; };
-		EC66B84D2C926A540004DC3B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.vert.fsl; sourceTree = "<group>"; };
-		EC66B84E2C926A540004DC3B /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = basic.frag.fsl; sourceTree = "<group>"; };
-		EC66B84F2C926A540004DC3B /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.h.fsl; sourceTree = "<group>"; };
-		EC66B8502C926A540004DC3B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.frag.fsl; sourceTree = "<group>"; };
+		EC66B84B2C926A540004DC3B /* Basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Basic.vert.fsl; sourceTree = "<group>"; };
+		EC66B84D2C926A540004DC3B /* Skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Skybox.vert.fsl; sourceTree = "<group>"; };
+		EC66B84E2C926A540004DC3B /* Basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Basic.frag.fsl; sourceTree = "<group>"; };
+		EC66B84F2C926A540004DC3B /* Resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Resources.h.fsl; sourceTree = "<group>"; };
+		EC66B8502C926A540004DC3B /* Skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Skybox.frag.fsl; sourceTree = "<group>"; };
 		F25E31182D4924B40002574A /* TestBorderless.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestBorderless.lua; sourceTree = "<group>"; };
 		F25E31192D4924B40002574A /* TestCenteredWindow.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestCenteredWindow.lua; sourceTree = "<group>"; };
 		F25E311A2D4924B40002574A /* TestFullScreen.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestFullScreen.lua; sourceTree = "<group>"; };
@@ -123,7 +123,7 @@
 		F25E311C2D4924B40002574A /* TestReloadShader.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestReloadShader.lua; sourceTree = "<group>"; };
 		F25E311D2D4924B40002574A /* TestReloadShaderCapture.lua */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestReloadShaderCapture.lua; sourceTree = "<group>"; };
 		F2C054512D02813700C81C33 /* srt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = srt.h; sourceTree = "<group>"; };
-		F2E84A9E2CDF5075002AA211 /* shaders.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shaders.list; sourceTree = "<group>"; };
+		F2E84A9E2CDF5075002AA211 /* Shaders.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Shaders.list; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -302,12 +302,12 @@
 			isa = PBXGroup;
 			children = (
 				F2C054512D02813700C81C33 /* srt.h */,
-				F2E84A9E2CDF5075002AA211 /* shaders.list */,
-				EC66B84E2C926A540004DC3B /* basic.frag.fsl */,
-				EC66B84B2C926A540004DC3B /* basic.vert.fsl */,
-				EC66B84F2C926A540004DC3B /* resources.h.fsl */,
-				EC66B8502C926A540004DC3B /* skybox.frag.fsl */,
-				EC66B84D2C926A540004DC3B /* skybox.vert.fsl */,
+				F2E84A9E2CDF5075002AA211 /* Shaders.list */,
+				EC66B84E2C926A540004DC3B /* Basic.frag.fsl */,
+				EC66B84B2C926A540004DC3B /* Basic.vert.fsl */,
+				EC66B84F2C926A540004DC3B /* Resources.h.fsl */,
+				EC66B8502C926A540004DC3B /* Skybox.frag.fsl */,
+				EC66B84D2C926A540004DC3B /* Skybox.vert.fsl */,
 			);
 			path = FSL;
 			sourceTree = "<group>";
@@ -444,7 +444,7 @@
 				F25E31232D4924B40002574A /* TestReloadShader.lua in Resources */,
 				F25E31242D4924B40002574A /* TestFullScreen.lua in Resources */,
 				EC417DE42C94E4F000950982 /* LaunchScreen.storyboard in Resources */,
-				F2E84AA02CDF5075002AA211 /* shaders.list in Resources */,
+				F2E84AA02CDF5075002AA211 /* Shaders.list in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -452,7 +452,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F2E84A9F2CDF5075002AA211 /* shaders.list in Resources */,
+				F2E84A9F2CDF5075002AA211 /* Shaders.list in Resources */,
 				EC417DCE2C94E28E00950982 /* Assets.xcassets in Resources */,
 				F25E31252D4924B40002574A /* TestNonCenteredWindow.lua in Resources */,
 				F25E31262D4924B40002574A /* TestReloadShaderCapture.lua in Resources */,

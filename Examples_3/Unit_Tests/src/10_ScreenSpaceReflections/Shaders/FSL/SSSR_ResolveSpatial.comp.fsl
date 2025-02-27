@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_SPATIAL_RESOLVE
 #define FFX_SSSR_SPATIAL_RESOLVE
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "SSSR.srt.h"
 #include "SSSR_Common.h.fsl"
 

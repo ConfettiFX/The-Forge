@@ -2007,6 +2007,13 @@ void initProfiler(ProfilerDesc* pDesc)
 #endif
 }
 
+#if defined(GFX_DRIVER_MEMORY_TRACKING)
+extern "C" uint64_t GetDriverMemoryAmount();
+#endif
+#if defined(GFX_DEVICE_MEMORY_TRACKING)
+extern "C" uint64_t GetDeviceMemoryAmount();
+#endif
+
 void loadProfilerUI(uint32_t widthUI, uint32_t heightUI)
 {
 #ifdef ENABLE_FORGE_UI
@@ -2045,7 +2052,6 @@ void loadProfilerUI(uint32_t widthUI, uint32_t heightUI)
     REGISTER_LUA_WIDGET(uiAddComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING)
-    extern uint64_t GetDriverMemoryAmount();
     if (GetDriverMemoryAmount())
     {
         CheckboxWidget driverMemoryCheckbox;
@@ -2067,7 +2073,6 @@ void loadProfilerUI(uint32_t widthUI, uint32_t heightUI)
 #endif
 
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
-    extern uint64_t GetDeviceMemoryAmount();
     if (GetDeviceMemoryAmount())
     {
         // Vulkan.cpp

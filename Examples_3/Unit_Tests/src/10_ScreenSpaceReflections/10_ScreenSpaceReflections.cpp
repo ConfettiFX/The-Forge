@@ -56,21 +56,21 @@
 
 #define NO_FSL_DEFINITIONS
 #include "../../../../Common_3/Graphics/FSL/fsl_srt.h"
-#include "Shaders/FSL/Shader_Defs.h.fsl"
+#include "Shaders/FSL/ShaderDefs.h.fsl"
 
 // Geometry
 #include "../../../Visibility_Buffer/src/SanMiguel.h"
 
 // fsl
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
+#include "./Shaders/FSL/Global.srt.h"
 #include "./Shaders/FSL/SSSR.srt.h"
 #include "./Shaders/FSL/PPR.srt.h"
-#include "./Shaders/FSL/computeSpecularMap.srt.h"
-#include "./Shaders/FSL/generateMips.srt.h"
+#include "./Shaders/FSL/PBR.srt.h"
+#include "./Shaders/FSL/GenerateMips.srt.h"
 #include "./Shaders/FSL/DepthDownsample.srt.h"
-#include "./Shaders/FSL/copydepth.srt.h"
-#include "./Shaders/FSL/triangle_filtering.srt.h"
+#include "./Shaders/FSL/CopyDepth.srt.h"
+#include "./Shaders/FSL/TriangleFiltering.srt.h"
 
 #define MAX_PLANES  4
 #define SCENE_SCALE 10.0f
@@ -278,6 +278,12 @@ static bool gSSSRSupported;
 UniformExtendedCamData gUniformDataExtenedCamera;
 bool                   gUseEnvMap;
 
+// We are rendering the scene (geometry, skybox, ...) at this resolution, UI at window resolution (mSettings.mWidth, mSettings.mHeight)
+// Render scene at gSceneRes
+// presentImage -> The scene rendertarget composed into the swapchain/backbuffer
+// Render UI into backbuffer
+static Resolution gSceneRes;
+
 static void InitAppSettings()
 {
     gUseHolePatching = true;
@@ -339,7 +345,6 @@ VisibilityBuffer* pVisibilityBuffer = NULL;
 RenderTarget* pRenderTargetVBPass = NULL;
 RenderTarget* pSceneBuffer = NULL;
 RenderTarget* pNormalRoughnessBuffers[gDataBufferCount] = { NULL };
-RenderTarget* pMotionVectorsBuffers[gDataBufferCount] = { NULL };
 RenderTarget* pReflectionBuffer = NULL;
 RenderTarget* pDepthBuffer = NULL;
 
@@ -1483,6 +1488,8 @@ public:
 
     bool Load(ReloadDesc* pReloadDesc)
     {
+        gSceneRes = getGPUCfgSceneResolution(mSettings.mWidth, mSettings.mHeight);
+
         gResourceSyncStartToken = getLastTokenCompleted();
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -1673,11 +1680,14 @@ public:
 
             if (!addSwapChain())
                 return false;
+        }
 
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
             addRenderTargets();
         }
 
-        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
         {
             addDescriptorSets();
         }
@@ -1722,7 +1732,7 @@ public:
             removePipelines();
         }
 
-        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
         {
             waitForToken(&gResourceSyncToken);
             waitForAllResourceLoads();
@@ -1732,10 +1742,14 @@ public:
             removeDescriptorSets();
         }
 
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
+            removeRenderTargets();
+        }
+
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
             removeSwapChain(pRenderer, pSwapChain);
-            removeRenderTargets();
 
             uiRemoveComponent(pGui);
             uiRemoveDynamicWidgets(&PPR_Widgets);
@@ -1783,7 +1797,7 @@ public:
 
         // Update camera
         mat4         viewMat = pCameraController->getViewMatrix();
-        const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
+        const float  aspectInverse = (float)gSceneRes.mHeight / (float)gSceneRes.mWidth;
         const float  horizontalFov = PI / 2.0f;
         const float  nearPlane = 0.1f;
         const float  farPlane = 1000.f;
@@ -1791,14 +1805,11 @@ public:
         CameraMatrix ViewProjMat = projMat * viewMat;
         CameraMatrix mvp = ViewProjMat * gSanMiguelModelMat;
 
-        viewMat.setTranslation(vec3(0));
-        gUniformDataSky.mProjectView = projMat.mCamera * viewMat;
-
         gMeshInfoUniformData[gFrameIndex].mPrevWorldViewProjMat = gMeshInfoUniformData[gFrameIndex].mWorldViewProjMat;
         gMeshInfoUniformData[gFrameIndex].mWorldViewProjMat = mvp.mCamera;
 
         gVBConstants[gFrameIndex].transform[VIEW_CAMERA].mvp = mvp;
-        gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
+        gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)gSceneRes.mWidth, (float)gSceneRes.mHeight };
         gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].sampleCount = 1;
 
         // data uniforms
@@ -1808,7 +1819,7 @@ public:
         gUniformDataExtenedCamera.mProjMat = projMat.mCamera;
         gUniformDataExtenedCamera.mViewProjMat = ViewProjMat.mCamera;
         gUniformDataExtenedCamera.mInvViewProjMat = inverse(ViewProjMat.mCamera);
-        gUniformDataExtenedCamera.mViewPortSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
+        gUniformDataExtenedCamera.mViewPortSize = { (float)gSceneRes.mWidth, (float)gSceneRes.mHeight };
         gUniformDataExtenedCamera.mNear = nearPlane;
         gUniformDataExtenedCamera.mFar = farPlane;
         gUniformDataExtenedCamera.mUseEnvMap = gUseEnvMap ? 1 : 0;
@@ -1870,6 +1881,9 @@ public:
         gUniformSSSRConstantsData.g_roughness_threshold = gSSSR_RougnessThreshold;
         gUniformSSSRConstantsData.g_skip_denoiser = gSSSR_SkipDenoiser;
 
+        viewMat.setTranslation(vec3(0));
+        gUniformDataSky.mProjectView = projMat.mCamera * viewMat;
+
         if (gReflectionType != gLastReflectionType)
         {
             if (gReflectionType == PP_REFLECTION)
@@ -1888,11 +1902,8 @@ public:
 
     void drawVisibilityBufferPass(Cmd* cmd)
     {
-        RenderTarget* pMotionVectorsBuffer = pMotionVectorsBuffers[gFrameIndex];
-
         RenderTargetBarrier barriers[] = {
             { pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-            { pMotionVectorsBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
             { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, TF_ARRAY_COUNT(barriers), barriers);
@@ -1901,9 +1912,8 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "VB pass");
 
         BindRenderTargetsDesc bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 2;
+        bindRenderTargets.mRenderTargetCount = 1;
         bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
-        bindRenderTargets.mRenderTargets[1] = { pMotionVectorsBuffer, LOAD_ACTION_CLEAR };
         bindRenderTargets.mDepthStencil = { pDepthBuffer, LOAD_ACTION_CLEAR };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
@@ -2087,7 +2097,6 @@ public:
             cmdResourceBarrier(cmd, barrierCount, barriers2, 0, NULL, 0, NULL);
         }
 
-        RenderTarget* pMotionVectorsBuffer = pMotionVectorsBuffers[gFrameIndex];
         RenderTarget* pNormalRoughnessBuffer = pNormalRoughnessBuffers[gFrameIndex];
 
         drawVisibilityBufferPass(cmd);
@@ -2111,15 +2120,14 @@ public:
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mNumThreadsPerGroup;
-            cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
+            cmdDispatch(cmd, (gSceneRes.mWidth * gSceneRes.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
             rtBarriers[0] = { pSceneBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
             rtBarriers[1] = { pNormalRoughnessBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
-            rtBarriers[2] = { pMotionVectorsBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
-            rtBarriers[3] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
-            cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 4, rtBarriers);
+            rtBarriers[2] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+            cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, rtBarriers);
 
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "ReflectionPass");
 
@@ -2207,12 +2215,11 @@ public:
             bufferBarriers[3] = { pSSSR_TileListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
             rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
             rtBarriers[1] = { pNormalRoughnessBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
-            rtBarriers[2] = { pMotionVectorsBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
             textureBarriers[0] = { pSSSR_TemporalVariance, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
             textureBarriers[1] = { pSSSR_TemporalResults[gFrameIndex]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
                                    RESOURCE_STATE_UNORDERED_ACCESS };
             textureBarriers[2] = { pSSSR_RayLength->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-            cmdResourceBarrier(cmd, 4, bufferBarriers, 3, textureBarriers, 3, rtBarriers);
+            cmdResourceBarrier(cmd, 4, bufferBarriers, 3, textureBarriers, 2, rtBarriers);
 
             cmdBindPipeline(cmd, pSSSR_ClassifyTilesPipeline);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
@@ -2591,7 +2598,7 @@ public:
             updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFilteringPerBatch, 3, indirectDrawClearParams);
         }
 
-        DescriptorData perFrameSetParams[13] = {};
+        DescriptorData perFrameSetParams[12] = {};
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             uint8_t prevIndex = (i + gDataBufferCount - 1) % gDataBufferCount;
@@ -2619,9 +2626,7 @@ public:
             perFrameSetParams[10].ppBuffers = &pSSSR_ConstantsBuffer[i];
             perFrameSetParams[11].mIndex = SRT_RES_IDX(SrtData, PerFrame, gNormalRoughnessHistory);
             perFrameSetParams[11].ppTextures = &pNormalRoughnessBuffers[prevIndex]->pTexture;
-            perFrameSetParams[12].mIndex = SRT_RES_IDX(SrtData, PerFrame, gMotionVectors);
-            perFrameSetParams[12].ppTextures = &pMotionVectorsBuffers[i]->pTexture;
-            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 13, perFrameSetParams);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 12, perFrameSetParams);
         }
         if (gSSSRSupported)
         {
@@ -2870,14 +2875,13 @@ public:
 
             TinyImageFormat formats[2] = {};
             formats[0] = pRenderTargetVBPass->mFormat;
-            formats[1] = pMotionVectorsBuffers[0]->mFormat;
 
             PipelineDesc desc = {};
             PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtData, Persistent), SRT_LAYOUT_DESC(SrtData, PerFrame), NULL, NULL);
             desc.mType = PIPELINE_TYPE_GRAPHICS;
             GraphicsPipelineDesc& vbPassPipelineSettings = desc.mGraphicsDesc;
             vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-            vbPassPipelineSettings.mRenderTargetCount = TF_ARRAY_COUNT(formats);
+            vbPassPipelineSettings.mRenderTargetCount = 1;
             vbPassPipelineSettings.pDepthState = &depthStateTestAndWriteDesc;
             vbPassPipelineSettings.pColorFormats = formats;
             vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mSampleCount;
@@ -2915,7 +2919,7 @@ public:
             desc.mGraphicsDesc = {};
             GraphicsPipelineDesc& vbShadePipelineSettings = desc.mGraphicsDesc;
             vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-            vbShadePipelineSettings.mRenderTargetCount = TF_ARRAY_COUNT(formats);
+            vbShadePipelineSettings.mRenderTargetCount = 2;
             vbShadePipelineSettings.pDepthState = &depthStateDisabledDesc;
             vbShadePipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
             vbShadePipelineSettings.pShaderProgram = pShaderVBShade;
@@ -3147,13 +3151,20 @@ public:
 
     void addRenderTargets()
     {
+        // 1920x1080 VB is 8MB
+        ESRAM_BEGIN_ALLOC(pRenderer, "layout 0", 0);
         VERIFY(addVisibilityBuffer());
-        VERIFY(addSceneBuffer());
-        VERIFY(addNormalRoughnessBuffer());
-        VERIFY(addMotionVectorsBuffer());
+        ESRAM_END_ALLOC(pRenderer);
+
+        // layout 1 will overlap layout 0 in ESRAM.
+        // The Reflection Buffer at 1920x1080 is 16MB and will overlap and exceed VB.
+        ESRAM_BEGIN_ALLOC(pRenderer, "layout 1", 0);
         VERIFY(addReflectionBuffer());
         VERIFY(addDepthBuffer());
+        VERIFY(addSceneBuffer());
+        VERIFY(addNormalRoughnessBuffer());
         VERIFY(addIntermeditateBuffer());
+        ESRAM_END_ALLOC(pRenderer);
     }
 
     void removeRenderTargets()
@@ -3169,7 +3180,6 @@ public:
         for (uint8_t i = 0; i < gDataBufferCount; ++i)
         {
             removeRenderTarget(pRenderer, pNormalRoughnessBuffers[i]);
-            removeRenderTarget(pRenderer, pMotionVectorsBuffers[i]);
             removeRenderTarget(pRenderer, pSSSR_TemporalResults[i]);
         }
 
@@ -3191,8 +3201,8 @@ public:
         vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
         vbRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        vbRTDesc.mWidth = mSettings.mWidth;
-        vbRTDesc.mHeight = mSettings.mHeight;
+        vbRTDesc.mWidth = gSceneRes.mWidth;
+        vbRTDesc.mHeight = gSceneRes.mHeight;
         vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
         vbRTDesc.mSampleQuality = 0;
         vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
@@ -3211,8 +3221,8 @@ public:
         sceneRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         sceneRT.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
         sceneRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        sceneRT.mHeight = mSettings.mHeight;
-        sceneRT.mWidth = mSettings.mWidth;
+        sceneRT.mHeight = gSceneRes.mHeight;
+        sceneRT.mWidth = gSceneRes.mWidth;
         sceneRT.mSampleCount = SAMPLE_COUNT_1;
         sceneRT.mSampleQuality = 0;
         sceneRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
@@ -3232,8 +3242,8 @@ public:
         desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         desc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
         desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        desc.mHeight = mSettings.mHeight;
-        desc.mWidth = mSettings.mWidth;
+        desc.mHeight = gSceneRes.mHeight;
+        desc.mWidth = gSceneRes.mWidth;
         desc.mSampleCount = SAMPLE_COUNT_1;
         desc.mSampleQuality = 0;
         desc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
@@ -3250,33 +3260,6 @@ public:
         return true;
     }
 
-    bool addMotionVectorsBuffer()
-    {
-        RenderTargetDesc desc = {};
-        desc.mArraySize = 1;
-        desc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        desc.mDepth = 1;
-        desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        desc.mFormat = TinyImageFormat_R16G16_SFLOAT;
-        desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        desc.mHeight = mSettings.mHeight;
-        desc.mWidth = mSettings.mWidth;
-        desc.mSampleCount = SAMPLE_COUNT_1;
-        desc.mSampleQuality = 0;
-        desc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
-        desc.pName = "Motion Vectors Buffer";
-
-        for (uint8_t i = 0; i < gDataBufferCount; ++i)
-        {
-            addRenderTarget(pRenderer, &desc, &pMotionVectorsBuffers[i]);
-
-            if (pMotionVectorsBuffers[i] == NULL)
-                return false;
-        }
-
-        return true;
-    }
-
     bool addReflectionBuffer()
     {
         RenderTargetDesc RT = {};
@@ -3286,11 +3269,11 @@ public:
         RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
         RT.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
         RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        RT.mHeight = mSettings.mHeight;
-        RT.mWidth = mSettings.mWidth;
+        RT.mHeight = gSceneRes.mHeight;
+        RT.mWidth = gSceneRes.mWidth;
         RT.mSampleCount = SAMPLE_COUNT_1;
         RT.mSampleQuality = 0;
-        RT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        RT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         RT.pName = "Reflection Buffer";
 
         addRenderTarget(pRenderer, &RT, &pReflectionBuffer);
@@ -3308,11 +3291,11 @@ public:
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
         depthRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        depthRT.mHeight = mSettings.mHeight;
+        depthRT.mHeight = gSceneRes.mHeight;
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
-        depthRT.mWidth = mSettings.mWidth;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRT.mWidth = gSceneRes.mWidth;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         depthRT.pName = "Depth Buffer";
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
@@ -3321,7 +3304,7 @@ public:
 
     bool addIntermeditateBuffer()
     {
-        int bufferSize = mSettings.mWidth * mSettings.mHeight * pSwapChain->ppRenderTargets[0]->mArraySize;
+        int bufferSize = gSceneRes.mWidth * gSceneRes.mHeight * pSwapChain->ppRenderTargets[0]->mArraySize;
 
         // Add Intermediate buffer
         BufferLoadDesc IntermediateBufferDesc = {};
@@ -3349,10 +3332,10 @@ public:
         depthHierarchyDesc.mArraySize = 1;
         depthHierarchyDesc.mDepth = 1;
         depthHierarchyDesc.mFormat = TinyImageFormat_R32_SFLOAT;
-        depthHierarchyDesc.mHeight = mSettings.mHeight;
-        depthHierarchyDesc.mWidth = mSettings.mWidth;
+        depthHierarchyDesc.mHeight = gSceneRes.mHeight;
+        depthHierarchyDesc.mWidth = gSceneRes.mWidth;
         depthHierarchyDesc.mMipLevels =
-            static_cast<uint32_t>(log2(mSettings.mWidth > mSettings.mHeight ? mSettings.mWidth : mSettings.mHeight)) + 1;
+            static_cast<uint32_t>(log2(gSceneRes.mWidth > gSceneRes.mHeight ? gSceneRes.mWidth : gSceneRes.mHeight)) + 1;
         depthHierarchyDesc.mSampleCount = SAMPLE_COUNT_1;
         depthHierarchyDesc.mStartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         depthHierarchyDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
@@ -3391,8 +3374,8 @@ public:
         intersectResultsDesc.mArraySize = 1;
         intersectResultsDesc.mDepth = 1;
         intersectResultsDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
-        intersectResultsDesc.mHeight = mSettings.mHeight;
-        intersectResultsDesc.mWidth = mSettings.mWidth;
+        intersectResultsDesc.mHeight = gSceneRes.mHeight;
+        intersectResultsDesc.mWidth = gSceneRes.mWidth;
         intersectResultsDesc.mMipLevels = 1;
         intersectResultsDesc.mSampleCount = SAMPLE_COUNT_1;
         intersectResultsDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
@@ -3416,8 +3399,8 @@ public:
         temporalVarianceDesc.mArraySize = 1;
         temporalVarianceDesc.mDepth = 1;
         temporalVarianceDesc.mFormat = isR16SFSupported ? TinyImageFormat_R16_SFLOAT : TinyImageFormat_R32_SFLOAT;
-        temporalVarianceDesc.mHeight = mSettings.mHeight;
-        temporalVarianceDesc.mWidth = mSettings.mWidth;
+        temporalVarianceDesc.mHeight = gSceneRes.mHeight;
+        temporalVarianceDesc.mWidth = gSceneRes.mWidth;
         temporalVarianceDesc.mMipLevels = 1;
         temporalVarianceDesc.mSampleCount = SAMPLE_COUNT_1;
         temporalVarianceDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
@@ -3437,15 +3420,15 @@ public:
         rayLengthDesc.mArraySize = 1;
         rayLengthDesc.mDepth = 1;
         rayLengthDesc.mFormat = isR16SFSupported ? TinyImageFormat_R16_SFLOAT : TinyImageFormat_R32_SFLOAT;
-        rayLengthDesc.mHeight = mSettings.mHeight;
-        rayLengthDesc.mWidth = mSettings.mWidth;
+        rayLengthDesc.mHeight = gSceneRes.mHeight;
+        rayLengthDesc.mWidth = gSceneRes.mWidth;
         rayLengthDesc.mMipLevels = 1;
         rayLengthDesc.mSampleCount = SAMPLE_COUNT_1;
         rayLengthDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
         rayLengthDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         rayLengthDesc.pName = "SSSR_RayLength";
         rayLengthDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        rayLengthDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        rayLengthDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         addRenderTarget(pRenderer, &rayLengthDesc, &pSSSR_RayLength);
 
         if (pSSSR_RayLength == NULL)
@@ -3470,7 +3453,7 @@ public:
         BufferLoadDesc SSSR_TileListDesc = {};
         SSSR_TileListDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
         SSSR_TileListDesc.mDesc.mElementCount =
-            ((mSettings.mWidth * mSettings.mHeight + 63) / 64) * pSwapChain->ppRenderTargets[0]->mArraySize;
+            ((gSceneRes.mWidth * gSceneRes.mHeight + 63) / 64) * pSwapChain->ppRenderTargets[0]->mArraySize;
         SSSR_TileListDesc.mDesc.mStructStride = sizeof(uint32_t);
         SSSR_TileListDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         SSSR_TileListDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;

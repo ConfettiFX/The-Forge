@@ -28,9 +28,9 @@
     #define SAMPLE_COUNT 1
 #endif
 
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 
 STRUCT(PsIn)

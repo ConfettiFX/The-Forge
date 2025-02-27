@@ -28,7 +28,7 @@ STRUCT(VSOutput)
     DATA(float2, TexCoords, TEXCOORD0);
 };
 
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 float4 PS_MAIN( VSOutput In )
 {

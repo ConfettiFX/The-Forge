@@ -22,12 +22,10 @@
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
   </Dependencies>
   <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
     <Project Name="OS"/>
     <Project Name="Renderer"/>
     <Project Name="ozz_base"/>
@@ -48,11 +46,9 @@
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
@@ -124,14 +120,12 @@ shaders:&#xD;
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

@@ -39,6 +39,38 @@
 #include "../../Utilities/ThirdParty/OpenSource/zstd/zstd.h"
 
 /************************************************************************/
+// MARK: - Error Handling
+/************************************************************************/
+static THREAD_LOCAL FSErrorContext sFsErrCtx;
+
+FSErrorContext* __fs_err_ctx(void) { return &sFsErrCtx; }
+
+FSErrorCode translateErrno(uint32_t err)
+{
+    switch (err)
+    {
+    case EPERM:
+        return FS_NOT_PERMITTED_ERR;
+    case ENOENT:
+        return FS_NOT_FOUND_ERR;
+    case EACCES:
+        return FS_ACCESS_DENIED_ERR;
+    case ENOTDIR:
+        return FS_NOT_DIR_ERR;
+    case EISDIR:
+        return FS_IS_DIR_ERR;
+    case EINVAL:
+        return FS_INVALID_PARAM_ERR;
+    case ENOSPC:
+        return FS_INSUFFICIENT_SPACE;
+    case EROFS:
+        return FS_READ_ONLY_ERR;
+    default:
+        return FS_INTERNAL_ERR;
+    }
+}
+
+/************************************************************************/
 // MARK: - Filesystem
 /************************************************************************/
 
@@ -207,9 +239,11 @@ static bool ioMemoryStreamClose(FileStream* fs)
 
 static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 {
+    __FS_NO_ERR;
     if (!(fs->mMode & FM_READ))
     {
-        LOGF(eWARNING, "Attempting to read from stream that doesn't have FM_READ flag.");
+        // Attempting to read from stream that doesn't have FM_READ flag
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return 0;
     }
 
@@ -217,6 +251,7 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 
     if ((intptr_t)stream->mCursor >= stream->mSize)
     {
+        __FS_SET_ERR(FS_INVALID_STATE_ERR);
         return 0;
     }
 
@@ -228,9 +263,11 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 
 static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 {
+    __FS_NO_ERR;
     if (!(fs->mMode & FM_WRITE))
     {
-        LOGF(eWARNING, "Attempting to write to stream that doesn't have FM_WRITE flag.");
+        // Attempting to write to stream that doesn't have FM_WRITE flag
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return 0;
     }
 
@@ -255,10 +292,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
         void* newBuffer = tf_realloc(stream->pBuffer, newCapacity);
         if (!newBuffer)
         {
-            LOGF(eERROR,
-                 "Failed to reallocate memory stream buffer with new capacity "
-                 "%llu.",
-                 (unsigned long long)newCapacity);
+            __FS_SET_ERR(FS_INSUFFICIENT_SPACE);
             return 0;
         }
 
@@ -275,6 +309,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 
 static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
 {
+    __FS_NO_ERR;
     MEMSD(stream, fs);
 
     switch (baseOffset)
@@ -283,6 +318,7 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
     {
         if (seekOffset < 0 || seekOffset > stream->mSize)
         {
+            __FS_SET_ERR(FS_INVALID_PARAM_ERR);
             return false;
         }
         stream->mCursor = (size_t)seekOffset;
@@ -293,6 +329,7 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
         ssize_t newPosition = (ssize_t)stream->mCursor + seekOffset;
         if (newPosition < 0 || newPosition > stream->mSize)
         {
+            __FS_SET_ERR(FS_INVALID_PARAM_ERR);
             return false;
         }
         stream->mCursor = (size_t)newPosition;
@@ -303,6 +340,7 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
         ssize_t newPosition = (ssize_t)stream->mSize + seekOffset;
         if (newPosition < 0 || newPosition > stream->mSize)
         {
+            __FS_SET_ERR(FS_INVALID_PARAM_ERR);
             return false;
         }
         stream->mCursor = (size_t)newPosition;
@@ -339,8 +377,12 @@ static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
+    __FS_NO_ERR;
     if (fs->mMode & FM_WRITE)
+    {
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
+    }
 
     MEMSD(stream, fs);
     *outSize = stream->mCapacity;
@@ -583,7 +625,6 @@ FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
     if (!fsOpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
     {
         // NOTE: fsOpenStreamFromMemory never returns false
-        LOGF(eERROR, "Failed to open stream from memory");
         return false;
     }
 
@@ -606,9 +647,11 @@ FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
 
 FORGE_API void* fsGetSystemHandle(FileStream* fs)
 {
+    __FS_NO_ERR;
     if (!fsIsSystemFileStream(fs))
     {
         ASSERTMSG(false, "Can't have a file handle for a non file stream");
+        __FS_SET_ERR(FS_INVALID_PARAM_ERR);
         return NULL;
     }
 
@@ -1028,6 +1071,7 @@ static const struct ArchiveOpenDesc BUNYAR_OPEN_DESC_DEFAULT = { 0 };
 static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void* memory, const struct ArchiveOpenDesc* desc,
                             IFileSystem* out)
 {
+    __FS_NO_ERR;
     ASSERT((stream == NULL) != (memory == NULL));
     memset(out, 0, sizeof *out);
 
@@ -1057,7 +1101,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (desc->tryMode)
             return false;
-        LOGF(eERROR, "Failed to open archive: failed to read header");
+        // Either fsSeekStream(..) or fsReadFromStream(..) failed. The error context will available to the caller to determine the error.
         return false;
     }
 
@@ -1106,7 +1150,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
     if (!bunyArReadLocation(archive, header.nodesPointer, archive->nodes))
     {
-        LOGF(eERROR, "Failed to open archive: nodes reading failure");
+        // Error context will already have been set
         goto CANCEL;
     }
 
@@ -1116,7 +1160,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (node->namePointer.offset + node->namePointer.size > header.namesPointer.size)
         {
-            LOGF(eERROR, "Failed to open archive: invalid namePointer for node %llu", (unsigned long long)fi);
+            __FS_SET_ERR(FS_INVALID_STATE_ERR);
             goto CANCEL;
         }
     }
@@ -1128,19 +1172,19 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (!bunyArReadLocation(archive, header.namesPointer, archive->nodeNames))
         {
-            LOGF(eERROR, "Failed to open archive: unexpected end of stream");
+            // Error context will already have been set
             goto CANCEL;
         }
 
         if (archive->nodeNames[header.namesPointer.size - 1] != 0)
         {
-            LOGF(eERROR, "Failed to open archive: missing 0 in the string end");
+            __FS_SET_ERR(FS_INVALID_STATE_ERR);
             goto CANCEL;
         }
     }
     else if (archive->nodeCount)
     {
-        LOGF(eERROR, "Failed to open archive: missing node names");
+        __FS_SET_ERR(FS_INVALID_STATE_ERR);
     CANCEL:
         tf_free(archive);
         return false;
@@ -1156,7 +1200,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         if (!bunyArReadLocation(archive, header.hashTablePointer, archive->hashTable))
         {
             // not fatal, we can recreate it
-            LOGF(eERROR, "Failed to read archive hash table");
+            LOGF(eWARNING, "Failed to read archive hash table");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1210,8 +1254,8 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (namesChanged)
         {
-            LOGF(eERROR, "Baked archive hash table is abandoned because node names was "
-                         "modified");
+            LOGF(eWARNING, "Baked archive hash table is abandoned because node names was "
+                           "modified");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1227,14 +1271,14 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
             if (value >= archive->nodeCount)
             {
-                LOGF(eERROR, "Archive hash table lookup test failed: key wasn't found.");
+                LOGF(eWARNING, "Archive hash table lookup test failed: key wasn't found.");
                 success = false;
                 break;
             }
 
             if (value != i)
             {
-                LOGF(eERROR, "Archive hash table lookup test failed: got the wrong key.");
+                LOGF(eWARNING, "Archive hash table lookup test failed: got the wrong key.");
                 success = false;
                 break;
             }
@@ -1242,7 +1286,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (!success)
         {
-            LOGF(eERROR, "Baked archive hash table is abandoned because it was faulty");
+            LOGF(eWARNING, "Baked archive hash table is abandoned because it was faulty");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1295,10 +1339,6 @@ bool fsArchiveOpen(ResourceDirectory rd, const char* path, const struct ArchiveO
 
     if (!fsArchiveOpenFromStream(&stream, desc, out))
     {
-        if (!desc->tryMode)
-        {
-            LOGF(eERROR, "Failed to open archive: \'%s\'", path);
-        }
         fsCloseStream(&stream);
         return false;
     }
@@ -1337,7 +1377,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
 
     if (archive->virtualStreamCount > 0)
     {
-        LOGF(eERROR, "Archive closed while some files are still opened");
+        LOGF(eWARNING, "Archive closed while some files are still opened");
     }
 
     if (archive->ownedStream.pIO)
@@ -1387,12 +1427,14 @@ static bool ioArchiveGetFileUid(IFileSystem* fs, ResourceDirectory rd, const cha
 
 static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode, FileStream* pOutStream)
 {
+    __FS_NO_ERR;
     memset(pOutStream, 0, sizeof *pOutStream);
 
     struct BunyArMetadata* archive = getFsArchive(inFs);
 
     if (index > archive->nodeCount)
     {
+        __FS_SET_ERR(FS_NOT_FOUND_ERR);
         return false;
     }
 
@@ -1400,6 +1442,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     if (mode != FM_READ)
     {
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
     }
 
@@ -1415,6 +1458,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         if (node->originalFileSize == node->filePointer.size)
             break;
 
+        __FS_SET_ERR(FS_INTERNAL_ERR);
         return false;
     }
     case BUNYAR_FILE_FORMAT_LZ4_BLOCKS:
@@ -1422,14 +1466,19 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     {
         if (node->filePointer.size < sizeof(blocksHeader))
         {
+            __FS_SET_ERR(FS_INTERNAL_ERR);
             return false;
         }
 
         if (bunyArStreamRead(archive, node->filePointer.offset, sizeof(blocksHeader), &blocksHeader) != sizeof(blocksHeader))
+        {
+            // The error context would have been set by function calls inside bunyArStreamRead(..) No need to overwrite the context here.
             return false;
+        }
 
         if (blocksHeader.blockSize == 0)
         {
+            __FS_SET_ERR(FS_INTERNAL_ERR);
             return false;
         }
 
@@ -1439,6 +1488,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     break;
     default:
     {
+        __FS_SET_ERR(FS_INTERNAL_ERR);
         return false;
     }
     }
@@ -1462,6 +1512,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         !bunyArStreamRead(archive, node->filePointer.offset + sizeof(blocksHeader), blocksSize, fs->blocks))
     {
     CANCEL:
+        // The error context would have been set by function calls inside bunyArStreamRead(..) No need to overwrite the context here.
         tf_free(fs);
         return false;
     }
@@ -1819,12 +1870,16 @@ void fsArchiveGetDescription(IFileSystem* fs, struct BunyArDescription* outInfo)
 
 bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyArNodeDescription* outInfo)
 {
+    __FS_NO_ERR;
     memset(outInfo, 0, sizeof *outInfo);
 
     struct BunyArMetadata* archive = getFsArchive(fs);
 
     if (nodeId >= archive->nodeCount)
+    {
+        __FS_SET_ERR(FS_INVALID_PARAM_ERR);
         return false;
+    }
 
     struct BunyArNode* node = archive->nodes + nodeId;
 
@@ -1838,8 +1893,13 @@ bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyAr
 
 bool fsArchiveGetFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader, const BunyArBlockPointer** outBlockPtrs)
 {
+    __FS_NO_ERR;
+
     if (!pFile)
+    {
+        __FS_SET_ERR(FS_INVALID_PARAM_ERR);
         return false;
+    }
 
     struct BunyArFileStream* stream = getFsBunyArStream((FileStream*)(uintptr_t)pFile);
 

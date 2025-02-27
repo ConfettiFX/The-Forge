@@ -24,8 +24,8 @@
 
 // for low end iOS devices, do not use Argument buffers
 BEGIN_SRT_NO_AB(SrtHairData)
-    #include "persistent_set.h"
-    #include "perframe_set.h"
+    #include "PersistentSet.h"
+    #include "PerFrameSet.h"
     BEGIN_SRT_SET(PerBatch)
         DECL_ARRAY_TEXTURES(PerBatch, Tex2D(float), gHairDirectionalLightShadowMaps, MAX_NUM_DIRECTIONAL_LIGHTS)
         DECL_CBUFFER(PerBatch, CBUFFER(DirectionalLightShadowCameras), gHairDirectionalLightShadowCameras)

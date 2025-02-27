@@ -31,7 +31,7 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 
-#include "../../Utilities/Math/MathTypes.h"
+//#include "../../Utilities/Math/MathTypes.h"
 
 struct QuestVR
 {
@@ -42,13 +42,13 @@ struct QuestVR
     ovrTracking2       mHeadsetTracking;
     uint               mEyeTextureWidth;
     uint               mEyeTextureHeight;
-    mat4               mViewMatrix;
+    float              mViewMatrix[16];
     bool               mFoveatedRenderingEnabled;
     bool               isSrgb;
 };
-extern QuestVR* pQuest;
+extern struct QuestVR* pQuest;
 
-bool initVrApi(android_app* pAndroidApp, JNIEnv* pJavaEnv);
+bool initVrApi(struct android_app* pAndroidApp, JNIEnv* pJavaEnv);
 void exitVrApi();
 void updateVrApi();
 

@@ -21,97 +21,97 @@
     <ClInclude Include="..\src\SanMiguel.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\cluster_lights.srt.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Shaders\FSL\display.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\godray_blur.srt.h">
+    <ClInclude Include="..\src\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\perframe_set.h">
+    <ClInclude Include="..\src\Shaders\FSL\GodrayBlur.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\persistent_set.h">
+    <ClInclude Include="..\src\Shaders\FSL\LightClusters.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl">
+    <ClInclude Include="..\src\Shaders\FSL\PerFrameSet.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\srt.h">
+    <ClInclude Include="..\src\Shaders\FSL\PersistentSet.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Shaders\FSL\structs.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\triangle_filtering.srt.h">
+    <ClInclude Include="..\src\Shaders\FSL\TriangleFiltering.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <FSLShader Include="..\src\Shaders\FSL\bin_rasterizer.comp.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\BinRasterizer.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\ClearBuffers.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\clear_render_target.comp.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\ClearRenderTarget.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\debug_visualize.h.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\DebugVisualize.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Display.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Display.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Godray.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\godray_blur.comp.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\GodrayBlur.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\rasterizer.h.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\LightClusters.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\src\Shaders\FSL\LightClustersClear.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Rasterizer.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\ShaderDefs.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\triangle_binning.h.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\shading.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_blitDepth.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Skybox.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\Skybox.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\TriangleBinning.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\TriangleFiltering.comp.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\VisibilityBufferBlitDepth.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\VisibilityBufferResources.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\VisibilityBufferShade.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\VisibilityBufferShade.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
   </ItemGroup>

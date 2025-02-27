@@ -44,7 +44,7 @@
 
 #include "../../Graphics/FSL/fsl_srt.h"
 #include "../../Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/resources.h"
+#include "./Shaders/FSL/Resources.h"
 
 #ifdef ENABLE_FORGE_FONTS
 
@@ -624,7 +624,8 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
         }
         else
         {
-            LOGF(LogLevel::eERROR, "Failed to open font file.");
+            LOGF(LogLevel::eERROR, "Failed to open font file.Function %s failed with error: %s", FS_ERR_CTX.func,
+                 getFSErrCodeString(FS_ERR_CTX.code));
             id = UINT32_MAX;
         }
 

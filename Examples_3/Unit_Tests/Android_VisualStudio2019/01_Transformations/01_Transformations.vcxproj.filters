@@ -18,19 +18,19 @@
     <ClCompile Include="..\..\src\01_Transformations\01_Transformations.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\basic.frag.fsl">
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\Basic.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\basic.vert.fsl">
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\Basic.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl">
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\Skybox.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\Skybox.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\01_Transformations\GPUCfg\gpu.cfg">

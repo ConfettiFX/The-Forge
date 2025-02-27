@@ -15,22 +15,22 @@
     <ClCompile Include="..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\clearVisibilityBuffers.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\copyDepth.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PBR_BRDFIntegration.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Shaders.list" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\TriangleFilteringClear.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PBR_ComputeIrradianceMap.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PBR_ComputeSpecularMap.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\CopyDepth.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.frag.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\GenerateMips.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_HolePatching.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_HolePatching.vert.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Projection.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.frag.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.vert.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\shaders.list" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Shader_Defs.h.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\ShaderDefs.h.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Skybox.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Skybox.vert.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ClassifyTiles.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Intersect.comp.fsl" />
@@ -39,28 +39,28 @@
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEawStride.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveSpatial.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveTemporal.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\triangleFiltering.comp.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\vb_resources.h.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\vb_resources_util.h.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPass.frag.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPass.vert.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPassAlpha.frag.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferPassAlpha.vert.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferShade.frag.fsl" />
-    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\visibilityBufferShade.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\TriangleFiltering.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibiltyBufferResources.h.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibiltyBufferResourcesUtil.h.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferPass.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferPass.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferPassAlpha.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferPassAlpha.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferShade.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\VisibilityBufferShade.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.srt.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\copydepth.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PBR.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\CopyDepth.srt.h" />
     <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.srt.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.srt.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\persistent_set.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\perframe_set.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\GenerateMips.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PersistentSet.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PerframeSet.h" />
     <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR.srt.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\Global.srt.h" />
     <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR.srt.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\triangle_filtering.srt.h" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\TriangleFiltering.srt.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\10_ScreenSpaceReflections\GPUCfg\gpu.cfg" />

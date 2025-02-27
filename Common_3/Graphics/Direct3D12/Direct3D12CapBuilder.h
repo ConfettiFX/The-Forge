@@ -44,7 +44,7 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { fmt };
 
-        pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
+        COM_CALL(CheckFeatureSupport, pDevice, D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
         if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE)
         {
             pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;

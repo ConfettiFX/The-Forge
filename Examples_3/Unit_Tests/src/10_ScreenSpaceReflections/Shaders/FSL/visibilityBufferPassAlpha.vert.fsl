@@ -22,10 +22,10 @@
  * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
-#include "vb_resources_util.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
+#include "Global.srt.h"
+#include "VisibiltyBufferResourcesUtil.h.fsl"
 
 ROOT_SIGNATURE(DefaultRootSignature)
 PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID ) 
@@ -36,8 +36,6 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
     float4 vertexPos = LoadVertex(vertexID);
 
 	Out.position = mul(gObjectUniformBlockPerFrame.worldViewProjMat, vertexPos);
-	Out.currPosition = Out.position;
-	Out.prevPosition = mul(gObjectUniformBlockPerFrame.prevWorldViewProjMat, vertexPos);
 	Out.texCoord = LoadTexCoord(vertexID);
 	// IndirectDataBuffer stores mesh index, which in this case is the same as material ID
 	Out.materialID = gIndirectDataBuffer[vertexID]; 

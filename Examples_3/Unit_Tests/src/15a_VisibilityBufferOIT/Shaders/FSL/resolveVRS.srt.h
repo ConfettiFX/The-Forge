@@ -25,8 +25,8 @@
 
 
 BEGIN_SRT(SrtResolveVRSData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
         DECL_WTEXTURE(PerBatch, WTex2D(float4), gResolvedTex)
         DECL_WTEXTURE(PerBatch, WTex2D(float4), gDebugVRSTex)

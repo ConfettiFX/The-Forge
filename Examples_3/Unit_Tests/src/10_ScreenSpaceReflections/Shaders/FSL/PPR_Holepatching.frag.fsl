@@ -22,13 +22,12 @@
  * under the License.
 */
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "PPR.srt.h"
 
 STRUCT(PsOut)
 {
 	DATA(float4, VBData,       SV_Target0);
-	DATA(float2, MotionVector, SV_Target1);
 };
 
 
