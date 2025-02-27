@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 STRUCT(PSInput)
 {
@@ -96,9 +96,10 @@ float4 PS_MAIN( PSInput In )
 			// Active lanes ratios (# of total activelanes / # of total lanes).
 			ballot_t activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = CountBallot(activeLaneMask);
-			float activeRatio = float(numActiveLanes) / float(gSceneConstantBuffer.laneSize);
+			float activeRatio = float(numActiveLanes) / float(WaveGetLaneCount());
 			outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0);
-
+			// Output magenta if lane count is smaller than active thread count
+			outputColor.g *= 1.0 - float(activeRatio > 1.05);
 			break;
 		}
 		#endif

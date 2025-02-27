@@ -172,7 +172,8 @@ void FpsCameraController::update(float deltaTime)
     // create rotation matrix
     mat4 vrRotation = mat4::identity();
 #if defined(QUEST_VR)
-    vrRotation.setUpper3x3(inverse(pQuest->mViewMatrix.getUpper3x3()));
+    mat4 viewMatrix = *(const mat4*)&pQuest->mViewMatrix[0];
+    vrRotation.setUpper3x3(inverse(viewMatrix.getUpper3x3()));
     viewRotation.setX(0.0f); // No rotation around the x axis when using vr
 #endif
     mat4 rot = mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) * vrRotation;
@@ -199,7 +200,7 @@ mat4 FpsCameraController::getViewMatrix() const
 {
     mat4 r = mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY());
 #if defined(QUEST_VR)
-    mat4 vrViewMat = pQuest->mViewMatrix;
+    mat4 vrViewMat = *(const mat4*)&pQuest->mViewMatrix[0];
     vrViewMat.setTranslation(vec3(0.0f));
     r = vrViewMat * r;
 #endif
@@ -343,7 +344,8 @@ bool loadCameraPath(const char* pFileName, uint32_t& outNumCameraPoints, float3*
     FileStream fh = {};
     if (!fsOpenStreamFromPath(RD_OTHER_FILES, pFileName, FM_READ, &fh))
     {
-        LOGF(LogLevel::eERROR, "Failed to open the camera path file");
+        LOGF(LogLevel::eERROR, "Failed to open the camera path file. Function %s failed with error: %s", FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 

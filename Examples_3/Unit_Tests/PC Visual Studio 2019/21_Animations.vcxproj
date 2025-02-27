@@ -137,13 +137,6 @@
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\cube.frag.fsl" />
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\cube.vert.fsl" />
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\plane.frag.fsl" />
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\plane.vert.fsl" />
-    <FSLShader Include="..\src\21_Animations\Shaders\FSL\shaders.list" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\src\21_Animations\21_Animations.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -151,7 +144,14 @@
     <None Include="..\src\21_Animations\Scripts\Test0.lua" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\21_Animations\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\21_Animations\Shaders\FSL\Global.srt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\Cube.frag.fsl" />
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\Cube.vert.fsl" />
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\Plane.frag.fsl" />
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\Plane.vert.fsl" />
+    <FSLShader Include="..\src\21_Animations\Shaders\FSL\Shaders.list" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

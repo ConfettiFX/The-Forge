@@ -24,154 +24,154 @@
     <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\BatchCompaction.comp.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\batch_compaction.comp.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Display.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\GodrayBlur.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\LightClusters.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\PerFrameSet.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\perframe_set.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\PersistentSet.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\persistent_set.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\PreSkinVertexes.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ResolveVRS.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFiltering.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.srt.h">
+    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassTransparent.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent.srt.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\batch_compaction.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\BatchCompaction.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_buffers.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Display.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_light_clusters.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Display.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\FillStencil.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\FillStencil.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Godray.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\fillStencil.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\GodrayBlur.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\fillStencil.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\LightClusters.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\LightClustersClear.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\OitClear.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\gpu_pipeline.graph.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\PreSkinVertexes.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\oitClear.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Resolve.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Resolve.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ResolveVRS.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShaderDefs.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPass.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shader_defs.h.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPassAlpha.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPassAlpha.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPassTransparent.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPassTransparent.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Skybox.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\Skybox.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFiltering.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFilteringClear.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.comp.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFilteringGpuPipelineGraph.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering_impl.h.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFilteringImpl.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\vb_resources.h.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPass.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPass.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassAlpha.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassAlpha.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassTransparentRet.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_ret.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassTransparentRet.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_ret.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassTransparentVoid.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_void.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferResources.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferShade.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferShade.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\vrs_resources.h.fsl">
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferUtil.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\VRSResources.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\15a_VisibilityBufferOIT\GPUCfg\gpu.cfg">

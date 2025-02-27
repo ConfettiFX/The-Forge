@@ -1,11 +1,25 @@
 #pragma once
 #include "../../../GraphicsConfig.h"
 
-#if defined(_WINDOWS) && !defined(DURANGO)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern int agsInit();
+extern void agsExit();
+extern void agsPrintDriverInfo();
+extern uint32_t agsGetAsicFamily(uint32_t deviceId);
+#ifdef __cplusplus
+}
+#endif
+
+#include "../../../../Utilities/Interfaces/ILog.h"
+
+#if defined(_WINDOWS) && !defined(DURANGO) && defined(__cplusplus)
 #include "ags_lib/inc/amd_ags.h"
 #define AMDAGS
 #else
-enum AGSReturnCode
+typedef enum AGSReturnCode
 {
 	AGS_SUCCESS,                    ///< Successful function call
 	AGS_FAILURE,                    ///< Failed to complete call for some unspecified reason
@@ -17,34 +31,36 @@ enum AGSReturnCode
 	AGS_EXTENSION_NOT_SUPPORTED,    ///< Returned if the driver does not support the requested driver extension
 	AGS_ADL_FAILURE,                ///< Failure in ADL (the AMD Display Library)
 	AGS_DX_FAILURE                  ///< Failure from DirectX runtime
-};
+} AGSReturnCode;
 #endif
+
+#if defined(AMD_AGS_HELPER_IMPL)
 
 #if defined(AMDAGS)
 static AGSReturnCode gAgsStatus = AGS_FAILURE;
 static AGSContext* pAgsContext = NULL;
-static AGSGPUInfo  gAgsGpuInfo = {};
+static AGSGPUInfo  gAgsGpuInfo = {0};
 #endif
 
-static AGSReturnCode agsInit()
+extern "C" int agsInit()
 {
 #if defined(AMDAGS)
 	AGSConfiguration config = {};
 	gAgsStatus = agsInitialize(AGS_CURRENT_VERSION, &config, &pAgsContext, &gAgsGpuInfo);
-	return gAgsStatus;
+	return (int)gAgsStatus;
 #else
-	return AGS_SUCCESS;
+	return (int)AGS_SUCCESS;
 #endif
 }
 
-static void agsExit()
+extern "C" void agsExit()
 {
 #if defined(AMDAGS)
 	agsDeInitialize(pAgsContext);
 #endif
 }
 
-static void agsPrintDriverInfo()
+extern "C" void agsPrintDriverInfo()
 {
 #if defined(AMDAGS)
 	if (pAgsContext)
@@ -56,7 +72,7 @@ static void agsPrintDriverInfo()
 }
 
 #if defined(AMDAGS)
-static AGSDeviceInfo::AsicFamily agsGetAsicFamily(uint32_t deviceId)
+extern "C" uint32_t agsGetAsicFamily(uint32_t deviceId)
 {
 	if (pAgsContext)
 	{
@@ -64,11 +80,13 @@ static AGSDeviceInfo::AsicFamily agsGetAsicFamily(uint32_t deviceId)
 		{
 			if ((uint32_t)gAgsGpuInfo.devices[i].deviceId == deviceId)
 			{
-				return gAgsGpuInfo.devices[i].asicFamily;
+				return (uint32_t)gAgsGpuInfo.devices[i].asicFamily;
 			}
 		}
 	}
 
-	return AGSDeviceInfo::AsicFamily_Unknown;
+	return (uint32_t)AGSDeviceInfo::AsicFamily_Unknown;
 }
+#endif
+
 #endif

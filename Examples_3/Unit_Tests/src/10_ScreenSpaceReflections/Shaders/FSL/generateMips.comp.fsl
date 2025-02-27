@@ -22,8 +22,8 @@
 * under the License.
 */
 
-#include "vb_resources.h.fsl"
-#include "generateMips.srt.h"
+#include "VisibiltyBufferResources.h.fsl"
+#include "GenerateMips.srt.h"
 
 ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(16,  16,  1)

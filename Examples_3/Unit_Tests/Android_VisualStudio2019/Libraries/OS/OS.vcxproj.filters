@@ -426,7 +426,10 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Config.h">
       <Filter>Application</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.srt.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\FontStash.srt.h">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\Resources.h">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IApp.h">
@@ -456,7 +459,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerHTML.h">
       <Filter>Application\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.srt.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\Copy.comp.srt.h">
       <Filter>Application\Screenshot\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imconfig.h">
@@ -468,23 +471,20 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>Application\ThirdParty\OpenSource\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui_resources.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ImGui.srt.h">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui_srt.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ImGuiResources.h">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_resources.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\Textured.srt.h">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_srt.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\TexturedResources.h">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Game\Interfaces\IScripting.h">
       <Filter>Game\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h">
-      <Filter>Application\Fonts\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h">
       <Filter>Application\Interfaces</Filter>
@@ -519,10 +519,10 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Rig.h">
       <Filter>Resources\AnimationSystem\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_resources.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Animation.srt.h">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_srt.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\AnimationResources.h">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.h">
@@ -576,52 +576,52 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.h">
       <Filter>Utilities\Threading</Filter>
     </ClInclude>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\font_shaders.list">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\FontShaders.list">
       <Filter>Application\Fonts\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\FontStash.frag.fsl">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\FontStash2D.vert.fsl">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\FontStash3D.vert.fsl">
+      <Filter>Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\Copy.comp.fsl">
       <Filter>Application\Screenshot\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\screenshot_shaders.list">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\ScreenshotShaders.list">
       <Filter>Application\Screenshot\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ImGui.frag.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.vert.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ImGui.vert.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.frag.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\TexturedMesh.frag.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.vert.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\TexturedMesh.vert.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.frag.fsl">
-      <Filter>Application\Fonts\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash2D.vert.fsl">
-      <Filter>Application\Fonts\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash3D.vert.fsl">
-      <Filter>Application\Fonts\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\ui_shaders.list">
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UIShaders.list">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\animation_shaders.list">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\AnimationShaders.list">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.frag.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Bone.frag.fsl">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.vert.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Bone.vert.fsl">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Joint.frag.fsl">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.vert.fsl">
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Joint.vert.fsl">
       <Filter>Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

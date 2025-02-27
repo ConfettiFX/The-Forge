@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "vb_resources.h.fsl"
-#include "display.srt.h"
+#include "VisibilityBufferResources.h.fsl"
+#include "Display.srt.h"
 
 STRUCT(PsIn)
 {

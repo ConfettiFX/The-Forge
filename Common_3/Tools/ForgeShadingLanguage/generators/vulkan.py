@@ -29,21 +29,7 @@ from utils import getMacroFirstArg, get_interpolation_modifier, getMacroName, ge
 import os, re
 
 def BeginNonUniformResourceIndex(index, max_index=None):
-    case_list = ['#define CASE_LIST ']
-    if max_index:
-        max_index = int(max_index)
-        n_100 = max_index // 100
-        n_10 = (max_index-n_100*100) // 10
-        n_1 = (max_index-n_100*100-n_10*10) // 1
-        for i in range(n_100):
-            case_list += ['REPEAT_HUNDRED(',str(i*100), ') ']
-        for i in range(n_10):
-            case_list += ['REPEAT_TEN(',str(n_100*100 + i*10), ') ']
-        for i in range(n_1):
-            case_list += ['CASE(',str(n_100*100 + n_10*10 + i), ') ']
-    else:
-        case_list += ['CASE_LIST_256']
-    return case_list + [
+    return [
         '\n#define NonUniformResourceIndexBlock(', index,') \\\n'
     ]
 
@@ -51,15 +37,10 @@ def EndNonUniformResourceIndex(index):
     return  ['\n',
         '#if VK_EXT_DESCRIPTOR_INDEXING_ENABLED\n',
         '\tNonUniformResourceIndexBlock(nonuniformEXT(', index, '))\n',
-        '#elif VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED\n',
-        '\tNonUniformResourceIndexBlock(', index, ')\n',
         '#else\n',
-        '#define CASE(id) case id: ',
-        'NonUniformResourceIndexBlock(id) break;\n',
-        '\tswitch(', index, ') {CASE_LIST};\n',
-        '#undef CASE\n#endif\n',
+        '\tNonUniformResourceIndexBlock(', index, ')\n',
+        '#endif\n',
         '#undef NonUniformResourceIndexBlock\n',
-        '#undef CASE_LIST\n',
     ]
 
 def get_format_qualifier(name):
@@ -233,7 +214,7 @@ def android_vulkan(*args):
 
 def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
 
-    binary.derivatives[platform] = [['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=0', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=0']]
+    binary.derivatives[platform] = [['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=0']]
 
     shader = getShader(platform, binary, binary.preprocessed_srcs[platform], dst)
     # check for function overloading.
@@ -472,6 +453,16 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             basename = getArrayBaseName(dname)
             shader_src += ['#define _Get', basename, ' ', basename, '\n']
             line = 'shared '+dtype+' '+dname+';\n'
+            
+        # create comment hint for shader reflection
+        if 'NUM_THREADS(' in line:
+            elems = getMacro(line)
+            for i, elem in enumerate(elems):
+                if not elem.isnumeric():
+                    assert elem in shader.defines, "arg {} to NUM_THREADS needs to be defined!".format(elem)
+                    elems[i] = shader.defines[elem]
+            binary.num_threads = [ int(d) for d in elems ]
+            
 
         if 'EARLY_FRAGMENT_TESTS' in line:
             line = 'layout(early_fragment_tests) in;\n'
@@ -567,11 +558,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             if max_index and not max_index.isnumeric():
                 max_index = ''.join(c for c in shader.defines[max_index] if c.isdigit())
             shader_src += BeginNonUniformResourceIndex(nonuniformresourceindex, max_index)
-            binary.derivatives[platform] += [
-                ['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=0', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=1'],
-                ['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=1', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=0'],
-                ['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=1', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=1'],
-            ]
+            binary.derivatives[platform] += [['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=1']]
             continue
         if 'EndNonUniformResourceIndex()' in line:
             assert nonuniformresourceindex, 'EndNonUniformResourceIndex: BeginNonUniformResourceIndex not called/found'

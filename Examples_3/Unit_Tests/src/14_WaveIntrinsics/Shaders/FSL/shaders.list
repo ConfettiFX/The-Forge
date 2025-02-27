@@ -9,11 +9,11 @@
 
 
 #frag magnify.frag
-#include "magnify.frag.fsl"
+#include "Magnify.frag.fsl"
 #end
 
 #vert magnify.vert
-#include "magnify.vert.fsl"
+#include "Magnify.vert.fsl"
 #end
 
 #define WAVE_BASIC       1 << 0
@@ -24,34 +24,34 @@
 #frag wave_basic.frag
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT)
 #define WAVE_SUPPORTED_FLAGS (WAVE_BASIC)
-#include "wave.frag.fsl"
+#include "Wave.frag.fsl"
 #end
 
 #frag wave_basic_ballot.frag
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_BALLOT_BIT)
 #define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_BALLOT)
-#include "wave.frag.fsl"
+#include "Wave.frag.fsl"
 #end
 
 #frag wave_basic_arithmetic.frag
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT)
 #define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_ARITHMETIC)
-#include "wave.frag.fsl"
+#include "Wave.frag.fsl"
 #end
 
 #frag wave_basic_ballot_arithmetic.frag
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT | WAVE_OPS_BALLOT_BIT)
 #define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_BALLOT | WAVE_ARITHMETIC)
-#include "wave.frag.fsl"
+#include "Wave.frag.fsl"
 #end
 
 #frag wave_all.frag
 ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_ARITHMETIC_BIT | WAVE_OPS_BALLOT_BIT | WAVE_OPS_QUAD_BIT)
 #define WAVE_SUPPORTED_FLAGS (WAVE_BASIC | WAVE_ARITHMETIC | WAVE_BALLOT | WAVE_QUAD)
-#include "wave.frag.fsl"
+#include "Wave.frag.fsl"
 #end
 
 #vert wave.vert
-#include "wave.vert.fsl"
+#include "Wave.vert.fsl"
 #end
 

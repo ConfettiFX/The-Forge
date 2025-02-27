@@ -274,8 +274,9 @@ static bool readReloadServerFile()
     {
         LOGF(eERROR,
              "Failed to read `%s` from disk in mount point RD_SHADER_BINARIES. "
+             "Function %s failed with error: %s. "
              "This is likely an internal bug - please check that this file is in the `CompiledShaders` directory.",
-             RELOAD_SERVER_FILE);
+             RELOAD_SERVER_FILE, FS_ERR_CTX.func, getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 
@@ -284,8 +285,9 @@ static bool readReloadServerFile()
     {
         LOGF(eERROR,
              "Read too many bytes from `%s` - this likely means the file was not written correctly."
+             "Function %s failed with error: %s. "
              "Please check that the contents of this file have not been corrupted.",
-             RELOAD_SERVER_FILE);
+             RELOAD_SERVER_FILE, FS_ERR_CTX.func, getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
     fsCloseStream(&stream);

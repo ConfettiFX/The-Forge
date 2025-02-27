@@ -31,13 +31,11 @@
   <Dependencies Name="Release">
     <Project Name="OS"/>
     <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
     <Project Name="19a_CodeHotReload_Game"/>
   </Dependencies>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
     <Project Name="19a_CodeHotReload_Game"/>
   </Dependencies>
   <Settings Type="Executable">
@@ -55,11 +53,9 @@
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -128,11 +124,9 @@ shaders:&#xD;
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

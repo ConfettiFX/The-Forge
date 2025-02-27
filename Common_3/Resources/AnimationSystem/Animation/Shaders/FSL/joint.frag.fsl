@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "animation_resources.h"
+#include "AnimationResources.h"
 
 STRUCT(VSOutput)
 {

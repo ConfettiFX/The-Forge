@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-#include "animation_resources.h"
+#include "AnimationResources.h"
 // Shader for simple shading with a point light
 // for skeletons in Unit Test Animation
 

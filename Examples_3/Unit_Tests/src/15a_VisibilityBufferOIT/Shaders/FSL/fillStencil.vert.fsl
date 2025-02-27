@@ -26,14 +26,16 @@
 STRUCT(VSOutput)
 {
     DATA(float4, position,    SV_POSITION);
-    DATA(float4, uv,          TEXCOORD0);
+    DATA(float2, screenPos,   TEXCOORD0);
 };
 ROOT_SIGNATURE(DefaultRootSignature)
 VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
 {
     INIT_MAIN;
     VSOutput Out;
-    Out.uv = float4((VertexID << 1) & 2, VertexID & 2, 0, 0);
-    Out.position = float4(Out.uv.xy * float2(2, -2) + float2(-1, 1), 0, 1);
+	  Out.position.x = (VertexID == 2 ? 3.0 : -1.0);
+	  Out.position.y = (VertexID == 0 ? -3.0 : 1.0);
+	  Out.position.zw = float2(0, 1);
+	  Out.screenPos = Out.position.xy;
     RETURN(Out);
 }

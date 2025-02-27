@@ -30,7 +30,7 @@
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\srt.h">
+    <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\Global.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DenoiserInputsPass.frag.fsl">
@@ -48,7 +48,7 @@
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\RayQuery.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\src\16_Raytracing\GPUCfg\gpu.cfg">

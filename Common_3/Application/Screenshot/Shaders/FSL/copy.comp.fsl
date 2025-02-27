@@ -23,7 +23,7 @@
 */
 
 #include "../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "copy.comp.srt.h"
+#include "Copy.comp.srt.h"
 
 float linearToSrgbf(float val)
 {

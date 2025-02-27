@@ -55,7 +55,7 @@
 #define NO_FSL_DEFINITIONS
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
 #include "Shaders/FSL/Shared.fsl.h"
-#include "Shaders/FSL/srt.h"
+#include "Shaders/FSL/Global.srt.h"
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 

@@ -23,7 +23,7 @@
  */
 
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "skinning.h.fsl"
+#include "Skinning.h.fsl"
 
 STRUCT(VSInput)
 {

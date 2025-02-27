@@ -4,6 +4,9 @@
     <Filter Include="Source">
       <UniqueIdentifier>{a3e30cbc-8e3b-4055-a444-27d939f2d0d9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{ccc4936c-60cb-48a9-9ad5-b362c61e07dc}</UniqueIdentifier>
+    </Filter>
     <Filter Include="FSLShaders">
       <UniqueIdentifier>{5ef42593-09c1-4770-b294-7ae2666aaf48}</UniqueIdentifier>
     </Filter>
@@ -18,19 +21,22 @@
     <ClCompile Include="..\..\src\21_Animations\21_Animations.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\cube.frag.fsl">
+    <ClInclude Include="..\..\src\21_Animations\Shaders\FSL\Global.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\Cube.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\cube.vert.fsl">
+    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\Cube.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\plane.frag.fsl">
+    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\Plane.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\plane.vert.fsl">
+    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\Plane.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\21_Animations\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\21_Animations\GPUCfg\gpu.cfg">

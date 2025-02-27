@@ -144,23 +144,32 @@ typedef struct RaytracingBuildASDesc
     bool                   mIssueRWBarrier;
 } RaytracingBuildASDesc;
 
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
-void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-/// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
-                              AccelerationStructure** ppAccelerationStructure);
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
-/// Free the scratch memory allocated by acceleration structure after it has been built completely
-/// Does not free acceleration structure
-void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+    bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
+    void exitRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+    /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
+    void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
+                                  AccelerationStructure** ppAccelerationStructure);
+    void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+    /// Free the scratch memory allocated by acceleration structure after it has been built completely
+    /// Does not free acceleration structure
+    void removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+
+    void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
 
 #ifdef METAL
-void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
-void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser);
-void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser);
-void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture,
-                     Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
+    void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
+    void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser);
+    void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser);
+    void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture,
+                         Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
+#endif
+
+#ifdef __cplusplus
+}
 #endif

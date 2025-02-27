@@ -60,7 +60,8 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Cannot open skeleton file");
+        LOGF(eERROR, "Cannot open skeleton file %s. Function %s failed with error: %s", fileName, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 

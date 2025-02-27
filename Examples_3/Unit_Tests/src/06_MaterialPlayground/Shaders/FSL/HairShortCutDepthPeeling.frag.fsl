@@ -1,0 +1,103 @@
+/*
+*Copyright (c) 2017 Advanced Micro Devices, Inc. All rights reserved.
+*
+*Permission is hereby granted, free of charge, to any person obtaining a copy
+*of this software and associated documentation files (the "Software"), to deal
+*in the Software without restriction, including without limitation the rights
+*to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+*copies of the Software, and to permit persons to whom the Software is
+*furnished to do so, subject to the following conditions:
+*
+*The above copyright notice and this permission notice shall be included in
+*all copies or substantial portions of the Software.
+*
+*THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+*AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+*OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+*THE SOFTWARE.
+*/
+
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#define SHORT_CUT_DEPTH_PEELING
+#include "Hair.h.fsl"
+
+ROOT_SIGNATURE(DefaultRootSignature)
+#if !defined(ORBIS)
+EARLY_FRAGMENT_TESTS
+#endif
+float PS_MAIN( VSOutput In )
+{
+	INIT_MAIN;
+	float Coverage;
+	float3 NDC = ScreenPosToNDC(In.Position.xyz, gHairGlobal.Viewport);
+	float2 p0 = In.P0P1.xy / In.W0W1.x;
+	float2 p1 = In.P0P1.zw / In.W0W1.y;
+	float coverage = ComputeCoverage(p0, p1, NDC.xy, gHairGlobal.Viewport.zw);
+	clip(coverage);
+	float alpha = coverage * In.Color.a;
+	clip(alpha - (1.0f / 255.0f));
+
+	if (alpha < SHORT_CUT_MIN_ALPHA)
+	{
+		Coverage = 1.0f;
+		RETURN(Coverage);
+	}
+
+	uint depth = asuint(In.Position.z);
+	uint2 p = uint2(In.Position.xy);
+	uint prevDepths[3];
+#if TEXTURE_ATOMIC_SUPPORTED
+	const uint3 coords[] = {
+		uint3(p.x, p.y, 0 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(p.x, p.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(p.x, p.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+	};
+	AtomicMax3D(gDestDepthsTexture, coords[0], depth, prevDepths[0]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
+	AtomicMax3D(gDestDepthsTexture, coords[1], depth, prevDepths[1]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
+	AtomicMax3D(gDestDepthsTexture, coords[2], depth, prevDepths[2]);
+#else
+    uint2 viewport = uint2(gHairGlobal.Viewport.zw);
+	const uint coords[] = {
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 0),
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 1),
+		uint(p.x + p.y * viewport.x + viewport.x * viewport.y * 2)
+	};
+	AtomicMax(gDepthsBuffer[coords[0]], depth, prevDepths[0]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
+	AtomicMax(gDepthsBuffer[coords[1]], depth, prevDepths[1]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
+	AtomicMax(gDepthsBuffer[coords[2]], depth, prevDepths[2]);
+#endif
+
+
+	Coverage = 1.0f - alpha;
+	RETURN(Coverage);
+}

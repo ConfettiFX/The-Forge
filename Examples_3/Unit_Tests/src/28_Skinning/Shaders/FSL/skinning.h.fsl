@@ -20,6 +20,6 @@ STRUCT(UniformBlock)
 
 
 
-#include "srt.h"
+#include "Global.srt.h"
 
 #endif

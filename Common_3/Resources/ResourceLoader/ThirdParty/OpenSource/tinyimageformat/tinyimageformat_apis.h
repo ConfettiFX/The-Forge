@@ -239,7 +239,7 @@ typedef enum TinyImageFormat_VkFormat {
 } TinyImageFormat_VkFormat;
 #endif
 
-inline TinyImageFormat TinyImageFormat_FromVkFormat(TinyImageFormat_VkFormat fmt) {
+static inline TinyImageFormat TinyImageFormat_FromVkFormat(TinyImageFormat_VkFormat fmt) {
 	switch (fmt) {
 
 	case TIF_VK_FORMAT_UNDEFINED: return TinyImageFormat_UNDEFINED;
@@ -477,7 +477,7 @@ inline TinyImageFormat TinyImageFormat_FromVkFormat(TinyImageFormat_VkFormat fmt
 	return TinyImageFormat_UNDEFINED;
 }
 
-inline TinyImageFormat_VkFormat TinyImageFormat_ToVkFormat(TinyImageFormat fmt) {
+static inline TinyImageFormat_VkFormat TinyImageFormat_ToVkFormat(TinyImageFormat fmt) {
 	switch (fmt) {
 
 	case TinyImageFormat_UNDEFINED: return TIF_VK_FORMAT_UNDEFINED;
@@ -864,7 +864,7 @@ typedef enum TinyImageFormat_DXGI_FORMAT {
 #endif
 
 
-inline TinyImageFormat TinyImageFormat_FromDXGI_FORMAT(TinyImageFormat_DXGI_FORMAT fmt) {
+static inline TinyImageFormat TinyImageFormat_FromDXGI_FORMAT(TinyImageFormat_DXGI_FORMAT fmt) {
 	switch (fmt) {
 	case TIF_DXGI_FORMAT_UNKNOWN: return TinyImageFormat_UNDEFINED;
 	case TIF_DXGI_FORMAT_R32G32B32A32_FLOAT: return TinyImageFormat_R32G32B32A32_SFLOAT;
@@ -1044,7 +1044,7 @@ inline TinyImageFormat TinyImageFormat_FromDXGI_FORMAT(TinyImageFormat_DXGI_FORM
 	return TinyImageFormat_UNDEFINED;
 }
 
-inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_ToDXGI_FORMAT(TinyImageFormat fmt) {
+static inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_ToDXGI_FORMAT(TinyImageFormat fmt) {
 	switch (fmt) {
 	case TinyImageFormat_R1_UNORM: return TIF_DXGI_FORMAT_R1_UNORM;
 	case TinyImageFormat_R4G4_UNORM: return TIF_DXGI_FORMAT_R4G4_UNORM;
@@ -1160,7 +1160,7 @@ inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_ToDXGI_FORMAT(TinyImageFormat
 	}
 }
 
-inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_DXGI_FORMATToTypeless(TinyImageFormat_DXGI_FORMAT fmt) {
+static inline TinyImageFormat_DXGI_FORMAT TinyImageFormat_DXGI_FORMATToTypeless(TinyImageFormat_DXGI_FORMAT fmt) {
 	switch (fmt) {
 	case TIF_DXGI_FORMAT_R32G32B32A32_FLOAT:
 	case TIF_DXGI_FORMAT_R32G32B32A32_UINT:
@@ -1509,7 +1509,7 @@ typedef enum TinyImageFormat_MTLPixelFormat {
 } TinyImageFormat_MTLPixelFormat;
 #endif
 
-inline TinyImageFormat_MTLPixelFormat TinyImageFormat_ToMTLPixelFormat(TinyImageFormat fmt) {
+static inline TinyImageFormat_MTLPixelFormat TinyImageFormat_ToMTLPixelFormat(TinyImageFormat fmt) {
 	switch (fmt) {
 	case TinyImageFormat_A8_UNORM: 									return TIF_MTLPixelFormatA8Unorm;
 	case TinyImageFormat_R8_UNORM: 		return TIF_MTLPixelFormatR8Unorm;
@@ -1633,7 +1633,7 @@ inline TinyImageFormat_MTLPixelFormat TinyImageFormat_ToMTLPixelFormat(TinyImage
 	return TIF_MTLPixelFormatInvalid;
 }
 
-inline TinyImageFormat TinyImageFormat_FromMTLPixelFormat(TinyImageFormat_MTLPixelFormat fmt) {
+static inline TinyImageFormat TinyImageFormat_FromMTLPixelFormat(TinyImageFormat_MTLPixelFormat fmt) {
 	switch (fmt) {
 	case TIF_MTLPixelFormatInvalid: return TinyImageFormat_UNDEFINED;
 	case TIF_MTLPixelFormatA8Unorm: return TinyImageFormat_A8_UNORM;
@@ -1766,7 +1766,7 @@ inline TinyImageFormat TinyImageFormat_FromMTLPixelFormat(TinyImageFormat_MTLPix
 }
 
 
-inline bool TinyImageFormat_MTLPixelFormatOnMac(TinyImageFormat_MTLPixelFormat fmt) {
+static inline bool TinyImageFormat_MTLPixelFormatOnMac(TinyImageFormat_MTLPixelFormat fmt) {
 	switch(fmt) {
 	case TIF_MTLPixelFormatA8Unorm:
 	case TIF_MTLPixelFormatR8Unorm:
@@ -1899,7 +1899,7 @@ inline bool TinyImageFormat_MTLPixelFormatOnMac(TinyImageFormat_MTLPixelFormat f
 }
 
 	
-inline bool TinyImageFormat_MTLPixelFormatOnIOS(TinyImageFormat_MTLPixelFormat fmt) {
+static inline bool TinyImageFormat_MTLPixelFormatOnIOS(TinyImageFormat_MTLPixelFormat fmt) {
 	switch(fmt) {
 	case TIF_MTLPixelFormatA8Unorm:
 	case TIF_MTLPixelFormatR8Unorm:
@@ -2288,7 +2288,7 @@ typedef enum TinyImageFormat_GL_FORMAT {
                                     *typesize = 1; \
                                     return;
 
-inline void TinyImageFormat_ToGL_FORMAT(TinyImageFormat fmt, uint32_t *glformat, uint32_t* gltype, uint32_t* glinternalformat, uint32_t* typesize) {
+static inline void TinyImageFormat_ToGL_FORMAT(TinyImageFormat fmt, uint32_t *glformat, uint32_t* gltype, uint32_t* glinternalformat, uint32_t* typesize) {
 	switch (fmt) 																  
 	{																			  
 	case TinyImageFormat_UNDEFINED: FT(UNKNOWN, UNSIGNED_SHORT_4_4_4_4, UNKNOWN, 0)

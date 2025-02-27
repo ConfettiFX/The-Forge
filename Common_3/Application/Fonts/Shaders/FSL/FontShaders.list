@@ -1,0 +1,14 @@
+#include "../../../../Graphics/FSL/defaults.h"
+
+
+#frag FT_MULTIVIEW fontstash.frag
+#include "FontStash.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW fontstash2D.vert
+#include "FontStash2D.vert.fsl"
+#end
+
+#vert FT_MULTIVIEW fontstash3D.vert
+#include "FontStash3D.vert.fsl"
+#end

@@ -28,7 +28,7 @@
 
 #include "../GraphicsConfig.h"
 
-inline void vkCapsBuilder(GpuDesc* pGpuDesc)
+void vkCapsBuilder(GpuDesc* pGpuDesc)
 {
     for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
     {

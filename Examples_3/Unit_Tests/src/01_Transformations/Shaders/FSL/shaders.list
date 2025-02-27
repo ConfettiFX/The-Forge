@@ -7,17 +7,17 @@
 #end
 
 #frag basic.frag
-#include "basic.frag.fsl"
+#include "Basic.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW basic.vert
-#include "basic.vert.fsl"
+#include "Basic.vert.fsl"
 #end
 
 #frag skybox.frag
-#include "skybox.frag.fsl"
+#include "Skybox.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW skybox.vert
-#include "skybox.vert.fsl"
+#include "Skybox.vert.fsl"
 #end

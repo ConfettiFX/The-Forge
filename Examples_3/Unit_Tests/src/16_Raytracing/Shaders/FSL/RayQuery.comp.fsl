@@ -42,7 +42,7 @@
 #endif
 
 #include "Shared.fsl.h"
-#include "srt.h"
+#include "Global.srt.h"
 
 // Uses the inversion method to map two uniformly random numbers to a three dimensional
 // unit hemisphere where the probability of a given sample is proportional to the cosine

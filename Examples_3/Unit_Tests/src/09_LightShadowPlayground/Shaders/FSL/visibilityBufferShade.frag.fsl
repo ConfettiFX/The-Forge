@@ -30,12 +30,12 @@
 #define SAMPLE_COUNT 4
 #endif
 
-#include "ASMShader_Defs.h.fsl"
-#include "Shader_Defs.h.fsl"
+#include "ASMShaderDefs.h.fsl"
+#include "ShaderDefs.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShadingUtilities.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 #define SHADOW_TYPE_ESM				0
 #define SHADOW_TYPE_ASM				1

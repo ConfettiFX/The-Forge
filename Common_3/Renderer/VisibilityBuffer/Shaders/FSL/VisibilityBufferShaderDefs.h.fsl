@@ -1,0 +1,133 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef _VB_SHADER_DEFS_H
+#define _VB_SHADER_DEFS_H
+
+#include "VisibilityBufferStructs.h.fsl"
+
+/************************************************************************/
+// Visibility Buffer
+/************************************************************************/
+
+#ifndef MAX_TEXTURE_UNITS
+#define MAX_TEXTURE_UNITS 256U
+#endif
+
+// This defines the amount of viewports that are going to be culled in parallel.
+#ifndef NUM_CULLING_VIEWPORTS
+#define NUM_CULLING_VIEWPORTS 2
+#define VIEW_SHADOW 0
+#define VIEW_CAMERA 1
+#endif
+
+// Define different geometry sets (opaque, alpha tested, and transparent geometry)
+#ifndef NUM_GEOMETRY_SETS
+#define NUM_GEOMETRY_SETS 3          // 1 - opaque, 2 - alpha cutout, 3 - alpha blend
+#define GEOMSET_OPAQUE 0
+#define GEOMSET_ALPHA_CUTOUT 1
+#define GEOMSET_ALPHA_BLEND 2
+#endif
+
+// This value defines the amount of threads per group that will be used to clear the
+// indirect draw buffers, filter triangles and compact draw arguments.
+#ifndef VB_COMPUTE_THREADS
+#define VB_COMPUTE_THREADS 256
+#endif
+
+#define GEOM_LOW_BIT		30		// 2  bit  for Geomset
+#define PRIM_ID_LOW_BIT	    0		// 30 bits for PrimitiveID
+
+#define GEOM_MASK	  0x00000003
+#define PRIM_ID_MASK  0x3FFFFFFF
+
+#define PACK_VB_DATA(geomSet, primitiveID) ((((geomSet) & GEOM_MASK) << GEOM_LOW_BIT) | (((primitiveID) & PRIM_ID_MASK) << PRIM_ID_LOW_BIT))
+
+// This index means that the draw call doesn't have any instance data associated, can skip doing operations with it
+#ifndef INSTANCE_INDEX_NONE
+#define INSTANCE_INDEX_NONE uint(-1)
+#endif
+
+/*
+typedef struct IndirectDrawIndexArguments
+{
+	uint32_t mIndexCount;
+	uint32_t mInstanceCount;
+	uint32_t mStartIndex;
+	uint32_t mVertexOffset;
+	uint32_t mStartInstance;
+} IndirectDrawIndexArguments;
+*/
+#define INDIRECT_DRAW_ARGUMENTS_ELEMENTS 5
+#define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW) * NUM_GEOMETRY_SETS) + (GEOM)) * INDIRECT_DRAW_ARGUMENTS_ELEMENTS) + (ELEM))
+
+STRUCT(PerFrameVBConstantsData)
+{
+	DATA(Transform, transform[NUM_CULLING_VIEWPORTS], None);
+	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);
+#if defined(TARGET_QUEST) || defined(QUEST_VR)
+	DATA(float4x4, cullingMVP[NUM_CULLING_VIEWPORTS], None);
+#endif
+	DATA(uint, numViewports, None);
+};
+
+
+STRUCT(VBConstantBufferData)
+{
+    DATA(VBConstants, vbConstant[NUM_GEOMETRY_SETS], None);
+};
+
+
+#define INDEXBUFFER_OFFSET(GEOMSET) ( gVBConstantBuffer.vbConstant[GEOMSET].indexOffset )
+
+/************************************************************************/
+// OIT
+/************************************************************************/
+#define OIT_HEAD_INVALID   0xFFFFFFFF
+#if defined(TARGET_ANDROID) || defined(ANDROID)
+#define OIT_MAX_FRAG_COUNT 4
+#else
+#define OIT_MAX_FRAG_COUNT 8
+#endif
+
+/************************************************************************/
+// Animations (TODO: Remove from vb_shader_defs.h.fsl)
+/************************************************************************/
+
+// Ammount of vertexes that will be processed in parallel by the compute shader in
+// the pre skin geometry step, transforming all vertexes by skinning matrixes and leaving them
+// ready to be processed by the triangle filtering stage.
+// Should be a multiple of the wavefront size
+#define SKIN_BATCH_SIZE 256
+
+// Limits the amount of skinning batches we can process on the GPU.
+// It depends on the amoutnt of data we need to store in the constant buffers, since
+// the max constant buffer size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
+#define SKIN_BATCH_COUNT 2048
+
+#ifndef PRE_SKINNED_VERTEX_OFFSET_NONE
+#define PRE_SKINNED_VERTEX_OFFSET_NONE uint(-1)
+#endif
+
+#endif

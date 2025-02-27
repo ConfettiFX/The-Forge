@@ -1,0 +1,228 @@
+/*
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#include "SDFConstants.h.fsl"
+
+#ifndef SAMPLE_COUNT
+#define SAMPLE_COUNT 4
+#endif
+
+
+#include "VisibilityBufferResources.h.fsl"
+#include "SDFMesh.srt.h"
+
+float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
+{
+	float3 InvRayDir = 1.0f / (RayEnd - RayOrigin);
+
+	float3 FirstPlaneIntersections = (BoxMin - RayOrigin) * InvRayDir;
+	float3 SecondPlaneIntersections = (BoxMax - RayOrigin) * InvRayDir;
+	float3 ClosestPlaneIntersections = min(FirstPlaneIntersections, SecondPlaneIntersections);
+	float3 FurthestPlaneIntersections = max(FirstPlaneIntersections, SecondPlaneIntersections);
+
+	float2 BoxIntersections;
+	BoxIntersections.x = max(ClosestPlaneIntersections.x, max(ClosestPlaneIntersections.y, ClosestPlaneIntersections.z));
+	BoxIntersections.y = min(FurthestPlaneIntersections.x, min(FurthestPlaneIntersections.y, FurthestPlaneIntersections.z));
+	return saturate(BoxIntersections);
+}
+
+float3 SDFVolumeDimensionPositionToUV(float3 volumePos, float3 uvScale, float3 uvAdd)
+{
+	return volumePos * uvScale + uvAdd;
+}
+
+float SampleSDFVolumeTextureAtlas(float3 volumeUV)
+{
+	return SampleLvlTex3D(gSDFVolumeTextureAtlas, gSamplerTrilinearWrap, volumeUV, 0).r;
+}
+
+float ShadowRayMarch(float3 rayWorldStartPos, 
+	float3 rayWorldEndPos, 
+	float tanLightAngle, 
+	float minSphereRadius, 
+	float maxSphereRadius)
+{
+	const float shadowZeroThereshold = 0.01f;
+
+	float minShadow = 1.0;
+
+	for(uint index = 0; index < gMeshSDFUniformBlock.mNumObjects.x; ++index)
+	{
+		const float twoSidedMeshDistanceBias = gMeshSDFUniformBlock.mSDFMAD[index].z;
+		
+
+		float4x4 worldToVolumeMat = gMeshSDFUniformBlock.mWorldToVolumeMat[index];
+
+		float3 volumeRayStart = mul(worldToVolumeMat, float4(rayWorldStartPos.xyz, 1.0)).xyz;
+		float3 volumeRayEnd = mul(worldToVolumeMat, float4(rayWorldEndPos.xyz, 1.0)).xyz;
+		float3 volumeRayDir = volumeRayEnd - volumeRayStart;
+		float volumeRayLength = length(volumeRayDir);
+		volumeRayDir /= volumeRayLength;
+
+
+		float4 uvScaleAndVolumeScale = gMeshSDFUniformBlock.mUVScaleAndVolumeScale[index];
+
+		bool isTwoSided = (uvScaleAndVolumeScale.w < 0.0) ? true : false;
+
+		float finalVolumeScale = abs(uvScaleAndVolumeScale.w);
+
+		float worldToVolumeScale = 1.0f / finalVolumeScale;
+		float volumeMinSphereRadius = minSphereRadius * worldToVolumeScale;
+		float volumeMaxSphereRadius = maxSphereRadius * worldToVolumeScale;
+
+		float volumeTwoSidedMeshDistanceBias = twoSidedMeshDistanceBias * worldToVolumeScale;
+
+
+		float objectCenterDistAlongRay = dot(-volumeRayStart, volumeRayDir);
+		float localConeRadiusAtObject = min(tanLightAngle *
+			max(objectCenterDistAlongRay, 0.0f), volumeMaxSphereRadius);
+
+
+		float3 localPositionExtent = gMeshSDFUniformBlock.mLocalPositionExtent[index].xyz;
+
+		float2 intersectionTimes = LineBoxIntersect(volumeRayStart, 
+			volumeRayEnd, -localPositionExtent.xyz * SDF_APPROX_MARGIN - localConeRadiusAtObject,
+			localPositionExtent.xyz * SDF_APPROX_MARGIN + localConeRadiusAtObject);
+
+		if(intersectionTimes.x < intersectionTimes.y)
+		{
+			float4 uvAddAndSelfShadowBias = gMeshSDFUniformBlock.mUVAddAndSelfShadowBias[index];
+			float selfShadowScale = 1.0f / max(uvAddAndSelfShadowBias.w * worldToVolumeScale, .0001f);
+
+			//we jump straight the position of the ray when it hits the volume dimension bbox
+			float sampleRayTime = intersectionTimes.x * volumeRayLength;
+						
+			uint stepIndex = 0;
+			uint maxSteps = 32;
+
+			float minStepSize = 1.0f / (4.f * maxSteps);
+			
+
+			LOOP
+			for(; stepIndex < maxSteps; ++stepIndex)
+			{
+				float3 sampleVolumePos = volumeRayStart + volumeRayDir * sampleRayTime;
+				float3 clampedSamplePos = clamp(sampleVolumePos, 
+					-localPositionExtent.xyz, localPositionExtent.xyz);
+
+				float distanceToClamped = length(clampedSamplePos - sampleVolumePos);
+
+				float3 volumeUV = SDFVolumeDimensionPositionToUV(clampedSamplePos,
+					uvScaleAndVolumeScale.xyz,  uvAddAndSelfShadowBias.xyz);
+			
+				float sdfValue = SampleSDFVolumeTextureAtlas(volumeUV) + distanceToClamped;
+			
+				FLATTEN
+				if(isTwoSided)
+				{
+					sdfValue -= volumeTwoSidedMeshDistanceBias;
+				}
+
+				//prevent occlusion within an object's self shadow distance
+				float selfShadowVisibility = 1.f - saturate(sampleRayTime * selfShadowScale);
+
+				float sphereRadius = clamp(tanLightAngle * sampleRayTime, volumeMinSphereRadius, volumeMaxSphereRadius);
+				float stepVisibility = max(saturate(sdfValue / sphereRadius), selfShadowVisibility);
+
+
+				//how soft shadow is achieved, we trace it through cone intersection
+				minShadow = min(minShadow, stepVisibility);
+				
+				float nextStepIncrement = abs(sdfValue);
+				//magic number here to improve the shadow quality
+				//nextStepIncrement = nextStepIncrement * 0.1f + 0.015f;
+				float curStepDist = max(nextStepIncrement, minStepSize);
+
+				sampleRayTime += curStepDist;
+				if(minShadow < shadowZeroThereshold || sampleRayTime > intersectionTimes.y * volumeRayLength)
+				{
+					break;
+				}
+			}
+		}
+
+		if(minShadow < shadowZeroThereshold)
+		{
+			minShadow = 0.0f;
+			break;
+		}
+	}
+
+	return minShadow;
+}
+
+float ConvertFromDeviceZ(float deviceZ)
+{
+	const float4 deviceZToWorldZ = gCameraUniformBlock.mDeviceZToWorldZ;
+	return deviceZ * deviceZToWorldZ.x + deviceZToWorldZ.y + 1.0f / (deviceZ * deviceZToWorldZ.z - deviceZToWorldZ.w);
+}
+
+ROOT_SIGNATURE(ComputeRootSignature)
+NUM_THREADS(SDF_MESH_SHADOW_THREAD_X, SDF_MESH_SHADOW_THREAD_Y, 1)
+void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThreadID, SV_GroupThreadID(uint3) GroupThreadID )
+{
+	INIT_MAIN;
+	uint3 localDispatchThreadID = DispatchThreadID * SDF_SHADOW_DOWNSAMPLE_VALUE;
+
+	float xClip = (( float(localDispatchThreadID.x) * 2.f) / gCameraUniformBlock.mWindowSize.x) - 1.f;
+	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / gCameraUniformBlock.mWindowSize.y);
+
+#if SAMPLE_COUNT > 1
+	float depthVal = LoadTex2DMS(gDepthTexture, gClampToEdgeNearSampler, localDispatchThreadID.xy, 0).r;
+#else
+	float2 depthSize = gCameraUniformBlock.mWindowSize;
+	float2 depthUV = (float2(localDispatchThreadID.xy) + 0.5f) / depthSize;
+	float depthVal = SampleLvlTex2D(gDepthTexture, gClampToEdgeNearSampler, depthUV, 0).r;
+#endif
+
+	if(depthVal == 0.f)
+	{
+		Write2D(gOutTextureF2, DispatchThreadID.xy, f2(0.0f));
+		RETURN();
+	}
+
+	float4 worldPosW =  mul(gCameraUniformBlock.InvViewProject, float4(xClip, yClip, depthVal, 1.0));
+	float3 worldPos = (worldPosW / worldPosW.w).xyz;
+
+	float worldZ = ConvertFromDeviceZ(depthVal);
+
+	float RayStartOffsetDepthScale = 0.001;
+	float RayStartOffset = 1.75f + RayStartOffsetDepthScale * worldZ;
+		
+	float minSphereRadius = .4f;
+	float maxSphereRadius = 10.f;
+
+	float traceDistance = 10000;
+	float3 rayOrigin = worldPos;
+	//float3 rayDir = normalize(lightPosition.xyz - float3(0.0, 0.0, 0.0));
+	float3 rayDir = -gCameraUniformBlock.mLight.mLightDir.xyz;
+	rayOrigin += RayStartOffset * rayDir;
+	float3 rayEnd = worldPos + rayDir * traceDistance;
+
+	float shadow = ShadowRayMarch(rayOrigin, rayEnd, 
+		gCameraUniformBlock.mLight.mTanLightAngleAndThresholdValue.x, minSphereRadius, maxSphereRadius);
+
+	Write2D(gOutTextureF2, DispatchThreadID.xy, float2(shadow, worldZ));
+	RETURN();
+}

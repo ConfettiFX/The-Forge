@@ -26,8 +26,8 @@
 #define update_region_3d_texture_srt_h
 
 BEGIN_SRT(UpdateRegion3DTextureSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
 		DECL_RWTEXTURE(PerBatch, RWTex3D(half), gSDFVolumeTextureAtlasRW)
 	END_SRT_SET(PerBatch)

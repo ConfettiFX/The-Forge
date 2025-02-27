@@ -50,6 +50,7 @@ extern "C"
 #endif
 
 #if defined(_WINDOWS) || defined(XBOX)
+//-V:CHECK_HRESULT:627
 #define CHECK_HRESULT(exp)                                                       \
     do                                                                           \
     {                                                                            \

@@ -43,7 +43,6 @@
     <File Name="../../src/06_MaterialPlayground/Shaders/FSL/shaders.list"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
@@ -52,7 +51,6 @@
   <Dependencies Name="Release">
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
-    <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
   </Dependencies>
@@ -71,13 +69,11 @@
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
@@ -150,13 +146,11 @@ shaders:&#xD;
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>

@@ -19,13 +19,13 @@
     <ClCompile Include="..\src\34_Input\34_Input.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\34_Input\Shaders\FSL\basic.frag.fsl" />
-    <FSLShader Include="..\src\34_Input\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\34_Input\Shaders\FSL\shaders.list" />
+    <ClInclude Include="..\src\34_Input\ButtonDefs.h" />
+    <ClInclude Include="..\src\34_Input\Shaders\FSL\Global.srt.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\34_Input\ButtonDefs.h" />
-    <ClInclude Include="..\src\34_Input\Shaders\FSL\srt.h" />
+    <FSLShader Include="..\src\34_Input\Shaders\FSL\Basic.frag.fsl" />
+    <FSLShader Include="..\src\34_Input\Shaders\FSL\Basic.vert.fsl" />
+    <FSLShader Include="..\src\34_Input\Shaders\FSL\Shaders.list" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{356397B9-E848-4BAF-873C-7B9DB3FA36A9}</ProjectGuid>

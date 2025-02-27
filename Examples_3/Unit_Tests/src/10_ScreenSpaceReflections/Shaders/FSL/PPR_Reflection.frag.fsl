@@ -26,7 +26,7 @@
 
 #define RADIAN 0.01745329251994329576923690768489
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "PPR.srt.h"
 
 

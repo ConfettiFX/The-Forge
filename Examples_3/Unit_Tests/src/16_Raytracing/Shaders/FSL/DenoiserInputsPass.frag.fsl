@@ -25,7 +25,7 @@
 #include "fsl_ext.h"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "Shared.fsl.h"
-#include "srt.h"
+#include "Global.srt.h"
 STRUCT(VSOutput)
 {
 	DATA(float4, position, SV_Position);

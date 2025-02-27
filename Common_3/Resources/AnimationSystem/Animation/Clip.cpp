@@ -53,7 +53,8 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Cannot open clip file '%s'", fileName);
+        LOGF(eERROR, "Cannot open clip file '%s'. Function %s failed with error: %s", fileName, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return false;
     }
 

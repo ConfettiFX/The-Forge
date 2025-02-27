@@ -61,6 +61,7 @@ static size_t ioAssetStreamRead(FileStream* fs, void* dst, size_t size)
 
 static bool ioAssetStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
 {
+    __FS_NO_ERR;
     int origin = SEEK_SET;
     switch (baseOffset)
     {
@@ -75,7 +76,15 @@ static bool ioAssetStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t
         break;
     }
     ASD(stream, fs);
-    return AAsset_seek64(stream->asset, seekOffset, origin) != -1;
+    if (AAsset_seek64(stream->asset, seekOffset, origin) != -1)
+    {
+        return true;
+    }
+    else
+    {
+        __FS_SET_ERR(FS_INTERNAL_ERR);
+        return false;
+    }
 }
 
 static ssize_t ioAssetStreamGetPosition(FileStream* fs)
@@ -107,9 +116,11 @@ extern IFileSystem gUnixSystemFileIO;
 
 bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileName, FileMode mode, FileStream* fs)
 {
+    __FS_NO_ERR;
     // Cant write to system files
     if (RD_SYSTEM == rd && (mode & FM_WRITE))
     {
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
     }
 
@@ -122,12 +133,14 @@ bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileNa
 
     if ((mode & FM_WRITE) != 0)
     {
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
     }
 
     AAsset* file = AAssetManager_open(pAssetManager, filePath, AASSET_MODE_BUFFER);
     if (!file)
     {
+        __FS_SET_ERR(FS_NOT_FOUND_ERR);
         return false;
     }
 
@@ -185,7 +198,8 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     AAsset* file = AAssetManager_open(pAssetManager, PATHSTATEMENT_FILE_NAME, AASSET_MODE_BUFFER);
     if (!file)
     {
-        ASSERT(false);
+        ASSERTMSG(false, "Failed to open the PathStatement file.");
+        __FS_SET_ERR(FS_INTERNAL_ERR);
         return false;
     }
 
@@ -213,6 +227,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
         strcpy(gResourceDirectories[i].mPath, path);
     }
 
+    mkdir(gResourceDirectories[RD_PIPELINE_CACHE].mPath, ACCESSPERMS);
 #if defined(AUTOMATED_TESTING) && defined(ENABLE_SCREENSHOT)
     mkdir(gResourceDirectories[RD_SCREENSHOTS].mPath, ACCESSPERMS);
 #endif

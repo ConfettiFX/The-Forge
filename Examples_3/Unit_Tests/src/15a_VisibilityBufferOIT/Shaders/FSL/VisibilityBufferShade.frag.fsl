@@ -1,0 +1,438 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+// USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
+// Uncomment this definition to use ray differentials method for calculating
+// gradients instead of screen-space projected triangles method.
+// #define USE_RAY_DIFFERENTIALS
+
+// This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
+STRUCT(VSOutput)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, screenPos, TEXCOORD0);
+};
+
+
+struct NodeFinalOIT
+{
+	float3 color;
+	float  alpha;
+	float  depth;
+	uint   next; 
+};
+
+struct ShadedFragment
+{
+	float4 color;
+	float depth;
+};
+
+
+
+#include "ShaderDefs.h.fsl"
+
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
+
+
+#include "VRSResources.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShadingUtilities.h.fsl"
+
+
+
+ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint primitiveID, uint geomSet)
+{
+	uint triIdx0 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 0;
+	uint triIdx1 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 1;
+	uint triIdx2 = INDEXBUFFER_OFFSET(geomSet) + primitiveID * 3 + 2;
+
+	uint indirectIndex0 = LoadByte(gFilteredIndexBuffer, (triIdx0 << 2));
+	uint indirectIndex1 = LoadByte(gFilteredIndexBuffer, (triIdx1 << 2));
+	uint indirectIndex2 = LoadByte(gFilteredIndexBuffer, (triIdx2 << 2));
+
+	uint meshIndex = gIndirectDataBuffer[indirectIndex0];
+	MeshData meshConstant = gMeshDataBuffer[meshIndex];
+	uint index0 = indirectIndex0 - meshConstant.indirectVertexOffset;
+	uint index1 = indirectIndex1 - meshConstant.indirectVertexOffset;
+	uint index2 = indirectIndex2 - meshConstant.indirectVertexOffset;
+	float4x4 mvp = gPerFrameConstants.transform[VIEW_CAMERA].mvp.mat;
+
+	// If triangle belongs to an animated instance: drawVertexOffset contains the offset to the animated attributes, 
+	// we need a different offset to access the constant data.
+	// If triangle is not animated: drawVertexOffset contains the offset to the normal mesh, same as MeshDataBuffer[meshIndex].vertexOffset
+	uint animatedAttrVertexOffset = 0;
+    mvp = mul(mvp, meshConstant.modelMtx);
+
+	uint preSkinnedVtxOffset = meshConstant.preSkinnedVertexOffset;
+    if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
+    {
+        // Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
+        //       therefore we don't need thi assignment.
+        animatedAttrVertexOffset = preSkinnedVtxOffset - meshConstant.vertexOffset;
+    }
+
+	uint animIndex0 = index0 - animatedAttrVertexOffset;
+	uint animIndex1 = index1 - animatedAttrVertexOffset;
+	uint animIndex2 = index2 - animatedAttrVertexOffset;
+
+	// Load vertex data of the 3 vertices
+	float3 v0pos = asfloat(LoadByte4(gVertexPositionBuffer, index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
+
+	// Transform positions to clip space
+	float4 pos0 = mul(mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(mvp, float4(v2pos, 1.0f));
+
+	float4 wPos0 = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, pos0);
+	float4 wPos1 = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, pos1);
+	float4 wPos2 = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, pos2);
+
+	float2 two_over_windowsize = gPerFrameConstants.twoOverRes;
+
+	// Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
+#if defined(USE_RAY_DIFFERENTIALS)
+	float4x4 projInv = InverseProjectionMatrixPerspectiveReverseZ(gPerFrameConstants.transform[VIEW_CAMERA].projection.mat);
+	float4x4 viewInv = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, gPerFrameConstants.transform[VIEW_CAMERA].projection.mat);
+	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, screenPos, gPerFrameConstants.camPos.xyz, viewInv, projInv, two_over_windowsize);
+#else
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0, pos1, pos2, screenPos, two_over_windowsize);
+#endif /*USE_RAY_DIFFERENTIALS*/
+
+	// Interpolate the 1/w (one_over_w) for all three vertices of the triangle
+	// using the barycentric coordinates and the delta vector
+	float w = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
+
+	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
+	// operations that involve computing Z
+	float z = w * getElem(gPerFrameConstants.transform[VIEW_CAMERA].projection.mat, 2, 2) + getElem(gPerFrameConstants.transform[VIEW_CAMERA].projection.mat, 3, 2);
+
+	// Calculate the world position coordinates:
+	// First the projected coordinates at this point are calculated using screenPos and the computed Z value at this point.
+	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
+	float3 position = mul(gPerFrameConstants.transform[VIEW_CAMERA].invVP.mat, float4(screenPos * w, z, w)).xyz;
+
+	// TEXTURE COORD INTERPOLATION
+	f3x2 texCoords = make_f3x2_cols(
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, animIndex0 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, animIndex1 << 2)) ,
+			unpack2Floats(LoadByte(gVertexTexCoordBuffer, animIndex2 << 2)) 
+	);
+
+	// potential results for geomSetBaseSlot + drawID are
+	// 0 - 299 - shadow alpha
+	// 300 - 599 - shadow no alpha
+	// 600 - 899 - camera alpha
+	uint materialID = ((meshConstant.materialID_flags >> MATERIAL_ID_LOW_BIT) & MATERIAL_ID_MASK);
+    
+	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
+	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);			
+
+	float2 texCoordDX = results.dx;
+	float2 texCoordDY = results.dy;
+	float2 texCoord = results.interp;
+
+	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
+	// Reconstruct normal map Z from X and Y
+	// "NonUniformResourceIndex" is a "pseudo" function see
+	// http://asawicki.info/news_1608_direct3d_12_-_watch_out_for_non-uniform_resource_index.html
+
+	// Get textures from arrays.
+	float4 normalMapData;
+	float4 diffuseColor;
+	float4 specularColor;
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+		normalMapData = SampleGradTex2D(gNormalMaps[materialID],   gVBTextureSampler, texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(gDiffuseMaps[materialID],  gVBTextureSampler, texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(gSpecularMaps[materialID], gVBTextureSampler, texCoord, texCoordDX, texCoordDY);
+	EndNonUniformResourceIndex();
+
+	// TheForge UnitTest specific code to test different alpha blend values.
+	{
+		if (geomSet == GEOMSET_ALPHA_BLEND)
+		{
+			// We are alpha blending the Flags in SanMiguel, all flags are stored in the same texture, with this we can assign one alpha blend value for each one
+			uint transparentIdx = clamp(uint(texCoord.x / 0.25f), 0u, 3u);
+			diffuseColor.a *= gPerFrameConstants.transAlphaPerFlag[transparentIdx];
+		}
+	}
+
+	// reconstruct encoded normals...
+	float3 reconstructedNormalMap;
+	reconstructedNormalMap.xy = normalMapData.ga * 2.0f - 1.0f;
+	reconstructedNormalMap.z = sqrt(saturate(1.0f - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy)));
+
+	// NORMAL INTERPOLATION
+	float3x3 normals = make_f3x3_rows(
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex2 << 2)))
+	);
+    
+	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
+    normal = normalize(mul(adjoint_float4x4(meshConstant.modelMtx), normal));
+
+	//Calculate pixel normal and tangent vectors
+	f3x3 wPositions = make_f3x3_cols(
+			wPos0.xyz,
+			wPos1.xyz,
+			wPos2.xyz
+	);
+
+	DerivativesOutput wPosDer = Cal3DDeriv(derivativesOut, wPositions);
+	DerivativesOutput uvDer = { float3(results.dx, 0.0),  float3(results.dy, 0.0) };
+	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
+	
+	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
+	float Metallic = specularColor.b;
+
+	float ao = 1.0f;
+
+	bool isTwoSided = (geomSet != GEOMSET_OPAQUE) && bool(((meshConstant.materialID_flags >> FLAG_LOW_BIT) & FLAG_MASK) & MESH_CONSTANT_FLAG_TWO_SIDED);
+
+	float3 ViewVec = normalize(gPerFrameConstants.camPos.xyz - position.xyz);
+	float NoV = dot(normal, ViewVec);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	if (isTwoSided && NoV < 0.0f)
+	{
+		//flip normal
+		normal = -normal;
+		NoV = dot(normal, ViewVec);
+	}
+
+	float3 HalfVec = normalize(ViewVec - gPerFrameConstants.lightDir.xyz);
+	NoV = saturate(NoV);
+
+	float NoL = dot(normal, -gPerFrameConstants.lightDir.xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	// calculate color contribution from specular lighting
+	float3 F0 = f3(0.08); // 0.08 is the index of refraction
+	float3 SpecularColor = lerp(F0, diffuseColor.rgb, Metallic);
+	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
+	float alpha = diffuseColor.a;
+
+	// Calculate Shadow Factor
+	float4 posLS = mul(gPerFrameConstants.transform[VIEW_SHADOW].vp.mat, float4(position, 1.0f));
+	float shadowFactor = calcESMShadowFactor(posLS, gShadowMap, gSamplerTrilinearClamp, gPerFrameConstants.esmControl);
+
+	// Calculate Sun Illumation
+	float3 shadedColor = PBR_shadowFactor(
+					NoL, NoV, 
+					ViewVec, HalfVec, normal, 
+					DiffuseColor, SpecularColor, Roughness, Metallic, shadowFactor);
+	shadedColor *= gPerFrameConstants.lightColor.rgb * gPerFrameConstants.lightColor.a * NoL * shadowFactor;
+	
+	// point lights
+	// Find the light cluster for the current pixel
+	uint2 clusterCoords = uint2(floor((screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
+
+	uint numLightsInCluster = gLightClustersCount[LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y)];
+
+	// Accumulate light contributions
+	for (uint j = 0; j < numLightsInCluster; ++j)
+	{
+		uint lightId = gLightClusters[LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y)];
+		shadedColor += calcPointLightShade(
+						NoV, 
+						ViewVec, normal,
+						DiffuseColor, SpecularColor, Roughness, Metallic,
+						position, gLights[lightId].position.xyz, gLights[lightId].color.xyz, LIGHT_SIZE, isTwoSided);
+	}
+
+	float ambientIntencity = 0.05f * ao;
+	float3 ambient = diffuseColor.rgb * ambientIntencity;
+
+	ShadedFragment shadedFragment;
+	shadedFragment.color = float4(shadedColor + ambient, alpha);
+	shadedFragment.depth = z / w;
+	return shadedFragment;
+}
+
+ROOT_SIGNATURE(DefaultRootSignature)
+float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+{
+	INIT_MAIN;
+#if USE_VRS
+#if defined(METAL)
+	float4 result = float4(0, 0, 0, 0);
+	uint rate = GetConservativeRate(LoadTex2DMS(gHistoryTexVBShade, NO_SAMPLER, uint2(In.position.xy), 0).r);
+	if (rate == SHADING_RATE_2X2 && (i != 0))
+		RETURN(result);
+	if (rate == SHADING_RATE_1X2 && ((i == 1) || (i == 3)))
+		RETURN(result);
+	if (rate == SHADING_RATE_2X1 && ((i == 2) || (i == 3)))
+		RETURN(result);
+#endif
+#endif
+
+	// Load Visibility Buffer raw packed float4 data from render target
+#if(SAMPLE_COUNT > 1)
+	float4 visRaw = LoadTex2DMS(gVBTex, gSamplerTrilinearClamp, uint2(In.position.xy), i);
+#else
+	float4 visRaw = LoadTex2D(gVBTex, gSamplerTrilinearClamp, uint2(In.position.xy), 0);
+#endif
+	// Unpack float4 render target data into uint to extract data
+	uint geomSetPrimID = packUnorm4x8(visRaw);
+
+	uint opaqueShaded = 0;
+	uint transparentShaded = 0; 
+
+	float VisDepth = 0.0f;
+	float3 OutColor = float3(0, 0, 0);
+#if USE_VRS
+	float2 step = float2(2.f/gPerFrameConstants.screenWidth, 2.f/gPerFrameConstants.screenHeight);
+	float2 screenPos = clamp(In.screenPos + step * samplePositions[i], -1.f, 1.f);
+#endif
+	// Early exit if this pixel doesn't contain triangle data
+	if (geomSetPrimID != ~0u)
+	{
+		// Extract packed data
+		uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+		uint geomSet = (geomSetPrimID >> GEOM_LOW_BIT) & GEOM_MASK;
+#if USE_VRS
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, screenPos, primitiveID, geomSet);
+#else
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, In.screenPos, primitiveID, geomSet);
+#endif
+		OutColor = shadedFragment.color.rgb; // Alpha is 1 for GEOMSET_OPAQUE and GEOMSET_ALPHA_CUTOUT, we can ignore it
+		VisDepth = shadedFragment.depth;
+
+		opaqueShaded = 1; 
+	}
+
+#if USE_VRS
+	uint2 pixelAddr = uint2(In.position.xy) * 2 + sampleOffsets[i];
+#else
+	uint2 pixelAddr = uint2(In.position.xy);
+#endif
+
+	uint scrW = gPerFrameConstants.screenWidth; 
+	uint scrH = gPerFrameConstants.screenHeight; 
+	uint nodeIdx = OIT_HEAD_INVALID;
+	if (pixelAddr.x < scrW && pixelAddr.y < scrH)
+	{
+		uint bufferIdx = pixelAddr.y * scrW + pixelAddr.x;
+		nodeIdx = gHeadIndexBufferSRV[bufferIdx];
+	}
+
+	if(nodeIdx == OIT_HEAD_INVALID && opaqueShaded == 0u)
+	{
+		discard;
+	}
+
+#if defined(ENABLED_GODRAY)
+	// Sample Godray
+	float3 godrayColor = SampleLvlTex2D(gGodrayTexture, gVBTextureSampler, In.screenPos.xy * float2(0.5, -0.5) + 0.5, 0).rgb;
+#endif
+
+	float transAlpha = 0.f;
+	if (nodeIdx != OIT_HEAD_INVALID)
+	{
+		uint count = 0; 
+		NodeFinalOIT fragments[OIT_MAX_FRAG_COUNT];
+
+		// Accumulate transparent pixel color data
+		LOOP for (uint loopIteration = 0;
+					loopIteration < OIT_MAX_FRAG_COUNT && nodeIdx != OIT_HEAD_INVALID;
+					++loopIteration)
+		{
+			TransparentNodeOIT node = gVBDepthLinkedListSRV[nodeIdx];
+
+			uint nodeNextIdx = node.next;
+			uint nodeTriangleData = node.triangleData;
+
+			uint nodePrimitiveID = (nodeTriangleData >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
+#if USE_VRS
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, screenPos, nodePrimitiveID, GEOMSET_ALPHA_BLEND);
+#else
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodePrimitiveID, GEOMSET_ALPHA_BLEND);
+#endif
+
+			// Manual visbuf depth test
+			if (nodeColorData.depth > VisDepth)
+			{
+				fragments[count].color = nodeColorData.color.xyz; 
+				fragments[count].alpha = nodeColorData.color.a;
+				fragments[count].depth = nodeColorData.depth;
+				fragments[count].next  = nodeNextIdx;
+
+				++count;
+			}
+
+			nodeIdx = nodeNextIdx;
+		}
+
+		// May be no fragments left after manual depth cull
+		if (count > 0)
+		{
+			// Insertion sort
+			for (uint j = 1; j < count; ++j)
+			{
+				NodeFinalOIT insert = fragments[j];
+				uint k = j;
+			
+				while (k > 0)
+				{
+					if (insert.depth >= fragments[k - 1].depth)
+					{
+						break; 
+					}
+					
+					fragments[k] = fragments[k - 1];
+					--k;
+				}
+			
+				fragments[k] = insert; 
+			}
+
+			// Blending
+			for (uint l = 0; l < count; ++l)
+			{
+				OutColor = lerp(OutColor, fragments[l].color, fragments[l].alpha);
+				transAlpha = saturate(transAlpha * (1.f - fragments[l].alpha) + fragments[l].alpha);
+			}
+			
+#if defined(ENABLED_GODRAY)
+			godrayColor = lerp(godrayColor, f3(0.0f), transAlpha);
+#endif
+			transparentShaded = 1; 
+		}
+	}
+
+#if defined(ENABLED_GODRAY)
+	OutColor += godrayColor;
+#endif
+
+	float OutAlpha = (transparentShaded == 1 && opaqueShaded == 0) ? transAlpha : 1.0f; 
+	RETURN(float4(OutColor, OutAlpha));
+}

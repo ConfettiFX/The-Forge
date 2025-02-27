@@ -36,4 +36,4 @@
     DATA(float3, lightColor, None);
 };
 
-#include "srt.h"
+#include "Global.srt.h"

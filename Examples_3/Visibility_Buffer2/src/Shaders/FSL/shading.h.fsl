@@ -23,7 +23,7 @@
 */
 
 #include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "shader_defs.h.fsl"
+#include "ShaderDefs.h.fsl"
 
 float sampleDepth(
 	float2 rtSize,

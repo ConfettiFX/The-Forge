@@ -11,15 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.c" />
     <ClCompile Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
-    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\Vulkan_cxx.cpp" />
+    <ClCompile Include="..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.c" />
     <ClCompile Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\..\Common_3\Tools\Network\Network.c" />
@@ -32,7 +30,6 @@
     <ClInclude Include="..\..\..\..\Common_3\Graphics\GraphicsConfig.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
-    <ClInclude Include="..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
     <ClInclude Include="..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
@@ -45,14 +42,14 @@
     <ClInclude Include="..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\clear_buffers.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\pre_skin_vertexes.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\triangle_filtering.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_resources.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shader_defs.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shading_utilities.h.fsl" />
-    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_structs.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\BatchCompaction.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\ClearBuffers.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\PreSkinVertexes.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\TriangleFiltering.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferResources.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShaderDefs.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShadingUtilities.h.fsl" />
+    <None Include="..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferStructs.h.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DB6193E0-3C12-450F-B344-DC4DAED8C421}</ProjectGuid>
@@ -112,7 +109,7 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;amd_ags_x64.lib;nvapi64.lib;</AdditionalDependencies>
+      <AdditionalDependencies>dxcompiler.lib;WinPixEventRuntime.lib;amd_ags_x64.lib;nvapi64.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\winpixeventruntime\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -142,7 +139,7 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib;dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;</AdditionalDependencies>
+      <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib;dxcompiler.lib;WinPixEventRuntime.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(TheForgeRoot)Common_3\Graphics\ThirdParty\OpenSource\winpixeventruntime\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

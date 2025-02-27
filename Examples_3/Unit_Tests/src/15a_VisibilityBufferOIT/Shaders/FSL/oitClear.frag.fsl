@@ -26,10 +26,10 @@
     #define USE_VRS 0
 #endif
 
-#include "shader_defs.h.fsl"
-#include "vrs_resources.h.fsl"
-#include "vb_resources.h.fsl"
-#include "visibilityBuffer_pass_transparent.srt.h"
+#include "ShaderDefs.h.fsl"
+#include "VRSResources.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "VisibilityBufferPassTransparent.srt.h"
 
 STRUCT(PsIn)
 {

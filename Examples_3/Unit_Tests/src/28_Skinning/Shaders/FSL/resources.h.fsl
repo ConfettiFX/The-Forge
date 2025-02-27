@@ -45,6 +45,6 @@ STRUCT(UniformBlock)
     DATA(uint, capsules_count, None);
 };
 
-#include "srt.h"
+#include "Global.srt.h"
 
 #endif

@@ -34,7 +34,7 @@
 
 #include "../../Graphics/FSL/fsl_srt.h"
 #include "../../Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/copy.comp.srt.h"
+#include "./Shaders/FSL/Copy.comp.srt.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBIW_MALLOC  tf_malloc
@@ -122,7 +122,8 @@ static void saveScreenshotToDisk(const char* name, Buffer* pBuffer, bool saveAsH
     }
     else
     {
-        LOGF(eERROR, "Failed to open file for a screenshot: %s", screenshotFileName);
+        LOGF(eERROR, "Failed to open file for a screenshot: %s.Function %s failed with error: %s", screenshotFileName, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
     }
 
     tf_free(pEncodedImage);

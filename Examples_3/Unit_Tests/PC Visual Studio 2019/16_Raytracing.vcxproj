@@ -17,7 +17,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\Shared.fsl.h" />
     <ClInclude Include="..\..\Visibility_Buffer\src\SanMiguel.h" />
-    <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\srt.h" />
+    <ClInclude Include="..\src\16_Raytracing\Shaders\FSL\Global.srt.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DenoiserInputsPass.frag.fsl" />
@@ -25,7 +25,7 @@
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.frag.fsl" />
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.vert.fsl" />
     <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\RayQuery.comp.fsl" />
-    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\shaders.list" />
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\Shaders.list" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\16_Raytracing\GPUCfg\gpu.cfg" />

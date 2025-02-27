@@ -1,0 +1,119 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef _VB_STRUCTS_H
+#define _VB_STRUCTS_H
+
+
+// Input to pre skin vertexes shader
+STRUCT(PreSkinBatchData)
+{
+	/**********************************/
+	// Per Batch
+	/**********************************/
+	DATA(uint, vertexCount, None);         // Number of vertexes to be skinned by this batch (usually equals SKIN_BATCH_SIZE)
+
+	// Output vertexes are written in the range [outputVertexOffset, outputVertexOffset + vertexCount)
+	DATA(uint, outputVertexOffset, None);
+
+	// Offsets to the start of the mesh in the huge Vertex Buffers
+	// Position offset is different to Joint offset because the Joints/Weights buffers are smaller
+	DATA(uint, vertexPositionOffset, None);
+	DATA(uint, vertexJointsOffset, None);
+
+	/**********************************/
+	// Per Instance
+	/**********************************/
+	DATA(uint, jointMatrixOffset, None); 	// Offset into the matrix buffer that contains all matrixes for all animated objects
+											
+	// Padding
+	DATA(uint, pad0, None);
+	DATA(uint, pad1, None);
+	DATA(uint, pad2, None);
+};
+
+// Buffer allocation needs to satisfy alignment requirements for the buffers, therefore the buffer doesn't necessarily start on the first
+// pre-skinned output vertex slot. This structure contains the offsets to apply into the output buffers in pre_skin_vertexes, adding 
+// these offsets gives us the real start where we have to write the pre-skinned vertexes.
+STRUCT(PreSkinBufferOffsets)
+{
+	DATA(uint, vertexOffset, None);
+};
+
+#define BATCH_GEOMETRY_MASK 0x3
+#define BATCH_FACE_COUNT_MASK 0x1FFC
+
+#define BATCH_GEOMETRY_LOW_BIT 0
+#define BATCH_FACE_COUNT_LOW_BIT 2
+
+// Input to triangle filtering shader
+STRUCT(FilterDispatchGroupData)
+{
+	DATA(uint, meshIndex, None);	  // Index into meshConstants
+	DATA(uint, indexOffset, None);	  // Index relative to the meshConstants[meshIndex].indexOffset
+    DATA(uint, instanceDataIndex, None);   // Instance specific data, usually an offset into instanceData buffer but could also contain more encoded data in different bits
+
+	//   - geometrySet: 2 bits (we have 3 geometry sets: OPAQUE, ALPHA_CUTOUT, ALPHA_BLEND)
+    //   - faceCount: 11 bits (this depends on VB_COMPUTE_THREADS, which has a max of 1024 so 11 bits are enough)
+	//   - 19 bit free
+	DATA(uint, geometrySet_faceCount, None); 
+};
+
+STRUCT(CullingViewPort)
+{
+	DATA(float2, windowSize,  None);
+	DATA(uint,   sampleCount, None);
+	DATA(uint,   _pad0,       None);
+};
+
+#if defined(__fsl)
+struct CameraMatrix
+{
+#if defined(TARGET_QUEST)
+	float4x4 mat[2];
+#else
+	float4x4 mat;
+#endif
+};
+#endif
+
+STRUCT(Transform)
+{
+	DATA(CameraMatrix, vp, None);
+	DATA(CameraMatrix, mvp, None);
+	DATA(CameraMatrix, projection, None);
+	DATA(CameraMatrix, invVP, None);
+	DATA(CameraMatrix, prevMVP, None);
+	DATA(CameraMatrix, invMVP, None);
+};
+
+STRUCT(VBConstants)
+{
+	DATA(uint, indexOffset, None);
+	DATA(uint, pad_0, None);
+	DATA(uint, pad_1, None);
+	DATA(uint, pad_2, None);
+};
+
+#endif //!_VB_STRUCTS_H

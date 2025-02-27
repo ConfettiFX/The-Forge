@@ -879,7 +879,7 @@ template<class T> static T * stbds_shmode_func_wrapper(T *, size_t elemsize, siz
 #define stbds_hmput_default_wrapper       stbds_hmput_default
 #define stbds_hmput_key_wrapper           stbds_hmput_key
 #define stbds_hmdel_key_wrapper           stbds_hmdel_key
-#define stbds_shmode_func_wrapper(t,e,m)  stbds_shmode_func(e,m)
+#define stbds_shmode_func_wrapper(t,s,a,m)  stbds_shmode_func(s,a,m)
 #endif
 
 #endif // INCLUDE_STB_DS_H

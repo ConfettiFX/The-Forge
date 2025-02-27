@@ -26,8 +26,8 @@
 #define depth_down_sample_srt_h
 
 BEGIN_SRT(DepthDownSampleSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
 		DECL_RWBUFFER(PerBatch, RWBuffer(uint), gGlobalAtomic)
 		DECL_ARRAY_RWTEXTURES(PerBatch, RWTex2D(float), gDownsampledDepthBuffer, 13)

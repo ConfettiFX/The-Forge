@@ -23,9 +23,9 @@
 */
 
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShadingUtilities.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
+#include "Global.srt.h"
 
 
 STRUCT(PsIn)

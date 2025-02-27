@@ -48,9 +48,9 @@
 #endif
 
 
-#include "resources.comp.h.fsl"
-#include "resources.h.fsl"
-#include "hair.srt.h"
+#include "Resources.comp.h.fsl"
+#include "Resources.h.fsl"
+#include "Hair.srt.h"
 
 // Common functions
 float3 ScreenPosToNDC(float3 screenPos, float4 viewport)

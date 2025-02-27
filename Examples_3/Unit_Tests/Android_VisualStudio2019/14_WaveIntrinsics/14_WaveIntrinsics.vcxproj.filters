@@ -4,6 +4,9 @@
     <Filter Include="Source">
       <UniqueIdentifier>{5dc92234-8b3d-4855-a2f5-dbfc5cc3f410}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{9c3a208d-eed8-4896-b424-c698ed8c1ef0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="FSLShaders">
       <UniqueIdentifier>{4a4994da-9007-4995-9f15-2bce0549e575}</UniqueIdentifier>
     </Filter>
@@ -18,22 +21,28 @@
     <ClCompile Include="..\..\src\14_WaveIntrinsics\14_WaveIntrinsics.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl">
+    <ClInclude Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Global.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Structs.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Magnify.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl">
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Magnify.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\resources.h.fsl">
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Resources.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl">
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Wave.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl">
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\Wave.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\14_WaveIntrinsics\GPUCfg\gpu.cfg">

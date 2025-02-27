@@ -55,15 +55,15 @@
 // fsl
 #define NO_FSL_DEFINITIONS
 #include "../../../../Common_3/Graphics/FSL/fsl_srt.h"
-#include "Shaders/FSL/shader_defs.h.fsl"
+#include "Shaders/FSL/ShaderDefs.h.fsl"
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
-#include "./Shaders/FSL/shadow_pass.srt.h"
-#include "./Shaders/FSL/shadow_filtering.srt.h"
-#include "./Shaders/FSL/triangle_filtering.srt.h"
-#include "./Shaders/FSL/cluster_lights.srt.h"
-#include "./Shaders/FSL/particle.srt.h"
-#include "./Shaders/FSL/visibilityBuffer_shade.srt.h"
+#include "./Shaders/FSL/Global.srt.h"
+#include "./Shaders/FSL/ShadowPass.srt.h"
+#include "./Shaders/FSL/ShadowFiltering.srt.h"
+#include "./Shaders/FSL/TriangleFiltering.srt.h"
+#include "./Shaders/FSL/LightClusters.srt.h"
+#include "./Shaders/FSL/Particle.srt.h"
+#include "./Shaders/FSL/VisibilityBufferShade.srt.h"
 
 #include "../../../../Common_3/Utilities/Math/ShaderUtilities.h"
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h" // Must be the last include in a cpp file
@@ -77,8 +77,8 @@
 
 #define CUBE_FACE_SIZE              6
 
-#define DEFAULT_PARTICLE_SETS_COUNT 8
-#define PARTICLE_TEXTURES_COUNT     5
+#define DEFAULT_PARTICLE_SETS_COUNT 5
+#define PARTICLE_TEXTURES_COUNT     4
 #define STATS_COLLECTION_FREQUENCY  30
 
 #define pack2Floats(x, y)           (half(x).sh | (half(y).sh << 16))
@@ -88,13 +88,6 @@
 #endif
 
 #define SHADOWMAP_SIZE 2048
-#if defined(ORBIS)
-#define MAX_TRANSPARENCY_LAYERS 20
-#elif (defined(PROSPERO) || defined(WINDOWS)) && defined(AUTOMATED_TESTING)
-#define MAX_TRANSPARENCY_LAYERS 64
-#else
-#define MAX_TRANSPARENCY_LAYERS 24
-#endif
 
 #define FOREACH_SETTING(X)       \
     X(BindlessSupported, 1)      \
@@ -169,15 +162,15 @@ Texture*      pFilteredShadowCollector = NULL;
 /******************************************************/
 // Fireflies
 /******************************************************/
-float gFirefliesFlockRadius = 4.0f;
+float gFirefliesFlockRadius = 5.0f;
 float gFirefliesMinHeight = 1.5f;
 float gFirefliesMaxHeight = 6.0f;
 
-float gFirefliesElevationSpeed = 0.3f;
-float gFirefliesWhirlSpeed = 0.3f;
+float gFirefliesElevationSpeeds[MAX_PARTICLE_ATTRACTORS_COUNT] = { 0.1f, 0.15f, 0.2f, 0.1f };
+float gFirefliesWhirlSpeeds[MAX_PARTICLE_ATTRACTORS_COUNT] = { -0.3f, 0.4f, -0.8f, 0.6f };
 
-float gFirefliesWhirlAngle = 0.5f;
-float gFirefliesElevationT = 0.5f;
+float gFirefliesWhirlAngles[MAX_PARTICLE_ATTRACTORS_COUNT] = { 0.0f, PI / 4, PI / 2, (3 * PI) / 2 };
+float gFirefliesElevationTs[MAX_PARTICLE_ATTRACTORS_COUNT] = { 0.0f, 0.25f, 0.5f, 0.25f };
 
 /******************************************************/
 // Shadowmap filtering
@@ -712,7 +705,7 @@ public:
         particleTexLoad.pFileName = "Particles/FireflyParticle.tex";
         particleTexLoad.ppTexture = &ppParticleTextures[0];
         addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "Particles/smoke_01.tex";
+        particleTexLoad.pFileName = "Particles/WaterSplash.tex";
         particleTexLoad.ppTexture = &ppParticleTextures[1];
         addResource(&particleTexLoad, NULL);
         particleTexLoad.pFileName = "Particles/SwarmParticle.tex";
@@ -720,9 +713,6 @@ public:
         addResource(&particleTexLoad, NULL);
         particleTexLoad.pFileName = "Particles/RainParticle.tex";
         particleTexLoad.ppTexture = &ppParticleTextures[3];
-        addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "Particles/WaterSplash.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[4];
         addResource(&particleTexLoad, NULL);
         waitForAllResourceLoads();
 
@@ -765,58 +755,50 @@ public:
 #if !defined(ENABLE_REMOTE_STREAMING)
     void initDefaultParticleSets(ParticleSet* pParticleSets, uint32_t* pBitfields)
     {
-        const uint32_t maxSwarmParticles = 1000000;
-        const uint32_t maxSmokeParticles = 40;
+        const uint32_t maxSwarmParticles = 2000000;
+        const uint32_t maxRainParticles = 2000000;
         const uint32_t maxShadowParticles = 8;
         const uint32_t maxLightParticles = 15000;
 
-        const float gSteeringStrength = 3.1f;
-        const float gBoidsSeek = 2.0f;
-        const float gBoidsAvoid = 1.0;
-        const float gBoidsFlee = 0.0f;
-        const float gBoidsSeparation = 0.05f;
-        const float gBoidsCohesion = 4.5f;
-        const float gBoidsAlignment = 0.25f;
+        const float gSteeringStrength = 1.02f;
+        const float gBoidsSeek = 0.2f;
+        const float gBoidsSeparation = 1.5f;
+        const float gBoidsCohesion = 0.44f;
+        const float gBoidsAlignment = 0.17f;
 
         ParticleSet swarmBase = {};
-        swarmBase.Position = float4(8, 6, 11, 0);
+        swarmBase.PositionAndInitialAge = float4(8, 6, 11, 10);
         swarmBase.ParticleSetBitfield =
             PARTICLE_BITFIELD_TYPE_BOIDS | PARTICLE_BITFIELD_LIGHTING_MODE_NONE | PARTICLE_BITFIELD_MODULATION_TYPE_SPEED;
-#if defined(AUTOMATED_TESTING)
-        swarmBase.InitialAge = 2.5;
-#else
-        swarmBase.InitialAge = 10.0;
-#endif
-        swarmBase.ParticlesPerSecond = maxSwarmParticles / swarmBase.InitialAge;
-        swarmBase.BoidsAvoidSeekStrength = pack2Floats(gBoidsAvoid, gBoidsSeek);
+        swarmBase.ParticlesPerSecond = maxSwarmParticles / swarmBase.PositionAndInitialAge.w;
+        swarmBase.BoidsSeparationSeekStrength = pack2Floats(gBoidsSeparation, gBoidsSeek);
         swarmBase.BoidsCohesionAlignmentStrength = pack2Floats(gBoidsCohesion, gBoidsAlignment);
-        swarmBase.BoidsSeparationFleeStrength = pack2Floats(gBoidsSeparation, gBoidsFlee);
-        swarmBase.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.5f);
-        swarmBase.SpawnVolume = uint2(pack2Floats(1.0f, 1.0f), pack2Floats(1.0f, 0.001f));
+        swarmBase.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.0f);
+        swarmBase.SpawnVolume = uint2(pack2Floats(0.2f, 0.2f), pack2Floats(0.2f, 0.001f));
         swarmBase.VisibilityVolume = uint2(pack2Floats(2.0f, 2.0f), pack2Floats(2.0f, 0.0f));
-        swarmBase.MaxSizeAndSpeed = pack2Floats(0.005f, 1.5f);
+        swarmBase.MaxSizeAndSpeed = pack2Floats(0.005f, 5.0f);
         swarmBase.LightRadiusAndVelocityNoise = 0;
         swarmBase.StartSizeAndTime = pack2Floats(0.0f, 0.3f);
         swarmBase.EndSizeAndTime = pack2Floats(0.0f, 0.7f);
         swarmBase.TextureIndices = 2 << 16;
-        swarmBase.Allocated = 1;
-        swarmBase.AttractorIndex = (uint32_t)-1;
+        swarmBase.AllocatedAndAttractorIndex = 1 << 16;
         swarmBase.MinAndMaxAlpha = pack2Floats(1.0f, 1.0f);
-        swarmBase.VelocityStretch = 2.0f;
+        swarmBase.VelocityStretch = 1.5f;
+        swarmBase.StartVelocity = uint2(pack2Floats(0.0f, 0.0f), pack2Floats(0.0f, 1.0f));
 
         ParticleSet lightSet = {};
+        lightSet.AllocatedAndAttractorIndex = 1 << 16;
         lightSet.ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT | PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
         lightSet.StartColor = packUnorm4x8(float4(1.0f, 1.0f, 0.2f, 0.1f));
         lightSet.EndColor = packUnorm4x8(float4(1.0f, 0.2f, 0.0f, 0.9f));
         lightSet.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 0.05f);
-        lightSet.InitialAge = 10.0;
         lightSet.LightRadiusAndVelocityNoise = pack2Floats(0.5f, 0.01f);
         lightSet.LightPulseSpeedAndOffset = pack2Floats(1.0f, 0.5f);
         lightSet.SpawnVolume = uint2(pack2Floats(10, 6), pack2Floats(8.0f, 0.01f));
         lightSet.VisibilityVolume = lightSet.SpawnVolume;
-        lightSet.Position = float4(2.0f, 8.0f, 5.0f, 0.0f);
+        lightSet.PositionAndInitialAge = float4(2.0f, 8.0f, 5.0f, 10.0f);
         lightSet.MaxSizeAndSpeed = pack2Floats(0.1f, 0.25f);
-        lightSet.ParticlesPerSecond = maxLightParticles / lightSet.InitialAge;
+        lightSet.ParticlesPerSecond = maxLightParticles / lightSet.PositionAndInitialAge.w;
         lightSet.StartSizeAndTime = pack2Floats(0.0f, 0.1f);
         lightSet.EndSizeAndTime = pack2Floats(0.0f, 0.9f);
         lightSet.TextureIndices = 0;
@@ -830,13 +812,12 @@ public:
         // Shadow casting
         pParticleSets[particleSetIdx] = lightSet;
         pParticleSets[particleSetIdx].StartIdx = 0;
-        pParticleSets[particleSetIdx].Position = float4(5.0f, 7.0f, 5.0f, 0.0f);
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(5.0f, 7.0f, 5.0f, 10.0f);
         pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW;
         pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.2f));
         pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.8f));
         pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(3.0f, 0.0f);
-        pParticleSets[particleSetIdx].InitialAge = 10.0f;
-        pParticleSets[particleSetIdx].ParticlesPerSecond = maxShadowParticles / pParticleSets[particleSetIdx].InitialAge;
+        pParticleSets[particleSetIdx].ParticlesPerSecond = maxShadowParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
         pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(10.0f, 6.0f), pack2Floats(8.0f, 0.1f));
         pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.0f);
         pParticleSets[particleSetIdx++].LightPulseSpeedAndOffset = pack2Floats(0.0f, 1.0f);
@@ -846,66 +827,57 @@ public:
         pParticleSets[particleSetIdx++].StartIdx = MAX_SHADOW_COUNT;
 
         // Red particles
-        pParticleSets[particleSetIdx].Position = float4(6.0f, 6.0f, 10.0f, 0.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 0.1f, 0.0f, 0.2f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 0.1f, 0.0f, 0.8f));
-        pParticleSets[particleSetIdx].AttractorIndex = 0;
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(6.0f, 6.0f, 10.0f, 10.0f);
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.6f, 0.0f, 0.0f, 0.2f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 0.0f, 0.8f));
+        pParticleSets[particleSetIdx].AllocatedAndAttractorIndex |= 1;
         pParticleSets[particleSetIdx].StartIdx = MAX_LIGHT_COUNT + MAX_SHADOW_COUNT;
         pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(10.0f, 10.0f), pack2Floats(10.0f, 0.001f));
         pParticleSets[particleSetIdx++].SpawnVolume = uint2(pack2Floats(4.0f, 4.0f), pack2Floats(4.0f, 0.001f));
 
         // Green particles
-        pParticleSets[particleSetIdx].Position = float4(-6.0f, 6.0f, 10.0f, 0.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.5f, 1.0f, 0.0f, 0.1f));
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(-6.0f, 6.0f, 10.0f, 10.0f);
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.5f, 0.5f, 1.0f, 0.1f));
         pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.5f, 1.0f, 0.0f, 0.9f));
+        pParticleSets[particleSetIdx].ParticleSetBitfield &= ~(PARTICLE_BITFIELD_TYPE_BOIDS | PARTICLE_BITFIELD_MODULATION_TYPE_SPEED);
+        pParticleSets[particleSetIdx].ParticleSetBitfield |= PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
         pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSwarmParticles;
+        pParticleSets[particleSetIdx].ParticlesPerSecond = 0.0f;
+        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.005f, 3.0f);
         pParticleSets[particleSetIdx++].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
 
-        // White particles
-        pParticleSets[particleSetIdx].Position = float4(6.0f, 6.0f, -2.0f, 0.0f);
-        pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 1.0f, 1.0f, 0.1f));
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSwarmParticles;
-        pParticleSets[particleSetIdx++].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 1.0f, 0.9f));
-
-        // Yellow particles
-        pParticleSets[particleSetIdx].Position = float4(-6.0f, 6.0f, -2.0f, 0.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 1.0f, 0.5f, 0.1f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 0.5f, 0.9f));
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSwarmParticles;
-        pParticleSets[particleSetIdx++].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
-
-        // Smoke 1
-        pParticleSets[particleSetIdx].Position = float4(4.0f, 3.0f, 4.0f, 0.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(1.0f, 0.5f, 0.8f, 0.3f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.6f, 0.1f, 0.1f, 0.8f));
-        pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
-        pParticleSets[particleSetIdx].InitialAge = 20.0f;
-        pParticleSets[particleSetIdx].ParticlesPerSecond = maxSmokeParticles / pParticleSets[particleSetIdx].InitialAge;
-        pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 0.05f);
-        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(4, 1), pack2Floats(4.0f, 1.5f));
-        pParticleSets[particleSetIdx].VisibilityVolume = pParticleSets[particleSetIdx].SpawnVolume;
-        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(2.0f, 0.1f);
-        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(0.75f, 0.2f);
-        pParticleSets[particleSetIdx].TextureIndices = 1 << 16;
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSmokeParticles;
-        pParticleSets[particleSetIdx++].EndSizeAndTime = pack2Floats(0.75f, 0.8f);
-
-        // Smoke 2
-        pParticleSets[particleSetIdx] = pParticleSets[particleSetIdx - 1];
-        pParticleSets[particleSetIdx].Position = float4(8.0f, 3.0f, 4.0f, 0.0f);
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSmokeParticles;
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.0f, 0.0f, 1.0f, 0.3f));
-        pParticleSets[particleSetIdx++].EndColor = packUnorm4x8(float4(0.0f, 1.0f, 0.5f, 0.8f));
+        // Rain
+        pParticleSets[particleSetIdx] = {};
+        pParticleSets[particleSetIdx].AllocatedAndAttractorIndex = 1 << 16;
+        pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER | PARTICLE_BITFIELD_TYPE_RAIN;
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 0.1f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.5f, 0.5f, 0.6f, 0.95f));
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(0.9f, 17.3f, 6.8f, 5.0f);
+        pParticleSets[particleSetIdx].ParticlesPerSecond = maxRainParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
+        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(7.55f, 0.5f), pack2Floats(6.85f, 0.0005f));
+        pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(7.55f, 8.0f), pack2Floats(6.85f, 0.0005f));
+        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(0.0f, 0.1f);
+        pParticleSets[particleSetIdx].EndSizeAndTime = pack2Floats(0.0f, 0.9f);
+        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.002f, 4.26f);
+        pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 1.25f);
+        pParticleSets[particleSetIdx].MinAndMaxAlpha = pack2Floats(0.65f, 0.85f);
+        pParticleSets[particleSetIdx].VelocityStretch = 1.0f;
+        pParticleSets[particleSetIdx].TextureIndices = (3 << 16) | 1;
+        pParticleSets[particleSetIdx].AnimationTiling = (8 << 16) | 4;
+        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxRainParticles;
+        pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, 0.0f), pack2Floats(0.0f, 0.0f));
+        pParticleSets[particleSetIdx++].Acceleration = uint2(pack2Floats(0.0f, -9.8f), pack2Floats(0.0f, 5.0f));
 
         memset((void*)pBitfields, 0, sizeof(uint32_t) * MAX_PARTICLES_COUNT);
 
         for (uint32_t i = 0; i < DEFAULT_PARTICLE_SETS_COUNT; i++)
         {
-            pParticleSets[i].Allocated = 1;
+            pParticleSets[i].AllocatedAndAttractorIndex |= 1 << 16;
 
             for (uint32_t j = pParticleSets[i].StartIdx;
-                 j < pParticleSets[i].StartIdx + (uint32_t)ceil(pParticleSets[i].InitialAge * pParticleSets[i].ParticlesPerSecond); j++)
+                 j <
+                 pParticleSets[i].StartIdx + (uint32_t)ceil(pParticleSets[i].PositionAndInitialAge.w * pParticleSets[i].ParticlesPerSecond);
+                 j++)
             {
                 pBitfields[j] = PARTICLE_BITFIELD_REQUIRES_INIT | i;
             }
@@ -913,7 +885,7 @@ public:
 
         for (uint32_t i = DEFAULT_PARTICLE_SETS_COUNT; i < MAX_PARTICLE_SET_COUNT; i++)
         {
-            pParticleSets[i].Allocated = 0;
+            pParticleSets[i].AllocatedAndAttractorIndex = 0;
         }
     }
 #endif
@@ -1116,32 +1088,6 @@ public:
                 return false;
             addRenderTargets();
 
-            // Shadow collector
-            TextureLoadDesc shadowCollectorLoad = {};
-            TextureDesc     shadowCollectorDesc = {};
-
-            shadowCollectorDesc.mArraySize = 1;
-            shadowCollectorDesc.mMipLevels = 1;
-            shadowCollectorDesc.mDepth = 1;
-            shadowCollectorDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-            // R: shadow data, G: distance from occluder, B: distance from camera, A: shadow mask
-            shadowCollectorDesc.mFormat = TinyImageFormat_R16_SFLOAT; // TinyImageFormat_R16G16B16A16_SFLOAT;
-            shadowCollectorDesc.mHeight = gAppResolution.y;
-            shadowCollectorDesc.mWidth = gAppResolution.x;
-            shadowCollectorDesc.mSampleCount = SAMPLE_COUNT_1;
-            shadowCollectorDesc.mSampleQuality = 0;
-            shadowCollectorDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            shadowCollectorDesc.pName = "ShadowCollector";
-
-            shadowCollectorLoad.ppTexture = &pShadowCollector;
-            shadowCollectorLoad.pDesc = &shadowCollectorDesc;
-            addResource(&shadowCollectorLoad, NULL);
-
-            shadowCollectorLoad.pDesc->pName = "FilteredShadowCollector";
-            shadowCollectorLoad.ppTexture = &pFilteredShadowCollector;
-            shadowCollectorLoad.pDesc->mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-            addResource(&shadowCollectorLoad, NULL);
-
             // Setup lights cluster data
             BufferLoadDesc lightClustersCountBufferDesc = {};
             lightClustersCountBufferDesc.mDesc.mSize =
@@ -1223,7 +1169,7 @@ public:
         particleDesc.pParticleSetsBuffer = pParticleSetsBuffer;
         particleDesc.pBitfieldBuffer = pParticleBitfields;
         particleDesc.ppParticleTextures = ppParticleTextures;
-        particleDesc.mParticleTextureCount = PARTICLE_TEXTURES_COUNT;
+        particleDesc.mParticleTextureCount = 4;
         particleDesc.pDescriptorSetPersistent = pDescriptorSetPersistent;
         particleDesc.pDescriptorSetPerFrame = pDescriptorSetPerFrame;
         particleDesc.pDescriptorSetPerBatch = pDescriptorSetParticlePerBatch;
@@ -1277,8 +1223,14 @@ public:
         gParticlesLoaded = false;
 
         gCurrTime = 0.0f;
-        gFirefliesWhirlAngle = 0.5;
-        gFirefliesElevationT = 0.5;
+        gFirefliesWhirlAngles[0] = 0.0f;
+        gFirefliesWhirlAngles[1] = PI / 4;
+        gFirefliesWhirlAngles[2] = PI / 2;
+        gFirefliesWhirlAngles[3] = (3 * PI) / 2;
+        gFirefliesElevationTs[0] = 0.0f;
+        gFirefliesElevationTs[1] = 0.25f;
+        gFirefliesElevationTs[2] = 0.5f;
+        gFirefliesElevationTs[3] = 0.75f;
 
         LuaScriptDesc runDesc = {};
         runDesc.pScriptFileName = "Test_AllSets.lua";
@@ -1797,7 +1749,7 @@ public:
                                                   RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
 
                 cmdResourceBarrier(graphicsCmd, 0, NULL, 1, texBarrier, 3, rtBarriers);
-                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Full Screen Quad");
+                cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "OIT Compose");
                 // Draw full screen quad
                 {
                     BindRenderTargetsDesc bindDesc = {};
@@ -2131,6 +2083,8 @@ public:
         /************************************************************************/
         // Main depth buffer
         /************************************************************************/
+        uint32_t currentOffsetESRAM = 0;
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth", currentOffsetESRAM);
         // Add depth buffer
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
@@ -2144,60 +2098,16 @@ public:
         depthRT.mSampleQuality = 0;
         depthRT.mWidth = width;
         depthRT.pName = "Depth Buffer RT";
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
-        /************************************************************************/
-        // Shadow pass render target
-        /************************************************************************/
-        RenderTargetDesc shadowRTDesc = {};
-        shadowRTDesc.mArraySize = 1;
-        shadowRTDesc.mClearValue = optimizedDepthClear;
-        shadowRTDesc.mDepth = 1;
-        shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        shadowRTDesc.mFormat = TinyImageFormat_D16_UNORM;
-        shadowRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        shadowRTDesc.mWidth = SHADOWMAP_SIZE;
-        shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        shadowRTDesc.mSampleQuality = 0;
-        shadowRTDesc.mHeight = SHADOWMAP_SIZE;
-        shadowRTDesc.pName = "Shadow Map RT";
-        addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
-
-        // Cube depth faces
-        RenderTargetDesc faceDesc = {};
-        faceDesc.mArraySize = CUBE_FACE_SIZE * MAX_SHADOW_COUNT;
-        faceDesc.mClearValue = optimizedDepthClear;
-        faceDesc.mDepth = 1;
-        faceDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES;
-        faceDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        faceDesc.mWidth = CUBE_SHADOWS_FACE_SIZE;
-        faceDesc.mHeight = CUBE_SHADOWS_FACE_SIZE;
-        faceDesc.mFormat = TinyImageFormat_D16_UNORM;
-        faceDesc.pName = "DepthCubemap";
-        faceDesc.mSampleCount = SAMPLE_COUNT_1;
-        faceDesc.mSampleQuality = 0;
-        addRenderTarget(pRenderer, &faceDesc, &pDepthCube);
-
-        /************************************************************************/
-        // Visibility buffer pass render target
-        /************************************************************************/
-        RenderTargetDesc vbRTDesc = {};
-        vbRTDesc.mArraySize = 1;
-        vbRTDesc.mClearValue = optimizedColorClearWhite;
-        vbRTDesc.mDepth = 1;
-        vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-        vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-        vbRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        vbRTDesc.mHeight = height;
-        vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        vbRTDesc.mSampleQuality = 0;
-        vbRTDesc.mWidth = width;
-        vbRTDesc.pName = "VB RT";
-        addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
+        ESRAM_CURRENT_OFFSET(pRenderer, depthOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
 
         /************************************************************************/
         // Intermediate render target
         /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Intermediate", currentOffsetESRAM);
         RenderTargetDesc postProcRTDesc = {};
         postProcRTDesc.mArraySize = 1;
         postProcRTDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -2210,10 +2120,136 @@ public:
         postProcRTDesc.mWidth = width;
         postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
         postProcRTDesc.mSampleQuality = 0;
-        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
         postProcRTDesc.pName = "Intermediate target";
         addRenderTarget(pRenderer, &postProcRTDesc, &pScreenRenderTarget);
 
+        ESRAM_CURRENT_OFFSET(pRenderer, intermediateOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(depthOffsetESRAM, currentOffsetESRAM);
+        currentOffsetESRAM = max(intermediateOffsetESRAM, currentOffsetESRAM);
+
+        /************************************************************************/
+        // Shadow pass render target
+        /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Shadow Map", currentOffsetESRAM);
+
+        RenderTargetDesc shadowRTDesc = {};
+        shadowRTDesc.mArraySize = 1;
+        shadowRTDesc.mClearValue = optimizedDepthClear;
+        shadowRTDesc.mDepth = 1;
+        shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        shadowRTDesc.mFormat = TinyImageFormat_D16_UNORM;
+        shadowRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        shadowRTDesc.mWidth = SHADOWMAP_SIZE;
+        shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
+        shadowRTDesc.mSampleQuality = 0;
+        shadowRTDesc.mHeight = SHADOWMAP_SIZE;
+        shadowRTDesc.pName = "Shadow Map RT";
+        shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, shadowOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        /************************************************************************/
+        // Shadow Collector
+        /************************************************************************/
+        TextureLoadDesc shadowCollectorLoad = {};
+        TextureDesc     shadowCollectorDesc = {};
+
+        shadowCollectorDesc.mArraySize = 1;
+        shadowCollectorDesc.mMipLevels = 1;
+        shadowCollectorDesc.mDepth = 1;
+        shadowCollectorDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+        // R: shadow data, G: distance from occluder, B: distance from camera, A: shadow mask
+        shadowCollectorDesc.mFormat = TinyImageFormat_R16_SFLOAT; // TinyImageFormat_R16G16B16A16_SFLOAT;
+        shadowCollectorDesc.mHeight = gAppResolution.y;
+        shadowCollectorDesc.mWidth = gAppResolution.x;
+        shadowCollectorDesc.mSampleCount = SAMPLE_COUNT_1;
+        shadowCollectorDesc.mSampleQuality = 0;
+        shadowCollectorDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+
+        ESRAM_BEGIN_ALLOC(pRenderer, "Filtered Shadow Collector", currentOffsetESRAM);
+
+        shadowCollectorDesc.pName = "FilteredShadowCollector";
+        shadowCollectorDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+        shadowCollectorLoad.pDesc = &shadowCollectorDesc;
+        shadowCollectorLoad.ppTexture = &pFilteredShadowCollector;
+        addResource(&shadowCollectorLoad, NULL);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, filteredShadowCollectorOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(shadowOffsetESRAM, currentOffsetESRAM);
+        currentOffsetESRAM = max(filteredShadowCollectorOffsetESRAM, currentOffsetESRAM);
+
+        ESRAM_BEGIN_ALLOC(pRenderer, "Shadow Collector", currentOffsetESRAM);
+
+        shadowCollectorLoad.pDesc->mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        shadowCollectorLoad.pDesc->pName = "ShadowCollector";
+        shadowCollectorLoad.ppTexture = &pShadowCollector;
+        addResource(&shadowCollectorLoad, NULL);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, shadowCollectorOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(shadowCollectorOffsetESRAM, currentOffsetESRAM);
+
+        /************************************************************************/
+        // Visibility buffer pass render target
+        /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "VB RT", currentOffsetESRAM);
+
+        RenderTargetDesc vbRTDesc = {};
+        vbRTDesc.mArraySize = 1;
+        vbRTDesc.mClearValue = optimizedColorClearWhite;
+        vbRTDesc.mDepth = 1;
+        vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+        vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+        vbRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        vbRTDesc.mHeight = height;
+        vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
+        vbRTDesc.mSampleQuality = 0;
+        vbRTDesc.mWidth = width;
+        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        vbRTDesc.pName = "VB RT";
+        addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, vbOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(vbOffsetESRAM, currentOffsetESRAM);
+
+        /************************************************************************/
+        // Cube depth faces
+        /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth Cubemap", currentOffsetESRAM);
+
+        RenderTargetDesc faceDesc = {};
+        faceDesc.mArraySize = CUBE_FACE_SIZE * MAX_SHADOW_COUNT;
+        faceDesc.mClearValue = optimizedDepthClear;
+        faceDesc.mDepth = 1;
+        faceDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES;
+        faceDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        faceDesc.mWidth = CUBE_SHADOWS_FACE_SIZE;
+        faceDesc.mHeight = CUBE_SHADOWS_FACE_SIZE;
+        faceDesc.mFormat = TinyImageFormat_D16_UNORM;
+        faceDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+        faceDesc.pName = "DepthCubemap";
+        faceDesc.mSampleCount = SAMPLE_COUNT_1;
+        faceDesc.mSampleQuality = 0;
+        addRenderTarget(pRenderer, &faceDesc, &pDepthCube);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, depthCubemapOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(depthCubemapOffsetESRAM, currentOffsetESRAM);
+
+        /************************************************************************/
+        // Downsampled Depth render target
+        /************************************************************************/
         RenderTargetDesc downsampledDesc = {};
         downsampledDesc.mArraySize = 1;
         downsampledDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -2309,11 +2345,7 @@ public:
 
         // Present shader
         present.mVert.pFileName = "fsq.vert";
-#if defined(AUTOMATED_TESTING)
-        present.mFrag.pFileName = "fsq_hq.frag";
-#else
         present.mFrag.pFileName = "fsq.frag";
-#endif
 
         addShader(pRenderer, &shadowPass, &pShaderShadowPass[GEOMSET_OPAQUE]);
         addShader(pRenderer, &shadowPassAlpha, &pShaderShadowPass[GEOMSET_ALPHA_CUTOUT]);
@@ -2335,11 +2367,7 @@ public:
         {
             ShaderLoadDesc shaderDesc = {};
             shaderDesc.mVert = { "particle.vert" };
-#if defined(AUTOMATED_TESTING)
-            shaderDesc.mFrag = { "particle_hq.frag" };
-#else
             shaderDesc.mFrag = { "particle.frag" };
-#endif
             addShader(pRenderer, &shaderDesc, &pParticleRenderShader);
 
             shaderDesc = {};
@@ -2765,20 +2793,24 @@ public:
         pParticleSystemConstantData[currentFrameIdx].CameraPosition = float4(v3ToF3(pCameraController->getViewPosition()), 1.0f);
         pParticleSystemConstantData[currentFrameIdx].ScreenSize = uint2(gAppResolution.x, gAppResolution.y);
 
-        float firefliesX = cos(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
-        float firefliesZ = 6.0f + sin(gFirefliesWhirlAngle) * gFirefliesFlockRadius;
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            float firefliesX = 3.0f + cos(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
+            float firefliesZ = 6.0f + sin(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
 
-        static int elevationDirection = 1;
-        float      firefliesY = lerp(gFirefliesMinHeight, gFirefliesMaxHeight, ((float)sin(gFirefliesElevationT) + 1.0f) / 2.0f);
+            static int elevationDirection = 1;
+            float      firefliesY = lerp(gFirefliesMinHeight, gFirefliesMaxHeight, ((float)sin(gFirefliesElevationTs[i]) + 1.0f) / 2.0f);
 
-        gFirefliesWhirlAngle += deltaTime * gFirefliesWhirlSpeed;
-        gFirefliesElevationT += deltaTime * gFirefliesElevationSpeed * elevationDirection;
-        if ((gFirefliesElevationT >= 1.0f && elevationDirection == 1) || (gFirefliesElevationT <= 0.0f && elevationDirection == -1))
-            elevationDirection *= -1;
+            gFirefliesWhirlAngles[i] += deltaTime * gFirefliesWhirlSpeeds[i];
+            gFirefliesElevationTs[i] += deltaTime * gFirefliesElevationSpeeds[i] * elevationDirection;
+            if ((gFirefliesElevationTs[i] >= 1.0f && elevationDirection == 1) ||
+                (gFirefliesElevationTs[i] <= 0.0f && elevationDirection == -1))
+                elevationDirection *= -1;
+            pParticleSystemConstantData[currentFrameIdx].SeekPositions[i] = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
+        }
 
         pParticleSystemConstantData[currentFrameIdx].ResetParticles = gJustLoaded ? 1 : 0;
         pParticleSystemConstantData[currentFrameIdx].Time = gCurrTime;
-        pParticleSystemConstantData[currentFrameIdx].SeekPosition = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
         pParticleSystemConstantData[currentFrameIdx].CameraPlanes = float2(CAMERA_NEAR, CAMERA_FAR);
 #if defined(AUTOMATED_TESTING)
         pParticleSystemConstantData[currentFrameIdx].Seed = INT_MAX / 2;

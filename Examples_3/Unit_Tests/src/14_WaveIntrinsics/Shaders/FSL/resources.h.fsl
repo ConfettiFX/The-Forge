@@ -25,8 +25,8 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-#include "structs.h"
-#include "srt.h"
+#include "Structs.h"
+#include "Global.srt.h"
 
 
 

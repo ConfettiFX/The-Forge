@@ -21,7 +21,7 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-#include "imgui_resources.h"
+#include "ImGuiResources.h"
 
 STRUCT(VS_INPUT)
 {

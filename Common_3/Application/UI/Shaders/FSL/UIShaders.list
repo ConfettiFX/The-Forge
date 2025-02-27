@@ -1,0 +1,34 @@
+#include "../../../../Graphics/FSL/defaults.h"
+
+#frag FT_MULTIVIEW imgui_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "ImGui.frag.fsl"
+#end
+#frag FT_MULTIVIEW imgui_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "ImGui.frag.fsl"
+#end
+#frag FT_MULTIVIEW imgui_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "ImGui.frag.fsl"
+#end
+#frag FT_MULTIVIEW imgui_SAMPLE_COUNT_8.frag
+#define SAMPLE_COUNT 8
+#include "ImGui.frag.fsl"
+#end
+#frag FT_MULTIVIEW imgui_SAMPLE_COUNT_16.frag
+#define SAMPLE_COUNT 16
+#include "ImGui.frag.fsl"
+#end
+
+#vert FT_VDP FT_MULTIVIEW imgui.vert
+#include "ImGui.vert.fsl"
+#end
+
+#frag textured_mesh.frag
+#include "TexturedMesh.frag.fsl"
+#end
+
+#vert textured_mesh.vert
+#include "TexturedMesh.vert.fsl"
+#end

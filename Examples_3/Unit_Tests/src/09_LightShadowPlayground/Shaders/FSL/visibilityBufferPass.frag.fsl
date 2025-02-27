@@ -22,10 +22,10 @@
  * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
-#include "vb_resources_util.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "VisibilityBuffer.srt.h"
+#include "VisibilityBufferResourcesUtil.h.fsl"
 
 ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveID )

@@ -40,30 +40,18 @@
     <Filter Include="Resources\ResourceLoader\Interfaces">
       <UniqueIdentifier>{0582b247-33de-4b9c-b0e5-301bfaccc819}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Renderer\ParticleSystem\Shaders">
-      <UniqueIdentifier>{9cddf0d3-9042-4f8f-8898-5f177f2ae112}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\VisibilityBuffer\Shaders\FSL">
-      <UniqueIdentifier>{f0c51db5-3051-4b98-8429-c8c2329e5f0b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\VisibilityBuffer\Shaders">
-      <UniqueIdentifier>{eee74111-1cdb-4828-9562-6d6c674375cb}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.c">
       <Filter>Graphics\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.c">
       <Filter>Graphics\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan_cxx.cpp">
       <Filter>Graphics\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\ParticleSystem.cpp">
@@ -90,9 +78,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
       <Filter>Graphics\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
-      <Filter>Graphics\Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
       <Filter>Graphics\Vulkan</Filter>
     </ClInclude>
@@ -111,41 +96,5 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
       <Filter>Tools\ReloadServer</Filter>
     </ClInclude>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_defs.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_packing.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_random.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_sets.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\particle_shared.h.fsl">
-      <Filter>Renderer\ParticleSystem\Shaders</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\batch_compaction.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\clear_buffers.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\triangle_filtering.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_resources.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shader_defs.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_shading_utilities.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
-    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\vb_structs.h.fsl">
-      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
-    </None>
   </ItemGroup>
 </Project>

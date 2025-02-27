@@ -43,17 +43,17 @@
 #include "SanMiguel.h"
 
 #include "../../../Common_3/Graphics/FSL/fsl_srt.h"
-#include "Shaders/FSL/shader_defs.h.fsl"
-#include "Shaders/FSL/triangle_binning.h.fsl"
+#include "Shaders/FSL/ShaderDefs.h.fsl"
+#include "Shaders/FSL/TriangleBinning.h.fsl"
 
 // fsl
 #include "../../../Common_3/Graphics/FSL/defaults.h"
-#include "Shaders/FSL/structs.h"
-#include "Shaders/FSL/srt.h"
-#include "Shaders/FSL/triangle_filtering.srt.h"
-#include "Shaders/FSL/display.srt.h"
-#include "Shaders/FSL/godray_blur.srt.h"
-#include "Shaders/FSL/cluster_lights.srt.h"
+#include "Shaders/FSL/Structs.h"
+#include "Shaders/FSL/Global.srt.h"
+#include "Shaders/FSL/TriangleFiltering.srt.h"
+#include "Shaders/FSL/Display.srt.h"
+#include "Shaders/FSL/GodrayBlur.srt.h"
+#include "Shaders/FSL/LightClusters.srt.h"
 
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
@@ -209,6 +209,9 @@ typedef struct AppSettings
 
     float nearPlane = 10.0f;
     float farPlane = 3000.0f;
+
+    float lightNearPlane = -0.1f;
+    float lightFarPlane = 1500.0f;
 
     // adjust directional sunlight angle
     float2 mSunControl = { -2.1f, 0.164f };
@@ -500,6 +503,12 @@ LightData          gLightData[LIGHT_COUNT] = {};
 
 PerFrameData  gPerFrame[gDataBufferCount] = {};
 RenderTarget* pScreenRenderTarget = NULL;
+
+// We are rendering the scene (geometry, skybox, ...) at this resolution, UI at window resolution (mSettings.mWidth, mSettings.mHeight)
+// Render scene at gSceneRes
+// presentImage -> The scene rendertarget composed into the swapchain/backbuffer
+// Render UI into backbuffer
+static Resolution gSceneRes;
 /************************************************************************/
 // Screen resolution UI data
 /************************************************************************/
@@ -739,13 +748,13 @@ public:
             blitDepthConstantBufferDesc.ppBuffer = &pRenderTargetInfoConstantsBuffers[i][0];
             addResource(&blitDepthConstantBufferDesc, NULL);
 
-            gDepthRenderTargetInfo = { 1, (int)mSettings.mWidth, (int)mSettings.mHeight };
+            gDepthRenderTargetInfo = { 1, (int)gSceneRes.mWidth, (int)gSceneRes.mHeight };
             blitDepthConstantBufferDesc.mDesc.mSize = sizeof(RenderTargetInfo);
             blitDepthConstantBufferDesc.pData = &gDepthRenderTargetInfo;
             blitDepthConstantBufferDesc.ppBuffer = &pRenderTargetInfoConstantsBuffers[i][1];
             addResource(&blitDepthConstantBufferDesc, NULL);
 
-            gClearRenderTargetInfo = { 0, (int)mSettings.mWidth * (int)mSettings.mHeight, 0 };
+            gClearRenderTargetInfo = { 0, (int)gSceneRes.mWidth * (int)gSceneRes.mHeight, 0 };
             blitDepthConstantBufferDesc.mDesc.mSize = sizeof(RenderTargetInfo);
             blitDepthConstantBufferDesc.pData = &gClearRenderTargetInfo;
             blitDepthConstantBufferDesc.ppBuffer = &pRenderTargetInfoConstantsBuffers[i][2];
@@ -1063,6 +1072,7 @@ public:
     // loaded later by the shade step to reconstruct interpolated triangle data per pixel.
     bool Load(ReloadDesc* pReloadDesc)
     {
+        gSceneRes = getGPUCfgSceneResolution(mSettings.mWidth, mSettings.mHeight);
         gFrameCount = 0;
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -1090,7 +1100,7 @@ public:
             checkbox.pData = &gAppSettings.mAsyncCompute;
             luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Async Compute", &checkbox, WIDGET_TYPE_CHECKBOX));
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(FORGE_DEBUG)
             checkbox.pData = &gAppSettings.mVisualizeGeometry;
             luaRegisterWidget(uiAddComponentWidget(pGuiWindow, "Visualize Geometry", &checkbox, WIDGET_TYPE_CHECKBOX));
 
@@ -1247,6 +1257,10 @@ public:
 
             if (!addSwapChain())
                 return false;
+        }
+
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
             addRenderTargets();
 
             SetupDebugTexturesWindow();
@@ -1260,14 +1274,14 @@ public:
         prepareDescriptorSets();
 
         UserInterfaceLoadDesc uiLoad = {};
-        uiLoad.mColorFormat = gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0]->mFormat : pIntermediateRenderTarget->mFormat;
+        uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
-        fontLoad.mColorFormat = gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0]->mFormat : pIntermediateRenderTarget->mFormat;
+        fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
         fontLoad.mHeight = mSettings.mHeight;
         fontLoad.mWidth = mSettings.mWidth;
         fontLoad.mLoadType = pReloadDesc->mType;
@@ -1289,9 +1303,8 @@ public:
             removePipelines();
         }
 
-        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
         {
-            removeSwapChain(pRenderer, pSwapChain);
             removeRenderTargets();
 
             if (pDebugTexturesWindow)
@@ -1299,6 +1312,11 @@ public:
                 uiRemoveComponent(pDebugTexturesWindow);
                 pDebugTexturesWindow = NULL;
             }
+        }
+
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+        {
+            removeSwapChain(pRenderer, pSwapChain);
 
             uiRemoveComponent(pGuiWindow);
             uiRemoveDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR);
@@ -1306,7 +1324,10 @@ public:
             uiRemoveDynamicWidgets(&gAppSettings.mLinearScale);
             uiRemoveDynamicWidgets(&gAppSettings.mDisplaySetting);
             unloadProfilerUI();
+        }
 
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
 #if defined(XBOX)
             esramResetAllocations(pRenderer->mDx.pESRAMManager);
 #endif
@@ -1666,13 +1687,17 @@ public:
                 drawColorconversion(graphicsCmd);
             }
 
-            cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "UI Pass");
-            drawGUI(graphicsCmd, frameIdx);
-            cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
-
             // Get the current render target for this frame
             acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
             presentImage(graphicsCmd, frameIdx, pScreenRenderTarget, pSwapChain->ppRenderTargets[presentIndex]);
+
+            cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "UI Pass");
+            drawGUI(graphicsCmd, presentIndex);
+            cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
+
+            RenderTargetBarrier barrierPresent = { pSwapChain->ppRenderTargets[presentIndex], RESOURCE_STATE_RENDER_TARGET,
+                                                   RESOURCE_STATE_PRESENT };
+            cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, &barrierPresent);
 
             cmdEndGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
             endCmd(graphicsCmd);
@@ -1942,8 +1967,8 @@ public:
 
     void addRenderTargets()
     {
-        const uint32_t   width = mSettings.mWidth;
-        const uint32_t   height = mSettings.mHeight;
+        const uint32_t   width = gSceneRes.mWidth;
+        const uint32_t   height = gSceneRes.mHeight;
         /************************************************************************/
         /************************************************************************/
         const ClearValue depthStencilClear = { { 0.0f, 0 } };
@@ -2051,8 +2076,8 @@ public:
         postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         postProcRTDesc.mFormat = pSwapChain->mFormat;
         postProcRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        postProcRTDesc.mHeight = mSettings.mHeight;
-        postProcRTDesc.mWidth = mSettings.mWidth;
+        postProcRTDesc.mHeight = gSceneRes.mHeight;
+        postProcRTDesc.mWidth = gSceneRes.mWidth;
         postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
@@ -2070,8 +2095,8 @@ public:
         GRRTDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 1.0f } };
         GRRTDesc.mDepth = 1;
         GRRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        GRRTDesc.mHeight = mSettings.mHeight / gGodrayScale;
-        GRRTDesc.mWidth = mSettings.mWidth / gGodrayScale;
+        GRRTDesc.mHeight = gSceneRes.mHeight / gGodrayScale;
+        GRRTDesc.mWidth = gSceneRes.mWidth / gGodrayScale;
         GRRTDesc.mFormat = GRRTFormat;
         GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
@@ -2675,8 +2700,8 @@ public:
     // This includes transform matrices, render target resolution and global information about the scene.
     void updateUniformData(uint currentFrameIdx)
     {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t width = gSceneRes.mWidth;
+        const uint32_t height = gSceneRes.mHeight;
         const float    aspectRatioInv = (float)height / width;
         const uint32_t frameIdx = currentFrameIdx;
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
@@ -2695,10 +2720,9 @@ public:
         lightSourcePos += -800.0f * normalize(lightDir.getXYZ());
         mat4 translation = mat4::translation(-lightSourcePos);
 
-        mat4 lightModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4 lightView = rotation * translation;
-        mat4 lightProj = mat4::orthographicLH(-600, 600, -950, 350, 1300, -300);
-
+        mat4   lightModel = mat4::scale(vec3(SCENE_SCALE));
+        mat4   lightView = rotation * translation;
+        mat4   lightProj = mat4::orthographicLH_ReverseZ(-600, 600, -950, 350, gAppSettings.lightNearPlane, gAppSettings.lightFarPlane);
         float2 twoOverRes = { 2.0f / float(width), 2.0f / float(height) };
 
         /************************************************************************/
@@ -2713,14 +2737,17 @@ public:
         // Matrix data
         /************************************************************************/
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].view = lightView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
             inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
             currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].cameraPlane = { 500, -1100 };
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].cameraPlane = { gAppSettings.lightNearPlane,
+                                                                                    gAppSettings.lightFarPlane };
 
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].view = cameraView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].invVP =
             inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
         currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].projection = cameraProj;
@@ -2815,16 +2842,14 @@ public:
                 unloadUserInterface(RELOAD_TYPE_RENDERTARGET);
 
                 UserInterfaceLoadDesc uiLoad = {};
-                uiLoad.mColorFormat =
-                    gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0]->mFormat : pIntermediateRenderTarget->mFormat;
+                uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
                 uiLoad.mHeight = mSettings.mHeight;
                 uiLoad.mWidth = mSettings.mWidth;
                 uiLoad.mLoadType = RELOAD_TYPE_RENDERTARGET;
                 loadUserInterface(&uiLoad);
 
                 FontSystemLoadDesc fontLoad = {};
-                fontLoad.mColorFormat =
-                    gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0]->mFormat : pIntermediateRenderTarget->mFormat;
+                fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
                 fontLoad.mHeight = mSettings.mHeight;
                 fontLoad.mWidth = mSettings.mWidth;
                 fontLoad.mLoadType = RELOAD_TYPE_RENDERTARGET;
@@ -2854,7 +2879,7 @@ public:
     /************************************************************************/
     void clearVisibilityBuffer(Cmd* cmd, ProfileToken profileToken, uint32_t frameIdx)
     {
-        int              size = mSettings.mWidth * mSettings.mHeight + gShadowMapSize * gShadowMapSize;
+        int              size = gSceneRes.mWidth * gSceneRes.mHeight + gShadowMapSize * gShadowMapSize;
         RenderTargetInfo clearDepthData = { 0U, size, 0 }; // dims
         BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][2] };
         beginUpdateResource(&bufferUpdate);
@@ -2919,7 +2944,7 @@ public:
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + 1, pDescriptorSetRenderTargetPerBatch);
-        const uint32_t binRasterThreadsZCount = gAppSettings.mLargeBinRasterGroups ? 64 / 2 : 64;
+        const uint32_t binRasterThreadsZCount = 64;
         cmdDispatch(cmd, (pushConstantData.width + BIN_SIZE - 1) / BIN_SIZE, (pushConstantData.height + BIN_SIZE - 1) / BIN_SIZE,
                     binRasterThreadsZCount);
     }
@@ -3197,9 +3222,6 @@ public:
         cmdDraw(cmd, 3, 0);
         cmdBindRenderTargets(cmd, NULL);
 
-        RenderTargetBarrier barrierPresent = { pDstCol, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
-        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrierPresent);
-
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
@@ -3208,12 +3230,13 @@ public:
     {
         UNREF_PARAM(frameIdx);
 
+        RenderTarget*         rt = pSwapChain->ppRenderTargets[frameIdx];
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pScreenRenderTarget, LOAD_ACTION_LOAD };
+        bindRenderTargets.mRenderTargets[0] = { rt, LOAD_ACTION_LOAD };
         cmdBindRenderTargets(cmd, &bindRenderTargets);
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, rt->mWidth, rt->mHeight);
 
         gFrameTimeDraw.mFontColor = gAppSettings.mVisualizeAO ? 0xff000000 : 0xff00ffff;
         gFrameTimeDraw.mFontSize = 18.0f;

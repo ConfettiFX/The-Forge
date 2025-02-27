@@ -24,7 +24,7 @@
 
 // Shader for ground plane in Unit Tests Animation
 
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 STRUCT(VSOutput)
 {

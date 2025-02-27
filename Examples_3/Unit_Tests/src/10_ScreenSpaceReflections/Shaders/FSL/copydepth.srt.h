@@ -26,8 +26,8 @@
 #define copydepth_srt_h
 
 BEGIN_SRT(CopyDepthSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
 		DECL_RWTEXTURE(PerBatch, RWTex2D(float), gDestinationDepth)
 	END_SRT_SET(PerBatch)

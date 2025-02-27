@@ -80,7 +80,7 @@ struct SubresourceDataDesc
     uint64_t mSrcOffset;
     uint32_t mMipLevel;
     uint32_t mArrayLayer;
-#if defined(DIRECT3D11) || defined(METAL) || defined(VULKAN)
+#if defined(METAL) || defined(VULKAN)
     uint32_t mRowPitch;
     uint32_t mSlicePitch;
 #endif
@@ -92,17 +92,20 @@ enum
     MAPPED_RANGE_FLAG_TEMP_BUFFER = (1 << 1),
 };
 
-void getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
-void getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
-void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc);
-void cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc);
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-void removeTexture(Renderer* pRenderer, Texture* pTexture);
+extern "C"
+{
+    void getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
+    void getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
+    void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+    void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+    void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+    void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+    void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+    void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc);
+    void cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc);
+    void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+    void removeTexture(Renderer* pRenderer, Texture* pTexture);
+}
 
 struct ShaderByteCodeBuffer
 {
@@ -411,9 +414,9 @@ static void materialLoadBinaryShader(Renderer* pRenderer, const MaterialDesc* pM
 // so we dont need a command buffer to upload linear data
 // A simple memcpy suffices since the GPU memory is marked as CPU write combine
 // Will be filled from Graphics Config
-static bool gUma = false;
+static UMASupportFlags gUma = UMA_SUPPORT_NONE;
 
-bool isUma() { return gUma; }
+UMASupportFlags getUmaFlags() { return gUma; }
 
 #if defined(DIRECT3D12)
 #define STRICT_QUEUE_TYPE_BARRIERS
@@ -766,16 +769,6 @@ static void freeShaderByteCode(ShaderByteCodeBuffer*, BinaryShaderDesc*) {}
 static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memoryRequirement, uint32_t alignment)
 {
     Buffer* buffer;
-#if defined(DIRECT3D11)
-    UNREF_PARAM(pRenderer);
-    UNREF_PARAM(alignment);
-    // There is no such thing as staging buffer in D3D11
-    // To keep code paths unified in update functions, we allocate space for a dummy buffer and the system memory for pCpuMappedAddress
-    buffer = (Buffer*)tf_memalign(alignof(Buffer), sizeof(Buffer) + (size_t)memoryRequirement);
-    *buffer = {};
-    buffer->pCpuMappedAddress = buffer + 1;
-    buffer->mSize = memoryRequirement;
-#else
 
     // LOGF(LogLevel::eINFO, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer
     // capacity of %llu", memoryRequirement, size);
@@ -788,7 +781,7 @@ static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memo
     bufferDesc.mNodeIndex = pRenderer->mUnlinkedRendererIndex;
     bufferDesc.pName = "temporary staging buffer";
     addBuffer(pRenderer, &bufferDesc, &buffer);
-#endif
+
     return { (uint8_t*)buffer->pCpuMappedAddress, buffer, 0, memoryRequirement, MAPPED_RANGE_FLAG_TEMP_BUFFER };
 }
 
@@ -806,9 +799,8 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
         tf_placement_new<CopyResourceSet>(pCopyEngine->resourceSets + i);
 
         CopyResourceSet& resourceSet = pCopyEngine->resourceSets[i];
-#if !defined(DIRECT3D11)
+
         initFence(pRenderer, &resourceSet.pFence);
-#endif
 
         CmdPoolDesc cmdPoolDesc = {};
         cmdPoolDesc.pQueue = pCopyEngine->pQueue;
@@ -847,9 +839,8 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 
         exitCmd(pRenderer, resourceSet.pCmd);
         exitCmdPool(pRenderer, resourceSet.pCmdPool);
-#if !defined(DIRECT3D11)
+
         exitFence(pRenderer, resourceSet.pFence);
-#endif
 
         for (ptrdiff_t j = 0; j < arrlen(resourceSet.mTempBuffers); ++j)
         {
@@ -875,12 +866,6 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 
 static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
 {
-#if defined(DIRECT3D11)
-    UNREF_PARAM(pRenderer);
-    UNREF_PARAM(pCopyEngine);
-    return;
-#else
-
     ASSERT(!pCopyEngine->isRecording);
     CopyResourceSet& resourceSet = pCopyEngine->resourceSets[pCopyEngine->activeSet];
 
@@ -900,7 +885,6 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
             waitForFences(pRenderer, 1, &resourceSet.pPostCopyBarrierFence);
         }
     }
-#endif
 #endif
 }
 
@@ -1264,7 +1248,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 subresourceDesc.mArrayLayer = layer;
                 subresourceDesc.mMipLevel = mip;
                 subresourceDesc.mSrcOffset = upload.mOffset + offset;
-#if defined(DIRECT3D11) || defined(METAL) || defined(VULKAN)
+#if defined(METAL) || defined(VULKAN)
                 subresourceDesc.mRowPitch = subRowPitch;
                 subresourceDesc.mSlicePitch = subSlicePitch;
 #endif
@@ -1378,6 +1362,11 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 res = loadXDDSTexture(pRenderer, &stream, pTextureDesc->pFileName, pTextureDesc->mFlags, pTextureDesc->ppTexture);
                 fsCloseStream(&stream);
             }
+            else
+            {
+                LOGF(eERROR, "Failed to open texture file %s.Function %s failed with error: %s", pTextureDesc->pFileName, FS_ERR_CTX.func,
+                     getFSErrCodeString(FS_ERR_CTX.code));
+            }
 
             if (!res)
             {
@@ -1390,6 +1379,11 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             if (success)
             {
                 success = loadDDSTextureDesc(&stream, &textureDesc);
+            }
+            else
+            {
+                LOGF(eERROR, "Failed to open texture file %s.Function %s failed with error: %s", pTextureDesc->pFileName, FS_ERR_CTX.func,
+                     getFSErrCodeString(FS_ERR_CTX.code));
             }
 #endif
             break;
@@ -1409,6 +1403,11 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                     fsReadFromStream(pStream, &mipSize, sizeof(mipSize));
                 };
             }
+            else
+            {
+                LOGF(eERROR, "Failed to open texture file %s.Function %s failed with error: %s", pTextureDesc->pFileName, FS_ERR_CTX.func,
+                     getFSErrCodeString(FS_ERR_CTX.code));
+            }
             break;
         }
         case TEXTURE_CONTAINER_GNF:
@@ -1422,6 +1421,11 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                                                Texture** ppTexture);
                 res = loadGnfTexture(pRenderer, &stream, pTextureDesc->pFileName, pTextureDesc->mFlags, pTextureDesc->ppTexture);
                 fsCloseStream(&stream);
+            }
+            else
+            {
+                LOGF(eERROR, "Failed to open texture file %s.Function %s failed with error: %s", pTextureDesc->pFileName, FS_ERR_CTX.func,
+                     getFSErrCodeString(FS_ERR_CTX.code));
             }
 
             return res ? UPLOAD_FUNCTION_RESULT_INVALID_REQUEST : UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -1511,7 +1515,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         loadDesc.mElementCount = (uint32_t)(loadDesc.mSize / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
         loadDesc.mStructStride = *indexStride;
         loadDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        loadDesc.mStartState = gUma ? gIndexBufferState : RESOURCE_STATE_COPY_DEST;
+        // Note: buffers are rw, so check only for rw support here
+        loadDesc.mStartState = gUma == UMA_SUPPORT_READ_WRITE ? gIndexBufferState : RESOURCE_STATE_COPY_DEST;
         addBuffer(pRenderer, &loadDesc, &geom->pIndexBuffer);
         indexUpdateDesc->pBuffer = geom->pIndexBuffer;
         indexUpdateDesc->mDstOffset = 0;
@@ -1521,7 +1526,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
 
     // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
     // mapped address and we need staging memory
-    if (gUma && indexUpdateDesc->pBuffer->pCpuMappedAddress)
+    if (gUma == UMA_SUPPORT_READ_WRITE && indexUpdateDesc->pBuffer->pCpuMappedAddress)
     {
         indexUpdateDesc->mInternal.mMappedRange = { (uint8_t*)indexUpdateDesc->pBuffer->pCpuMappedAddress + indexUpdateDesc->mDstOffset };
     }
@@ -1561,7 +1566,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
                 (uint32_t)(vertexBufferDesc.mSize / (structuredBuffers ? geom->mVertexStrides[i] : sizeof(uint32_t)));
             vertexBufferDesc.mStructStride = geom->mVertexStrides[i];
             vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-            vertexBufferDesc.mStartState = gUma ? gVertexBufferState : RESOURCE_STATE_COPY_DEST;
+            // Note: buffers are rw, so check only for rw support here
+            vertexBufferDesc.mStartState = gUma == UMA_SUPPORT_READ_WRITE ? gVertexBufferState : RESOURCE_STATE_COPY_DEST;
             vertexBufferDesc.pName = "VertexBuffer";
             addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
 
@@ -1573,7 +1579,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
 
         // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
         // mapped address and we need staging memory
-        if (gUma && vertexUpdateDesc[i].pBuffer->pCpuMappedAddress)
+        if (gUma == UMA_SUPPORT_READ_WRITE && vertexUpdateDesc[i].pBuffer->pCpuMappedAddress)
         {
             vertexUpdateDesc[i].mInternal.mMappedRange = { (uint8_t*)vertexUpdateDesc[i].pBuffer->pCpuMappedAddress +
                                                            vertexUpdateDesc[i].mDstOffset };
@@ -1596,7 +1602,8 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     FileStream file = {};
     if (!fsOpenStreamFromPath(RD_MESHES, pDesc->pFileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Failed to open bin file %s", pDesc->pFileName);
+        LOGF(eERROR, "Failed to open bin file %s. Function %s failed with error: %s", pDesc->pFileName, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         ASSERT(false);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
@@ -1860,9 +1867,12 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     BufferBarrier        barriers[MAX_VERTEX_BINDINGS + 1] = {};
     uint32_t             barrierCount = 0;
 
-    if (!gUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
+    const bool indexUma = gUma != UMA_SUPPORT_NONE &&
+                          (gUma == UMA_SUPPORT_READ_WRITE || (indexUpdateDesc.pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_MASK) == 0);
+
+    if (!indexUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
     {
-        indexUpdateDesc.mCurrentState = gUma ? indexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
+        indexUpdateDesc.mCurrentState = indexUma ? indexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
         indexUpdateDesc.mInternal.mMappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.mSize, 1, pDesc->mNodeIndex);
         ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.mInternal.mMappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.mSize);
@@ -1877,13 +1887,19 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
     barriers[barrierCount++] = { indexUpdateDesc.pBuffer, RESOURCE_STATE_COPY_DEST, gIndexBufferState };
 
+    bool allVertexUma = true;
+
     for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
     {
         if (vertexUpdateDesc[i].pBuffer)
         {
-            if (!gUma || (vertexUpdateDesc[i].pMappedData && !vertexUpdateDesc[i].pBuffer->pCpuMappedAddress))
+            const bool vertexUma = gUma != UMA_SUPPORT_NONE && (gUma == UMA_SUPPORT_READ_WRITE ||
+                                                                (vertexUpdateDesc[i].pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_MASK) == 0);
+            allVertexUma = allVertexUma && vertexUma;
+
+            if (!vertexUma || (vertexUpdateDesc[i].pMappedData && !vertexUpdateDesc[i].pBuffer->pCpuMappedAddress))
             {
-                vertexUpdateDesc[i].mCurrentState = gUma ? vertexUpdateDesc[i].mCurrentState : RESOURCE_STATE_COPY_DEST;
+                vertexUpdateDesc[i].mCurrentState = vertexUma ? vertexUpdateDesc[i].mCurrentState : RESOURCE_STATE_COPY_DEST;
                 vertexUpdateDesc[i].mInternal.mMappedRange =
                     allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].mSize, 1, pDesc->mNodeIndex);
                 ASSERT(vertexUpdateDesc[i].pMappedData);
@@ -1900,7 +1916,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         }
     }
 
-    if (!gUma && IssueBufferCopyBarriers())
+    if (!(indexUma && allVertexUma) && IssueBufferCopyBarriers())
     {
         Cmd* cmd = acquirePostCopyBarrierCmd(pCopyEngine);
         cmdResourceBarrier(cmd, barrierCount, barriers, 0, NULL, 0, NULL);
@@ -1939,7 +1955,7 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     subresourceDesc.mArrayLayer = pTextureCopy.mTextureArrayLayer;
     subresourceDesc.mMipLevel = pTextureCopy.mTextureMipLevel;
     subresourceDesc.mSrcOffset = pTextureCopy.mBufferOffset;
-#if defined(DIRECT3D11) || defined(METAL) || defined(VULKAN)
+#if defined(METAL) || defined(VULKAN)
     const uint32_t sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
     const uint32_t rowAlignment = util_get_texture_row_alignment(pRenderer);
     uint32_t       subRowPitch = round_up(rowBytes, rowAlignment);
@@ -2116,11 +2132,7 @@ static void streamerThreadFunc(void* pThreadData)
     for (uint32_t nodeIndex = 0; nodeIndex < pLoader->mGpuCount; ++nodeIndex)
     {
         streamerFlush(&pLoader->pCopyEngines[nodeIndex]);
-#if defined(DIRECT3D11)
-        const bool wait = false;
-#else
         const bool wait = true;
-#endif
         if (wait)
         {
             waitQueueIdle(pLoader->pCopyEngines[nodeIndex].pQueue);
@@ -2175,7 +2187,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
         ASSERT(rendererCount == 1 || ppRenderers[i]->mGpuMode == GPU_MODE_UNLINKED);
         // Replicate single renderer in linked mode, for uniform handling of linked and unlinked multi gpu.
         pLoader->ppRenderers[i] = (rendererCount > 1) ? ppRenderers[i] : ppRenderers[0];
-        gUma = ppRenderers[i]->pGpu->mUnifiedMemorySupported;
+        gUma = (UMASupportFlags)ppRenderers[i]->pGpu->mUnifiedMemorySupport;
     }
 
     pLoader->mRun = true; //-V601
@@ -2247,10 +2259,6 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     threadDesc.affinityMask[0] = 1;
 #endif
 
-#if defined(DIRECT3D11)
-    pLoader->mDesc.mSingleThreaded = true;
-#endif
-
     // Create dedicated resource loader thread.
     if (!pLoader->mDesc.mSingleThreaded)
     {
@@ -2276,11 +2284,7 @@ static void exitResourceLoader(ResourceLoader* pLoader)
 
     for (uint32_t nodeIndex = 0; nodeIndex < pLoader->mGpuCount; ++nodeIndex)
     {
-#if defined(DIRECT3D11)
-        const bool wait = false;
-#else
         const bool wait = true;
-#endif
         if (wait)
         {
             waitQueueIdle(pLoader->pUploadEngines[nodeIndex].pQueue);
@@ -2471,6 +2475,8 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
             }
             else
             {
+                LOGF(eERROR, "Failed to open the material_lib.ini file. Function %s failed with error: %s", FS_ERR_CTX.func,
+                     getFSErrCodeString(FS_ERR_CTX.code));
                 ASSERT(false);
                 return;
             }
@@ -2881,6 +2887,8 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     }
     else
     {
+        LOGF(eERROR, "Failed to open material file %s. Function %s failed with error: %s", pMaterialFileName, FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return REGISTER_MATERIAL_BADFILE;
     }
 
@@ -2934,6 +2942,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
 #if defined(PROSPERO)
             shaderDesc.mOwnByteCode = true;
 #endif
+
             addShaderBinary(pLib->pRenderer, &shaderDesc, ppOutShader);
             freeShaderByteCode(&shaderByteCodeBuffer, &shaderDesc);
         }
@@ -2941,7 +2950,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         pLib->pMaterialShaderRefCount[shaderIndex]++;
         pLoadedMaterial->mShaderIndex = shaderIndex;
 
-        // Load Textutes
+        // Load Textures
 
         ASSERT(pMaterialSet->mTextureSetIdx < pMaterialDesc->mTextureSetCount);
         const MaterialDesc::TextureSet* pTextureSet = pMaterialDesc->pTextureSets + pMaterialSet->mTextureSetIdx;
@@ -3143,7 +3152,9 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 
     Renderer*  pRenderer = pResourceLoader->ppRenderers[pBufferDesc->mDesc.mNodeIndex];
     const bool update = pBufferDesc->pData || pBufferDesc->mForceReset;
-    const bool gpuUpdate = pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update && !gUma;
+    const bool isUma =
+        gUma != UMA_SUPPORT_NONE && (gUma == UMA_SUPPORT_READ_WRITE || (pBufferDesc->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_MASK) == 0);
+    const bool gpuUpdate = pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update && !isUma;
 
     if (gpuUpdate)
     {
@@ -3391,13 +3402,15 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     Buffer* pIndexBuffer = NULL;
     Buffer* pVertexBuffer = NULL;
 
+    const bool isUma = gUma != UMA_SUPPORT_NONE && (gUma == UMA_SUPPORT_READ_WRITE || (flags & DESCRIPTOR_TYPE_RW_MASK) == 0); //-V560
+
     loadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
     loadDesc.mDesc.mSize = pDesc->mIndicesSize;
     loadDesc.ppBuffer = &pIndexBuffer;
     loadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | flags;
     loadDesc.mDesc.mStructStride = sizeof(uint32_t);
     loadDesc.mDesc.mElementCount = (uint32_t)(loadDesc.mDesc.mSize / loadDesc.mDesc.mStructStride);
-    loadDesc.mDesc.mStartState = gUma ? gIndexBufferState : pDesc->mStartState;
+    loadDesc.mDesc.mStartState = isUma ? gIndexBufferState : pDesc->mStartState;
     loadDesc.mDesc.pName = pDesc->pNameIndexBuffer ? pDesc->pNameIndexBuffer : "GeometryBuffer Indices (unnamed)";
     loadDesc.mDesc.pPlacement = pDesc->pIndicesPlacement;
     addResource(&loadDesc, nullptr);
@@ -3415,7 +3428,7 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
         loadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | flags;
         loadDesc.mDesc.mStructStride = sizeof(uint32_t);
         loadDesc.mDesc.mElementCount = (uint32_t)(loadDesc.mDesc.mSize / loadDesc.mDesc.mStructStride);
-        loadDesc.mDesc.mStartState = gUma ? gVertexBufferState : pDesc->mStartState;
+        loadDesc.mDesc.mStartState = isUma ? gVertexBufferState : pDesc->mStartState;
         loadDesc.mDesc.pName = pDesc->pNamesVertexBuffers[i] ? pDesc->pNamesVertexBuffers[i] : "GeometryBuffer Vertices (unnamed)";
         loadDesc.mDesc.pPlacement = pDesc->pVerticesPlacements[i];
         addResource(&loadDesc, nullptr);
@@ -3617,8 +3630,11 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
     uint64_t size = pBufferUpdate->mSize > 0 ? pBufferUpdate->mSize : (pBufferUpdate->pBuffer->mSize - pBufferUpdate->mDstOffset);
     ASSERT(pBufferUpdate->mDstOffset + size <= pBuffer->mSize);
 
+    const bool isUma =
+        gUma != UMA_SUPPORT_NONE && (gUma == UMA_SUPPORT_READ_WRITE || (pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_MASK) == 0);
+
     ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
-    if (gUma || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+    if (isUma || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         ASSERTMSG(!pBufferUpdate->pSrcBuffer, "No point in staging buffer when we are directly writing into dst buffer. "
                                               "If this is not a GPU_ONLY buffer you can use use isUma() to handle this case, no need to "
@@ -3664,14 +3680,20 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 
 void endUpdateResource(BufferUpdateDesc* pBufferUpdate)
 {
+    Buffer* pBuffer = pBufferUpdate->pBuffer;
+    ASSERT(pBuffer);
+
     const uint32_t nodeIndex = pBufferUpdate->pBuffer->mNodeIndex;
     if (pBufferUpdate->mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_UNMAP_BUFFER)
     {
         unmapBuffer(pResourceLoader->ppRenderers[nodeIndex], pBufferUpdate->pBuffer);
     }
 
+    const bool isUma =
+        gUma != UMA_SUPPORT_NONE && (gUma == UMA_SUPPORT_READ_WRITE || (pBuffer->mDescriptors & DESCRIPTOR_TYPE_RW_MASK) == 0);
+
     ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
-    if (!gUma && memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
+    if (!isUma && memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         MutexLock   lock(pResourceLoader->mUploadEngineMutex);
         CopyEngine* pCopyEngine = &pResourceLoader->pUploadEngines[nodeIndex];
@@ -3901,7 +3923,11 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
     ASSERT(result);
     if (!result)
+    {
+        LOGF(eERROR, "Failed to open shader binary. Function %s failed with error: %s", FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
         return result;
+    }
 
     ssize_t size = fsGetStreamFileSize(&binaryFileStream);
     ASSERT(size > 0);
@@ -3946,8 +3972,8 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
 #if defined(VULKAN)
         // Needs to match with the way we set the derivatives in FSL scripts (vulkan.py, compilers.py)
-        derivativeHash = (uint64_t)pRenderer->pGpu->mShaderSampledImageArrayDynamicIndexingSupported |
-                         (uint64_t)pRenderer->pGpu->mDescriptorIndexingExtension << 1;
+        // For now we are just using the derivative index as the hash.
+        derivativeHash = pRenderer->pGpu->mDescriptorIndexingExtension;
 #endif
 
         for (uint32_t i = 0; i < header.mDerivativeCount; ++i)
@@ -3991,9 +4017,6 @@ const char* getShaderPlatformName()
 #else
     return "DIRECT3D12";
 #endif
-#endif
-#if defined(DIRECT3D11)
-    return "DIRECT3D11";
 #endif
 #if defined(VULKAN)
 #if defined(QUEST_VR)
@@ -4046,7 +4069,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
         &pDesc->mGraph
 #endif
     };
-
+    uint32_t numThreadsPerGroup[3] = { 0, 0, 0 };
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(stages); ++i)
     {
         const char* fileName = stages[i]->pFileName;
@@ -4090,18 +4113,24 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
             break;
 #endif
         default:
-            ASSERTMSG(false, "Unkown shader stage.");
+            ASSERTMSG(false, "Unknown shader stage.");
             break;
         }
 
         binaryDesc.mStages |= stage;
         pBinaryStageDesc->pName = fileName;
-
         FSLMetadata metadata = {};
         if (!load_shader_stage_byte_code(pRenderer, fileName, stage, pBinaryStageDesc, &shaderByteCodeBuffer, &metadata))
         {
             freeShaderByteCode(&shaderByteCodeBuffer, &binaryDesc);
             return;
+        }
+
+        if (SHADER_STAGE_COMP == stage)
+        {
+            numThreadsPerGroup[0] = metadata.mNumThreadsPerGroup[0];
+            numThreadsPerGroup[1] = metadata.mNumThreadsPerGroup[1];
+            numThreadsPerGroup[2] = metadata.mNumThreadsPerGroup[2];
         }
 
 #if defined(QUEST_VR)
@@ -4155,14 +4184,14 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 
 #if defined(METAL)
     pShader->mICB = bIsICBCompatible;
-#else
+#endif
+
     if (SHADER_STAGE_COMP == binaryDesc.mStages)
     {
-        pShader->mNumThreadsPerGroup[0] = pShader->pReflection->mNumThreadsPerGroup[0];
-        pShader->mNumThreadsPerGroup[1] = pShader->pReflection->mNumThreadsPerGroup[1];
-        pShader->mNumThreadsPerGroup[2] = pShader->pReflection->mNumThreadsPerGroup[2];
+        pShader->mNumThreadsPerGroup[0] = numThreadsPerGroup[0];
+        pShader->mNumThreadsPerGroup[1] = numThreadsPerGroup[1];
+        pShader->mNumThreadsPerGroup[2] = numThreadsPerGroup[2];
     }
-#endif
 
 #if defined(METAL)
     if (ppShader)
@@ -4202,8 +4231,15 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
     }
     else
     {
-        LOGF(LogLevel::eINFO, "Failed to open the pipeline cache. Likely because the file is"
-                              "only created upon the first exit of the application");
+        if (FS_ERR_CTX.code == FS_NOT_FOUND_ERR)
+        {
+            LOGF(LogLevel::eINFO, "Pipeline cache not found. Initializing pipeline cache with NULL data");
+        }
+        else
+        {
+            LOGF(LogLevel::eERROR, "Failed to open pipeline cache file. Function %s failed with error code %d", FS_ERR_CTX.func,
+                 FS_ERR_CTX.code);
+        }
     }
 
     PipelineCacheDesc desc = {};
@@ -4216,13 +4252,6 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
     {
         tf_free(data);
     }
-#endif
-#if defined(DIRECT3D11)
-
-    UNREF_PARAM(pRenderer);
-    UNREF_PARAM(pDesc);
-    UNREF_PARAM(ppPipelineCache);
-
 #endif
 }
 
@@ -4250,21 +4279,21 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
 
         fsCloseStream(&stream);
     }
-#endif
-
-#if defined(DIRECT3D11)
-
-    UNREF_PARAM(pRenderer);
-    UNREF_PARAM(pDesc);
-    UNREF_PARAM(pPipelineCache);
-
+    else
+    {
+        LOGF(LogLevel::eERROR, "Failed to open pipeline cache file. Function %s failed with error: %s", FS_ERR_CTX.func,
+             getFSErrCodeString(FS_ERR_CTX.code));
+    }
 #endif
 }
 /************************************************************************/
 // Root signature
 /************************************************************************/
 #if defined(DIRECT3D12)
-static void initRootSignature(Renderer* pRenderer, const char* pFileName, ID3D12RootSignature** ppOutRootSignature)
+extern "C" void initRootSignatureImpl(Renderer*, const void*, uint32_t, ID3D12RootSignature**);
+extern "C" void exitRootSignatureImpl(Renderer*, ID3D12RootSignature*);
+
+static void loadRootSignature(Renderer* pRenderer, const char* pFileName, ID3D12RootSignature** ppOutRootSignature)
 {
     ShaderByteCodeBuffer shaderByteCodeBuffer = {};
     char                 bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
@@ -4277,10 +4306,10 @@ static void initRootSignature(Renderer* pRenderer, const char* pFileName, ID3D12
         return;
     }
 
-    extern void initRootSignature(Renderer*, const void*, uint32_t, ID3D12RootSignature**);
-    initRootSignature(pRenderer, desc.mComp.pByteCode, desc.mComp.mByteCodeSize, ppOutRootSignature);
+    initRootSignatureImpl(pRenderer, desc.mComp.pByteCode, desc.mComp.mByteCodeSize, ppOutRootSignature);
     freeShaderByteCode(&shaderByteCodeBuffer, &desc);
 }
+
 #endif
 
 void initRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc)
@@ -4291,12 +4320,13 @@ void initRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc)
 
     if (pDesc->pGraphicsFileName)
     {
-        initRootSignature(pRenderer, pDesc->pGraphicsFileName, &pRenderer->mDx.pGraphicsRootSignature);
+        loadRootSignature(pRenderer, pDesc->pGraphicsFileName, &pRenderer->mDx.pGraphicsRootSignature);
     }
     if (pDesc->pComputeFileName)
     {
-        initRootSignature(pRenderer, pDesc->pComputeFileName, &pRenderer->mDx.pComputeRootSignature);
+        loadRootSignature(pRenderer, pDesc->pComputeFileName, &pRenderer->mDx.pComputeRootSignature);
     }
+
 #elif defined(VULKAN)
     DescriptorSetDesc setDesc = {};
     setDesc.mDescriptorCount = 0;
@@ -4317,16 +4347,15 @@ void exitRootSignature(Renderer* pRenderer)
 {
 #if defined(DIRECT3D12)
     ASSERT(pRenderer);
-    extern void exitRootSignature(Renderer*, ID3D12RootSignature*);
 
     if (pRenderer->mDx.pGraphicsRootSignature)
     {
-        exitRootSignature(pRenderer, pRenderer->mDx.pGraphicsRootSignature);
+        exitRootSignatureImpl(pRenderer, pRenderer->mDx.pGraphicsRootSignature);
         pRenderer->mDx.pGraphicsRootSignature = NULL;
     }
     if (pRenderer->mDx.pComputeRootSignature)
     {
-        exitRootSignature(pRenderer, pRenderer->mDx.pComputeRootSignature);
+        exitRootSignatureImpl(pRenderer, pRenderer->mDx.pComputeRootSignature);
         pRenderer->mDx.pComputeRootSignature = NULL;
     }
 #elif defined(VULKAN)

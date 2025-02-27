@@ -31,13 +31,37 @@
 #define DIRECT3D12
 
 #ifdef XBOX
-#include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
-#else
-#include <dxgi1_6.h>
+#define HMONITOR void*
+#endif
+#ifdef SCARLETT
+// ID3D12PipelineLibrary is not yet implemented in d3d12_xs
+#define DISABLE_PIPELINE_LIBRARY
+#endif
+#pragma warning(disable : 4115) // struct forward declaration inside of function parameter
+
+#if !defined(XBOX) || !defined(__cplusplus)
+
+// Similar to `d3d12.h`, `dxgiX_X.h` also have mismatching `__declspec(dllimport)` between PC/Xbox
+#include "../../../Common_3/Graphics/ThirdParty/OpenSource/Direct3d12Agility/include/dxgi1_6.h"
+
 #include <dxgidebug.h>
 
+// `d3d12.h` requires `_WIN32` to NOT be defined in order to use the correct Xbox COM definitions
+#if defined(XBOX) && defined(_WIN32)
+#define FORGE_WIN32_DEFINED
+#undef _WIN32
+#endif
 #include "../../../Common_3/Graphics/ThirdParty/OpenSource/Direct3d12Agility/include/d3d12.h"
-#include "../../../Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
+// Restore _WIN32 definition
+#if defined(XBOX) && defined(FORGE_WIN32_DEFINED)
+#define _WIN32 1
+#undef FORGE_WIN32_DEFINED
+#endif
+
+#endif
+
+#ifdef XBOX
+#include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #endif
 
 //////////////////////////////////////////////
@@ -45,10 +69,50 @@
 //// Do not modify
 //////////////////////////////////////////////
 
-#ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT
+#if defined(D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT) && (defined(SCARLETT) || !defined(XBOX))
 #define D3D12_RAYTRACING_AVAILABLE
 #endif
 
-#if defined(D3D12_WORK_GRAPHS_BACKING_MEMORY_ALIGNMENT_IN_BYTES)
+#if defined(D3D12_WORK_GRAPHS_BACKING_MEMORY_ALIGNMENT_IN_BYTES) && !defined(XBOX)
 #define D3D12_WORKGRAPH_AVAILABLE
+#endif
+
+#ifdef __cplusplus
+#define IID_REF(Type)                                IID_##Type
+
+#define IID_ARGS(Type, Ptr)                          __uuidof(Type), (void**)(Ptr)
+
+#define COM_CALL(METHOD, CALLER, ...)                (CALLER)->METHOD(__VA_ARGS__)
+
+#define COM_CALL_RETURN(METHOD, CALLER, dst, ...)    dst = (CALLER)->METHOD(##__VA_ARGS__)
+
+#define COM_CALL_RETURN_NO_ARGS(METHOD, CALLER, dst) COM_CALL_RETURN(METHOD, CALLER, dst)
+
+#define COM_RELEASE(ptr)            \
+    if (ptr && ptr->Release() == 0) \
+    ptr = NULL
+#else
+#define IID_REF(Type)                 &IID_##Type
+
+#define IID_ARGS(Type, Ptr)           &IID_##Type, (void**)(Ptr)
+
+#define COM_CALL(METHOD, CALLER, ...) (CALLER)->lpVtbl->METHOD(CALLER, ##__VA_ARGS__)
+
+#ifdef XBOX
+#define COM_CALL_RETURN(METHOD, CALLER, dst, ...)           dst = (CALLER)->lpVtbl->METHOD(CALLER, ##__VA_ARGS__)
+
+#define COM_CALL_RETURN_DST_FIRST(METHOD, CALLER, dst, ...) dst = (CALLER)->lpVtbl->METHOD(CALLER, __VA_ARGS__)
+
+#define COM_CALL_RETURN_NO_ARGS(METHOD, CALLER, dst)        dst = (CALLER)->lpVtbl->METHOD(CALLER)
+#else
+#define COM_CALL_RETURN(METHOD, CALLER, dst, ...)           (CALLER)->lpVtbl->METHOD(CALLER, __VA_ARGS__, &dst)
+
+#define COM_CALL_RETURN_DST_FIRST(METHOD, CALLER, dst, ...) (CALLER)->lpVtbl->METHOD(CALLER, &dst, __VA_ARGS__)
+
+#define COM_CALL_RETURN_NO_ARGS(METHOD, CALLER, dst)        (CALLER)->lpVtbl->METHOD(CALLER, &dst)
+#endif
+
+#define COM_RELEASE(ptr)                       \
+    if (ptr && ptr->lpVtbl->Release(ptr) == 0) \
+    ptr = NULL
 #endif

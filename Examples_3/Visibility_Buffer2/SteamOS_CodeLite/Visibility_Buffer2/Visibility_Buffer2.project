@@ -47,12 +47,10 @@
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="OS"/>
-    <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
   </Dependencies>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
-    <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
   </Dependencies>
   <Settings Type="Executable">
@@ -70,11 +68,9 @@
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/SteamOS_CodeLite/OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/SteamOS_CodeLite/SpirVTools/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -144,11 +140,9 @@ shaders:&#xD;
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/SteamOS_CodeLite/OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/SteamOS_CodeLite/SpirVTools/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
-        <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

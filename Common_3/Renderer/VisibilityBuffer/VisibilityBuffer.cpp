@@ -35,7 +35,7 @@
 
 // fsl
 #include "../../../Common_3/Graphics/FSL/defaults.h"
-#include "../VisibilityBuffer/Shaders/FSL/vb_structs.h.fsl"
+#include "../VisibilityBuffer/Shaders/FSL/VisibilityBufferStructs.h.fsl"
 
 /************************************************************************/
 // Settings

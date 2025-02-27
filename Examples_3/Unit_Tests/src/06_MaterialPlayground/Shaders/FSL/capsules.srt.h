@@ -24,8 +24,8 @@
 
 // for low end iOS devices, do not use Argument buffers
 BEGIN_SRT_NO_AB(SrtCapsulesData)
-    #include "persistent_set.h"
-    #include "perframe_set.h"
+    #include "PersistentSet.h"
+    #include "PerFrameSet.h"
     BEGIN_SRT_SET(PerDraw)
         DECL_CBUFFER(PerDraw, CBUFFER(CapsuleData), gCapsuleData)
     END_SRT_SET(PerDraw)

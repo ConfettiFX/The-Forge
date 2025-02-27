@@ -23,8 +23,8 @@
 */
 
 // USERMACRO: SAMPLE_COUNT [1,2,4]
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
 
 #ifndef SAMPLE_COUNT
 #define SAMPLE_COUNT 4

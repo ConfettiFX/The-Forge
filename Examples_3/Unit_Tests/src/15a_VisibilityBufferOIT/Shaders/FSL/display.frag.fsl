@@ -34,9 +34,9 @@ STRUCT(FSOutput)
 };
 
 
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "display.srt.h"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "Display.srt.h"
 
 #define PQ_N  f3(0.1593017578125)
 #define PQ_M  f3(78.84375)

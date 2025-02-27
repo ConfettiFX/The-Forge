@@ -48,7 +48,7 @@
 
 // fsl
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
+#include "./Shaders/FSL/Global.srt.h"
 
 #define SIZEOF_ARR(x) sizeof(x) / sizeof(x[0])
 
@@ -263,7 +263,8 @@ static bool testReadFile(const char* testName, ReadError expectedError, Resource
     {
         if (!(expectedError & READ_OPEN_ERROR))
         {
-            LOGF(eERROR, "\"%s\": Couldn't open file '%s' for read.", testName, pFileName);
+            LOGF(eERROR, "\"%s\": Couldn't open file '%s' for read. Function %s failed with error: %s", testName, pFileName,
+                 FS_ERR_CTX.func, getFSErrCodeString(FS_ERR_CTX.code));
             return false;
         }
         return true;
@@ -617,7 +618,8 @@ public:
 
         if (!fsArchiveOpen(RD_OTHER_FILES, pZipReadFile, &openDesc, &gArchiveFileSystem))
         {
-            LOGF(eERROR, "Failed to open zip file for read.");
+            LOGF(eERROR, "Failed to open zip file for read. Function %s failed with error: %s", FS_ERR_CTX.func,
+                 getFSErrCodeString(FS_ERR_CTX.code));
             return false;
         }
 
@@ -1536,6 +1538,8 @@ public:
     bool addDepthBuffer()
     {
         // Add depth buffer
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth", 0);
+
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
         depthRT.mClearValue.depth = 0.0f;
@@ -1547,8 +1551,10 @@ public:
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
         depthRT.mWidth = mSettings.mWidth;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+        ESRAM_END_ALLOC(pRenderer);
 
         return pDepthBuffer != NULL;
     }

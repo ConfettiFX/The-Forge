@@ -33,13 +33,13 @@
     <ClInclude Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h">
       <Filter>Headers\Shared</Filter>
     </ClInclude>
-    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\basic.frag.fsl">
+    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\Basic.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl">
+    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\Basic.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\shaders.list">
+    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <None Include="..\..\src\19_CodeHotReload\GPUCfg\gpu.cfg">

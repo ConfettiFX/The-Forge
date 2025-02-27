@@ -21,9 +21,9 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-#include "SDF_Constant.h.fsl"
-#include "vb_resources.h.fsl"
-#include "updateRegion3DTexture.srt.h"
+#include "SDFConstants.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "UpdateRegion3DTexture.srt.h"
 
 ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(8, 8, 8)

@@ -37,6 +37,6 @@ STRUCT(UniformBlock)
     DATA(float2, pad, None);
 };
 
-#include "fontstash.srt.h"
+#include "FontStash.srt.h"
 
 #endif

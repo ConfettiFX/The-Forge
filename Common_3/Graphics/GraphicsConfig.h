@@ -43,15 +43,14 @@
 #else
 
 #include "../Application/Config.h"
+#include "../OS/Interfaces/IOperatingSystem.h"
 
 // ------------------------------- renderer configuration ------------------------------- //
 
 // Comment/uncomment includes to disable/enable rendering APIs
 #if defined(_WINDOWS)
 #if defined(FORGE_EXPLICIT_RENDERER_API)
-#if defined(FORGE_EXPLICIT_RENDERER_API_DIRECT3D11)
-#include "Direct3D11/Direct3D11Config.h"
-#elif defined(FORGE_EXPLICIT_RENDERER_API_VULKAN)
+#if defined(FORGE_EXPLICIT_RENDERER_API_VULKAN)
 #include "Vulkan/VulkanConfig.h"
 #endif
 #endif
@@ -107,7 +106,7 @@ enum
 #endif
 
 #ifdef ENABLE_PROFILER
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 #define ENABLE_GPU_PROFILER
 #endif
 #endif
@@ -128,10 +127,12 @@ enum
     {                                                                          \
         continue;                                                              \
     }
-#define IF_VALIDATE_DESCRIPTOR(...) __VA_ARGS__
+#define IF_VALIDATE_DESCRIPTOR(...)            __VA_ARGS__
+#define IF_VALIDATE_DESCRIPTOR_MEMBER(T, Name) T Name;
 #else
 #define VALIDATE_DESCRIPTOR(descriptor, ...)
 #define IF_VALIDATE_DESCRIPTOR(...)
+#define IF_VALIDATE_DESCRIPTOR_MEMBER(T, Name)
 #endif
 
 #ifdef FORGE_PROFILE
@@ -141,7 +142,7 @@ enum
 #define ENABLE_GRAPHICS_DEBUG_ANNOTATION
 #endif
 
-#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) == 0
+#if (defined(DIRECT3D12) + defined(VULKAN) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) == 0
 #error "No rendering API defined"
 #endif
 
@@ -189,37 +190,52 @@ typedef enum GPUPresetLevel
     GPU_PRESET_COUNT
 } GPUPresetLevel;
 
-// read gpu.cfg and store all its content in specific structures
-FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-// free all specific gpu.cfg structures
-FORGE_API void removeGPUConfigurationRules();
+    // read gpu.cfg and store all its content in specific structures
+    FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);
 
-// set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
-FORGE_API void setDefaultGPUProperties(struct GpuDesc* pGpuDesc);
+    // free all specific gpu.cfg structures
+    FORGE_API void removeGPUConfigurationRules();
 
-// selects best gpu depending on the gpu comparison rules stored in gpu.cfg
-FORGE_API uint32_t util_select_best_gpu(struct GpuDesc* availableSettings, uint32_t gpuCount);
+    // set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
+    FORGE_API void setDefaultGPUProperties(struct GpuDesc* pGpuDesc);
 
-// reads the gpu data and sets the preset level of all available gpu's
-FORGE_API GPUPresetLevel getDefaultPresetLevel();
-FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName);
+    // selects best gpu depending on the gpu comparison rules stored in gpu.cfg
+    FORGE_API uint32_t util_select_best_gpu(struct GpuDesc* availableSettings, uint32_t gpuCount);
 
-// apply the configuration rules stored in gpu.cfg to to a single GPUSettings and GPUCapBits
-FORGE_API void applyGPUConfigurationRules(struct GpuDesc* pGpuSettings);
+    // reads the gpu data and sets the preset level of all available gpu's
+    FORGE_API GPUPresetLevel getDefaultPresetLevel();
+    FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char* vendorName, const char* modelName);
 
-// apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
-FORGE_API void setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GpuDesc* pGpuDesc);
-FORGE_API void setupGPUConfigurationPlatformParameters(struct Renderer* pRenderer, ExtendedSettings* pExtendedSettings);
-FORGE_API void initGPUConfiguration(ExtendedSettings* pExtendedSettings);
-FORGE_API void exitGPUConfiguration();
+    // apply the configuration rules stored in gpu.cfg to to a single GPUSettings and GPUCapBits
+    FORGE_API void       applyGPUConfigurationRules(struct GpuDesc* pGpuSettings);
+    // apply the user extended configuration rules stored in gpu.cfg to the ExtendedSetting structure
+    FORGE_API void       setupGPUConfigurationExtendedSettings(ExtendedSettings* pExtendedSettings, const struct GpuDesc* pGpuDesc);
+    FORGE_API void       setupGPUConfigurationPlatformParameters(struct Renderer* pRenderer, ExtendedSettings* pExtendedSettings);
+    FORGE_API void       initGPUConfiguration(ExtendedSettings* pExtendedSettings);
+    FORGE_API void       exitGPUConfiguration();
+    // Scene resolution is the resolution at which we want to render and shade the scene (world, terrain, ... skybox)
+    // This needs to be customized based on the performance requirements and the hardware preset, user settings, ...
+    // Usually, we render the scene at different resolution (sometimes lower than native) and UI at native resolution or close to native
+    // resolution
+    // Example: We might render the scene at 720p on a low-end mobile device but we would still want higher res UI
+    // On a high-end console, we might render the scene at display resolution as the GPU is powerful enough
+    FORGE_API Resolution getGPUCfgSceneResolution(uint32_t displayWidth, uint32_t displayHeight);
 
-// return if the the GpuDesc validate the current driver rejection rules
-FORGE_API bool checkDriverRejectionSettings(const struct GpuDesc* pGpuDesc);
+    // return if the the GpuDesc validate the current driver rejection rules
+    FORGE_API bool checkDriverRejectionSettings(const struct GpuDesc* pGpuDesc);
 
-// ------ utilities ------
-FORGE_API const char*    presetLevelToString(GPUPresetLevel preset);
-FORGE_API GPUPresetLevel stringToPresetLevel(const char* presetLevel);
-FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);
-FORGE_API const char*    getGPUVendorName(uint32_t modelId);
-FORGE_API uint32_t       getGPUVendorID(const char*);
+    // ------ utilities ------
+    FORGE_API const char*    presetLevelToString(GPUPresetLevel preset);
+    FORGE_API GPUPresetLevel stringToPresetLevel(const char* presetLevel);
+    FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);
+    FORGE_API const char*    getGPUVendorName(uint32_t modelId);
+    FORGE_API uint32_t       getGPUVendorID(const char*);
+
+#ifdef __cplusplus
+}
+#endif

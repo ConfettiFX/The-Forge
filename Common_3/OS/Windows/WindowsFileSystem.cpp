@@ -171,6 +171,7 @@ static inline FORGE_CONSTEXPR const char* fsOverwriteFileModeToString(FileMode m
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
+    __FS_NO_ERR;
     memset(pOut, 0, sizeof *pOut);
 
     char filePath[FS_MAX_PATH] = { 0 };
@@ -232,12 +233,13 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         if (stream->handle == INVALID_HANDLE_VALUE)
         {
             fclose(fp);
+            __FS_SET_ERR(translateErrno(errno));
             return false;
         }
 
         return true;
     }
-
+    __FS_SET_ERR(translateErrno(errno));
     return false;
 }
 
@@ -258,11 +260,16 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
 
 static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
+    __FS_NO_ERR;
     *outSize = 0;
     *outData = NULL;
 
     if (fs->mMode & FM_WRITE)
+    {
+        // Cannot memory map on files with WRITE access
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return false;
+    }
 
     WSD(stream, fs);
 
@@ -272,7 +279,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
         HANDLE fileMapping = CreateFileMappingW(stream->handle, NULL, PAGE_READONLY, 0, 0, NULL);
         if (!fileMapping)
         {
-            LOGF(eERROR, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());
+            __FS_SET_ERR(FS_INTERNAL_ERR);
             return false;
         }
 
@@ -281,7 +288,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
         LPVOID mem = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
         if (!mem)
         {
-            LOGF(eERROR, "Failed to MapViewOfFile, %s", WindowsErrorString().c_str());
+            __FS_SET_ERR(FS_INTERNAL_ERR);
             CloseHandle(fileMapping);
             return false;
         }
@@ -297,6 +304,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
 
 static bool ioWindowsFsClose(FileStream* fs)
 {
+    __FS_NO_ERR;
     WSD(stream, fs);
 
     if (stream->mapView && !UnmapViewOfFile(stream->mapView))
@@ -312,7 +320,7 @@ static bool ioWindowsFsClose(FileStream* fs)
 
     if (fclose(stream->file) == EOF)
     {
-        LOGF(LogLevel::eERROR, "Error closing system FileStream: %s (%x)", strerror(errno), errno);
+        __FS_SET_ERR(translateErrno(errno));
         return false;
     }
 
@@ -325,16 +333,17 @@ static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t size)
     size_t read = fread(dst, 1, size, stream->file);
     if (read != size && ferror(stream->file))
     {
-        LOGF(LogLevel::eERROR, "Error reading %s bytes from file: %s (%x)", humanReadableSize(size).str, strerror(errno), errno);
+        __FS_SET_ERR(translateErrno(errno));
     }
     return read;
 }
 
 static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 {
+    __FS_NO_ERR;
     if ((fs->mMode & (FM_WRITE | FM_APPEND)) == 0)
     {
-        LOGF(LogLevel::eERROR, "Writing to FileStream with mode %i", fs->mMode);
+        __FS_SET_ERR(FS_NOT_PERMITTED_ERR);
         return 0;
     }
 
@@ -343,7 +352,7 @@ static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 
     if (written != size)
     {
-        LOGF(LogLevel::eERROR, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
+        __FS_SET_ERR(translateErrno(errno));
     }
 
     return written;
@@ -351,6 +360,7 @@ static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 
 static bool ioWindowsFsSeek(FileStream* fs, SeekBaseOffset base, ssize_t offset)
 {
+    __FS_NO_ERR;
     int origin = SEEK_SET;
     switch (base)
     {
@@ -366,26 +376,36 @@ static bool ioWindowsFsSeek(FileStream* fs, SeekBaseOffset base, ssize_t offset)
     }
 
     WSD(stream, fs);
-    return _fseeki64(stream->file, offset, origin) == 0;
+    if (_fseeki64(stream->file, offset, origin) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        __FS_SET_ERR(translateErrno(errno));
+        return false;
+    }
 }
 
 static ssize_t ioWindowsFsGetPosition(FileStream* fs)
 {
+    __FS_NO_ERR;
     WSD(stream, fs);
     ssize_t position = _ftelli64(stream->file);
     if (position < 0)
     {
-        LOGF(LogLevel::eERROR, "Error getting seek position in FileStream: %s (%x)", strerror(errno), errno);
+        __FS_SET_ERR(translateErrno(errno));
     }
     return position;
 }
 
 bool ioWindowsFsFlush(FileStream* fs)
 {
+    __FS_NO_ERR;
     WSD(stream, fs);
     if (fflush(stream->file))
     {
-        LOGF(LogLevel::eWARNING, "Error flushing system FileStream: %s (%x)", strerror(errno), errno);
+        __FS_SET_ERR(translateErrno(errno));
         return false;
     }
     return true;

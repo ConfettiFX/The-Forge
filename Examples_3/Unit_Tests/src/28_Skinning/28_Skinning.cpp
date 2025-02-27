@@ -67,7 +67,7 @@
 
 // fsl
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
+#include "./Shaders/FSL/Global.srt.h"
 
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
@@ -1234,6 +1234,8 @@ public:
     bool addDepthBuffer()
     {
         // Add depth buffer
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth", 0);
+
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
         depthRT.mClearValue.depth = 0.0f;
@@ -1245,8 +1247,10 @@ public:
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
         depthRT.mWidth = mSettings.mWidth;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+        ESRAM_END_ALLOC(pRenderer);
 
         return pDepthBuffer != NULL;
     }

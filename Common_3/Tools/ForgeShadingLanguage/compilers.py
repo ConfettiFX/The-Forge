@@ -29,7 +29,6 @@ import tempfile, struct
 fsl_basepath = os.path.dirname(__file__)
 
 _config = {
-    Platforms.DIRECT3D11:     ('FSL_COMPILER_FXC', 'fxc.exe'),
     Platforms.DIRECT3D12:     ('FSL_COMPILER_DXC', 'dxc.exe'),
     Platforms.VULKAN:         ('FSL_COMPILER_VK', 'glslangValidator.exe'),
     Platforms.ANDROID_VULKAN: ('FSL_COMPILER_VK', 'glslangValidator.exe'),
@@ -162,6 +161,7 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             compiled_filepath = dst + f'_{len(compiled_derivatives)}.spv'
 
             if debug: params += ['-g']
+            else: params += ['-g0']
             params += ['-V', src, '-o', compiled_filepath, '-I'+fsl_basepath]
             params += ['-S', binary.stage.name.lower()]
             params += ['--target-env', util_spirv_target(binary.features, binary)]
@@ -175,17 +175,11 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             # spirv_filepath = src + f'_{len(compiled_derivatives)}.spv'
             # stages += [ (spirv_dis, [compiled_filepath, '-o ', spirv_filepath]) ]
 
-        elif platform == Platforms.DIRECT3D11:
-            compiled_filepath = dst + f'_{len(compiled_derivatives)}.dxbc'
-
-            if debug: params += ['/Zi']
-            params += ['/T', util_shadertarget_dx(binary.stage, None)] # d3d11 doesn't support other shader targets
-            params += ['/I', fsl_basepath, '/Fo', compiled_filepath, src]
-
         elif platform == Platforms.DIRECT3D12:
             compiled_filepath = dst + f'_{len(compiled_derivatives)}.dxil'
 
             if debug: params += ['/Zi', '-Qembed_debug']
+            else: params += ['-Qstrip_reflect']
             params += ['/T', util_shadertarget_dx(binary.stage, binary.features)]
             params += ['/I', fsl_basepath, '/Fo', compiled_filepath, src]
             params += ['-flegacy-macro-expansion']
@@ -202,10 +196,12 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             compiled_filepath = dst + f'_{len(compiled_derivatives)}.bsh'
 
             params += ['-DGNM']
-            if debug: params += ['-Od']
-            else: params += ['-O4']
+            if debug: 
+                params += ['-Od']
+                params += ['-cache', '-cachedir', os.path.dirname(dst)]
+            else: 
+                params += ['-O4']
             
-            params += ['-cache', '-cachedir', os.path.dirname(dst)]
             shader_profile = {
                 Stages.VERT: 'sce_vs_vs_orbis',
                 Stages.FRAG: 'sce_ps_orbis',
@@ -260,6 +256,7 @@ def compile_binary(platform: Platforms, debug: bool, binary: ShaderBinary, src, 
             params += xbox_utils.compiler_args(binary.features)
             params += xbox_utils.include_dirs()
             if debug: params += ['/Zi', '-Qembed_debug']
+            else: params += ['-Qstrip_reflect']
             params += ['/T', util_shadertarget_dx(binary.stage, binary.features)]
             params += ['/I', fsl_basepath]
             params += ['/Fo', compiled_filepath, src]

@@ -7,34 +7,34 @@
 #end
 
 #frag FT_MULTIVIEW basic.frag
-#include "basic.frag.fsl"
+#include "Basic.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW basic.vert
-#include "basic.vert.fsl"
+#include "Basic.vert.fsl"
 #end
 
 #frag FT_MULTIVIEW skybox.frag
-#include "skybox.frag.fsl"
+#include "Skybox.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW skybox.vert
-#include "skybox.vert.fsl"
+#include "Skybox.vert.fsl"
 #end
 
 #frag FT_MULTIVIEW zipTexture.frag
-#include "zipTexture.frag.fsl"
+#include "ZipTexture.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW zipTexture.vert
-#include "zipTexture.vert.fsl"
+#include "ZipTexture.vert.fsl"
 #end
 
 #frag FT_MULTIVIEW occlusion.frag
-#include "occlusion.frag.fsl"
+#include "Occlusion.frag.fsl"
 #end
 
 #vert FT_MULTIVIEW occlusion.vert
-#include "occlusion.vert.fsl"
+#include "Occlusion.vert.fsl"
 #end
 

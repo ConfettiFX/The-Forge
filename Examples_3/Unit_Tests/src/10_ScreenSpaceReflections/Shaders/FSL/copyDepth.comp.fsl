@@ -22,8 +22,8 @@
 * under the License.
 */
 
-#include "vb_resources.h.fsl"
-#include "copydepth.srt.h"
+#include "VisibiltyBufferResources.h.fsl"
+#include "CopyDepth.srt.h"
 
 ROOT_SIGNATURE(ComputeRootSignature)
 NUM_THREADS(8,  8,  1)

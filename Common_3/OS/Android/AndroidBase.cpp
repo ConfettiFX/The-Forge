@@ -154,6 +154,13 @@ void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, initializeJni)(JNIE
 
 jobject AndroidGetActivity() { return gActivity; }
 
+extern "C" jint AndroidAttachToCurrentThread(WindowDesc* pWindow, JNIEnv** ppEnv)
+{
+    ASSERT(pWindow);
+    ASSERT(pWindow->handle.activity->vm);
+    return pWindow->handle.activity->vm->AttachCurrentThread(ppEnv, NULL);
+}
+
 // this callback is called only for states other then MEMORYADVICE_STATE_OK.
 void memoryStateWatcherCallback(MemoryAdvice_MemoryState state, void* userData)
 {

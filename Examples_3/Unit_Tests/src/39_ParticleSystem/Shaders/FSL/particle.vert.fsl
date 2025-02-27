@@ -23,12 +23,12 @@
  */
 
 #include "../../../Graphics/ShaderUtilities.h.fsl"
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_shared.h.fsl"
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_sets.h.fsl"
-#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/particle_packing.h.fsl"
-#include "shader_defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "particle.srt.h"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleShared.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleSets.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticlePacking.h.fsl"
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "Particle.srt.h"
 
 STRUCT(VSOutput)
 {

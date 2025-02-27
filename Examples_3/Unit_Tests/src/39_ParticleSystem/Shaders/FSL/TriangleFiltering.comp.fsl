@@ -1,0 +1,235 @@
+//
+// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// Confetti changes
+// Culling triangles that intersect the near plane
+// Small primitive culling now supports MSAA
+// Multi-viewport culling
+
+#include "ShaderDefs.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
+#include "TriangleFiltering.srt.h"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleSets.h.fsl"
+#include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticlePacking.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/TriangleFiltering.h.fsl"
+
+bool TriangleIntersectsSphere(float3 A, float3 B, float3 C, float3 P, float r, bool twoSided)
+{
+	// We have to test 3 cases:
+	//	- Triangle plane doesn't intersect sphere
+	//	- Vertices don't intersect sphere
+	//	- Edges don't intersect sphere
+
+	// Place the sphere at the origin to simplify things
+	A -= P;
+	B -= P;
+	C -= P;
+	
+	// Check if sphere is outside the plane
+	// Get the normal of the plane
+	float3 normal = normalize(cross(B - A, C - A));
+	// Project any of the vertices onto the normal to find the distance of the sphere (located at 0,0,0) from the plane
+	float d = dot(A, normal);
+	// If the distance from the plane is higher than the radius of the sphere, then they're separated and we can already finish
+	if (d > r && !twoSided)
+		return false;
+
+	// Check if vertices intersect the sphere
+	float dA = length(A);
+	float dB = length(B);
+	float dC = length(C);
+
+	float3 AB = A - B;
+	float3 AC = A - C;
+	float3 BC = B - C;
+
+	// If a certain vertex is outside the sphere and the other points lie further than that vertex in the same direction,
+	// then the shapes don't intersect
+	bool separated = false;
+	separated = separated || ((dA > r) && dot(-AB, A) > 0 && dot(-AC, A) > 0);
+	separated = separated || ((dB > r) && dot(AB, B) > 0 && dot(-BC, B) > 0);
+	separated = separated || ((dC > r) && dot(BC, C) > 0 && dot(AC, C) > 0);
+
+	if (separated)
+		return false;
+
+	// Lastly, check if there's an edge intersection. Project the center of the sphere on each segment and find the closest point
+	// of the segment to the center. If it's farther than the radius, then the segments don't intersect
+	float3 pAB = A + dot(AB, P - A) * normalize(AB);
+	float3 pBC = B + dot(BC, P - B) * normalize(BC);
+	float3 pAC = A + dot(AC, P - C) * normalize(AC);
+
+	if (length(pAB) > r && length(pBC) > r && length(pAC) > r)
+		return false;
+	return true;
+}
+ROOT_SIGNATURE(ComputeRootSignature)
+NUM_THREADS(VB_COMPUTE_THREADS, 1, 1)
+void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
+{
+    INIT_MAIN;
+    	
+	if (threadId.x == 0)
+	{
+        UNROLL_N(NUM_UNIQUE_GEOMETRIES)
+		for (uint i = 0; i < NUM_UNIQUE_GEOMETRIES; ++i)
+        	AtomicStore(workGroupIndexCount[i], 0u);
+
+		filterDispatchGroupData = gFilterDispatchGroupDataBuffer[groupId.x];
+	}
+
+    GroupMemoryBarrier();
+
+	bool cull[NUM_UNIQUE_GEOMETRIES];
+	uint threadOutputSlot[NUM_UNIQUE_GEOMETRIES];
+
+    UNROLL_N(NUM_UNIQUE_GEOMETRIES)
+	for (uint i = 0; i < NUM_UNIQUE_GEOMETRIES; ++i)
+	{
+		threadOutputSlot[i] = 0;
+		cull[i] = true;
+	}
+
+	uint batchMeshIndex = filterDispatchGroupData.meshIndex;
+	uint batchGeomSet = ((filterDispatchGroupData.geometrySet_faceCount & BATCH_GEOMETRY_MASK) >> BATCH_GEOMETRY_LOW_BIT);
+	uint batchInputIndexOffset = (gMeshConstantsBuffer[batchMeshIndex].indexOffset + filterDispatchGroupData.indexOffset);
+	uint vertexOffset = gMeshConstantsBuffer[batchMeshIndex].vertexOffset;
+	bool twoSided = (gMeshConstantsBuffer[batchMeshIndex].twoSided == 1);
+	uint batchFaceCount =  ((filterDispatchGroupData.geometrySet_faceCount & BATCH_FACE_COUNT_MASK) >> BATCH_FACE_COUNT_LOW_BIT);
+
+	uint indices[3] = { 0, 0, 0 };
+	if (threadId.x < batchFaceCount)
+	{
+		indices[0] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = vertexOffset + LoadByte(gIndexDataBuffer, (threadId.x * 3 + 2 + batchInputIndexOffset) << 2);
+
+		gIndirectDataBufferRW[indices[0]] = batchMeshIndex;
+		gIndirectDataBufferRW[indices[1]] = batchMeshIndex;
+		gIndirectDataBufferRW[indices[2]] = batchMeshIndex;
+
+		float4 vert[3] =
+		{
+			LoadVertex(indices[0]),
+			LoadVertex(indices[1]),
+			LoadVertex(indices[2])
+		};
+
+		// Filter for main camera and shadow viewport
+		for (uint i=0; i<2; i++)
+		{
+			float4 vertices[3] =
+			{
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[0]),
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[1]),
+				mul(gPerFrameVBConstants.transform[i].mvp.mat, vert[2])
+			};
+
+			cull[i] = FilterTriangle(indices, vertices, !twoSided, gPerFrameVBConstants.cullingViewports[i].windowSize, gPerFrameVBConstants.cullingViewports[i].sampleCount);
+			if (!cull[i])
+				AtomicAdd(workGroupIndexCount[i], 3, threadOutputSlot[i]);
+		}
+
+		// Filter for point light shadows
+		for (uint j=0; j<MAX_SHADOW_COUNT; j++)
+		{
+			uint Bitfield = gBitfieldBuffer[j];
+			if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
+				continue;
+
+			float3 particlePos = UnpackParticlePosition(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], gParticlesDataBuffer[j]);
+
+			// Skip triangle if it is outside of the area of influence of the light
+			float lightRadius = unpack2Floats(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK].LightRadiusAndVelocityNoise).x;
+			if (!TriangleIntersectsSphere(vert[0].xyz, vert[1].xyz, vert[2].xyz, particlePos, lightRadius, twoSided))
+				continue;
+
+			// For each face that is visible, filter its triangles
+			UNROLL_N(6)
+			for (uint i = 0; i < 6 && cull[VIEW_POINT_SHADOW+j]; ++i)
+			{
+				uint faceIdx = VIEW_POINT_SHADOW + i;
+				float4 vertices[3] =
+				{
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[0] - float4(particlePos, 0.0)),
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[1] - float4(particlePos, 0.0)),
+					mul(gPerFrameVBConstants.transform[faceIdx].mvp.mat, vert[2] - float4(particlePos, 0.0))
+				};
+
+				cull[VIEW_POINT_SHADOW+j] = cull[VIEW_POINT_SHADOW+j] && FilterTriangle(indices, vertices, !twoSided, gPerFrameVBConstants.cullingViewports[faceIdx].windowSize, gPerFrameVBConstants.cullingViewports[faceIdx].sampleCount);
+			}
+
+			if (!cull[VIEW_POINT_SHADOW+j])
+				AtomicAdd(workGroupIndexCount[VIEW_POINT_SHADOW+j], 3, threadOutputSlot[VIEW_POINT_SHADOW+j]);
+		}
+	}
+
+    GroupMemoryBarrier();
+
+	if (threadId.x < NUM_UNIQUE_GEOMETRIES)
+	{
+		uint indirectDrawIndex = GET_INDIRECT_DRAW_ELEM_INDEX(threadId.x, batchGeomSet, 0);
+        AtomicAdd(gIndirectDrawFilteringArgs[indirectDrawIndex], workGroupIndexCount[threadId.x], workGroupOutputSlot[threadId.x]);
+	}
+
+    GroupMemoryBarrier();
+
+    UNROLL_N(NUM_UNIQUE_GEOMETRIES)
+	for (uint j = 0; j < NUM_UNIQUE_GEOMETRIES; ++j)
+	{
+		if (!cull[j])
+		{
+            uint outputIndex = (AtomicLoad(workGroupOutputSlot[j]) + threadOutputSlot[j]);
+            
+			// Write index
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 0) << 2, indices[0]);
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 1) << 2, indices[1]);
+			StoreByte(gFilteredIndexBufferRW[j], (INDEXBUFFER_OFFSET(batchGeomSet) + outputIndex + 2) << 2, indices[2]);
+		}
+	}
+
+    RETURN();
+}

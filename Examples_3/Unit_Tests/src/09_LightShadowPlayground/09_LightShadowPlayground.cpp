@@ -63,10 +63,10 @@
 // clang-format off
 #define NO_FSL_DEFINITIONS
 #include "../../../../Common_3/Graphics/FSL/fsl_srt.h"
-#include "Shaders/FSL/Shader_Defs.h.fsl"
-#include "Shaders/FSL/vb_resources.h.fsl"
-#include "Shaders/FSL/ASMShader_Defs.h.fsl"
-#include "Shaders/FSL/SDF_Constant.h.fsl"
+#include "Shaders/FSL/ShaderDefs.h.fsl"
+#include "Shaders/FSL/VisibilityBufferResources.h.fsl"
+#include "Shaders/FSL/ASMShaderDefs.h.fsl"
+#include "Shaders/FSL/SDFConstants.h.fsl"
 // clang-format on
 
 #include "../../../Visibility_Buffer/src/SanMiguel.h"
@@ -76,15 +76,15 @@
 
 // fsl
 #include "../../../../Common_3/Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/srt.h"
-#include "./Shaders/FSL/visibility_buffer_pass.srt.h"
-#include "./Shaders/FSL/gaussian_blur.srt.h"
-#include "./Shaders/FSL/screenspace_shadows.srt.h"
-#include "./Shaders/FSL/display.srt.h"
-#include "./Shaders/FSL/quad_data.srt.h"
-#include "./Shaders/FSL/triangleFiltering.srt.h"
-#include "./Shaders/FSL/bakedSDFMeshShadow.srt.h"
-#include "./Shaders/FSL/updateRegion3DTexture.srt.h"
+#include "./Shaders/FSL/Global.srt.h"
+#include "./Shaders/FSL/VisibilityBuffer.srt.h"
+#include "./Shaders/FSL/GaussianBlur.srt.h"
+#include "./Shaders/FSL/ScreenSpaceShadows.srt.h"
+#include "./Shaders/FSL/Display.srt.h"
+#include "./Shaders/FSL/PackedQuads.srt.h"
+#include "./Shaders/FSL/TriangleFiltering.srt.h"
+#include "./Shaders/FSL/SDFMesh.srt.h"
+#include "./Shaders/FSL/UpdateRegion3DTexture.srt.h"
 
 #define Epilson                     (1.e-4f)
 
@@ -743,6 +743,12 @@ Texture* pTextureSSS = NULL;
 Buffer*  pBufferSSS = NULL;
 Buffer*  pBufferSSSWaveOffsets[MAX_SSS_WAVE_OFFSETS][gDataBufferCount] = { { NULL } };
 Buffer*  pBufferGaussianBlurConstants[2][gDataBufferCount] = { { NULL } };
+
+// We are rendering the scene (geometry, skybox, ...) at this resolution, UI at window resolution (mSettings.mWidth, mSettings.mHeight)
+// Render scene at gSceneRes
+// presentImage -> The scene rendertarget composed into the swapchain/backbuffer
+// Render UI into backbuffer
+static Resolution gSceneRes;
 
 /************************************************************************/
 
@@ -5692,6 +5698,8 @@ public:
 
     bool Load(ReloadDesc* pReloadDesc) override
     {
+        gSceneRes = getGPUCfgSceneResolution(mSettings.mWidth, mSettings.mHeight);
+
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
         {
             addShaders();
@@ -5812,7 +5820,10 @@ public:
 
             if (!addSwapChain())
                 return false;
+        }
 
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
             addRenderTargets();
             Load_ASM_RenderTargets();
 
@@ -5862,14 +5873,7 @@ public:
 
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
-            removeRenderTargets();
             removeSwapChain(pRenderer, pSwapChain);
-
-            if (pUIASMDebugTexturesWindow)
-            {
-                uiRemoveComponent(pUIASMDebugTexturesWindow);
-                pUIASMDebugTexturesWindow = NULL;
-            }
 
             GuiController::removeGui();
             uiRemoveComponent(pGuiWindow);
@@ -5878,6 +5882,16 @@ public:
             unloadProfilerUI();
 
             ESRAM_RESET_ALLOCS(pRenderer);
+        }
+
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET | RELOAD_TYPE_SCENE_RESOLUTION))
+        {
+            removeRenderTargets();
+            if (pUIASMDebugTexturesWindow)
+            {
+                uiRemoveComponent(pUIASMDebugTexturesWindow);
+                pUIASMDebugTexturesWindow = NULL;
+            }
         }
 
         if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -6264,8 +6278,8 @@ public:
 
         float4 mLightCoordinate;
 
-        mLightCoordinate[0] = ((lightProjection[0] / xy_light_w) * +0.5f + 0.5f) * (float)mSettings.mWidth;
-        mLightCoordinate[1] = ((lightProjection[1] / xy_light_w) * -0.5f + 0.5f) * (float)mSettings.mHeight;
+        mLightCoordinate[0] = ((lightProjection[0] / xy_light_w) * +0.5f + 0.5f) * (float)gSceneRes.mWidth;
+        mLightCoordinate[1] = ((lightProjection[1] / xy_light_w) * -0.5f + 0.5f) * (float)gSceneRes.mHeight;
         mLightCoordinate[2] = lightProjection[3] == 0 ? 0.0f : (lightProjection[2] / lightProjection[3]);
         mLightCoordinate[3] = lightProjection[3] > 0 ? 1.0f : -1.0f;
 
@@ -6274,8 +6288,8 @@ public:
         // Make the bounds relative to the light
         const int biased_bounds[4] = {
             -light_xy[0],
-            -(mSettings.mHeight - light_xy[1]),
-            mSettings.mWidth - light_xy[0],
+            -((int32_t)gSceneRes.mHeight - light_xy[1]),
+            (int32_t)gSceneRes.mWidth - light_xy[0],
             light_xy[1],
         };
 
@@ -6384,7 +6398,7 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Clear Screen Space Shadows");
 
-        gSSSUniformData.mScreenSize = float4((float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 0.0f);
+        gSSSUniformData.mScreenSize = float4((float)gSceneRes.mWidth, (float)gSceneRes.mHeight, 0.0f, 0.0f);
         gSSSUniformData.mLightCoordinate = mLightCoordinate;
 
         BufferUpdateDesc bufferUpdate = { pBufferSSSUniform[gFrameIndex] };
@@ -6408,8 +6422,8 @@ public:
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSPerBatch);
 
-        uint32_t dispatchSizeX = (mSettings.mWidth + 7) / 8;
-        uint32_t dispatchSizeY = (mSettings.mHeight + 7) / 8;
+        uint32_t dispatchSizeX = (gSceneRes.mWidth + 7) / 8;
+        uint32_t dispatchSizeY = (gSceneRes.mHeight + 7) / 8;
         cmdDispatch(cmd, dispatchSizeX, dispatchSizeY, 1);
 
         if (gSupportTextureAtomics)
@@ -6801,8 +6815,8 @@ public:
         /************************************************************************/
         // Update Camera
         /************************************************************************/
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t width = gSceneRes.mWidth;
+        const uint32_t height = gSceneRes.mHeight;
 
         float           aspectInverse = (float)height / (float)width;
         constexpr float horizontal_fov = PI / 2.0f;
@@ -6897,7 +6911,7 @@ public:
         gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_CAMERA] = (gCameraUniformData.mInvView * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 
         gVBConstants[gFrameIndex].transform[VIEW_CAMERA].mvp = gCameraUniformData.mViewProject * gMeshInfoData[0].mWorldMat;
-        gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
+        gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].windowSize = { (float)gSceneRes.mWidth, (float)gSceneRes.mHeight };
         gVBConstants[gFrameIndex].cullingViewports[VIEW_CAMERA].sampleCount = gAppSettings.mMsaaLevel;
         gVBConstants[gFrameIndex].numViewports = 2;
     }
@@ -7378,8 +7392,8 @@ public:
 
     void addRenderTargets() const
     {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+        const uint32_t sceneWidth = gSceneRes.mWidth;
+        const uint32_t sceneHeight = gSceneRes.mHeight;
 
         const ClearValue depthStencilClear = { { 0.0f, 0 } };
         // Used for ESM render target shadow
@@ -7393,6 +7407,9 @@ public:
         /************************************************************************/
         // Main depth buffer
         /************************************************************************/
+        uint32_t currentOffsetESRAM = 0;
+
+        ESRAM_BEGIN_ALLOC(pRenderer, "Depth", currentOffsetESRAM);
         RenderTargetDesc depthRT = {};
         depthRT.mArraySize = 1;
         depthRT.mClearValue = depthStencilClear;
@@ -7400,17 +7417,22 @@ public:
         depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
         depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
-        depthRT.mWidth = width;
-        depthRT.mHeight = height;
+        depthRT.mWidth = sceneWidth;
+        depthRT.mHeight = sceneHeight;
         depthRT.mSampleCount = gAppSettings.mMsaaLevel;
         depthRT.mSampleQuality = 0;
         depthRT.pName = "Depth RT";
         depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_NONE
                                                                   : (TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW);
         addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, depthOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
         /************************************************************************/
         // Intermediate render target
         /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Intermediate", currentOffsetESRAM);
         RenderTargetDesc postProcRTDesc = {};
         postProcRTDesc.mArraySize = 1;
         postProcRTDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -7418,17 +7440,25 @@ public:
         postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         postProcRTDesc.mFormat = pSwapChain->mFormat;
         postProcRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        postProcRTDesc.mHeight = mSettings.mHeight;
-        postProcRTDesc.mWidth = mSettings.mWidth;
+        postProcRTDesc.mHeight = sceneHeight;
+        postProcRTDesc.mWidth = sceneWidth;
         postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         postProcRTDesc.pName = "pIntermediateRenderTarget";
         postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        postProcRTDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
         addRenderTarget(pRenderer, &postProcRTDesc, &pRenderTargetIntermediate);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, intermediateOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+
+        currentOffsetESRAM = max(intermediateOffsetESRAM, depthOffsetESRAM);
 
         /************************************************************************/
         // Shadow Map Render Target
         /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Shadow Map", currentOffsetESRAM);
+
         RenderTargetDesc shadowRTDesc = {};
         shadowRTDesc.mArraySize = 1;
         shadowRTDesc.mClearValue.depth = depthStencilClear.depth;
@@ -7450,7 +7480,58 @@ public:
         shadowRTDesc.mSampleCount = (SampleCount)ESM_MSAA_SAMPLES;
         shadowRTDesc.mSampleQuality = 0;
         shadowRTDesc.pName = "Shadow Map RT";
+        shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
         addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
+
+        ESRAM_CURRENT_OFFSET(pRenderer, shadowMapOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+        currentOffsetESRAM = max(shadowMapOffsetESRAM, currentOffsetESRAM);
+
+        /************************************************************************/
+        // Screen Space Shadow Map Render Target
+        /************************************************************************/
+        ESRAM_BEGIN_ALLOC(pRenderer, "Screen Space Shadows", currentOffsetESRAM);
+        if (gSupportTextureAtomics)
+        {
+            TextureDesc SSSRTDesc = {};
+            SSSRTDesc.mWidth = sceneWidth;
+            SSSRTDesc.mHeight = sceneHeight;
+            SSSRTDesc.mDepth = 1;
+            SSSRTDesc.mArraySize = 1;
+            SSSRTDesc.mMipLevels = 1;
+            SSSRTDesc.mSampleCount = SAMPLE_COUNT_1;
+            SSSRTDesc.mFormat = TinyImageFormat_R32_UINT;
+            SSSRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+            SSSRTDesc.mClearValue.r = 1.0f;
+            SSSRTDesc.mClearValue.g = 1.0f;
+            SSSRTDesc.mClearValue.b = 1.0f;
+            SSSRTDesc.mClearValue.a = 1.0f;
+            SSSRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+            SSSRTDesc.mFlags |= TEXTURE_CREATION_FLAG_ESRAM;
+            SSSRTDesc.pName = "Screen Space Shadows Texture";
+
+            TextureLoadDesc SSSTextureLoadDesc = {};
+            SSSTextureLoadDesc.pDesc = &SSSRTDesc;
+            SSSTextureLoadDesc.ppTexture = &pTextureSSS;
+            addResource(&SSSTextureLoadDesc, NULL);
+        }
+        else
+        {
+            BufferLoadDesc SSSRTDesc = {};
+            SSSRTDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+            SSSRTDesc.mDesc.mElementCount = sceneWidth * sceneHeight;
+            SSSRTDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+            SSSRTDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+            SSSRTDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+            SSSRTDesc.mDesc.mStructStride = sizeof(uint);
+            SSSRTDesc.mDesc.mSize = (uint64_t)SSSRTDesc.mDesc.mElementCount * SSSRTDesc.mDesc.mStructStride;
+            SSSRTDesc.mDesc.pName = "Screen Space Shadows Buffer";
+            SSSRTDesc.ppBuffer = &pBufferSSS;
+            addResource(&SSSRTDesc, NULL);
+        }
+        ESRAM_CURRENT_OFFSET(pRenderer, screenShadowOffsetESRAM);
+        ESRAM_END_ALLOC(pRenderer);
+        currentOffsetESRAM = max(screenShadowOffsetESRAM, currentOffsetESRAM);
 
         /************************************************************************/
         // VSM Render Target
@@ -7502,47 +7583,6 @@ public:
         MSMRTDesc.pName = "MSM RT 1";
         addRenderTarget(pRenderer, &MSMRTDesc, &pRenderTargetMSM[1]);
 
-        /************************************************************************/
-        // Screen Space Shadow Map Render Target
-        /************************************************************************/
-        if (gSupportTextureAtomics)
-        {
-            TextureDesc SSSRTDesc = {};
-            SSSRTDesc.mWidth = mSettings.mWidth;
-            SSSRTDesc.mHeight = mSettings.mHeight;
-            SSSRTDesc.mDepth = 1;
-            SSSRTDesc.mArraySize = 1;
-            SSSRTDesc.mMipLevels = 1;
-            SSSRTDesc.mSampleCount = SAMPLE_COUNT_1;
-            SSSRTDesc.mFormat = TinyImageFormat_R32_UINT;
-            SSSRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-            SSSRTDesc.mClearValue.r = 1.0f;
-            SSSRTDesc.mClearValue.g = 1.0f;
-            SSSRTDesc.mClearValue.b = 1.0f;
-            SSSRTDesc.mClearValue.a = 1.0f;
-            SSSRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-            SSSRTDesc.pName = "Screen Space Shadows Texture";
-
-            TextureLoadDesc SSSTextureLoadDesc = {};
-            SSSTextureLoadDesc.pDesc = &SSSRTDesc;
-            SSSTextureLoadDesc.ppTexture = &pTextureSSS;
-            addResource(&SSSTextureLoadDesc, NULL);
-        }
-        else
-        {
-            BufferLoadDesc SSSRTDesc = {};
-            SSSRTDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-            SSSRTDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
-            SSSRTDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-            SSSRTDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-            SSSRTDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-            SSSRTDesc.mDesc.mStructStride = sizeof(uint);
-            SSSRTDesc.mDesc.mSize = (uint64_t)SSSRTDesc.mDesc.mElementCount * SSSRTDesc.mDesc.mStructStride;
-            SSSRTDesc.mDesc.pName = "Screen Space Shadows Buffer";
-            SSSRTDesc.ppBuffer = &pBufferSSS;
-            addResource(&SSSRTDesc, NULL);
-        }
-
         /*************************************/
         // SDF mesh visualization render target
         /*************************************/
@@ -7555,8 +7595,8 @@ public:
                                                  ? TinyImageFormat_R32G32B32A32_SFLOAT
                                                  : TinyImageFormat_R16G16B16A16_SFLOAT;
         sdfMeshVisualizationRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        sdfMeshVisualizationRTDesc.mWidth = mSettings.mWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
-        sdfMeshVisualizationRTDesc.mHeight = mSettings.mHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
+        sdfMeshVisualizationRTDesc.mWidth = sceneWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
+        sdfMeshVisualizationRTDesc.mHeight = sceneHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
         sdfMeshVisualizationRTDesc.mMipLevels = 1;
         sdfMeshVisualizationRTDesc.mSampleCount = SAMPLE_COUNT_1;
         sdfMeshVisualizationRTDesc.mSampleQuality = 0;
@@ -7573,11 +7613,11 @@ public:
                                           : TinyImageFormat_R16G16_SFLOAT;
         sdfMeshShadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
-        sdfMeshShadowRTDesc.mWidth = mSettings.mWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
-        sdfMeshShadowRTDesc.mHeight = mSettings.mHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
+        sdfMeshShadowRTDesc.mWidth = sceneWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
+        sdfMeshShadowRTDesc.mHeight = sceneHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
 #else
-        sdfMeshShadowRTDesc.mWidth = mSettings.mWidth;
-        sdfMeshShadowRTDesc.mHeight = mSettings.mHeight;
+        sdfMeshShadowRTDesc.mWidth = sceneWidth;
+        sdfMeshShadowRTDesc.mHeight = sceneHeight;
 #endif
         sdfMeshShadowRTDesc.mMipLevels = 1;
         sdfMeshShadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -7595,8 +7635,8 @@ public:
         upSampleSDFShadowRTDesc.mDepth = 1;
         upSampleSDFShadowRTDesc.mFormat = TinyImageFormat_R16_SFLOAT;
         upSampleSDFShadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        upSampleSDFShadowRTDesc.mWidth = mSettings.mWidth;
-        upSampleSDFShadowRTDesc.mHeight = mSettings.mHeight;
+        upSampleSDFShadowRTDesc.mWidth = sceneWidth;
+        upSampleSDFShadowRTDesc.mHeight = sceneHeight;
         upSampleSDFShadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         upSampleSDFShadowRTDesc.mMipLevels = 1;
         upSampleSDFShadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -7604,6 +7644,7 @@ public:
         upSampleSDFShadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         upSampleSDFShadowRTDesc.pName = "Upsample SDF Mesh Shadow";
         addRenderTarget(pRenderer, &upSampleSDFShadowRTDesc, &pRenderTargetUpSampleSDFShadow);
+
         /************************************************************************/
         // ASM Depth Pass Render Target
         /************************************************************************/
@@ -7650,11 +7691,11 @@ public:
         vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
         vbRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        vbRTDesc.mWidth = width;
-        vbRTDesc.mHeight = height;
+        vbRTDesc.mWidth = sceneWidth;
+        vbRTDesc.mHeight = sceneHeight;
         vbRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
         vbRTDesc.mSampleQuality = 0;
-        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
         vbRTDesc.pName = "VB RT";
         addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
         /************************************************************************/
@@ -7667,10 +7708,10 @@ public:
         msaaRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
         msaaRTDesc.mFormat = pSwapChain->mFormat;
         msaaRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        msaaRTDesc.mHeight = height;
+        msaaRTDesc.mHeight = sceneHeight;
         msaaRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
         msaaRTDesc.mSampleQuality = 0;
-        msaaRTDesc.mWidth = width;
+        msaaRTDesc.mWidth = sceneWidth;
         msaaRTDesc.pName = "MSAA RT";
         // Disabling compression data will avoid decompression phase before resolve pass.
         // However, the shading pass will require more memory bandwidth.

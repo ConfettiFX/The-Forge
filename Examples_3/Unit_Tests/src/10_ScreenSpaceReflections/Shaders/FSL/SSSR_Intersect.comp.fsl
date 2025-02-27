@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_INTERSECT
 #define FFX_SSSR_INTERSECT
 
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "SSSR.srt.h"
 
 

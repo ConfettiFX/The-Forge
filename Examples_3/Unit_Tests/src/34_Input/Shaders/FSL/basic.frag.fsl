@@ -178,7 +178,7 @@ STRUCT(InputData)
     DATA(uint, buttonSet3, None);
 };
 
-#include "srt.h"
+#include "Global.srt.h"
 
 float circle(float2 pos, float rad) { return step(rad, length(pos)); }
 

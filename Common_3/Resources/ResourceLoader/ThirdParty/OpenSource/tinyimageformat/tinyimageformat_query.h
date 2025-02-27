@@ -10,7 +10,7 @@
 #if __cplusplus > 201402L
 #define TIF_CONSTEXPR constexpr
 #else
-#define TIF_CONSTEXPR
+#define TIF_CONSTEXPR static
 #endif
 #ifndef  TinyImageFormat_HAVE_BOOL
 #include <stdbool.h>	// for bool

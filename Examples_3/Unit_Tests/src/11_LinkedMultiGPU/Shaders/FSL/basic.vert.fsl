@@ -27,7 +27,7 @@
 
 
 
-#include "resources.h.fsl"
+#include "Resources.h.fsl"
 
 STRUCT(VSInput)
 {

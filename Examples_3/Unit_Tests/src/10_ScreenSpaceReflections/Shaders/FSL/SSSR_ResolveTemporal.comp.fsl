@@ -46,7 +46,7 @@ THE SOFTWARE.
 
 // #ifndef FFX_SSSR_TEMPORAL_RESOLVE
 // #define FFX_SSSR_TEMPORAL_RESOLVE
-#include "vb_resources.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
 #include "SSSR.srt.h"
 #include "SSSR_Common.h.fsl"
 
@@ -137,9 +137,8 @@ float2 GetSurfaceReprojection(int2 did, float2 uv, float2 motion_vector)
     return history_uv;
 }
 
-float2 GetHitPositionReprojection(int2 did, float2 uv, float reflected_ray_length)
+float2 GetHitPositionReprojection(int2 did, float2 uv, float reflected_ray_length, float z)
 {
-    float z = FfxSssrUnpackDepth(LoadTex2D(gDepthBuffer, NO_SAMPLER, did, 0).x);
     float3 view_space_ray = CreateViewSpaceRay(float3(uv, z)).direction;
 
     // We start out with reconstructing the ray length in view space. 
@@ -202,10 +201,15 @@ float4 ResolveScreenspaceReflections(int2 did, float2 uv, int2 image_size, float
     float3 radiance_history = LoadRWTex2D(gTemporallyDenoisedReflectionsHistory, did).xyz;
     float ray_length = LoadRWTex2D(gRayLengths, did).x;
 
+    float z = FfxSssrUnpackDepth(LoadTex2D(gDepthBuffer, NO_SAMPLER, did, 0).x);
+    float3 screenPos = float3(uv, z);
+    float3 worldPos = InvProjectPosition(screenPos, gConstants.g_inv_view_proj);
+    float3 oldScreenPos = ProjectPosition(worldPos, gConstants.g_prev_view_proj);
+
     // And clip it to the local neighborhood
-    float2 motion_vector = FfxSssrUnpackMotionVectors(LoadTex2D(gMotionVectors, NO_SAMPLER, did, 0).xy);
+    float2 motion_vector = screenPos.xy - oldScreenPos.xy;
     float3 color_std = EstimateStdDeviation(did);
-    color_std *= (dot(motion_vector, motion_vector) == 0) ? 8 : 2.2; // Allow more accumulation if the surface did not move.
+    color_std *= (dot(motion_vector, motion_vector) < EPSILON) ? 8 : 2.2; // Allow more accumulation if the surface did not move.
 
     float3 radiance_min = radiance.xyz - color_std;
     float3 radiance_max = radiance + color_std;
@@ -214,7 +218,7 @@ float4 ResolveScreenspaceReflections(int2 did, float2 uv, int2 image_size, float
     float2 surface_reprojection_uv = GetSurfaceReprojection(did, uv, motion_vector);
 
     // Reproject hit point
-    float2 hit_reprojection_uv = GetHitPositionReprojection(did, uv, ray_length);
+    float2 hit_reprojection_uv = GetHitPositionReprojection(did, uv, ray_length, z);
 
     float2 reprojection_uv;
     reprojection_uv = (roughness < 0.05) ? hit_reprojection_uv : surface_reprojection_uv;

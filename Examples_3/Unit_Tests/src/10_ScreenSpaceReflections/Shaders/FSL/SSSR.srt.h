@@ -48,8 +48,8 @@ THE SOFTWARE.
 #define sssr_srt_h
 
 BEGIN_SRT(SSSRSrtData)
-#include "persistent_set.h"
-#include "perframe_set.h"
+#include "PersistentSet.h"
+#include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
 		DECL_RWBUFFER(PerBatch, RWBuffer(uint), gTileList)
 		DECL_RWBUFFER(PerBatch, RWBuffer(uint), gRayList)

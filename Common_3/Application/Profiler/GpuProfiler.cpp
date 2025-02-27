@@ -55,8 +55,8 @@ void         exitGpuProfiler(ProfileToken /*nProfileToken*/) {}
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+extern "C" void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+extern "C" void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
 GpuProfilerContainer* gGpuProfilerContainer = NULL;
 

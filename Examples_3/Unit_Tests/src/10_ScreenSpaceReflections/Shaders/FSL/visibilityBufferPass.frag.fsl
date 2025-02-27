@@ -22,14 +22,13 @@
  * under the License.
 */
 
-#include "Shader_Defs.h.fsl"
-#include "vb_resources.h.fsl"
-#include "srt.h"
+#include "ShaderDefs.h.fsl"
+#include "VisibiltyBufferResources.h.fsl"
+#include "Global.srt.h"
 
 STRUCT(PsOut)
 {
     DATA(float4, VBData,       SV_Target0);
-    DATA(float2, MotionVector, SV_Target1);
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -38,6 +37,5 @@ PsOut PS_MAIN( PsInOpaque In, SV_PrimitiveID(uint) primitiveID )
 	INIT_MAIN;
 	PsOut Out;
 	Out.VBData = unpackUnorm4x8( PACK_VB_DATA(GEOMSET_OPAQUE, primitiveID));
-	Out.MotionVector = In.currPosition.xy / In.currPosition.w - In.prevPosition.xy / In.prevPosition.w;
 	RETURN(Out);
 }
