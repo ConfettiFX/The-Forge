@@ -30,7 +30,7 @@ We offer a commercial license for game consoles (Playstation, XBOX, and Switch).
 
 
 Here is an overview:
-![The Forge Overview](Screenshots/TheForgeOverview.png) 
+![The Forge Overview](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/TheForgeOverview.png) 
 
 - Game Layer (partially provided)
 - App
