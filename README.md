@@ -1,4 +1,4 @@
-<img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/The Forge - Colour Black Landscape.png" width="108" height="46" />
+<img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/The Forge - Colour Black Landscape.png" width="108" height="46" />
 
 The Forge Framework (TM) is a cross-platform programming framework supporting the following platforms:
 - Windows 10/11 with DirectX 12 / DXR
@@ -30,7 +30,7 @@ We offer a commercial license for game consoles (Playstation, XBOX, and Switch).
 
 
 Here is an overview:
-![The Forge Overview](https://github.com/ConfettiFX/The-Forge-Media/blob/master/TheForgeOverview.png) 
+![The Forge Overview](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/TheForgeOverview.png) 
 
 - Game Layer (partially provided)
 - App
@@ -55,10 +55,10 @@ The "lego" High-Level Features supported on all platforms are at the moment:
 
 Please find a link and credits for all open-source packages used at the end of this readme.
 
-<a href="https://discord.gg/hJS54bz" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Discord.png" 
+<a href="https://discord.gg/hJS54bz" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Discord.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/hJS54bz</a>
 
-<a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/twitter.png" 
+<a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
 
 The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members/list)
@@ -157,7 +157,7 @@ We are pushing forward in making Steamdeck a first class citizen. It represents 
 
 STAR WARS™: Bounty Hunter™
 Bounty Hunter was ported with the help of The Forge Framework to all the platforms mentioned in the screenshot:
-[![STAR WARS™: Bounty Hunter™](https://github.com/ConfettiFX/The-Forge-Media/blob/master/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
+[![STAR WARS™: Bounty Hunter™](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
 
 ### Replaced Gainput with our own Input library
 We wrote a new input library from scratch in C. Its design follows the architecture of the rendering API. So one high-level interface file IInput.h and then platform specific files for each of the target devices. It has less lines of code compared to gainput and is easier to maintain for a small team. We are still testing it as we speak. Let us know if you see any bugs.
@@ -192,7 +192,7 @@ We are improving our Third-Party Library integration substantially by making the
 ### Announce trailer for Behemoth
 We helped Skydance Interactive to optimize Behemoth last year. Click on the image below to see the announce trailer:
 
-[![Behemoth Trailer from June 2024](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Behemoth/Behemoth.png)](https://youtu.be/hTmjjzwSp-E?si=rj0G6yrqv5Cr6Gn9)
+[![Behemoth Trailer from June 2024](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Behemoth/Behemoth.png)](https://youtu.be/hTmjjzwSp-E?si=rj0G6yrqv5Cr6Gn9)
 
 
 ### Compute-Based Mega Particle System
@@ -206,21 +206,21 @@ It is meant to be used to implement next-gen Mega Particle systems in which we s
 
 #### Android Samsung S22 1170x540 resolution
 This screenshot shows 4 million firefly-like particles, with 10000 lights attached to them and 8 shadows. Those numbers were thought to be not possible on mobile phones before.
-![Mega Particle System Android Samsung S22](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Particle%20System/AndroidS22_1170x540.png) 
+![Mega Particle System Android Samsung S22](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Particle%20System/AndroidS22_1170x540.png) 
 
 #### Android Samsung S23 1170x540 resolution
 Same setting as above.
-![Mega Particle System Android Samsung S23](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Particle%20System/Android_S23_1170x540.png)
+![Mega Particle System Android Samsung S23](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Particle%20System/Android_S23_1170x540.png)
 
 #### Android Samsung S24 1170x540 resolution
 Same setting as above. 
-![Mega Particle System Android Samsung S24](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Particle%20System/Android_S24_1170x540.png) 
+![Mega Particle System Android Samsung S24](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Particle%20System/Android_S24_1170x540.png) 
 
 #### PS5 running at 4K
-![Mega Particle System PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Particle%20System/PS5_4K.png) 
+![Mega Particle System PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Particle%20System/PS5_4K.png) 
 
 #### Windows with AMD RX 6400 at 1080p
-![Mega Particle System PC Windows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Particle%20System/Windows_1080p.png) 
+![Mega Particle System PC Windows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Particle%20System/Windows_1080p.png) 
 
 
 ### Triangle Visibility Buffer 2.0
@@ -298,15 +298,15 @@ References:
 We are sponsoring I3D again. Come by and say hi! We also will be giving a talk on the new development around Triangle Visibility Buffer.
 
 
-[![I3D Sponsorship](https://github.com/ConfettiFX/The-Forge-Media/blob/master/I3D/Platinum%20Sponsor.png)](https://i3dsymposium.org/2024/)
+[![I3D Sponsorship](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/I3D/Platinum%20Sponsor.png)](https://i3dsymposium.org/2024/)
 
 
 ### Warzone Mobile launched
 We work on Warzone Mobile since August 2020. The game launched on March 21, 2024.
 
-![Warzone Mobile](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Warzone%20Mobile/cod-warzone-eng-1_11zon.jpg) 
+![Warzone Mobile](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Warzone%20Mobile/cod-warzone-eng-1_11zon.jpg) 
 
-![Warzone Mobile](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Warzone%20Mobile/WZM-LIMITEDRELEASE-1128-TOUT.jpg) 
+![Warzone Mobile](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Warzone%20Mobile/WZM-LIMITEDRELEASE-1128-TOUT.jpg) 
 
 ### Visibility Buffer
 We removed CPU cluster culling and simplified the animation data usage. Now traingle filtering only takes one dispatch each frame again.
@@ -323,16 +323,16 @@ We removed most of the name comparisons and replaced them with the id comparison
 We added to the number of shadow approaches in that unit test screen-space shadows. These are complementary to regular shadow mapping and add more detail. We also fixed a number of inconsistencies with the other shadow map approaches.
 
 PS5 - Screen-Space Shadows on
-![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
+![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
 
 PS5 - Screen-Space Shadows off
-![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
+![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
 
 Nintendo Switch
-![Screen-Space Shadows Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
+![Screen-Space Shadows Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
 
 PS4
-![Screen-Space Shadows PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
+![Screen-Space Shadows PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
 
 
 ### GPU breadcrumbs on all platforms
@@ -355,23 +355,23 @@ We will extend the reporting a bit more over time.
 We improved Ephemeris again and support it now on more platforms. Updating some of the algorithms used and adding more features. 
 
 
-[![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/apple_m1.png)](https://vimeo.com/918128458)
+[![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/apple_m1.png)](https://vimeo.com/918128458)
 
 
 Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPhone 11 or higher  (so far not Switch)
 
 
 Ephemeris on XBOX Series X
-![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/scarlet.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/scarlet.png)
 
 Ephemeris on Android
-![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/android.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/android.png)
 
 Ephemeris on PS4
-![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/PS4.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/PS4.png)
 
 Ephemeris on PS5
-![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/PS5.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/PS5.png)
 
 
 
@@ -401,28 +401,28 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Green – all 4 samples;
 
 PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_original1.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_original1.png) 
 
 Debug Output with the original Image on PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_map_debug_vs_original1.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_map_debug_vs_original1.png) 
 
 PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_original2.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_original2.png) 
 
 Debug Output with the original Image on PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_map_debug_vs_original2.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_map_debug_vs_original2.png) 
 
 Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/original2.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/original2.jpg) 
 
 Debug Output with the original Image on Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/debug_vs_original2.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/debug_vs_original2.jpg) 
 
 Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/original3.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/original3.jpg) 
 
 Debug Output with the original Image on Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/debug_vs_original3.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/debug_vs_original3.jpg) 
 
 
 Example 15a_VisibilityBufferOIT now has an additional option to toggle VRS - "Enable Variable Rate Shading"
@@ -466,16 +466,16 @@ In the meantime some of the games we worked on, or are still working on, shipped
 
 Forza Motorsport has launched in the meantime:
 
-![Forza Motorsport](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Forza/Forza-Motorsport-Photo-Mode-Effects-Menu.jpg)
+![Forza Motorsport](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Forza/Forza-Motorsport-Photo-Mode-Effects-Menu.jpg)
 
 Starfield has launched:
 
-![Starfield](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Starfield/starfield-screenshot-new-atlantis-1536x864.jpg)
+![Starfield](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Starfield/starfield-screenshot-new-atlantis-1536x864.jpg)
 
 No Man Sky has launched on macOS:
 
-![No Man's Sky](https://github.com/ConfettiFX/The-Forge-Media/blob/master/NoMansSky/NoMansSky.png)
-![No Man's Sky](https://github.com/ConfettiFX/The-Forge-Media/blob/master/NoMansSky/NoMansSky_2.png)
+![No Man's Sky](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/NoMansSky/NoMansSky.png)
+![No Man's Sky](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/NoMansSky/NoMansSky_2.png)
 
 
 ### Internal automated testing setup on our internal GitLab server 
@@ -494,16 +494,16 @@ No Man Sky has launched on macOS:
 This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
 
 PC Windows (2560x1080):
-![Variable Rate Shading on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/35_VariableRateShading_Win10_RX7600_2560x1080.png)
+![Variable Rate Shading on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/35_VariableRateShading_Win10_RX7600_2560x1080.png)
 
 Switch (1280x720):
-![Variable Rate Shading on Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/35_VariableRateShading_Switch_1280x720.PNG)
+![Variable Rate Shading on Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/35_VariableRateShading_Switch_1280x720.PNG)
 
 XBOX One S (1080p):
-![Variable Rate Shading on XBOX One S](https://github.com/ConfettiFX/The-Forge-Media/blob/master/35_VariableRateShading_XboxOneS_1920x1080.png)
+![Variable Rate Shading on XBOX One S](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/35_VariableRateShading_XboxOneS_1920x1080.png)
 
 PS4 Pro (3840x2160):
-![Variable Rate Shading on XBOX One S](https://github.com/ConfettiFX/The-Forge-Media/blob/master/35_VariableRateShading_PS4Pro_3840x2160.png)
+![Variable Rate Shading on XBOX One S](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/35_VariableRateShading_PS4Pro_3840x2160.png)
 
 The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. The VRS map is automatically generated based on the local image gradients.
 The advantage of this approach is that it runs on a wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we can also achieve higher image quality compared to hardware-based VRS.
@@ -514,7 +514,7 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Red – 2 vertical samples;
 - Green – all 4 samples;
 
-![Variable Rate Shading Debug](https://github.com/ConfettiFX/The-Forge-Media/blob/master/35_VRS_Debug.png)
+![Variable Rate Shading Debug](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/35_VRS_Debug.png)
 
 UI description:
 - Toggle VRS – enable/disable VRS
@@ -542,7 +542,7 @@ It works as follows:
 - When a unit test is started on the target application (i.e. consoles), it starts listening for connections on a part (8889 by default)
 - In the Remote Control App, enter the target ip address and click connect
 
-![Remote UI Control](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Remote%20UI.jpg)
+![Remote UI Control](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Remote%20UI.jpg)
 
 This is alpha software so expect it to crash ...
 
@@ -557,19 +557,19 @@ We switched to Ray Queries for the common Ray Tracing APIs on all the platforms 
 Because Ray Tracing became a Marketing term valuable to GPU manufacturers, some game developers support now Ray Tracing to help increase hardware sales. So we are going with the flow here by offering those APIs.
 
 macOS (1440x810)
-![Ray Queries on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_M2Mac_1440x810.png)
+![Ray Queries on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_M2Mac_1440x810.png)
 
 PS5 (3840x2160)
-![Ray Queries on PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_PS5_3840x2160.png)
+![Ray Queries on PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_PS5_3840x2160.png)
 
 Windows 10 (2560x1080)
-![Ray Queries on Windows 10](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
+![Ray Queries on Windows 10](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
 
 XBOX One Series X (1920x1080)
-![Ray Queries on XBOX One Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
+![Ray Queries on XBOX One Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
 
 iPhone 11 (Model A2111) at resolution 896x414
-![Ray Queries on iOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_iOS.png)
+![Ray Queries on iOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_iOS.png)
 
 We do not have a denoiser for the Path Tracer.
 
@@ -820,14 +820,14 @@ There are the following unit tests in The Forge:
 
 This unit test just shows a simple solar system. It is our "3D game Hello World" setup for cross-platform rendering.
 
-![Image of the Transformations Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/01_Transformations.PNG)
+![Image of the Transformations Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/01_Transformations.PNG)
 
 
 ## 3. Multi-Threaded Rendering
 
 This unit test shows how to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on [a demo by Intel called Stardust](https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application).
 
-![Image of the Multi-Threaded command buffer generation example](https://github.com/ConfettiFX/The-Forge-Media/blob/master/03_MultiThreading.PNG)
+![Image of the Multi-Threaded command buffer generation example](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/03_MultiThreading.PNG)
 
 
 ## 6. Material Playground
@@ -837,15 +837,15 @@ This unit test shows a range of game related materials:
 Hair:
 Many years ago in 2012 / 2013, we helped AMD and Crystal Dynamics with the development of TressFX for Tomb Raider. We also wrote an article about the implementation in GPU Pro 5 and gave a few joint presentations on conferences like FMX. At the end of last year we revisited TressFX. We took the current code in the GitHub repository, changed it a bit and ported it to The Forge. It now runs on PC with DirectX 12 / Vulkan, macOS and iOS with Metal 2 and on the XBOX One. We also created a few new hair assets so that we can showcase it. Here is a screenshot of our programmer art:
 
-![Hair on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
+![Hair on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
 
 Metal:
 
-![Material Playground Metal on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MaterialPlayground/06_MaterialPlayground_Metal.png)
+![Material Playground Metal on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
 
 Wood:
 
-![Material Playground Wood on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MaterialPlayground/06_MaterialPlayground_Wood.png)
+![Material Playground Wood on PC](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
 
 
 
@@ -860,39 +860,39 @@ To achieve  high-performance, the playground runs on our signature rendering arc
 
 Click on the following screenshot to see a movie:
 
-[![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_Visualize.png)](https://vimeo.com/352985038)
+[![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_Visualize.png)](https://vimeo.com/352985038)
 
 The following PC screenshots are taken on Windows 10 with a AMD RX550 GPU (driver 19.7.1) with a resolution of 1920x1080. 
 
 Exponential Shadow Maps:
 
-![Light and Shadow Playground - Exponential Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/ExponentialShadowMap.png)
+![Light and Shadow Playground - Exponential Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/ExponentialShadowMap.png)
 
 Adaptive Shadow Map with Parallax Correction Cache
 
-![Adaptive Shadow Map with Parallax Correction Cache](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/ASM_Two.png)
+![Adaptive Shadow Map with Parallax Correction Cache](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/ASM_Two.png)
 
 Signed Distance Field Soft Shadow:
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_1.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_1.png)
 
 Signed Distance Field Soft Shadows - Debug Visualization
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_Visualize.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_Visualize.png)
 
 The following shots show Signed Distance Field Soft Shadows running on iMac with a AMD RADEON Pro 580
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_macOS_1.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_macOS_1.png)
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_macOS_2.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_macOS_2.png)
 
 The following shots show Signed Distance Field Soft Shadows running on XBOX One:
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_XBOX_1.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_XBOX_1.png)
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_XBOX_2.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_XBOX_2.png)
 
-![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/LightNShadowPlayground/SDF_XBOX_3.png)
+![Signed Distance Field Soft Shadow Map](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/LightNShadowPlayground/SDF_XBOX_3.png)
 
 Readme for Signed Distance Field Soft Shadow Maps:
 
@@ -901,38 +901,38 @@ To generate the SDF Mesh data you should select “Signed Distance Field” as t
 This unit test also supports screen-space shadows. These are complementary to regular shadow mapping and add more detail. We also fixed a number of inconsistencies with the other shadow map approaches.
 
 PS5 - Screen-Space Shadows on
-![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
+![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0031.png) 
 
 PS5 - Screen-Space Shadows off
-![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
+![Screen-Space Shadows PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Prospero/PS5-1-20240401-0032.png) 
 
 Nintendo Switch
-![Screen-Space Shadows Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
+![Screen-Space Shadows Switch](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Switch/XAL02100097362-20240401-0007.PNG) 
 
 PS4
-![Screen-Space Shadows PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
+![Screen-Space Shadows PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Screen-Space-Shadows/Orbis/PS4-1-20240401-0051.png) 
 
 
 ## 9a. Hybrid Ray-Traced Shadows
 This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
 
 
-<!--![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HRT_Shadows.png)-->
+<!--![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HRT_Shadows.png)-->
 
 Mac M2 (1440x838)
-![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HybridRaytracing_M2Mac_1440x838.png)
+![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HybridRaytracing_M2Mac_1440x838.png)
 
 PS4 Pro (3840x2160)
-![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HybridRaytracing_PS4Pro_3840x2160.png)
+![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HybridRaytracing_PS4Pro_3840x2160.png)
 
 Switch (1280x720)
-![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HybridRaytracing_Switch_1280x720.PNG)
+![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HybridRaytracing_Switch_1280x720.PNG)
 
 XBOX One Series S (1080p)
-![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HybridRaytracing_XboxOneS_1920x1080.png)
+![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HybridRaytracing_XboxOneS_1920x1080.png)
 
 iPad Pro 12.9-inch (5th generation) (Model A2378) (2733x2048)
-![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/09a_HRT_Shadows_iPad_2733x2048.png)
+![Hybrid Ray Traced Shadows](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/09a_HRT_Shadows_iPad_2733x2048.png)
 
 ## 10. Screen-Space Reflections
 This test offers two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
@@ -940,59 +940,59 @@ This test offers two choices: you can pick either Pixel Projected Reflections or
 Here are the screenshots of AMD's FX Stochastic Screen Space Reflections:
 
 Windows 10 (2560x1080)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_Win10_RX7600_2560x1080.png)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_Win10_RX7600_2560x1080.png)
 
 PS4 PRO (3840x2160)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_PS4Pro_3840x2160.png)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_PS4Pro_3840x2160.png)
 
 Switch (1280x720)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_Switch_1280x720.PNG)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_Switch_1280x720.PNG)
 
 Mac M2 (1440x838)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_M2Mac_1440x838%20.png)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_M2Mac_1440x838%20.png)
 
 XBOX One Series S (1080p)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_XboxOneS_1920x1080.png)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_XboxOneS_1920x1080.png)
 
 iPad Pro 12.9-inch (5th generation) (Model A2378) (1366x1024)
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/10_ScreenSpaceReflections_IPad_1366x1024.PNG)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/10_ScreenSpaceReflections_IPad_1366x1024.PNG)
 <!--
 Windows final scene:
-![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/SSSR_Scene_with_reflections.png)
+![AMD FX Stochastic Screen Space Reflections](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/SSSR_Scene_with_reflections.png)
 
 Without denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/SSSR_Reflections_only_defore_denoise.png)
+![AMD FX Stochastic Screen Space Reflections before denoise](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/SSSR_Reflections_only_defore_denoise.png)
 
 With denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/SSSR_Reflections_with_denoise.png)
+![AMD FX Stochastic Screen Space Reflections before denoise](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/SSSR_Reflections_with_denoise.png)
 
 PS4:
-![AMD FX Stochastic Screen Space Reflections on PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/SSSR_on_PS4.png)
+![AMD FX Stochastic Screen Space Reflections on PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/SSSR_on_PS4.png)
 
 macOS:
-![AMD FX Stochastic Screen Space Reflections on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SSSR/SSSR_on_macOS.png)
+![AMD FX Stochastic Screen Space Reflections on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SSSR/SSSR_on_macOS.png)
 
 In case you pick Pixel-Projected Reflections, the application features an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
 
-![Image of the Pixel-Projected Reflections Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/10_Pixel-ProjectedReflections.png)
+![Image of the Pixel-Projected Reflections Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/10_Pixel-ProjectedReflections.png)
 -->
 
 ## 11. Multi-GPU (Driver support only on PC Windows)
 This unit test shows a typical VR Multi-GPU configuration. One eye is rendered by one GPU and the other eye by the other one.
 
-![Image of the Multi-GPU Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/11_MultiGPU.png)
+![Image of the Multi-GPU Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/11_MultiGPU.png)
 
 ## 11a. Unlinked multiple GPUs (Driver support only on PC Windows)
 For professional visualization applications, we now support unlinked multiple GPUs. A new renderer API is added to enumerate available GPUs. Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list. Multiple Renderers can be created this way. The resource loader interface has been extended to support multiple Renderers. It is initialized with the list of all Renderers created. To select which Renderer (GPU) resources are loaded on, the NodeIndex used in linked GPU configurations is reused for the same purpose. Resources cannot be shared on multiple Renderers however, resources must be duplicated explicitly if needed. To retrieve generated content from one GPU to another (e.g. for presentation), a new resource loader operation is provided to schedule a transfer from a texture to a buffer. The target buffer should be mappable. This operation requires proper synchronization with the rendering work; a semaphore can be provided to the copy operation for that purpose. Available with Vulkan and D3D12. For other APIs, the enumeration API will not create a RendererContext which indicates lack of unlinked multi GPU support.
 
-![Image of the Unlinked Multiple GPUs Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/11a_UnlinkedMultipleGPUs.PNG)
+![Image of the Unlinked Multiple GPUs Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/11a_UnlinkedMultipleGPUs.PNG)
 
 ## 12. File System Test
 This unit test showcases a cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](/Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
    * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
    * The concept of `FileSystemRoot`s has been replaced by `ResourceDirectory`s. `ResourceDirectory`s are predefined directories where resources are expected to exist, and there are convenience functions to open files in resource directories. If your resources don’t exist within the default directory for a particular resource type, you can call `fsSetPathForResourceDirectory` to relocate the resource directory; see the unit tests for sample code on how to do this.
    
-![File System Unit Test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/12_FileSystem.png)
+![File System Unit Test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/12_FileSystem.png)
 
 
 
@@ -1000,7 +1000,7 @@ This unit test showcases a cross-platform FileSystem C API, supporting disk-base
 ## 14. Wave Intrinsics
 This unit test shows how to use the new wave intrinsics. Supporting Windows with DirectX 12 / Vulkan, Linux with Vulkan and macOS / iOS.
 
-![Image of the Wave Intrinsics unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/15_WaveIntrinsics.png)
+![Image of the Wave Intrinsics unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/15_WaveIntrinsics.png)
 
 ## 15. Order-Independent Transparency
 This unit test compares various Order-Indpendent Transparency Methods. In the moment it shows:
@@ -1009,7 +1009,7 @@ This unit test compares various Order-Indpendent Transparency Methods. In the mo
 - Weighted blended Order Independent Transparency by Volition [GDC 2018 Talk](https://www.gdcvault.com/play/1025400/Rendering-Technology-in-Agents-of)
 - Adaptive Order Independent Transparency with Raster Order Views [paper by Intel, supports DirectX 11, 12 only](https://software.intel.com/en-us/articles/oit-approximation-with-pixel-synchronization-update-2014), and a [Primer](https://software.intel.com/en-us/gamedev/articles/rasterizer-order-views-101-a-primer)
 - Phenomenological Transparency - Diffusion, Refraction, Shadows by [Morgan McGuire](https://casual-effects.com/research/McGuire2017Transparency/McGuire2017Transparency.pdf)
-![Image of the Order-Indpendent Transparency unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/14_OIT.png)
+![Image of the Order-Indpendent Transparency unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/14_OIT.png)
 
 ## 15a. Visibility Buffer OIT
 This unit test shows how to handle per triangle order-independent transparency in an intuitive way in the Visibility Buffer context. The main idea is that a per-pixel linked list of triangle IDs is holding layers of transparency. This is occupies less memory and is more efficient than storing per-pixel information.
@@ -1028,28 +1028,28 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Green – all 4 samples;
 
 PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_original1.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_original1.png) 
 
 Debug Output with the original Image on PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_map_debug_vs_original1.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_map_debug_vs_original1.png) 
 
 PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_original2.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_original2.png) 
 
 Debug Output with the original Image on PC
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/vrs_map_debug_vs_original2.png) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/vrs_map_debug_vs_original2.png) 
 
 Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/original2.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/original2.jpg) 
 
 Debug Output with the original Image on Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/debug_vs_original2.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/debug_vs_original2.jpg) 
 
 Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/original3.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/original3.jpg) 
 
 Debug Output with the original Image on Android
-![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/UT%2015a/debug_vs_original3.jpg) 
+![VRS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/UT%2015a/debug_vs_original3.jpg) 
 
 
 Example 15a_VisibilityBufferOIT now has an additional option to toggle VRS - "Enable Variable Rate Shading"
@@ -1066,26 +1066,26 @@ We switched to Ray Queries for the common Ray Tracing APIs on all the platforms 
 Because Ray Tracing became a Marketing term valuable to GPU manufacturers, some game developers support now Ray Tracing to help increase hardware sales. So we are going with the flow here by offering those APIs.
 
 macOS (1440x810)
-![Ray Queries on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_M2Mac_1440x810.png)
+![Ray Queries on macOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_M2Mac_1440x810.png)
 
 PS5 (1080p)
-![Ray Queries on PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_PS5_1080p.png)
+![Ray Queries on PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_PS5_1080p.png)
 
 Windows 10 (2560x1080)
-![Ray Queries on Windows 10](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
+![Ray Queries on Windows 10](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
 
 XBOX One Series X (1080p)
-![Ray Queries on XBOX One Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
+![Ray Queries on XBOX One Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
 
 iPhone 11 (Model A2111) at resolution 896x414
-![Ray Queries on iOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Raytracing/16_Raytracing_iOS.png)
+![Ray Queries on iOS](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Raytracing/16_Raytracing_iOS.png)
 
 We do not have a denoiser for the Path Tracer.
 
 
 ## 17. Entity Component System Test
 This unit test shows how to use the high-performance entity component system in The Forge. 
-![Image of the Entity Component System unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/17_EntityComponentSystem.png)
+![Image of the Entity Component System unit test in The Forge](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/17_EntityComponentSystem.png)
 
 This unit test uses
 
@@ -1126,7 +1126,7 @@ This unit test showcases an implementation of code hot reloading in C, we've use
 
  for this. 
  
- ![C Code Hot Reloading Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/19_CodeHotReload.PNG)
+ ![C Code Hot Reloading Unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/19_CodeHotReload.PNG)
  
  The test contains two projects:
 - 19_CodeHotReload_Main: generates the executable. All code in this project can't be hot-reloaded. This is the project you should set as startup project when running the program form an IDE.
@@ -1145,46 +1145,46 @@ This unit test shows a wide range of animation tasks. We used Ozz to achieve tho
 Ozz Playback Animation
 Here is how to playback a clip on a rig:
 
-![Image of the Ozz Playback Animation](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animations_playback_stand.webp)
+![Image of the Ozz Playback Animation](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animations_playback_stand.webp)
 
 Ozz Playback Blending
 This option shows how to blend multiple clips and play them back on a rig:
 
-![Image of the Ozz Playback Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animations_Playback_blending.webp)
+![Image of the Ozz Playback Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animations_Playback_blending.webp)
 
 
 <!--
 Ozz Joint Attachment
 This option shows how to attach an object to a rig which is being posed by an animation.
 
-![Image of the Ozz Playback Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animations_Playback_blending.webp)
+![Image of the Ozz Playback Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animations_Playback_blending.webp)
 -->
 
 Ozz Partial Blending
 This option shows how to blend clips having each only effect a certain portion of joints.
 
-![Image of the Ozz Partial Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animation_partial_blending.webp)
+![Image of the Ozz Partial Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animation_partial_blending.webp)
 
 Ozz Additive Blending
 This option shows how to introduce an additive clip onto another clip and play the result on a rig.
 
-![Image of the Ozz Additive Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animation_additive_blending.webp)
+![Image of the Ozz Additive Blending](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animation_additive_blending.webp)
 
 Ozz Baked Physics
 This option shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
 
-![Image of the Ozz Baked Physics](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Baked_physics.webp)
+![Image of the Ozz Baked Physics](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Baked_physics.webp)
 
 Ozz Multi Threading
 This option shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates:
 
-![Image of the Ozz Multi Threading](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Animations/Animations_multithreading.webp)
+![Image of the Ozz Multi Threading](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Animations/Animations_multithreading.webp)
 
 
 ## 28. Ozz Skinning
 This unit test shows how to use skinning with Ozz
 
-![Image of the Ozz Skinning unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Skinning_PC.gif)
+![Image of the Ozz Skinning unit test](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Skinning_PC.gif)
 
 
  
@@ -1198,7 +1198,7 @@ This unit test is used to make sure the string, dynamic array and hash map imple
 ## Triangle Visibility Buffer 1.0
 This is an implementation of the Triangle Visibility Buffer that utilizes indirect draw calls. An early version of this example was covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
 
-![Image of the Visibility Buffer](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Visibility_Buffer.png)
+![Image of the Visibility Buffer](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Visibility_Buffer.png)
 
 
 ## Triangle Visibility Buffer 2.0
@@ -1226,7 +1226,7 @@ It works as follows:
 - When a unit test is started on the target application (i.e. consoles), it starts listening for connections on a part (8889 by default)
 - In the Remote Control App, enter the target ip address and click connect
 
-![Remote UI Control](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Remote%20UI.jpg)
+![Remote UI Control](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Remote%20UI.jpg)
 
 
 ## Ray Tracing Benchmark
@@ -1240,11 +1240,11 @@ Based on request we are providing a Ray Tracing Benchmark in 16_RayTracing. It a
 
 Windows DirectX 12 DXR, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
 
-![Windows DXR output of Ray Tracing Benchmark](https://github.com/ConfettiFX/The-Forge-Media/blob/master/16_Path_Tracer_Profile_DX.PNG) 
+![Windows DXR output of Ray Tracing Benchmark](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/16_Path_Tracer_Profile_DX.PNG) 
 
 Windows Vulkan RTX, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
 
-![Windows RTX output of Ray Tracing Benchmark](https://github.com/ConfettiFX/The-Forge-Media/blob/master/16_Path_Tracer_Profile.PNG) 
+![Windows RTX output of Ray Tracing Benchmark](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/16_Path_Tracer_Profile.PNG) 
 
 
 ## Microprofiler
@@ -1252,21 +1252,21 @@ We integrated the [Micro Profiler](https://github.com/zeux/microprofile) into ou
 
 Here are screenshots of the Microprofiler running the Visibility Buffer on PC:
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/VB_Detailed.png)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/VB_Detailed.png)
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/VB_Plot.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/VB_Plot.PNG)
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/VB_Timer.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/VB_Timer.PNG)
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/VB_Timer_2.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/VB_Timer_2.PNG)
 
 Here are screenshots of the Microprofiler running a unit test on iOS:
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/IMG_0004_iOS.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/IMG_0004_iOS.PNG)
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/IMG_0005_iOS.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/IMG_0005_iOS.PNG)
 
-![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/MicroProfiler/IMG_0006_iOS.PNG)
+![Microprofiler](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/MicroProfiler/IMG_0006_iOS.PNG)
 
 Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofiler---How-to-Use) for an explanation on how to use it.
 
@@ -1308,7 +1308,7 @@ What it is not:
 - A full feature configuration system you see in most game, ex: **Graphic Settings** panel
 - TheForge is mainly designed to deal with hardware features, his goal is not to manage the specific settings of your application.
 
-![GPU Config System](https://github.com/ConfettiFX/The-Forge-Media/blob/master/gpuConf.jpg)
+![GPU Config System](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/gpuConf.jpg)
 
 ### Hardware Capabilities
 
@@ -1533,24 +1533,24 @@ We would appreciate it if you could send us a link in case your product uses The
 
 ## STAR WARS™: Bounty Hunter™
 Bounty Hunter was ported with the help of The Forge Framework to all the platforms mentioned in the screenshot:
-[![STAR WARS™: Bounty Hunter™](https://github.com/ConfettiFX/The-Forge-Media/blob/master/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
+[![STAR WARS™: Bounty Hunter™](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/StarWars.png)](https://www.youtube.com/watch?v=jiBmgse9GTc)
 
 ## BuildBox
 The game engine BuildBox is now using The Forge (click on image to go to the Steam Store): 
 
-[![BuildBox](https://github.com/ConfettiFX/The-Forge-Media/blob/master/BuildBox.PNG)](https://signup.buildbox.com/product/bb3)
+[![BuildBox](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/BuildBox.PNG)](https://signup.buildbox.com/product/bb3)
 
 ## Lethis
 The Game "Lethis Path of Progress" is now using The Forge (click on image to go to the Steam Store)
 
-[![Lethis](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Lethis.PNG)](https://store.steampowered.com/app/359230/Lethis__Path_of_Progress/)
+[![Lethis](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Lethis.PNG)](https://store.steampowered.com/app/359230/Lethis__Path_of_Progress/)
 
 ## Supergiant Games Hades
 [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
 
 Here is a screenshot of Hades running on Switch:
 
-![Supergiant Hades](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Supergiant_Hades.jpg)
+![Supergiant Hades](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Supergiant_Hades.jpg)
 
 Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
 Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
@@ -1559,7 +1559,7 @@ Hades is also a technology showcase for Intel's integrated GPUs on macOS and Win
 Bethesda based their rendering layer for their next-gen engine on The Forge. We helped integrate and optimize it. 
 It always brings us pleasure to see The Forge running in AAA games like this:
 
-[![Starfield](https://github.com/ConfettiFX/The-Forge-Media/blob/master/starfield-screenshot.jpg)](https://www.youtube.com/watch?v=ZHZOTFMyMyM)
+[![Starfield](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/starfield-screenshot.jpg)](https://www.youtube.com/watch?v=ZHZOTFMyMyM)
 
 We added The Forge to the Creation Engine in 2019.
 
@@ -1573,7 +1573,7 @@ Here is more info about this game engine:
 ## No Man's Sky
 The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
 
-[![No Man's Sky on YouTube](https://github.com/ConfettiFX/The-Forge-Media/blob/master/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
+[![No Man's Sky on YouTube](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
 
 We helped to ship the macOS version of No Man's Sky.
 
@@ -1583,25 +1583,25 @@ M²H uses The Forge - [M²H](https://msquarehealthcare.com/) is a medical techno
 The Forge provides the rendering layer for their application.
 Here is a YouTube video on what they do:
 
-[![M²H on YouTube](https://github.com/ConfettiFX/The-Forge-Media/blob/master/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
+[![M²H on YouTube](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 ## StarVR One SDK
 The Forge was used to build the StarVR One SDK from 2016 - 2017:
 
-<a href="https://www.starvr.com" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/StarVR.PNG" 
+<a href="https://www.starvr.com" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
 
 
 ## Torque 3D
 The Forge Framework will be used as the rendering framework in Torque 3D:
 
-<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Torque-Logo_H.png" 
+<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Torque-Logo_H.png" 
 alt="Torque 3D" width="417" height="106" border="0" /></a>
 
 ## Star Wars Galaxies Level Editor
 SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, scenes, particles and import/export models via FBX. The editor uses an engine called 'atlas' that will be made open source in the future. It focuses on making efficient use of the new graphics APIs (with help from The-Forge!), ease-of-use and terrain rendering.
 
-![SWB Level Editor](https://github.com/ConfettiFX/The-Forge-Media/blob/master/SWB.png)
+![SWB Level Editor](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/SWB.png)
 
 # Writing Guidelines
 For contributions to The Forge we apply the following writing guidelines:
