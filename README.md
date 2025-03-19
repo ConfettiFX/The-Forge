@@ -77,6 +77,78 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 # News
 
 
+## Release 1.63 - March 20th, 2025 - Advanced RTX Global Illumination Middleware | Quest Run-time switches to OpenXR | Triangle Visibility Buffer with Programmable MSAA | Ephemeris running on low end mobile devices | Particle System UT now runs on Adreno Devices with lower storage buffer limits
+
+### Advanced RTX Global Illumination Middleware
+Over the last three years we developed a solution for Global Illumination based on the RTX / DXR interfaces. This development was fuelled by the games that will use this solution. We are adding it to our arsenal of graphics middleware, which is not publicly available. In case you want more information, please drop us a note. 
+Here is a feature list and screenshots:
+- New sky shading model for more accurate GI
+- Normal texture generation from depth
+- Single pass depth hierarchy from FSSR
+- Screen space ray marching for evaluation of screen space GI
+- Single bounce hybrid ray tracing for GI
+- Multi bounce GI with probe volume cascades
+- World and frustum GPU hash implementation for samples accumulation
+- Denoising with reprojection and a weighted blur
+- Batching rays for indirect dispatches as an optimization
+- Spatiotemporal reservoir sampling
+Following the trajectory of RTX based Global Illumination approaches, this should be the most advanced and already proven system out there ...
+
+Android Samsung S24 Xclipse 940
+![RTX GI Samsung S24](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/Android-Samsung-S24-Xclipse-940-540p.png)
+
+PS5
+![RTX GI PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/PS5-4K.png)
+
+Steam Deck
+![RTX GI Steamdeck](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/SteamDeck-1080p.png)
+
+Xbox Series X
+![RTX GI Xbox Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/XboxSeriesX-4K.png)
+
+iPhone 15 Pro
+![RTX GI iPhone 15 Pro](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/iPhone15Pro-A17-540p.jpeg)
+
+### Quest Run-time switches to OpenXR
+We made the internal switch to finally use OpenXR. A funfact is that we used and helped to develop OpenXR in projects since about 2016 but never implemeneted it into our own code base ... only customer code bases.
+
+### Triangle Visibility Buffer with Programmable MSAA
+This is an oldie but goodie :-) ... I (Wolfgang) wrote several blog posts about it and talked on conferences about it and now we have it in our code base. I remember having been involved at Rockstar Games with developing a programmable MSAA approach on XBOX and PS in 2006 (?), we had examples running with it in our code base over the years. We finally found time to bring it also into our open-source code base inside the Triangle Visibility Buffer.
+
+Android Samsung S21 Mali-G78
+![Triangle Visibility Buffer with Programmable MSAA on Android Samsung S21 Mali-G78](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/Android-Samsung-S21-Mali-G78.png)
+
+PS4 Pro
+![Triangle Visibility Buffer with Programmable MSAA on PS4](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/PS4.png)
+
+PS5
+![Triangle Visibility Buffer with Programmable MSAA on PS5](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/PS5.png)
+
+Xbox Series X
+![Triangle Visibility Buffer with Programmable MSAA on Xbox Series X](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/XboxSeriesX.png)
+
+Quest
+![Triangle Visibility Buffer with Programmable MSAA on Quest](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/Quest.png)
+
+Debug screenshots
+Godray samples 4xMSAA
+![Godray samples 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/GodRaySamples.png)
+
+VB Shading samples 4xMSAA
+![VB Shading samples 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/ShadingSamples.png
+
+Stencil mask 4xMSAA
+![Stencil mask 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/StencilMask.png)
+
+
+### Ephemeris running on low end mobile devices
+This was also one of the overdue things. Ephemeris is our skydome system that shipped in game engines before. Most of the time we had it running on PS4 class hardware but now it also supports
+low-end mobile phones. It is in our non-public middleware folder. Drop me a note if you want to know more.
+
+### Particle System UT now runs on Adreno Devices that do not support bindless Textures
+Now there is a fallback for devices with lower storage buffer limits. Also we further optimized the size of the particle data to accommodate more particles in the particle buffer.
+
+
 ## Release 1.62 - February 27th, 2025 - C99 Vulkan/DirectX rewrite | Scene resolution using GPUCfg | SRT updates | In-Flight Motion Vector
 
 ### C99 Vulkan/DirectX API rewrite
