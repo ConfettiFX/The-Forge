@@ -92,6 +92,7 @@ Here is a feature list and screenshots:
 - Denoising with reprojection and a weighted blur
 - Batching rays for indirect dispatches as an optimization
 - Spatiotemporal reservoir sampling
+
 Following the trajectory of RTX based Global Illumination approaches, this should be the most advanced and already proven system out there ...
 
 Android Samsung S24 Xclipse 940
