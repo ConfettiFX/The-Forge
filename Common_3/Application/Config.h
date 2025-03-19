@@ -419,3 +419,5 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #error "_DEBUG and NDEBUG are defined at the same time"
 #endif
 #endif
+
+#define VR_API_OPENXR

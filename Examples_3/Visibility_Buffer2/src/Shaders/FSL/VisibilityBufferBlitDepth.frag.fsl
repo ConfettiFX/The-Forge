@@ -45,7 +45,7 @@ PSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	uint index = VisibilityBufferOffset(gRenderTargetInfo.view, gRenderTargetInfo.width, In.position.x, In.position.y);
 
-	uint64_t packedU64 = gVisibilityBufferBlitDepth[index];
+	uint64_t packedU64 = gVisibilityBuffer[index];
 	float depth = 0.0f;
 	uint vbId = 0u;
 	unpackDepthVBId(packedU64, depth, vbId);

@@ -180,7 +180,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId )
 			if ((Bitfield & PARTICLE_BITFIELD_IS_ALIVE) < 1 || (Bitfield & PARTICLE_BITFIELD_IS_ALLOCATED) < 1)
 				continue;
 
-			float3 particlePos = UnpackParticlePosition(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], gParticlesDataBuffer[j]);
+			ParticleData p;
+			GetParticleData(p, gParticlesDataBuffer, j);
+			float3 particlePos = UnpackParticlePosition(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], p);
 
 			// Skip triangle if it is outside of the area of influence of the light
 			float lightRadius = unpack2Floats(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK].LightRadiusAndVelocityNoise).x;

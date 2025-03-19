@@ -23,10 +23,9 @@
 */
 
 BEGIN_SRT_SET(PerFrame)
-    DECL_CBUFFER( PerFrame, CBUFFER(PerFrameVBConstantsData), gPerFrameVBConstants)
+    DECL_CBUFFER( PerFrame, CBUFFER(VBViewConstantsData), gVBViewConstants)
 	DECL_CBUFFER( PerFrame, CBUFFER(PerFrameConstantsData), gPerFrameConstants)
     DECL_CBUFFER( PerFrame, CBUFFER(UniformCameraSkyData), gUniformCameraSky)
-    DECL_BUFFER( PerFrame, Buffer(uint64_t), gVisibilityBufferBlitDepth)
 	DECL_BUFFER( PerFrame, Buffer(uint), gBinBuffer)
 	DECL_BUFFER( PerFrame, Buffer(uint), gIndirectFilteredBatches)
 	DECL_BUFFER( PerFrame, Buffer(uint64_t), gVisibilityBuffer)

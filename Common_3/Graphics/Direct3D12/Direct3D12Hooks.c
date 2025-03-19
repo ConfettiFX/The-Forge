@@ -397,6 +397,14 @@ void hook_fill_occlusion_query(Cmd* pCmd, uint32_t queryIndex)
     UNREF_PARAM(queryIndex);
 }
 
+DXGI_FORMAT hook_to_dx12_srv_platform_format(DXGI_FORMAT defaultFormat, bool isStencil)
+{
+    // Passthrough, no need to handle any special format on PC
+    UNREF_PARAM(defaultFormat);
+    UNREF_PARAM(isStencil);
+    return DXGI_FORMAT_UNKNOWN;
+}
+
 extern const D3D12_COMMAND_LIST_TYPE gDx12CmdTypeTranslator[MAX_QUEUE_TYPE];
 HRESULT hook_create_cmd(ID3D12Device* pDevice, QueueType queueType, uint32_t nodeMask, ID3D12CommandAllocator* pAlloc, Cmd* pCmd)
 {

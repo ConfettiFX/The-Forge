@@ -1170,7 +1170,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
                             [pDescriptorSet->mArgumentEncoder setTexture:texture->pUAVDescriptors[pParam->mUAVMipSlice]
                                                                  atIndex:bindIndex + arrayStart + j];
                             MTLResourceUsage usage = MTLResourceUsageRead | MTLResourceUsageWrite;
-                            TrackUntrackedResource(pDescriptorSet, index, usage, texture->pUAVDescriptors[j]);
+                            TrackUntrackedResource(pDescriptorSet, index, usage, texture->pUAVDescriptors[pParam->mUAVMipSlice]);
                         }
                     }
                 }
@@ -2294,6 +2294,14 @@ static bool SelectBestGpu(const RendererDesc* settings, Renderer* pRenderer)
     //}
 
     ASSERT(gpuIndex < pContext->mGpuCount);
+
+    bool gpuSupported = util_check_is_gpu_supported(&gpuDesc[gpuIndex]);
+    if (!gpuSupported)
+    {
+        LOGF(eERROR, "Failed to Init Renderer: %s", getUnsupportedGPUMsg());
+        return false;
+    }
+
     pRenderer->pDevice = gpus[gpuIndex].pGPU;
     pRenderer->pGpu = &gpus[gpuIndex];
     pRenderer->mLinkedNodeCount = 1;
@@ -2386,7 +2394,15 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 
     // Initialize the Metal bits
     {
-        SelectBestGpu(settings, pRenderer);
+        if (!SelectBestGpu(settings, pRenderer))
+        {
+            // set device to null
+            pRenderer->pDevice = nil;
+            // remove allocated renderer
+            SAFE_FREE(pRenderer);
+            *ppRenderer = NULL;
+            return;
+        }
 
         LOGF(LogLevel::eINFO, "Metal: Heaps: %s", pRenderer->pGpu->mHeaps ? "true" : "false");
         LOGF(LogLevel::eINFO, "Metal: Placement Heaps: %s", pRenderer->pGpu->mPlacementHeaps ? "true" : "false");
@@ -3489,11 +3505,15 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const char* pName, const Graph
     {
         // assign depth state
         pPipeline->pDepthStencilState = pDesc->pDepthState ? util_to_depth_state(pRenderer, pDesc->pDepthState) : pDefaultDepthState;
-
-        renderPipelineDesc.depthAttachmentPixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mDepthStencilFormat);
-        if (pDesc->mDepthStencilFormat == TinyImageFormat_D24_UNORM_S8_UINT ||
-            pDesc->mDepthStencilFormat == TinyImageFormat_D32_SFLOAT_S8_UINT)
-            renderPipelineDesc.stencilAttachmentPixelFormat = renderPipelineDesc.depthAttachmentPixelFormat;
+        MTLPixelFormat depthStencilFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mDepthStencilFormat);
+        if (TinyImageFormat_HasDepth(pDesc->mDepthStencilFormat))
+        {
+            renderPipelineDesc.depthAttachmentPixelFormat = depthStencilFormat;
+        }
+        if (TinyImageFormat_HasStencil(pDesc->mDepthStencilFormat))
+        {
+            renderPipelineDesc.stencilAttachmentPixelFormat = depthStencilFormat;
+        }
     }
 
     // assign common tesselation configuration if needed.
@@ -3725,7 +3745,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         pCmd->mShouldRebindPipeline = 1;
     }
 
-    const bool hasDepth = pDesc->mDepthStencil.pDepthStencil;
+    const bool hasDepthStencil = pDesc->mDepthStencil.pDepthStencil;
 
     @autoreleasepool
     {
@@ -3804,26 +3824,28 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             renderPassDesc.colorAttachments[i].clearColor = MTLClearColorMake(clearValue.r, clearValue.g, clearValue.b, clearValue.a);
         }
 
-        if (hasDepth)
+        if (hasDepthStencil)
         {
             const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
-            renderPassDesc.depthAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
-            if (desc->mUseMipSlice)
+            TinyImageFormat            dsFormat =
+                TinyImageFormat_FromMTLPixelFormat((TinyImageFormat_MTLPixelFormat)desc->pDepthStencil->pTexture->pTexture.pixelFormat);
+            bool hasDepth = TinyImageFormat_HasDepth(dsFormat);
+            bool hasStencil = TinyImageFormat_HasStencil(dsFormat);
+
+            if (hasDepth)
             {
-                renderPassDesc.depthAttachment.level = desc->mMipSlice;
+                const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+                renderPassDesc.depthAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
+                if (desc->mUseMipSlice)
+                {
+                    renderPassDesc.depthAttachment.level = desc->mMipSlice;
+                }
+                if (desc->mUseArraySlice)
+                {
+                    renderPassDesc.depthAttachment.slice = desc->mArraySlice;
+                }
             }
-            if (desc->mUseArraySlice)
-            {
-                renderPassDesc.depthAttachment.slice = desc->mArraySlice;
-            }
-#ifndef TARGET_IOS
-            bool isStencilEnabled = desc->pDepthStencil->pTexture->pTexture.pixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
-#else
-            bool isStencilEnabled = false;
-#endif
-            isStencilEnabled =
-                isStencilEnabled || desc->pDepthStencil->pTexture->pTexture.pixelFormat == MTLPixelFormatDepth32Float_Stencil8;
-            if (isStencilEnabled)
+            if (hasStencil)
             {
                 renderPassDesc.stencilAttachment.texture = desc->pDepthStencil->pTexture->pTexture;
                 if (desc->mUseMipSlice)
@@ -3841,7 +3863,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             renderPassDesc.depthAttachment.storeAction =
                 desc->pDepthStencil->pTexture->mLazilyAllocated ? MTLStoreActionDontCare : util_to_mtl_store_action(desc->mStoreAction);
 
-            if (isStencilEnabled)
+            if (hasStencil)
             {
                 renderPassDesc.stencilAttachment.loadAction = util_to_mtl_load_action(desc->mLoadActionStencil);
                 renderPassDesc.stencilAttachment.storeAction = desc->pDepthStencil->pTexture->mLazilyAllocated
@@ -3856,7 +3878,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
 
             const ClearValue& clearValue = desc->mOverrideClearValue ? desc->mClearValue : desc->pDepthStencil->mClearValue;
             renderPassDesc.depthAttachment.clearDepth = clearValue.depth;
-            if (isStencilEnabled)
+            if (hasStencil)
             {
                 renderPassDesc.stencilAttachment.clearStencil = clearValue.stencil;
             }
@@ -3885,7 +3907,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             }
         }
 
-        if (!pDesc->mRenderTargetCount && !hasDepth)
+        if (!pDesc->mRenderTargetCount && !hasDepthStencil)
         {
             renderPassDesc.renderTargetWidth = pDesc->mExtent[0];
             renderPassDesc.renderTargetHeight = pDesc->mExtent[1];
@@ -5901,15 +5923,27 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 
             ASSERT(pTexture->pTexture);
 
-            if (TinyImageFormat_IsDepthAndStencil(pDesc->mFormat))
+            if (TinyImageFormat_HasStencil(pDesc->mFormat))
             {
+                MTLPixelFormat targetStencilFormat = pixelFormat;
+                switch (pixelFormat)
+                {
+                case MTLPixelFormatStencil8:
+                    targetStencilFormat = MTLPixelFormatStencil8;
+                    break;
+                case MTLPixelFormatDepth32Float_Stencil8:
+                    targetStencilFormat = MTLPixelFormatDepth32Float_Stencil8;
+                    break;
 #ifndef TARGET_IOS
-                pTexture->pStencilTexture = [pTexture->pTexture
-                    newTextureViewWithPixelFormat:(pixelFormat == MTLPixelFormatDepth32Float_Stencil8 ? MTLPixelFormatX32_Stencil8
-                                                                                                      : MTLPixelFormatX24_Stencil8)];
-#else
-                pTexture->pStencilTexture = [pTexture->pTexture newTextureViewWithPixelFormat:MTLPixelFormatX32_Stencil8];
+                case MTLPixelFormatDepth24Unorm_Stencil8:
+                    targetStencilFormat = MTLPixelFormatX24_Stencil8;
+                    break;
 #endif
+                default:
+                    ASSERTFAIL("Cannot generate stencil image view");
+                    break;
+                }
+                pTexture->pStencilTexture = [pTexture->pTexture newTextureViewWithPixelFormat:targetStencilFormat];
                 ASSERT(pTexture->pStencilTexture);
             }
         }

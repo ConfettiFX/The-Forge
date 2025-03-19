@@ -29,9 +29,20 @@ BEGIN_SRT(BakedSDFMeshShadowSrtData)
 #include "PersistentSet.h"
 #include "PerFrameSet.h"
 	BEGIN_SRT_SET(PerBatch)
+#if FT_MULTIVIEW
+		DECL_WTEXTURE(PerBatch, WTex2DArray(float4), gOutTexture)
+		DECL_WTEXTURE(PerBatch, WTex2DArray(float2), gOutTextureF2)
+#else
 		DECL_WTEXTURE(PerBatch, WTex2D(float4), gOutTexture)
 		DECL_WTEXTURE(PerBatch, WTex2D(float2), gOutTextureF2)
+#endif
 	END_SRT_SET(PerBatch)
+
+#if FT_MULTIVIEW
+	BEGIN_SRT_SET(PerDraw)
+		DECL_CBUFFER(PerDraw, CBUFFER(SDFPerDrawData), gPerDrawSDFData)
+    END_SRT_SET(PerDraw)
+#endif
 END_SRT(BakedSDFMeshShadowSrtData)
 
 #endif /* baked_sdf_mesh_shadow_srt_h */

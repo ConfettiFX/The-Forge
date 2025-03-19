@@ -78,19 +78,11 @@
 #include "Display.frag.fsl"
 #end
 
-#vert FT_MULTIVIEW skybox.vert
-#include "Skybox.vert.fsl"
-#end
-
-#frag skybox.frag
-#include "Skybox.frag.fsl"
-#end
-
 #vert FT_MULTIVIEW visibilityBuffer_shade.vert
 #include "VisibilityBufferShade.vert.fsl"
 #end
 
-#vert resolve.vert
+#vert FT_MULTIVIEW resolve.vert
 #include "Resolve.vert.fsl"
 #end
 
@@ -162,17 +154,47 @@
 #include "VisibilityBufferShade.frag.fsl"
 #end
 
-#frag resolve_SAMPLE_1.frag
+#frag FT_MULTIVIEW resolve_SAMPLE_1.frag
 #define SAMPLE_COUNT 1
 #include "Resolve.frag.fsl"
 #end
 
-#frag resolve_SAMPLE_2.frag
+#frag FT_MULTIVIEW resolve_SAMPLE_2.frag
 #define SAMPLE_COUNT 2
 #include "Resolve.frag.fsl"
 #end
 
-#frag resolve_SAMPLE_4.frag
+#frag FT_MULTIVIEW resolve_SAMPLE_4.frag
 #define SAMPLE_COUNT 4
 #include "Resolve.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_edge_detect_SAMPLE_2.frag
+#define SAMPLE_COUNT 2
+#include "MsaaEdgeDetect.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_edge_detect_SAMPLE_4.frag
+#define SAMPLE_COUNT 4
+#include "MsaaEdgeDetect.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_stencil_downscale_SAMPLE_2.frag
+#define SAMPLE_COUNT 2
+#include "MsaaStencilDownscale.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_stencil_downscale_SAMPLE_4.frag
+#define SAMPLE_COUNT 4
+#include "MsaaStencilDownscale.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_debug_SAMPLE_2.frag
+#define SAMPLE_COUNT 2
+#include "DebugMSAA.frag.fsl"
+#end
+
+#frag FT_MULTIVIEW msaa_debug_SAMPLE_4.frag
+#define SAMPLE_COUNT 4
+#include "DebugMSAA.frag.fsl"
 #end

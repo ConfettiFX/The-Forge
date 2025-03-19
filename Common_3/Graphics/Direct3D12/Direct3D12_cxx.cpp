@@ -25,7 +25,7 @@
 #include "../GraphicsConfig.h"
 
 #ifdef DIRECT3D12
-#include "Direct3D12_cxx.h"
+#include "Direct3D12_Cxx.h"
 
 #define AMD_AGS_HELPER_IMPL
 #include "../../../Common_3/Graphics/ThirdParty/OpenSource/ags/AgsHelper.h"

@@ -50,7 +50,7 @@
 // Input
 #include "../../../../Common_3/Utilities/Threading/ThreadSystem.h"
 
-#include "samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_2spp.cpp"
+#include "SamplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_2spp.cpp"
 
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
@@ -556,22 +556,10 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
-        if (!gSettings.mBindlessSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. GPU does not support enough bindless texture entries");
-            return false;
-        }
-
-        if (!pRenderer->pGpu->mPrimitiveIdSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. PrimitiveID is not supported");
-            return false;
-        }
 
 // Andorid: Some devices might have support for all wave ops we use in this UT but tha results the WaveReadLaneAt gives us might be
 // incorrect.
@@ -1796,7 +1784,7 @@ public:
         pCameraController->update(deltaTime);
 
         // Update camera
-        mat4         viewMat = pCameraController->getViewMatrix();
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
         const float  aspectInverse = (float)gSceneRes.mHeight / (float)gSceneRes.mWidth;
         const float  horizontalFov = PI / 2.0f;
         const float  nearPlane = 0.1f;
@@ -1814,7 +1802,7 @@ public:
 
         // data uniforms
         gUniformDataExtenedCamera.mCameraWorldPos = vec4(pCameraController->getViewPosition(), 1.0);
-        gUniformDataExtenedCamera.mViewMat = viewMat;
+        gUniformDataExtenedCamera.mViewMat = viewMat.mCamera;
         gUniformDataExtenedCamera.mInvViewMat = inverse(gUniformDataExtenedCamera.mViewMat);
         gUniformDataExtenedCamera.mProjMat = projMat.mCamera;
         gUniformDataExtenedCamera.mViewProjMat = ViewProjMat.mCamera;
@@ -1882,7 +1870,7 @@ public:
         gUniformSSSRConstantsData.g_skip_denoiser = gSSSR_SkipDenoiser;
 
         viewMat.setTranslation(vec3(0));
-        gUniformDataSky.mProjectView = projMat.mCamera * viewMat;
+        gUniformDataSky.mProjectView = projMat.mCamera * viewMat.mCamera;
 
         if (gReflectionType != gLastReflectionType)
         {
@@ -2900,7 +2888,7 @@ public:
                 initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
                 edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
 
-                edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+                edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
                 edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
                 edescs[1].pixelShaderOptions.depthBeforeShader =
                     !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
@@ -2932,7 +2920,7 @@ public:
             initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
             // edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
-            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
             edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
             edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
 

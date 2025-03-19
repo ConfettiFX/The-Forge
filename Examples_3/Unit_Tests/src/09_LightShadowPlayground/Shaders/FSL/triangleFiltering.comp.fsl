@@ -106,7 +106,11 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 
 		for (uint i = 0; i < gPerFrameVBConstants.numViewports; ++i)
 		{
+#if defined(TARGET_QUEST)
+			float4x4 worldViewProjection = gPerFrameVBConstants.cullingMVP[i];
+#else
 			float4x4 worldViewProjection = gPerFrameVBConstants.transform[i].mvp.mat;
+#endif
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),

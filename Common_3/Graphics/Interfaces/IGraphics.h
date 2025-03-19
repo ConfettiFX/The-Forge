@@ -1067,6 +1067,9 @@ typedef struct DEFINE_ALIGNED(Texture, ALIGN_Texture)
     {
         /// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
         DxDescriptorID             mDescriptors;
+        /// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE when used along with
+        /// mBindStencilResource)
+        DxDescriptorID             mStencilDescriptor;
         /// Native handle of the underlying resource
         ID3D12Resource*            pResource;
         /// Contains resource allocation info such as parent heap, offset in heap
@@ -2317,11 +2320,10 @@ typedef struct SwapChain
 #if defined(QUEST_VR)
     struct
     {
-        struct ovrTextureSwapChain* pSwapChain;
-        VkExtent2D*                 pFragmentDensityTextureSizes;
-        RenderTarget**              ppFragmentDensityMasks;
+        XrSwapchain                 pSwapchain;
+        XrSwapchainImageBaseHeader* pSwapchainImages;
     } mVR;
-#endif
+#endif // QUEST_VR
     uint32_t        mImageCount : 8;
     uint32_t        mEnableVsync : 1;
     ColorSpace      mColorSpace : 4;
@@ -2421,6 +2423,7 @@ typedef enum FormatCapability
     FORMAT_CAP_WRITE = 0x4,
     FORMAT_CAP_READ_WRITE = 0x8,
     FORMAT_CAP_RENDER_TARGET = 0x10,
+    FORMAT_CAP_DEPTH_STENCIL = 0x20,
 } FormatCapability;
 MAKE_ENUM_FLAG(uint32_t, FormatCapability);
 

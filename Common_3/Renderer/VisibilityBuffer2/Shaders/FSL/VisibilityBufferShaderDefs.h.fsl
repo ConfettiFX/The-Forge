@@ -213,7 +213,7 @@ typedef struct IndirectDrawIndexArguments
 #define VERTEX_ID_RELATIVE_TO_DRAW 0
 #endif
 
-STRUCT(PerFrameVBConstantsData)
+STRUCT(VBViewConstantsData)
 {
 	DATA(Transform, transform[NUM_CULLING_VIEWPORTS], None);
 	DATA(CullingViewPort, cullingViewports[NUM_CULLING_VIEWPORTS], None);

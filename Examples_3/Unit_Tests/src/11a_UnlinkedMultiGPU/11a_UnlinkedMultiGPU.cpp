@@ -350,7 +350,7 @@ public:
             // check for init success
             if (!pRenderer[0])
             {
-                ShowUnsupportedMessage("Failed To Initialize renderer!");
+                ShowUnsupportedMessage(getUnsupportedGPUMsg());
                 return false;
             }
             initRootSignature(pRenderer[0], &rootDesc);
@@ -389,7 +389,7 @@ public:
                     // check for init success
                     if (!pRenderer[i])
                     {
-                        ShowUnsupportedMessage("Failed To Initialize renderer!");
+                        ShowUnsupportedMessage(getUnsupportedGPUMsg());
                         return false;
                     }
                     initRootSignature(pRenderer[i], &rootDesc);
@@ -938,11 +938,13 @@ public:
         currentTime += deltaTime * 1000.0f;
 
         // update camera with time
-        mat4        viewMat = pCameraController->getViewMatrix();
-        const float aspectInverse = (float)mSettings.mHeight / ((float)mSettings.mWidth * 0.5f);
-        const float horizontal_fov = gFoVH * PI / 180.0f;
-        mat4        projMat = mat4::perspectiveLH_ReverseZ(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-        gUniformData.mProjectView = projMat * viewMat;
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
+        const float  aspectInverse = (float)mSettings.mHeight / ((float)mSettings.mWidth * 0.5f);
+        const float  horizontalFov = gFoVH * PI / 180.0f;
+        const float  nearPlane = 0.1f;
+        const float  farPlane = 1000.0f;
+        CameraMatrix projMat = CameraMatrix::perspectiveReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane);
+        gUniformData.mProjectView = (projMat * viewMat).mCamera;
 
         // point light parameters
         gUniformData.mLightPosition = vec3(0, 0, 0);
@@ -971,7 +973,7 @@ public:
         }
 
         viewMat.setTranslation(vec3(0));
-        gUniformData.mSkyProjectView = projMat * viewMat;
+        gUniformData.mSkyProjectView = (projMat * viewMat).mCamera;
     }
 
     void Draw()

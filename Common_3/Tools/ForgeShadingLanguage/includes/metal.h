@@ -100,6 +100,9 @@ bool2 And( bool2 a, bool2 b)
 #define AnyLessThanEqual(X, Y)    any(LessThanEqual(X, Y))
 
 bool3 Equal(float3 X, float Y) { return X == f3(Y);}
+bool4 Equal(float4 X, float Y) { return X == f4(Y);}
+bool3 Equal(uint3 X, float Y) { return X == uint3(Y);}
+bool4 Equal(uint4 X, float Y) { return X == uint4(Y);}
 
 bool allGreaterThan(const float4 a, const float4 b)
 { return all(a > b); }
@@ -278,8 +281,10 @@ inline void AtomicExchange(threadgroup uint& dst, uint value, thread uint& origi
 inline void AtomicExchange(device uint& dst, uint value, thread uint& original)
 { original = atomic_exchange_explicit((device atomic_uint*)&dst, value, memory_order_relaxed); }
 
-#define AtomicCompareExchange(DEST, COMPARE_VALUE, VALUE, ORIGINAL_VALUE) \
-    atomic_compare_exchange_weak_explicit(&(DEST), &(COMPARE_VALUE), (VALUE), memory_order_relaxed, memory_order_relaxed)
+inline void AtomicCompareExchange(device uint& dst, thread uint& compare, uint value, thread uint& original)
+{ atomic_compare_exchange_weak_explicit((device atomic_uint*)&dst,&compare, value, memory_order_relaxed, memory_order_relaxed); }
+inline void AtomicCompareExchange(threadgroup uint& dst, thread uint& compare, uint value, thread uint& original)
+{ atomic_compare_exchange_weak_explicit((threadgroup atomic_uint*)&dst,&compare, value, memory_order_relaxed, memory_order_relaxed); }
 
 void AtomicMax(device uint& dst, uint val, thread uint& original)
 { original = atomic_fetch_max_explicit((device atomic_uint*)&(dst), val, memory_order_relaxed); }

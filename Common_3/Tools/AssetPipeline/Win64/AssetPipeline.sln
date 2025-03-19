@@ -20,7 +20,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\R
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ispc_texcomp", "..\..\..\..\Common_3\Tools\ThirdParty\OpenSource\ISPCTextureCompressor\ispc_texcomp\ispc_texcomp.vcxproj", "{9B44F7B9-A9AF-45A4-8695-96792A18B052}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\..\..\Examples_3\Unit_Tests\PC Visual Studio 2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\..\..\Examples_3\Unit_Tests\PC_VS2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BunyLib", "..\..\BunyArchive\VisualStudio\BunyLib.vcxproj", "{F4BE7E97-8876-4A34-834F-4BC918020B57}"
 EndProject

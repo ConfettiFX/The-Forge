@@ -31,7 +31,11 @@ BEGIN_SRT(ScreenSpaceShadowsSrtData)
 BEGIN_SRT_SET(PerBatch)
 	DECL_CBUFFER(PerBatch, CBUFFER(SSSUniformData), gSSSUniform)
 #if TEXTURE_ATOMIC_SUPPORTED
-    DECL_RWTEXTURE(PerBatch, RWTex2D(uint), gOutputTexture)
+    #if FT_MULTIVIEW
+        DECL_RWTEXTURE(PerBatch, RWTex2DArray(uint), gOutputTexture)
+    #else
+        DECL_RWTEXTURE(PerBatch, RWTex2D(uint), gOutputTexture)
+    #endif
 #else
     DECL_RWBUFFER(PerBatch, RWBuffer(uint), gOutputTexture)
 #endif

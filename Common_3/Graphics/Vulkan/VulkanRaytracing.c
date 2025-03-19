@@ -335,9 +335,10 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
             memcpy(&instanceDescs[i].transform.matrix, pInst->mTransform, sizeof(float[12]));
         }
 
+        // We need BUFFER_CREATION_FLAG_OWN_MEMORY_BIT for instance desc buffer to have a guaranteed alignment
         BufferDesc instanceDesc = { 0 };
         instanceDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS |
-                              BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT;
+                              BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
         instanceDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         instanceDesc.mSize = arrlenu(instanceDescs) * sizeof(instanceDescs[0]);
         addBuffer(pRenderer, &instanceDesc, &pAS->pInstanceDescBuffer);

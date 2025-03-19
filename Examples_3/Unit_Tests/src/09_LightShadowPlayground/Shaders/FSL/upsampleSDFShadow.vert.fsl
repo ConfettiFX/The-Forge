@@ -32,6 +32,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -41,6 +44,9 @@ PsIn VS_MAIN( VsIn In )
 	PsIn Out;
 	Out.Position = float4(In.Position.xy, 0.0, 1.0);
 	Out.TexCoord = In.TexCoord;
+#if FT_MULTIVIEW
+	Out.ViewID = VR_VIEW_ID;
+#endif
 	RETURN(Out);
 }
 

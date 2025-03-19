@@ -32,7 +32,7 @@
         DECL_BUFFER(Persistent, Buffer(uint), gBitfieldBuffer)
         DECL_BUFFER(Persistent, Buffer(uint), gTransparencyListHeads)
         DECL_BUFFER(Persistent, Buffer(MeshConstants), gMeshConstantsBuffer)
-        DECL_BUFFER(Persistent, Buffer(ParticleData), gParticlesDataBuffer)
+        DECL_BUFFER(Persistent, ByteBuffer, gParticlesDataBuffer)
         DECL_BUFFER(Persistent, Buffer(ParticleSet), gParticleSetsBuffer)
         DECL_BUFFER(Persistent, Buffer(PackedParticleTransparencyNode), gTransparencyList)
         DECL_SAMPLER(Persistent, SamplerState, gTextureSampler)

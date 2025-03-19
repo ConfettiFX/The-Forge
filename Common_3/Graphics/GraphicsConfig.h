@@ -73,6 +73,14 @@
 #include "Vulkan/VulkanConfig.h"
 #endif
 
+#if defined(QUEST_VR)
+#if defined(VULKAN)
+#define XR_USE_GRAPHICS_API_VULKAN 1
+#define XR_USE_PLATFORM_ANDROID    1
+#endif // VULKAN
+#include <openxr/openxr.h>
+#endif // QUEST_VR
+
 // Uncomment this macro to define custom rendering max options
 // #define RENDERER_CUSTOM_MAX
 #ifdef RENDERER_CUSTOM_MAX
@@ -206,6 +214,8 @@ extern "C"
 
     // selects best gpu depending on the gpu comparison rules stored in gpu.cfg
     FORGE_API uint32_t util_select_best_gpu(struct GpuDesc* availableSettings, uint32_t gpuCount);
+    // Check if the selected gpu is supported based on the GPUCfg rules.
+    FORGE_API bool     util_check_is_gpu_supported(struct GpuDesc* gpuSettings);
 
     // reads the gpu data and sets the preset level of all available gpu's
     FORGE_API GPUPresetLevel getDefaultPresetLevel();
@@ -235,7 +245,7 @@ extern "C"
     FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);
     FORGE_API const char*    getGPUVendorName(uint32_t modelId);
     FORGE_API uint32_t       getGPUVendorID(const char*);
-
+    FORGE_API const char*    getUnsupportedGPUMsg();
 #ifdef __cplusplus
 }
 #endif

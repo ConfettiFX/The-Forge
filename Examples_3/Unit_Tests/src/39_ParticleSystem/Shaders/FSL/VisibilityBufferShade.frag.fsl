@@ -228,7 +228,8 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		uint lightId = gLightClusters[(clusterCoords.x + clusterCoords.y * LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT) * MAX_LIGHTS_PER_CLUSTER + j];
 		
 		uint Bitfield = gBitfieldBuffer[lightId];
-		ParticleData particle = gParticlesDataBuffer[lightId];
+		ParticleData particle;
+		GetParticleData(particle, gParticlesDataBuffer, lightId);
 		currParticleSet = gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
 		bool castShadows = (Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW) > 0;
 		

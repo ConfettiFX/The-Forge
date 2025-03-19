@@ -106,7 +106,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
         };
 
         float4 vertices[3] = { LoadVertex(indices[0]), LoadVertex(indices[1]), LoadVertex(indices[2]) };
-        float4x4 worldViewProjection = gPerFrameVBConstants.transform[gRenderTargetInfo.view].mvp;
+        float4x4 worldViewProjection = gComputeVBViewConstants.transform[gRenderTargetInfo.view].mvp;
 
 
         int verticesInFrontOfNearPlane = 0;

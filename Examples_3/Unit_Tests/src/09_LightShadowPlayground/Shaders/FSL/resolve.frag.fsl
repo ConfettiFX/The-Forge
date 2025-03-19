@@ -33,6 +33,9 @@
 STRUCT(PsIn)
 {
     DATA(float4, Position, SV_Position);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 
@@ -44,7 +47,13 @@ float4 PS_MAIN( PsIn In )
     value = f4(0);
     uint2 texCoord = uint2(In.Position.xy);
     for(int i = 0; i < SAMPLE_COUNT; ++i)
+    {
+#if FT_MULTIVIEW
+        value += LoadTex2DArrayMS(gMsaaSource, NO_SAMPLER, uint3(texCoord, In.ViewID), i);
+#else
         value += LoadTex2DMS(gMsaaSource, NO_SAMPLER, texCoord, i);
+#endif
+    }
     value /= SAMPLE_COUNT;
     RETURN(value);
 }

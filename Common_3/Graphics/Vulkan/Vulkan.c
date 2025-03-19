@@ -113,10 +113,7 @@ static inline size_t tf_mem_hash_uint8_t(const uint8_t* mem, size_t size, size_t
 #endif
 
 #if defined(QUEST_VR)
-#include "../../OS/Quest/VrApi.h"
-#include "../Quest/VrApiHooks.h"
-
-extern RenderTarget* pFragmentDensityMask;
+#include "../Quest/OpenXRVulkan.h"
 #endif
 
 #if defined(GFX_ENABLE_SWAPPY)
@@ -1015,7 +1012,17 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
     // Depth stencil
     if (hasDepthAttachmentCount)
     {
-        uint32_t idx = attachmentCount++;
+        // If we're only loading depth/stencil (for instance, z-prepass) the RenderPass layout should be READ_ONLY and not
+        // ATTACHMENT_OPTIMAL)
+        const bool noDepthWrites = pDesc->mStoreActionDepth == STORE_ACTION_NONE || pDesc->mStoreActionDepth == STORE_ACTION_DONTCARE;
+        const bool noStencilWrites = pDesc->mStoreActionStencil == STORE_ACTION_NONE || pDesc->mStoreActionStencil == STORE_ACTION_DONTCARE;
+        const bool isLoadingDepth = pDesc->mLoadActionDepth == LOAD_ACTION_LOAD;
+        const bool isLoadingStencil = pDesc->mLoadActionStencil == LOAD_ACTION_LOAD;
+
+        VkImageLayout imageLayout = noDepthWrites && noStencilWrites && (isLoadingDepth || isLoadingStencil)
+                                        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                        : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        uint32_t      idx = attachmentCount++;
         attachments[idx].flags = 0;
         attachments[idx].format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mDepthStencilFormat);
         attachments[idx].samples = sampleCount;
@@ -1023,8 +1030,8 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
         attachments[idx].storeOp = gVkAttachmentStoreOpTranslator[pDesc->mStoreActionDepth];
         attachments[idx].stencilLoadOp = gVkAttachmentLoadOpTranslator[pDesc->mLoadActionStencil];
         attachments[idx].stencilStoreOp = gVkAttachmentStoreOpTranslator[pDesc->mStoreActionStencil];
-        attachments[idx].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        attachments[idx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachments[idx].initialLayout = imageLayout;
+        attachments[idx].finalLayout = imageLayout;
         dsAttachmentRef.attachment = idx; //-V522
         dsAttachmentRef.layout = pDesc->mStoreActionDepth == STORE_ACTION_NONE && pDesc->mStoreActionStencil == STORE_ACTION_NONE
                                      ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
@@ -1032,28 +1039,6 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
     }
 
     void* renderPassNext = NULL;
-#if defined(QUEST_VR)
-    VkRenderPassFragmentDensityMapCreateInfoEXT fragDensityCreateInfo = { 0 };
-    if (pDesc->mVRFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
-    {
-        uint32_t idx = attachmentCount++;
-        attachments[idx].flags = 0;
-        attachments[idx].format = VK_FORMAT_R8G8_UNORM;
-        attachments[idx].samples = VK_SAMPLE_COUNT_1_BIT;
-        attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[idx].initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-        attachments[idx].finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-
-        fragDensityCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT;
-        fragDensityCreateInfo.fragmentDensityMapAttachment.attachment = idx;
-        fragDensityCreateInfo.fragmentDensityMapAttachment.layout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-
-        renderPassNext = &fragDensityCreateInfo;
-    }
-#endif
 
     VkSubpassDescription subpass = {        
         .flags = 0,
@@ -1258,14 +1243,6 @@ static void AddFramebuffer(Renderer* pRenderer, VkRenderPass renderPass, const B
             ++iterViews;
         }
     }
-
-#if defined(QUEST_VR)
-    if (vrFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
-    {
-        *iterViews = pFragmentDensityMask->mVk.pDescriptor;
-        ++iterViews;
-    }
-#endif
 
     VkFramebufferCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -1518,6 +1495,8 @@ static VkBool32 VKAPI_PTR DebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBits
             // Bug in validation layer: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/2521
             // #TODO: Remove once we upgrade to SDK with the fix
             "UNASSIGNED-CoreValidation-DrawState-QueryNotReset",
+            // Per stage limits can be ignored as long as we are under the descriptor set limitss
+            "maxPerStageDescriptor"
         };
         static const int32_t messageIdNumbersToIgnore[] = {
             // This ID is for validation of VkSwapChainCreateInfoKHR-imageExtent-01274
@@ -3510,8 +3489,8 @@ void CreateInstance(const char* app_name, const RendererContextDesc* pDesc, uint
 
 #if defined(QUEST_VR)
         char oculusVRInstanceExtensionBuffer[4096];
-        hook_add_vk_instance_extensions(instanceExtensionCache, &extension_count, MAX_INSTANCE_EXTENSIONS, oculusVRInstanceExtensionBuffer,
-                                        sizeof(oculusVRInstanceExtensionBuffer));
+        OpenXRAddVKInstanceExt(instanceExtensionCache, &extension_count, MAX_INSTANCE_EXTENSIONS, oculusVRInstanceExtensionBuffer,
+                               sizeof(oculusVRInstanceExtensionBuffer));
 #endif
 
 #if VK_HEADER_VERSION >= 108
@@ -3649,8 +3628,15 @@ static bool SelectBestGpu(Renderer* pRenderer)
         gpuDesc[i] = pRenderer->pContext->mGpus[i];
     }
     uint32_t gpuIndex = util_select_best_gpu(gpuDesc, pRenderer->pContext->mGpuCount);
+    bool     gpuSupported = util_check_is_gpu_supported(&gpuDesc[gpuIndex]);
+    if (!gpuSupported)
+    {
+        LOGF(eERROR, "Failed to Init Renderer: %s", getUnsupportedGPUMsg());
+        return false;
+    }
+
     //  driver rejection rules from gpu.cfg
-    bool     driverValid = checkDriverRejectionSettings(&gpuDesc[gpuIndex]);
+    bool driverValid = checkDriverRejectionSettings(&gpuDesc[gpuIndex]);
     if (!driverValid)
     {
         return false;
@@ -3980,8 +3966,8 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 #if defined(QUEST_VR)
     char oculusVRDeviceExtensionBuffer[4096];
-    hook_add_vk_device_extensions(deviceExtensionCache, &extension_count, MAX_DEVICE_EXTENSIONS, oculusVRDeviceExtensionBuffer,
-                                  sizeof(oculusVRDeviceExtensionBuffer));
+    OpenXRAddVKDeviceExt(deviceExtensionCache, &extension_count, MAX_DEVICE_EXTENSIONS, oculusVRDeviceExtensionBuffer,
+                         sizeof(oculusVRDeviceExtensionBuffer));
 #endif
 
     VkDeviceCreateInfo create_info = {
@@ -4493,7 +4479,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
     add_default_resources(pRenderer);
 
 #if defined(QUEST_VR)
-    if (!hook_post_init_renderer(pRenderer->pContext->mVk.pInstance, pRenderer->pGpu->mVk.pGpu, pRenderer->mVk.pDevice))
+    if (!OpenXRPostInitVKRenderer(pRenderer->pContext->mVk.pInstance, pRenderer->mVk.pDevice, pRenderer->mVk.mGraphicsQueueFamilyIndex))
     {
         vmaDestroyAllocator(pRenderer->mVk.pVmaAllocator);
         SAFE_FREE(pRenderer->pName);
@@ -4507,7 +4493,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
         *ppRenderer = NULL;
         return;
     }
-#endif
+#endif // QUEST_VR
 
     ++gRendererCount;
     ASSERT(gRendererCount <= MAX_UNLINKED_GPUS);
@@ -4603,10 +4589,6 @@ void exitRenderer(Renderer* pRenderer)
     SAFE_FREE(gDescriptorLayoutMap[pRenderer->mUnlinkedRendererIndex]);
     SAFE_FREE(gPipelineLayoutMap[pRenderer->mUnlinkedRendererIndex]);
     SAFE_FREE(gStaticSamplerMap[pRenderer->mUnlinkedRendererIndex]);
-
-#if defined(QUEST_VR)
-    hook_pre_remove_renderer();
-#endif
 
     // Destroy the Vulkan bits
     vmaDestroyAllocator(pRenderer->mVk.pVmaAllocator);
@@ -4750,24 +4732,10 @@ void initQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
         SwappyVk_setQueueFamilyIndex(pRenderer->mVk.pDevice, pQueue->mVk.pQueue, queueFamilyIndex);
     }
 #endif
-
-#if defined(QUEST_VR)
-    extern Queue* pSynchronisationQueue;
-    if (pDesc->mType == QUEUE_TYPE_GRAPHICS)
-    {
-        pSynchronisationQueue = pQueue;
-    }
-#endif
 }
 
 void exitQueue(Renderer* pRenderer, Queue* pQueue)
 {
-#if defined(QUEST_VR)
-    extern Queue* pSynchronisationQueue;
-    if (pQueue == pSynchronisationQueue)
-        pSynchronisationQueue = NULL;
-#endif
-
     ASSERT(pRenderer);
     ASSERT(pQueue);
 
@@ -5006,7 +4974,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
     LOGF(eINFO, "Adding Vulkan swapchain @ %ux%u", pDesc->mWidth, pDesc->mHeight);
 
 #if defined(QUEST_VR)
-    hook_add_swap_chain(pRenderer, pDesc, ppSwapChain);
+    OpenXRAddVKSwapchain(pRenderer, pDesc, ppSwapChain);
     return;
 #endif
 
@@ -5322,7 +5290,7 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 #endif
 
 #if defined(QUEST_VR)
-    hook_remove_swap_chain(pRenderer, pSwapChain);
+    OpenXRRemoveVKSwapchain(pRenderer, pSwapChain);
     return;
 #endif
 
@@ -5877,7 +5845,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
     ASSERT(ppRenderTarget);
     ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
-    bool const isDepth = TinyImageFormat_IsDepthOnly(pDesc->mFormat) || TinyImageFormat_IsDepthAndStencil(pDesc->mFormat);
+    bool const isDepth = TinyImageFormat_HasDepthOrStencil(pDesc->mFormat);
 
     ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
 
@@ -7154,7 +7122,9 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
         }
         rc.colorAttachmentCount = pDesc->mRenderTargetCount;
         rc.pColorAttachmentFormats = rcColorFormats;
-        rc.depthAttachmentFormat = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mDepthStencilFormat);
+        rc.depthAttachmentFormat = TinyImageFormat_HasDepth(pDesc->mDepthStencilFormat)
+                                       ? (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mDepthStencilFormat)
+                                       : VK_FORMAT_UNDEFINED;
         rc.stencilAttachmentFormat = TinyImageFormat_HasStencil(pDesc->mDepthStencilFormat)
                                          ? (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mDepthStencilFormat)
                                          : VK_FORMAT_UNDEFINED;
@@ -7767,11 +7737,12 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     VkRenderingAttachmentInfo colorAttachments[MAX_RENDER_TARGET_ATTACHMENTS] = { 0 };
     VkRenderingAttachmentInfo depthAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
     VkRenderingAttachmentInfo stencilAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
-    const bool                hasDepth = pDesc->mDepthStencil.pDepthStencil;
-    const bool                hasStencil = hasDepth && TinyImageFormat_HasStencil(pDesc->mDepthStencil.pDepthStencil->mFormat);
-    VkMemoryBarrier           barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    VkPipelineStageFlags      srcStageMask = { 0 };
-    VkPipelineStageFlags      dstStageMask = { 0 };
+    const bool hasDepth = pDesc->mDepthStencil.pDepthStencil && TinyImageFormat_HasDepth(pDesc->mDepthStencil.pDepthStencil->mFormat);
+    const bool hasStencil = pDesc->mDepthStencil.pDepthStencil && TinyImageFormat_HasStencil(pDesc->mDepthStencil.pDepthStencil->mFormat);
+    const bool hasDepthOrStencil = hasDepth || hasStencil;
+    VkMemoryBarrier      barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+    VkPipelineStageFlags srcStageMask = { 0 };
+    VkPipelineStageFlags dstStageMask = { 0 };
 
     for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
     {
@@ -7852,7 +7823,7 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             dstStageMask |= ToPipelineStageFlags(pCmd->pRenderer, RESOURCE_STATE_RENDER_TARGET, QUEUE_TYPE_GRAPHICS);
         }
     }
-    if (hasDepth)
+    if (hasDepthOrStencil)
     {
         const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
         sampleCount = desc->pDepthStencil->mSampleCount;
@@ -7974,7 +7945,7 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             layerCount = desc->pRenderTarget->mVRMultiview ? 1 : desc->pRenderTarget->mArraySize;
         }
     }
-    else if (hasDepth)
+    else if (hasDepthOrStencil)
     {
         const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
         renderArea.extent.width = desc->pDepthStencil->mWidth >> (desc->mUseMipSlice ? desc->mMipSlice : 0);
@@ -8014,21 +7985,6 @@ void cmdBindRenderTargetsDynamic(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     renderingInfo.pStencilAttachment = hasStencil ? &stencilAttachment : NULL;
     renderingInfo.renderArea = renderArea;
     renderingInfo.layerCount = layerCount;
-
-#if defined(QUEST_VR)
-    const uint viewMask = 0b11;
-    renderingInfo.viewMask = viewMask;
-
-    VkRenderingFragmentDensityMapAttachmentInfoEXT fragDensityAttachmentInfo = {
-        VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT
-    };
-    if (vrFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
-    {
-        fragDensityAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-        fragDensityAttachmentInfo.imageView = pFragmentDensityMask->mVk.pDescriptor;
-    }
-    renderingInfo.pNext = &fragDensityAttachmentInfo;
-#endif
 
     vkCmdBeginRenderingKHR(pCmd->mVk.pCmdBuf, &renderingInfo);
     pCmd->mVk.mIsRendering = true;
@@ -8782,8 +8738,7 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
     ASSERT(pSignalSemaphore || pFence);
 
 #if defined(QUEST_VR)
-    ASSERT(VK_NULL_HANDLE != pSwapChain->mVR.pSwapChain);
-    hook_acquire_next_image(pSwapChain, pImageIndex);
+    OpenXRAcquireNextVKImage(pSwapChain, pImageIndex);
     return;
 #else
     ASSERT(VK_NULL_HANDLE != pSwapChain->mVk.pSwapChain);
@@ -8982,7 +8937,7 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 #endif
 
 #if defined(QUEST_VR)
-        hook_queue_present(pDesc);
+        OpenXRVKQueuePresent(pDesc);
         return;
 #endif // QUEST_VR
 

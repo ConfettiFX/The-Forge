@@ -114,9 +114,8 @@ void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, floa
 {
 	ParticleData particleData = PackParticle(particleSet, position, float4(velocity, age));
 	particleData.AnimationTime = animationTime;
-	particleData.Pad = 0;
 
-	gParticlesDataBufferRW[particleIdx] = particleData;
+	SetParticleData(particleData, gParticlesDataBufferRW, particleIdx);
 	gBitfieldBufferRW[particleIdx] = bitfield;
 }
 

@@ -59,6 +59,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, ScreenPos, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 STRUCT(PsOut)
@@ -74,10 +77,19 @@ float2 calcVsmMoments(float2 depth)
 	return moments;
 }
 
-float sampleScreenSpaceShadowValue(uint2 uv)
+float sampleScreenSpaceShadowValue(
+	uint2 uv
+#if FT_MULTIVIEW
+	, uint viewID
+#endif
+)
 {
-	#if TEXTURE_ATOMIC_SUPPORTED	
-		uint shadowDepthSample = LoadTex2D(gScreenSpaceShadowTexture, gClampBorderNearSampler, uv, 0).r;
+	#if TEXTURE_ATOMIC_SUPPORTED
+		#if FT_MULTIVIEW
+			uint shadowDepthSample = LoadTex3D(gScreenSpaceShadowTexture, gClampBorderNearSampler, uint3(uv, viewID), 0).r;
+		#else
+			uint shadowDepthSample = LoadTex2D(gScreenSpaceShadowTexture, gClampBorderNearSampler, uv, 0).r;
+		#endif
 	#else
 		uint index = uv.x + uv.y * uint(gCameraUniformBlock.mWindowSize.x);
 		uint shadowDepthSample = gScreenSpaceShadowTexture[index];
@@ -432,9 +444,17 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	INIT_MAIN;
 	PsOut Out;
 #if SAMPLE_COUNT > 1
+#if FT_MULTIVIEW
+	float4 visRaw = LoadTex2DArrayMS(gVBPassTexture, gClampMiplessLinearSampler, uint3(In.Position.xy, In.ViewID), i);
+#else
 	float4 visRaw = LoadTex2DMS(gVBPassTexture, gClampMiplessLinearSampler, uint2(In.Position.xy), i);
+#endif
+#else
+#if FT_MULTIVIEW
+	float4 visRaw = LoadTex3D(gVBPassTexture, gClampMiplessLinearSampler, uint3(In.Position.xy, In.ViewID), 0);
 #else
 	float4 visRaw = LoadTex2D(gVBPassTexture, gClampMiplessLinearSampler, uint2(In.Position.xy), 0);
+#endif/*FT_MULTIVIEW*/
 #endif
 
 	uint geomSetPrimID = packUnorm4x8(visRaw);
@@ -461,19 +481,32 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
 	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
 
-	float4 pos0 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v0pos, 1));
-	float4 pos1 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v1pos, 1));
-	float4 pos2 = mul(gObjectUniformBlockPerFrame.worldViewProjMat, float4(v2pos, 1));
+#if FT_MULTIVIEW
+	const float4x4 worldViewProjMat = gObjectUniformBlockPerFrame.mWorldViewProjMat.mat[In.ViewID];
+	const float4x4 invViewProject = gCameraUniformBlock.InvViewProject.mat[In.ViewID];
+	const float4x4 invProj = gCameraUniformBlock.InvProj.mat[In.ViewID];
+	const float4x4 project = gCameraUniformBlock.Project.mat[In.ViewID];
+#else
+	const float4x4 worldViewProjMat = gObjectUniformBlockPerFrame.mWorldViewProjMat.mat;
+	const float4x4 invViewProject = gCameraUniformBlock.InvViewProject.mat;
+	const float4x4 invProj = gCameraUniformBlock.InvProj.mat;
+	const float4x4 project = gCameraUniformBlock.Project.mat;
+#endif
 
-	float4 wPos0 = mul(gCameraUniformBlock.InvViewProject,pos0);
-	float4 wPos1 = mul(gCameraUniformBlock.InvViewProject,pos1);
-	float4 wPos2 = mul(gCameraUniformBlock.InvViewProject,pos2);
+	float4 pos0 = mul(worldViewProjMat, float4(v0pos, 1));
+	float4 pos1 = mul(worldViewProjMat, float4(v1pos, 1));
+	float4 pos2 = mul(worldViewProjMat, float4(v2pos, 1));
+
+	float4 wPos0 = mul(invViewProject,pos0);
+	float4 wPos1 = mul(invViewProject,pos1);
+	float4 wPos2 = mul(invViewProject,pos2);
+
 
 	float2 two_over_windowsize = gCameraUniformBlock.mTwoOverRes;
 
 	//Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
 #if defined(USE_RAY_DIFFERENTIALS)
-	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, In.ScreenPos, gCameraUniformBlock.mCameraPos.xyz, gCameraUniformBlock.InvView, gCameraUniformBlock.InvProj, two_over_windowsize);
+	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, In.ScreenPos, gCameraUniformBlock.mCameraPos.xyz, gCameraUniformBlock.InvView, invProj, two_over_windowsize);
 #else
 	BarycentricDeriv derivativesOut = CalcFullBary(pos0, pos1, pos2, In.ScreenPos, two_over_windowsize);
 #endif /*USE_RAY_DIFFERENTIALS*/
@@ -483,12 +516,12 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	float interpolatedW = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
 
 	//reconstruct the z value at this screen point
-	float zVal = interpolatedW * getElem(gCameraUniformBlock.Project, 2, 2) + getElem(gCameraUniformBlock.Project, 3, 2);
+	float zVal = interpolatedW * getElem(project, 2, 2) + getElem(project, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using Screen Position and the Z value
 	// Then by multiplying the perspective projected coordinates by the inverse view projection matrix, it produces world coord
-	float3 WorldPos = mul(gCameraUniformBlock.InvViewProject, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
+	float3 WorldPos = mul(invViewProject, float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
 
 	//Texture coord interpolation
 	f3x2 texCoords = make_f3x2_cols(
@@ -557,7 +590,11 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	}
 	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
 	{
+#if FT_MULTIVIEW
+		shadowFactor = LoadTex3D(gSDFShadowTexture, gSamplerPointClamp, uint3(In.Position.xy, In.ViewID), 0).r;
+#else
 		shadowFactor = LoadTex2D(gSDFShadowTexture, gSamplerPointClamp, uint2(In.Position.xy), 0).r;
+#endif
 	}
 	else if(gCameraUniformBlock.ShadowType == SHADOW_TYPE_VSM) {
 		shadowFactor = calcVSMShadowFactor(WorldPos);
@@ -587,7 +624,11 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 
 	if (bool(gCameraUniformBlock.mSSSEnabled))
 	{
-		float screenSpaceShadowValue = sampleScreenSpaceShadowValue(uint2(In.Position.xy));
+		#if FT_MULTIVIEW
+			float screenSpaceShadowValue = sampleScreenSpaceShadowValue(uint2(In.Position.xy), In.ViewID);
+		#else
+			float screenSpaceShadowValue = sampleScreenSpaceShadowValue(uint2(In.Position.xy));
+		#endif
 		screenSpaceShadowValue = max(screenSpaceShadowValue, step(dot(lightDir, normal), 0.0f)); 
 		shadowFactor = min(shadowFactor, screenSpaceShadowValue);
 	}

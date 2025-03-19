@@ -50,7 +50,7 @@
 #include "../CPUConfig.h"
 
 #if defined(QUEST_VR)
-#include "../Quest/VrApi.h"
+#include "../../Graphics/OpenXR/OpenXRApi.h"
 #endif
 
 #include "../../Utilities/Interfaces/IMemory.h"
@@ -679,18 +679,18 @@ int AndroidMain(void* param, IApp* app)
         return EXIT_FAILURE;
 
     pSettings->mMonitorIndex = 0;
-
-#if defined(QUEST_VR)
-    initVrApi(android_app, pMainJavaEnv);
-    ASSERT(pQuest);
-    pSettings->mWidth = pQuest->mEyeTextureWidth;
-    pSettings->mHeight = pQuest->mEyeTextureHeight;
-#else
     RectDesc rect = {};
+#if defined(QUEST_VR)
+    InitOpenXRLoader(android_app);
+    CreateOpenXRInstance(app->GetName());
+    InitOpenXRSystem();
+    GetOpenXRRecommendedResolution(&rect);
+#else
     getRecommendedResolution(&rect);
+#endif // QUEST_VR
+
     pSettings->mWidth = getRectWidth(&rect);
     pSettings->mHeight = getRectHeight(&rect);
-#endif
 
 #ifdef AUTOMATED_TESTING
     int  frameCountArgs;
@@ -739,10 +739,15 @@ int AndroidMain(void* param, IApp* app)
         abort();
     }
 
+#if defined(QUEST_VR)
+    InitOpenXRSession();
+    QueryOpenXRRefreshRates(gSupportedRefreshRates, &gSupportedRefreshRatesCount, &gSelectedRefreshRateIndex);
+#else
     // Query supported refresh rates
     queryAndSetRefreshRates(pMainJavaEnv, android_app);
-
+#endif // QUEST
     setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
+
     pSettings->mInitialized = true;
 
 #ifdef AUTOMATED_TESTING
@@ -779,7 +784,14 @@ int AndroidMain(void* param, IApp* app)
         }
 
 #if defined(QUEST_VR)
-        hook_poll_events(isActive, windowReady, pApp->pWindow->handle.window);
+        PollOpenXREvent(&gShutdownRequested);
+
+        bool isNotShuttingDown = !(gShutdownRequested || android_app->destroyRequested);
+        if (isNotShuttingDown && !pOXR->mSessionStarted)
+        {
+            usleep(250); // Throttle the next call to Poll since XrWaitFrame is not called
+            continue;
+        }
 #endif
 
         float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
@@ -908,13 +920,6 @@ int AndroidMain(void* param, IApp* app)
             continue;
         }
 
-#if defined(QUEST_VR)
-        if (pQuest->pOvr == NULL)
-            continue;
-
-        updateVrApi();
-#endif
-
         // UPDATE APP
         pApp->Update(deltaTime);
         // Skip the fram we are changing refresh rate...
@@ -949,7 +954,11 @@ int AndroidMain(void* param, IApp* app)
             gRefreshRateChanged = false;
 
             // Set fixed refresh rate..
+#if defined(QUEST_VR)
+            RequestOpenXRRefreshRate(gSupportedRefreshRates[gSelectedRefreshRateIndex]);
+#else
             setRefreshRate(pMainJavaEnv, android_app, gSupportedRefreshRates[gSelectedRefreshRateIndex]);
+#endif // QUEST_VR
         }
     }
 
@@ -967,15 +976,15 @@ int AndroidMain(void* param, IApp* app)
 
     pApp->Exit();
 
+#if defined(QUEST_VR)
+    ExitOpenXRLoader();
+#endif
+
     exitBaseSubsystems();
 
     exitWindowSystem();
 
     exitLog();
-
-#if defined(QUEST_VR)
-    exitVrApi();
-#endif
 
     exitFileSystem();
 

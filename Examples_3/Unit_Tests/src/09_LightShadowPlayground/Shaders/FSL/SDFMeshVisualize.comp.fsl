@@ -130,14 +130,26 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / gCameraUniformBlock.mWindowSize.y);
 
 #if SAMPLE_COUNT > 1
+#if FT_MULTIVIEW
+	float depthVal = LoadTex2DArrayMS(gDepthTexture, gClampToEdgeNearSampler, int3(localDispatchThreadID.xy, gPerDrawSDFData.mViewID), 0).r;
+#else
 	float depthVal = LoadTex2DMS(gDepthTexture, gClampToEdgeNearSampler, localDispatchThreadID.xy, 0).r;
+#endif
 #else
 	float2 depthSize = gCameraUniformBlock.mWindowSize;
 	float2 depthUV = float2(localDispatchThreadID.xy) / depthSize;
+#if FT_MULTIVIEW
+	float depthVal = SampleLvlTex2DArray(gDepthTexture, gClampToEdgeNearSampler, float3(depthUV, gPerDrawSDFData.mViewID), 0).r;
+#else
 	float depthVal = SampleLvlTex2D(gDepthTexture, gClampToEdgeNearSampler, depthUV, 0).r;
 #endif
+#endif
 
-	float4 worldPosW =  mul(gCameraUniformBlock.InvViewProject, float4(xClip, yClip, depthVal, 1.0));
+#if FT_MULTIVIEW
+	float4 worldPosW =  mul(gCameraUniformBlock.InvViewProject.mat[gPerDrawSDFData.mViewID], float4(xClip, yClip, depthVal, 1.0));
+#else
+	float4 worldPosW =  mul(gCameraUniformBlock.InvViewProject.mat, float4(xClip, yClip, depthVal, 1.0));
+#endif
 	float3 worldPos = (worldPosW / worldPosW.w).xyz;
 	
 
@@ -162,7 +174,11 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 		Result += 0.1f;
 	}
 
+#if FT_MULTIVIEW
+	Write2DArray(gOutTexture, DispatchThreadID.xy, gPerDrawSDFData.mViewID, float4(Result, 1.0));
+#else
 	Write2D(gOutTexture, DispatchThreadID.xy, float4(Result, 1.0));
-	
+#endif
+
 	RETURN();
 }

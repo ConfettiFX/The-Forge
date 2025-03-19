@@ -2116,7 +2116,7 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
@@ -2740,7 +2740,7 @@ public:
         /************************************************************************/
 
         // update camera with time
-        mat4 viewMat = pCameraController->getViewMatrix();
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
 
         const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float  horizontal_fov = PI / 2.0f;
@@ -2765,7 +2765,7 @@ public:
         Vector3 stickPos = gStickFigureAnimObject[0].mJointWorldMats[0].getTranslation();
         gAimTarget = Point3(sin(time * .5f), cos(time * .25f), cos(time) * .5f + .5f);
 
-        gUniformDataTarget.mViewMatrix = viewMat;
+        gUniformDataTarget.mViewMatrix = viewMat.mCamera;
         gUniformDataTarget.mProjectView = projViewMat;
         gUniformDataTarget.mLightPosition = Vector4(lightPos);
         gUniformDataTarget.mLightColor = Vector4(lightColor);
@@ -2872,7 +2872,7 @@ public:
 
             gOzzLogoAnimObject.mJointWorldMats[gCameraIndex] = mat4::scale(vec3(0));
 
-            gOzzLogoSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat, lightPos, lightColor);
+            gOzzLogoSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat.mCamera, lightPos, lightColor);
         }
         else
         {
@@ -2880,7 +2880,7 @@ public:
         }
 
         // Update uniforms that will be shared between all skeletons
-        gSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat, lightPos, lightColor);
+        gSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat.mCamera, lightPos, lightColor);
         /************************************************************************/
         // Attached object
         /************************************************************************/

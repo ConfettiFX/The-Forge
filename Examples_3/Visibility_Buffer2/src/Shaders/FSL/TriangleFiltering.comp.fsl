@@ -107,7 +107,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
         UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			float4x4 worldViewProjection = gPerFrameVBConstants.transform[i].mvp;
+			float4x4 worldViewProjection = gComputeVBViewConstants.transform[i].mvp;
 			float4 vertices[3] =
 			{
 				mul(worldViewProjection, vert[0]),
@@ -115,7 +115,7 @@ void CS_MAIN( SV_GroupThreadID(uint3) inGroupId, SV_GroupID(uint3) groupId )
 				mul(worldViewProjection, vert[2])
 			};
 
-			CullingViewPort viewport = gPerFrameVBConstants.cullingViewports[i];
+			CullingViewPort viewport = gComputeVBViewConstants.cullingViewports[i];
 			float2 windowSize = viewport.windowSize;
 			float2 filterWindowSize = viewport.windowSize;
 			if (i == 0)

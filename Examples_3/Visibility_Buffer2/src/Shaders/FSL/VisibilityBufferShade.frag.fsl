@@ -98,21 +98,21 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float3 v2pos = asfloat(LoadByte4(gVertexPositionBuffer, index2 * 12)).xyz;
 
 	// Transform positions to clip space
-	float4 pos0 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
-	float4 pos1 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
-	float4 pos2 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
+	float4 pos0 = mul(gVBViewConstants.transform[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(gVBViewConstants.transform[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(gVBViewConstants.transform[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
 
-	float4 wPos0 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].invVP,pos0);
-	float4 wPos1 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].invVP,pos1);
-	float4 wPos2 = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].invVP,pos2);
+	float4 wPos0 = mul(gVBViewConstants.transform[VIEW_CAMERA].invVP,pos0);
+	float4 wPos1 = mul(gVBViewConstants.transform[VIEW_CAMERA].invVP,pos1);
+	float4 wPos2 = mul(gVBViewConstants.transform[VIEW_CAMERA].invVP,pos2);
 
 	float2 two_over_windowsize = gPerFrameConstants.twoOverRes;
 
 	// Compute partial derivatives and baycentric coordinates.
 	// This is necessary to interpolate triangle attributes per pixel.
 #if defined(USE_RAY_DIFFERENTIALS)
-    float4x4 projInv = InverseProjectionMatrixPerspectiveReverseZ(gPerFrameVBConstants.transform[VIEW_CAMERA].projection);
-    float4x4 viewInv = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].invVP, gPerFrameVBConstants.transform[VIEW_CAMERA].projection);
+    float4x4 projInv = InverseProjectionMatrixPerspectiveReverseZ(gVBViewConstants.transform[VIEW_CAMERA].projection);
+    float4x4 viewInv = mul(gVBViewConstants.transform[VIEW_CAMERA].invVP, gVBViewConstants.transform[VIEW_CAMERA].projection);
 	BarycentricDeriv derivativesOut = CalcRayBary(wPos0.xyz, wPos1.xyz, wPos2.xyz, In.screenPos, gPerFrameConstants.camPos.xyz, viewInv, projInv, two_over_windowsize);
 #else
 	BarycentricDeriv derivativesOut = CalcFullBary(pos0, pos1, pos2, In.screenPos, two_over_windowsize);
@@ -130,12 +130,12 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 	// operations that involve computing Z
-    float z = w * getElem(gPerFrameVBConstants.transform[VIEW_CAMERA].projection, 2, 2) + getElem(gPerFrameVBConstants.transform[VIEW_CAMERA].projection, 3, 2);
+    float z = w * getElem(gVBViewConstants.transform[VIEW_CAMERA].projection, 2, 2) + getElem(gVBViewConstants.transform[VIEW_CAMERA].projection, 3, 2);
 
 	// Calculate the world position coordinates:
 	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
 	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
+	float3 position = mul(gVBViewConstants.transform[VIEW_CAMERA].invVP, float4(In.screenPos * w, z, w)).xyz;
 
 	// Get the material id from the per batch indirection data buffer. 
 	uint materialID = gMeshConstantsBuffer[batchID].materialID;
@@ -227,7 +227,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
 
 	// Calculate Shadow Factor
-	float4 posLS = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].vp, float4(position, 1.0f));
+	float4 posLS = mul(gVBViewConstants.transform[VIEW_SHADOW].vp, float4(position, 1.0f));
 	float shadowFactor = calcESMShadowFactor(posLS, gShadowMap, gSamplerTrilinearClamp, gPerFrameConstants.esmControl);
 
 	// Calculate Sun Illumation

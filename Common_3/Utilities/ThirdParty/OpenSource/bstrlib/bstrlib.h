@@ -426,6 +426,10 @@ static inline bool tokenCompare(const char* cmp, uint64_t a, uint64_t b)
     {
         return a != b;
     }
+    if (strcmp(cmp, "&") == 0)
+    {
+        return a & b;
+    }
 
     return false;
 }

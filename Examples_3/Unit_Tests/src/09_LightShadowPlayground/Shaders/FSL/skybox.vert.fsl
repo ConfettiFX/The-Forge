@@ -40,7 +40,13 @@ VSOutput VS_MAIN( VSInput Input )
 {
     INIT_MAIN;
     VSOutput result;
-    result.Position = mul(gCameraUniformBlock.SkyProjView, Input.Position);
+	
+#if FT_MULTIVIEW
+	float4x4 projView = gCameraUniformBlock.SkyProjView.mat[VR_VIEW_ID];
+#else
+	float4x4 projView = gCameraUniformBlock.SkyProjView.mat;
+#endif
+    result.Position = mul(projView, Input.Position);
 	result.Position = result.Position.xyww; //this makes depth buffer 1.0
 
 	result.pos = Input.Position.xyz;

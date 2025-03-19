@@ -31,7 +31,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID)
 {
 	INIT_MAIN;
 	#if TEXTURE_ATOMIC_SUPPORTED
-		Write2D(gOutputTexture, dispatchID.xy, SHADOW_MAX_VALUE);
+		#if FT_MULTIVIEW
+			Write3D(gOutputTexture, uint3(dispatchID.xy, gSSSUniform.mViewIndex), SHADOW_MAX_VALUE);
+		#else
+			Write2D(gOutputTexture, dispatchID.xy, SHADOW_MAX_VALUE);
+		#endif /*FT_MULTIVIEW*/
 	#else
 		uint index = dispatchID.x + uint(gSSSUniform.mScreenSize.x) * dispatchID.y;
 		if (index < gSSSUniform.mScreenSize.x * gSSSUniform.mScreenSize.y) {

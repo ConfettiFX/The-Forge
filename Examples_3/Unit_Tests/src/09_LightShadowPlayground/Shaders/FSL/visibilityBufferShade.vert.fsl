@@ -27,6 +27,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, ScreenPos, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 // Vertex shader
@@ -43,5 +46,8 @@ PsIn VS_MAIN( SV_VertexID(uint) vertexID )
 	Out.Position.y = (vertexID == 0 ? -3.0 : 1.0);
 	Out.Position.zw = float2(0, 1);
 	Out.ScreenPos = Out.Position.xy;
+#if FT_MULTIVIEW
+	Out.ViewID = VR_VIEW_ID;
+#endif
 	RETURN(Out);
 }

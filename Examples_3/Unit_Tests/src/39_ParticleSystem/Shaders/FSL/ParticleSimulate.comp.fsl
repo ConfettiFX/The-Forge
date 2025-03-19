@@ -131,7 +131,8 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 		RETURN();
 	}
 
-	ParticleData particleData = gParticlesDataBufferRW[particleIdx];
+	ParticleData particleData;
+	GetParticleData(particleData, gParticlesDataBufferRW, particleIdx);
 	float Age;
 
 	// Particle set attributes
@@ -264,7 +265,9 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 			{
 				float3 otherPos;
 				float4 otherVel;
-				UnpackParticle(particleSet, gParticlesDataBufferRW[particleIdx + int(i)-sampleCount/2], otherPos, otherVel);
+				ParticleData particleData;
+				GetParticleData(particleData, gParticlesDataBufferRW, particleIdx + int(i)-sampleCount/2);
+				UnpackParticle(particleSet, particleData, otherPos, otherVel);
 
 #if defined(DETERMINISTIC_SIMULATION)
 				if (int(i)-sampleCount/2 != 0)

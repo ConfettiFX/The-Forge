@@ -55,8 +55,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId
 	}
 
 	const ParticleSet particleSet = gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK];
-	ParticleData lightData = gParticlesDataBuffer[lightId];
-	float3 lightPos = UnpackParticlePosition(particleSet, gParticlesDataBuffer[lightId]);
+	ParticleData lightData;
+	GetParticleData(lightData, gParticlesDataBuffer, lightId);
+	float3 lightPos = UnpackParticlePosition(particleSet, lightData);
 
 
 	float4 lightPosClipSpace = mul(gPerFrameVBConstants.transform[VIEW_CAMERA].mvp.mat, float4(lightPos.xyz, 1));

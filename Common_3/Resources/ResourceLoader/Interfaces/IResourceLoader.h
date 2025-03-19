@@ -300,7 +300,9 @@ typedef struct GeometryBufferLoadDesc
     ResourcePlacement* pIndicesPlacement;
     ResourcePlacement* pVerticesPlacements[MAX_VERTEX_BINDINGS];
 
-    GeometryBuffer** pOutGeometryBuffer;
+    GeometryBuffer**  pOutGeometryBuffer;
+    GeometryLoadFlags mFlags;
+
 } GeometryBufferLoadDesc;
 
 typedef struct GeometryBufferLayoutDesc
