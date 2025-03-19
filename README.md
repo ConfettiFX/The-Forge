@@ -110,7 +110,7 @@ iPhone 15 Pro
 ![RTX GI iPhone 15 Pro](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/RTX-RTGI/iPhone15Pro-A17-540p.jpeg)
 
 ### Quest Run-time switches to OpenXR
-We made the internal switch to finally use OpenXR. A funfact is that we used and helped to develop OpenXR in projects since about 2016 but never implemeneted it into our own code base ... only customer code bases.
+We made the internal switch to finally use OpenXR. A funfact is that we used and helped to develop OpenXR in projects since about 2016 but never implemented it into our own code base ... only customer code bases.
 
 ### Triangle Visibility Buffer with Programmable MSAA
 This is an oldie but goodie :-) ... I (Wolfgang) wrote several blog posts about it and talked on conferences about it and now we have it in our code base. I remember having been involved at Rockstar Games with developing a programmable MSAA approach on XBOX and PS in 2006 (?), we had examples running with it in our code base over the years. We finally found time to bring it also into our open-source code base inside the Triangle Visibility Buffer.
