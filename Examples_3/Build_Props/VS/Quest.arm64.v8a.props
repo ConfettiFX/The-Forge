@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
-  <PropertyGroup Condition="$(SolutionDir.Contains('Quest_VisualStudio2019'))">
+  <PropertyGroup Condition="$(SolutionDir.Contains('Quest_VS2019'))">
     <UseQuest>true</UseQuest>
   </PropertyGroup>
 
@@ -35,6 +35,9 @@
       <AdditionalIncludeDirectories>
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Include;
+        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\include;
+        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\mobile_sdk\OpenXR;
+        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\mobile_sdk\Samples\3rdParty\khronos\openxr\OpenXR-SDK\src\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>QUEST_VR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -43,9 +46,10 @@
 	  <AdditionalLibraryDirectories>
         $(SolutionDir)\$(Platform)\$(Configuration);
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);
+        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\libs\android.$(PlatformTarget);
         $(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
-      <LibraryDependencies>vrapi;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>vrapi;openxr_loader;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -86,6 +90,7 @@
       <Command Condition="'$(UseQuest)' != ''">
         %(Command)
         xcopy  $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(OutDir) /s /y /d
+        xcopy  $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\libs\android.$(PlatformTarget)\*.so $(OutDir) /s /y /d
       </Command>
     </PreBuildEvent>
     <Link>

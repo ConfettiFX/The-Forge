@@ -92,7 +92,6 @@
 #define FOREACH_SETTING(X)       \
     X(BindlessSupported, 1)      \
     X(AddGeometryPassThrough, 0) \
-    X(OITSupported, 1)           \
     X(UseRelaxedThreadGroups, 0)
 
 #define GENERATE_ENUM(x, y)   x,
@@ -130,6 +129,8 @@ bool gUseLocalGroupRelaxed = false;
 
 uint32_t gLightClusterWidth = LIGHT_CLUSTER_WIDTH;
 uint32_t gLightClusterHeight = LIGHT_CLUSTER_HEIGHT;
+
+uint32_t gMaxParticlesCount = MAX_PARTICLES_COUNT_HIGH;
 
 /*****************************************************/
 /****************Particle System data*****************/
@@ -424,23 +425,10 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
-        if (!gGpuSettings.mBindlessSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. Doesn't support enough bindless texture entries");
-            return false;
-        }
-
-        if (!gGpuSettings.mOITSupported)
-        {
-            ShowUnsupportedMessage(
-                "Order Independent Transparency does not work on this device. Adreno doesn't support big enough storage buffers.");
-            return false;
-        }
 
         if (gGpuSettings.mUseRelaxedThreadGroups)
         {
@@ -453,12 +441,11 @@ public:
 
             gLightClusterWidth = RELAXED_LOCAL_GROUP_SIZE;
             gLightClusterHeight = RELAXED_LOCAL_GROUP_SIZE;
+        }
 
-            if (pRenderer->pGpu->mMaxTotalComputeThreads < 256)
-            {
-                ShowUnsupportedMessage("Allowed limit of total compute threads is lower than supported by this application.");
-                return false;
-            }
+        if (pRenderer->pGpu->mGpuVendorPreset.mPresetLevel <= GPU_PRESET_LOW)
+        {
+            gMaxParticlesCount = MAX_PARTICLES_COUNT_LOW;
         }
 
         QueueDesc queueDesc = {};
@@ -650,11 +637,11 @@ public:
 
         // Buffer containing data for all particles
         bufferLoadDesc = {};
-        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+        bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
         bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         bufferLoadDesc.mDesc.mFirstElement = 0;
-        bufferLoadDesc.mDesc.mStructStride = sizeof(ParticleData);
-        bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLES_COUNT;
+        bufferLoadDesc.mDesc.mStructStride = sizeof(uint32_t);
+        bufferLoadDesc.mDesc.mElementCount = gMaxParticlesCount * PARTICLE_DATA_STRIDE;
         bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * (uint64_t)bufferLoadDesc.mDesc.mElementCount;
         bufferLoadDesc.pData = NULL;
         bufferLoadDesc.mForceReset = false;
@@ -662,12 +649,12 @@ public:
         bufferLoadDesc.ppBuffer = &pParticlesBuffer;
         bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         addResource(&bufferLoadDesc, NULL);
-
         // Buffer containing the bitfields of the particles
         BufferLoadDesc bitfieldDesc = bufferLoadDesc;
         bitfieldDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
         bitfieldDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         bitfieldDesc.mDesc.mStructStride = sizeof(uint32_t);
+        bitfieldDesc.mDesc.mElementCount = gMaxParticlesCount;
         bitfieldDesc.mDesc.mSize = sizeof(uint32_t) * (uint64_t)bitfieldDesc.mDesc.mElementCount;
         bitfieldDesc.mDesc.pName = "ParticlesBitfields";
         bitfieldDesc.ppBuffer = &pParticleBitfields;
@@ -677,9 +664,9 @@ public:
         BufferLoadDesc particleSetsDesc = bufferLoadDesc;
 
         pDefaultParticleSets = (ParticleSet*)tf_malloc(sizeof(ParticleSet) * MAX_PARTICLE_SET_COUNT);
-        pDefaultBitfields = (uint32_t*)tf_malloc(sizeof(uint32_t) * MAX_PARTICLES_COUNT);
+        pDefaultBitfields = (uint32_t*)tf_malloc(sizeof(uint32_t) * gMaxParticlesCount);
         memset((void*)pDefaultParticleSets, 0, sizeof(ParticleSet) * MAX_PARTICLE_SET_COUNT);
-        memset(pDefaultBitfields, 0, sizeof(uint32_t) * MAX_PARTICLES_COUNT);
+        memset(pDefaultBitfields, 0, sizeof(uint32_t) * gMaxParticlesCount);
 #if !defined(ENABLE_REMOTE_STREAMING)
         initDefaultParticleSets(pDefaultParticleSets, pDefaultBitfields);
 #endif
@@ -868,7 +855,7 @@ public:
         pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, 0.0f), pack2Floats(0.0f, 0.0f));
         pParticleSets[particleSetIdx++].Acceleration = uint2(pack2Floats(0.0f, -9.8f), pack2Floats(0.0f, 5.0f));
 
-        memset((void*)pBitfields, 0, sizeof(uint32_t) * MAX_PARTICLES_COUNT);
+        memset((void*)pBitfields, 0, sizeof(uint32_t) * gMaxParticlesCount);
 
         for (uint32_t i = 0; i < DEFAULT_PARTICLE_SETS_COUNT; i++)
         {
@@ -1887,10 +1874,10 @@ public:
     {
         // Particle ranges
         DescriptorDataRange bitfieldLightRange = { 0, sizeof(uint) * MAX_LIGHT_COUNT, sizeof(uint) };
-        DescriptorDataRange particleLightRange = { 0, sizeof(ParticleData) * MAX_LIGHT_COUNT, sizeof(ParticleData) };
+        DescriptorDataRange particleLightRange = { 0, sizeof(uint) * PARTICLE_DATA_STRIDE * MAX_LIGHT_COUNT, sizeof(uint) };
 
         // DescriptorDataRange bitfieldShadowRange = { 0, sizeof(uint) * MAX_SHADOW_COUNT, sizeof(uint) };
-        DescriptorDataRange particleShadowRange = { 0, sizeof(ParticleData) * MAX_SHADOW_COUNT, sizeof(ParticleData) };
+        DescriptorDataRange particleShadowRange = { 0, sizeof(uint) * PARTICLE_DATA_STRIDE * MAX_SHADOW_COUNT, sizeof(uint) };
 
         // Persistent descriptor set
         {
@@ -2372,9 +2359,11 @@ public:
 
             shaderDesc = {};
 #if defined(AUTOMATED_TESTING)
-            shaderDesc.mComp = { "particle_simulate_hq.comp" };
+            const char* particle_simulate[] = { "particle_simulate_hq.comp", "particle_simulate_low_preset_hq.comp" };
+            shaderDesc.mComp = { particle_simulate[(pRenderer->pGpu->mGpuVendorPreset.mPresetLevel <= GPU_PRESET_LOW)] };
 #else
-            shaderDesc.mComp = { "particle_simulate.comp" };
+            const char* particle_simulate[] = { "particle_simulate.comp", "particle_simulate_low_preset.comp" };
+            shaderDesc.mComp = { particle_simulate[(pRenderer->pGpu->mGpuVendorPreset.mPresetLevel <= GPU_PRESET_LOW)] };
 #endif
 
             addShader(pRenderer, &shaderDesc, &pParticleSimulateShader);
@@ -2525,7 +2514,7 @@ public:
             initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
             edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
 
-            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
             edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
             edescs[1].pixelShaderOptions.depthBeforeShader =
                 !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
@@ -2562,7 +2551,7 @@ public:
         initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
         // edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
-        edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+        edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
         edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
         edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
 
@@ -2785,7 +2774,7 @@ public:
         /*********************************************************/
         // Update particle system uniforms
         /*********************************************************/
-        mat4 cameraView = pCameraController->getViewMatrix();
+        mat4 cameraView = pCameraController->getViewMatrix().mCamera;
 
         pParticleSystemConstantData[currentFrameIdx].ViewTransform = cameraView;
         pParticleSystemConstantData[currentFrameIdx].ProjTransform = cameraProj.mCamera;
@@ -2824,7 +2813,7 @@ public:
         // Update visibility buffer uniforms
         /***********************************/
         mat4 vbCameraModel = mat4::identity();
-        mat4 vbCameraView = pCameraController->getViewMatrix();
+        mat4 vbCameraView = pCameraController->getViewMatrix().mCamera;
 
         Point3 lightSourcePos(10.f, 000.0f, 10.f);
         lightSourcePos[0] += (20.f);

@@ -121,6 +121,8 @@ extern "C"
     extern void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding);
     extern void hook_pre_resolve_query(Cmd* pCmd);
     extern void hook_fill_occlusion_query(Cmd* pCmd, uint32_t sampleCount);
+    // Converts to platform-specific format when applicable, otherwise return DXGI_FORAMT_UNKOWN to let the caller handle common formats
+    extern DXGI_FORMAT hook_to_dx12_srv_platform_format(DXGI_FORMAT defaultFormat, bool isStencil);
 
 #if defined(XBOX)
     extern void hook_remove_device(ID3D12Device* pDevice);

@@ -159,24 +159,10 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
-        const bool waveOpsSupported = (pRenderer->pGpu->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT);
-        if (!waveOpsSupported)
-        {
-            ShowUnsupportedMessage("GPU does not support wave ops");
-            return false;
-        }
-
-        const bool waveOpsStageSupported = (pRenderer->pGpu->mWaveOpsSupportedStageFlags & SHADER_STAGE_FRAG);
-        if (!waveOpsStageSupported)
-        {
-            ShowUnsupportedMessage("GPU does not support wave ops on fragment stage");
-            return false;
-        }
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;

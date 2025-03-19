@@ -40,6 +40,8 @@
 extern "C" void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern "C" void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 
+extern uint32_t gMaxParticlesCount;
+
 struct ParticleSystemSettings
 {
     Renderer* pRenderer = NULL;
@@ -116,7 +118,7 @@ bool initParticleSystem(const ParticleSystemInitDesc* pDesc)
     bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
     bufferLoadDesc.pData = NULL;
     bufferLoadDesc.mDesc.mStructStride = sizeof(uint);
-    bufferLoadDesc.mDesc.mElementCount = MAX_PARTICLES_COUNT / 10;
+    bufferLoadDesc.mDesc.mElementCount = gMaxParticlesCount / 10;
     bufferLoadDesc.mDesc.mSize = bufferLoadDesc.mDesc.mStructStride * bufferLoadDesc.mDesc.mElementCount;
     bufferLoadDesc.mDesc.pName = "ParticlesToRasterize";
     bufferLoadDesc.ppBuffer = &gPSSettings.pParticlesToRasterize;
@@ -233,8 +235,7 @@ void cmdParticleSystemSimulate(Cmd* pCmd, uint32_t frameIndex)
                                         RESOURCE_STATE_UNORDERED_ACCESS } };
     cmdResourceBarrier(pCmd, 1, resetBarriers, 0, NULL, 0, NULL);
 
-    uint32_t threadCount = (uint32_t)ceil(sqrt((float)MAX_PARTICLES_COUNT / (PARTICLES_BATCH_X * PARTICLES_BATCH_Y)));
-
+    uint32_t threadCount = (uint32_t)ceil(sqrt((float)gMaxParticlesCount / (PARTICLES_BATCH_X * PARTICLES_BATCH_Y)));
     cmdBindPipeline(pCmd, gPSSettings.pParticleSimulatePipeline);
     cmdBindDescriptorSet(pCmd, 0, gPSSettings.pDescriptorSetPersistent);
     cmdBindDescriptorSet(pCmd, 0, gPSSettings.pDescriptorSetPerBatch);

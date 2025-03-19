@@ -91,14 +91,17 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
     if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
     {
         // Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
-        //       therefore we don't need thi assignment.
+        //       therefore we don't need this assignment.
         animatedAttrVertexOffset = preSkinnedVtxOffset - meshConstant.vertexOffset;
     }
 
+	// Non-skinned attributes idx
 	uint animIndex0 = index0 - animatedAttrVertexOffset;
 	uint animIndex1 = index1 - animatedAttrVertexOffset;
 	uint animIndex2 = index2 - animatedAttrVertexOffset;
 
+	// We dont use animIndex as positions are pre-skinned - See PreSkinVertexex.comp.fsl
+	// https://www.bytesmiths.dev/internal/public/The-Forge/-/merge_requests/1403#note_143881
 	// Load vertex data of the 3 vertices
 	float3 v0pos = asfloat(LoadByte4(gVertexPositionBuffer, index0 * 12)).xyz;
 	float3 v1pos = asfloat(LoadByte4(gVertexPositionBuffer, index1 * 12)).xyz;
@@ -187,11 +190,12 @@ ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint 
 	reconstructedNormalMap.xy = normalMapData.ga * 2.0f - 1.0f;
 	reconstructedNormalMap.z = sqrt(saturate(1.0f - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy)));
 
-	// NORMAL INTERPOLATION
+	// NORMAL INTERPOLATION - We dont use animIndex as normals are pre-skinned - See PreSkinVertexex.comp.fsl
+	// https://www.bytesmiths.dev/internal/public/The-Forge/-/merge_requests/1403#note_143881
 	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex0 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex1 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, animIndex2 << 2)))
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(gVertexNormalBuffer, index2 << 2)))
 	);
     
 	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));

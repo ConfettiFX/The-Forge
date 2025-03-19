@@ -14,7 +14,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BunyLib", "BunyLib.vcxproj"
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\..\..\Examples_3\Unit_Tests\PC Visual Studio 2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\..\..\Examples_3\Unit_Tests\PC_VS2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

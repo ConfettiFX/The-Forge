@@ -34,7 +34,11 @@ PsInOpaque VS_MAIN(SV_VertexID(uint) vertexID)
     PsInOpaque Out;
 
     float4 vertexPos = LoadVertex(vertexID);
-    Out.position = mul(gObjectUniformBlockPerDraw.worldViewProjMat, vertexPos);
+	#if FT_MULTIVIEW
+		Out.position = mul(gObjectUniformBlockPerDraw.mWorldViewProjMat.mat[VR_VIEW_ID], vertexPos);
+	#else
+		Out.position = mul(gObjectUniformBlockPerDraw.mWorldViewProjMat.mat, vertexPos);
+	#endif
 
 #ifdef GPU_CRASH
 	// Causing a GPU hang...

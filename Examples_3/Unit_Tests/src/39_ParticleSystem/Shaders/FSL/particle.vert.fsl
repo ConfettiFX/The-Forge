@@ -52,7 +52,8 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 	uint particleIdx = gParticlesToRasterizeRW[instanceId];
 
 	uint Bitfield = gBitfieldBufferRW[particleIdx];
-	ParticleData particleData = gParticlesDataBufferRW[particleIdx];
+	ParticleData particleData;
+	GetParticleData(particleData, gParticlesDataBufferRW, particleIdx);
 
 	float4 VelocityAge;
 	float3 position;

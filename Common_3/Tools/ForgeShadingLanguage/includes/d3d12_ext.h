@@ -57,6 +57,7 @@ bool hit##HasHitCandidates = hit.Proceed();
 #define RayQueryBeginForEachCandidate(hit) while (hit##HasHitCandidates)
 #define RayQueryEndForEachCandidate(hit)
 #define RayQueryIsHit(hit) (hit.CommittedStatus() != COMMITTED_NOTHING)
+#define RayQueryIsHitTriangle(hit) (hit.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
 #define RayQueryIsHitNonOpaqueTriangle(hit) (hit.CandidateType() == CANDIDATE_NON_OPAQUE_TRIANGLE)
 #define RayQueryCommitCandidate(hit) hit.CommitNonOpaqueTriangleHit();
 #define RayQueryProceed(hit) hit##HasHitCandidates = hit.Proceed();
@@ -65,6 +66,8 @@ bool hit##HasHitCandidates = hit.Proceed();
 #define RayQueryPrimitiveIndex(hit) (hit.CommittedPrimitiveIndex())
 #define RayQueryInstanceID(hit) (hit.CommittedInstanceID())
 #define RayQueryGeometryIndex(hit) (hit.CommittedGeometryIndex())
+#define RayQueryInstanceIndex(hit) (hit.CommittedInstanceIndex())
+#define RayQueryRayT(hit) (hit.CommittedRayT())
 
 #define RayQueryCandidateBarycentrics(hit) (hit.CandidateTriangleBarycentrics())
 #define RayQueryCandidatePrimitiveIndex(hit) (hit.CandidatePrimitiveIndex())

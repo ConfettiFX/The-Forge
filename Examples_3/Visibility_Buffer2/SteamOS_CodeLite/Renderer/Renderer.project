@@ -23,7 +23,7 @@
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">
     <File Name="../../../../Common_3/Graphics/Vulkan/Vulkan.c"/>
-    <File Name="../../../../Common_3/Graphics/Vulkan/Vulkan_cxx.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Vulkan/Vulkan_Cxx.cpp"/>
     <File Name="../../../../Common_3/Graphics/Vulkan/VulkanRaytracing.c"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>

@@ -29,20 +29,30 @@ float sampleDepth(
 	float2 rtSize,
 	float2 texCoord,
 #if(SAMPLE_COUNT > 1)
-	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
+#if FT_MULTIVIEW
+	Depth2DArrayMS(float, SAMPLE_COUNT) pDepthTex,
+#else
+	Depth2DMS(float, SAMPLE_COUNT) pDepthTex,
+#endif/*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
-	Tex2DArray(float) pDepthTex,
-	uint viewID,
+	Depth2DArray(float) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Depth2D(float) pDepthTex,
 #endif/*FT_MULTIVIEW*/
-#endif/*SAMPLE_COUNT > 1*/	
+#endif/*SAMPLE_COUNT > 1*/
+#if FT_MULTIVIEW
+	uint viewID,
+#endif
 SamplerState samplerState)
 {
 #if SAMPLE_COUNT > 1
 	uint2 loc = uint2(texCoord * rtSize);
+#if FT_MULTIVIEW
+	return LoadTex2DArrayMS(pDepthTex, samplerState, uint3(loc, viewID), 0).x;
+#else
 	return LoadTex2DMS(pDepthTex, samplerState, loc, 0).x;
+#endif/*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
 	return SampleLvlTex2DArray(pDepthTex, samplerState, float3(texCoord, viewID), 0).x;
@@ -84,19 +94,25 @@ float3 reconstructNormalCS(
 	float nearPlane,
 	float2 frustumPlaneSizeNormalized,
 #if(SAMPLE_COUNT > 1)
-	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
+#if FT_MULTIVIEW
+	Depth2DArrayMS(float, SAMPLE_COUNT) pDepthTex,
+#else
+	Depth2DMS(float, SAMPLE_COUNT) pDepthTex,
+#endif/*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
-	Tex2DArray(float) pDepthTex,
-	uint viewID,
+	Depth2DArray(float) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Depth2D(float) pDepthTex,
 #endif/*FT_MULTIVIEW*/
 #endif/*SAMPLE_COUNT > 1*/
+#if FT_MULTIVIEW
+	uint viewID,
+#endif
 	SamplerState samplerState)
 {
 
-#if FT_MULTIVIEW && (SAMPLE_COUNT <= 1)
+#if FT_MULTIVIEW
 	float c0 = sampleDepth(rtSize, texCoord, pDepthTex, viewID, samplerState);
 	float l1 = sampleDepth(rtSize, texCoord + float2(-1.0f * invRTSize.x, 0.0f), pDepthTex, viewID, samplerState);
 	float l2 = sampleDepth(rtSize, texCoord + float2(-2.0f * invRTSize.x, 0.0f), pDepthTex, viewID, samplerState);
@@ -139,25 +155,39 @@ float4 gatherDepthSamples(
 	float2 rtSize,
 	float2 texCoord,
 #if(SAMPLE_COUNT > 1)
-	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
+#if FT_MULTIVIEW
+	Depth2DArrayMS(float, SAMPLE_COUNT) pDepthTex,
+#else
+	Depth2DMS(float, SAMPLE_COUNT) pDepthTex,
+#endif/*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
-	Tex2DArray(float) pDepthTex,
-	uint viewID,
+	Depth2DArray(float) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Depth2D(float) pDepthTex,
 #endif/*FT_MULTIVIEW*/
-#endif/*SAMPLE_COUNT > 1*/	
+#endif/*SAMPLE_COUNT > 1*/
+#if FT_MULTIVIEW
+	uint viewID,
+#endif
 SamplerState samplerState)
 {
     float4 f4Ret = f4(0);
 
 #if SAMPLE_COUNT > 1
+#if FT_MULTIVIEW
+    uint3 loc = uint3(texCoord * rtSize, 0);
+    f4Ret.x = LoadTex2DArrayMS(pDepthTex, samplerState, loc + uint3(0,1,viewID), 0).x;
+    f4Ret.y = LoadTex2DArrayMS(pDepthTex, samplerState, loc + uint3(1,1,viewID), 0).x;
+    f4Ret.z = LoadTex2DArrayMS(pDepthTex, samplerState, loc + uint3(1,0,viewID), 0).x;
+    f4Ret.w = LoadTex2DArrayMS(pDepthTex, samplerState, loc + uint3(0,0,viewID), 0).x;
+#else
     uint2 loc = uint2(texCoord * rtSize);
     f4Ret.x = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(0,1), 0).x;
     f4Ret.y = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(1,1), 0).x;
     f4Ret.z = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(1,0), 0).x;
     f4Ret.w = LoadTex2DMS(pDepthTex, samplerState, loc + uint2(0,0), 0).x;
+#endif
 #else
 #if FT_MULTIVIEW
 	f4Ret = GatherRedTex3D(pDepthTex, samplerState, float3(texCoord, viewID));
@@ -226,15 +256,21 @@ float calculateAoContrib(
 	float2 frustumPlaneSizeNormalized,
 	float2 screenCoords,
 #if(SAMPLE_COUNT > 1)
-	Tex2DMS(float, SAMPLE_COUNT) pDepthTex,
+#if FT_MULTIVIEW
+	Depth2DArrayMS(float, SAMPLE_COUNT) pDepthTex,
+#else
+	Depth2DMS(float, SAMPLE_COUNT) pDepthTex,
+#endif/*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
-	Tex2DArray(float) pDepthTex,
-	uint viewID,
+	Depth2DArray(float) pDepthTex,
 #else
-	Tex2D(float) pDepthTex,
+	Depth2D(float) pDepthTex,
 #endif/*FT_MULTIVIEW*/
 #endif/*SAMPLE_COUNT > 1*/
+#if FT_MULTIVIEW
+	uint viewID,
+#endif
 	SamplerState samplerState)
 {
 	if (aoQuality == 0)
@@ -246,7 +282,7 @@ float calculateAoContrib(
 	float2 f2TexCoord = float2(f2ScreenCoord * f2InvRTSize);
 
 	// Sample the center pixel for camera Z
-#if FT_MULTIVIEW && (SAMPLE_COUNT <= 1)
+#if FT_MULTIVIEW
 	float fDepth = sampleDepth(rtSize, f2TexCoord, pDepthTex, viewID, samplerState);
 #else
 	float fDepth = sampleDepth(rtSize, f2TexCoord, pDepthTex, samplerState);
@@ -254,7 +290,7 @@ float calculateAoContrib(
 	float fDepthLinear = linearizeDepthReverseZ(fDepth, nearPlane, farPlane);
 
 	float3 f3Position = reconstructPositionCS(f2TexCoord, fDepth, farPlane, nearPlane, frustumPlaneSizeNormalized);
-#if FT_MULTIVIEW  && (SAMPLE_COUNT <= 1)
+#if FT_MULTIVIEW
 	float3 f3Normal = reconstructNormalCS(rtSize, f2InvRTSize, f2TexCoord, farPlane, nearPlane, frustumPlaneSizeNormalized, pDepthTex, viewID, samplerState);
 #else
 	float3 f3Normal = reconstructNormalCS(rtSize, f2InvRTSize, f2TexCoord, farPlane, nearPlane, frustumPlaneSizeNormalized, pDepthTex, samplerState);
@@ -276,8 +312,13 @@ float calculateAoContrib(
 		float4 f4SampledZ[2];
 
 #if SAMPLE_COUNT > 1
+#if FT_MULTIVIEW
+        f4SampledZ[0] = gatherDepthSamples(rtSize, f2TexCoord, pDepthTex, viewID, samplerState);
+        f4SampledZ[1] = gatherDepthSamples(rtSize, f2MirrorTexCoord, pDepthTex, viewID, samplerState);
+#else
         f4SampledZ[0] = gatherDepthSamples(rtSize, f2TexCoord, pDepthTex, samplerState);
         f4SampledZ[1] = gatherDepthSamples(rtSize, f2MirrorTexCoord, pDepthTex, samplerState);
+#endif // FT_MULTIVIEW
 #else
 #if FT_MULTIVIEW
         f4SampledZ[0] = gatherDepthSamples(rtSize, f2TexCoord + 0.5f*f2InvRTSize, pDepthTex, viewID, samplerState);

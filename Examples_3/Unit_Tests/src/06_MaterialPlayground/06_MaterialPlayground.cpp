@@ -832,7 +832,7 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
@@ -1247,7 +1247,7 @@ public:
         pCameraController->update(deltaTime);
 
         // calculate matrices
-        mat4         viewMat = pCameraController->getViewMatrix();
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
         const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float  horizontal_fov = PI / 3.0f;
         CameraMatrix projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
@@ -1284,7 +1284,7 @@ public:
         gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMap = 0;
         gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = gDirectionalLightIntensity;
         gUniformDataDirectionalLights.mDirectionalLights[0].mColor = gDirectionalLightColor.getXYZ();
-        gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.mCamera * viewMat;
+        gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.mCamera * viewMat.mCamera;
         gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMapDimensions = gShadowMapDimensions;
         gUniformDataDirectionalLights.mNumDirectionalLights = 1;
 
@@ -1336,11 +1336,11 @@ public:
             }
 
             if (gUniformDataDirectionalLights.mNumDirectionalLights > 0)
-                gSkeletonBatcher.SetSharedUniforms(gUniformDataCamera.mProjectView, viewMat,
+                gSkeletonBatcher.SetSharedUniforms(gUniformDataCamera.mProjectView, viewMat.mCamera,
                                                    f3Tov3(gUniformDataDirectionalLights.mDirectionalLights[0].mDirection),
                                                    f3Tov3(gUniformDataDirectionalLights.mDirectionalLights[0].mColor));
             else
-                gSkeletonBatcher.SetSharedUniforms(gUniformDataCamera.mProjectView, viewMat, vec3(0.0f, 10.0f, 2.0f),
+                gSkeletonBatcher.SetSharedUniforms(gUniformDataCamera.mProjectView, viewMat.mCamera, vec3(0.0f, 10.0f, 2.0f),
                                                    vec3(1.0f, 1.0f, 1.0f));
 
             // Update animated objects

@@ -48,7 +48,7 @@
 
 #include "Direct3D12CapBuilder.h"
 #include "Direct3D12Hooks.h"
-#include "Direct3D12_cxx.h"
+#include "Direct3D12_Cxx.h"
 
 #if defined(AUTOMATED_TESTING)
 #include "../../Application/Interfaces/IScreenshot.h"
@@ -281,7 +281,7 @@ DO_DEFINE_GUID(IID_IDXGIOutput6_Copy, 0x068346e8, 0xaaec, 0x4b84, 0xad, 0xd7, 0x
 uint64_t                      util_dx12_determine_storage_counter_offset(uint64_t buffer_size);
 DXGI_FORMAT                   util_to_dx12_uav_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT                   util_to_dx12_dsv_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT                   util_to_dx12_srv_format(DXGI_FORMAT defaultFormat);
+DXGI_FORMAT                   util_to_dx12_srv_format(DXGI_FORMAT defaultFormat, bool isStencil);
 DXGI_FORMAT                   util_to_dx12_stencil_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT                   util_to_dx12_swapchain_format(TinyImageFormat format);
 D3D12_SHADER_VISIBILITY       util_to_dx12_shader_visibility(ShaderStage stages);
@@ -1536,8 +1536,14 @@ DXGI_FORMAT util_to_dx12_dsv_format(DXGI_FORMAT defaultFormat)
     }
 }
 
-DXGI_FORMAT util_to_dx12_srv_format(DXGI_FORMAT defaultFormat)
+DXGI_FORMAT util_to_dx12_srv_format(DXGI_FORMAT defaultFormat, bool isStencil)
 {
+    DXGI_FORMAT platformSpecificFormat = hook_to_dx12_srv_platform_format(defaultFormat, isStencil);
+    if (platformSpecificFormat != DXGI_FORMAT_UNKNOWN)
+    {
+        return platformSpecificFormat;
+    }
+
     switch (defaultFormat)
     {
         // 32-bit Z w/ Stencil
@@ -1545,26 +1551,26 @@ DXGI_FORMAT util_to_dx12_srv_format(DXGI_FORMAT defaultFormat)
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
     case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
     case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
-        return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        return isStencil ? DXGI_FORMAT_X32_TYPELESS_G8X24_UINT : DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
 
         // No Stencil
     case DXGI_FORMAT_R32_TYPELESS:
     case DXGI_FORMAT_D32_FLOAT:
     case DXGI_FORMAT_R32_FLOAT:
-        return DXGI_FORMAT_R32_FLOAT;
+        return isStencil ? DXGI_FORMAT_UNKNOWN : DXGI_FORMAT_R32_FLOAT;
 
         // 24-bit Z
     case DXGI_FORMAT_R24G8_TYPELESS:
     case DXGI_FORMAT_D24_UNORM_S8_UINT:
     case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
     case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        return isStencil ? DXGI_FORMAT_X24_TYPELESS_G8_UINT : DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 
         // 16-bit Z w/o Stencil
     case DXGI_FORMAT_R16_TYPELESS:
     case DXGI_FORMAT_D16_UNORM:
     case DXGI_FORMAT_R16_UNORM:
-        return DXGI_FORMAT_R16_UNORM;
+        return isStencil ? DXGI_FORMAT_UNKNOWN : DXGI_FORMAT_R16_UNORM;
 
     case DXGI_FORMAT_R8G8B8A8_TYPELESS:
         return DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -2128,6 +2134,10 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     desc->DepthOrArraySize = (UINT16)(pDesc->mArraySize != 1 ? pDesc->mArraySize : pDesc->mDepth);
     desc->MipLevels = (UINT16)pDesc->mMipLevels;
     desc->Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
+    if (desc->Format == DXGI_FORMAT_UNKNOWN)
+    {
+        desc->Format = dxFormat;
+    }
     desc->SampleDesc.Count = (UINT)pDesc->mSampleCount;
     desc->SampleDesc.Quality = (UINT)pDesc->mSampleQuality;
     desc->Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -2290,6 +2300,13 @@ static bool SelectBestGpu(Renderer* pRenderer, const RendererDesc* pDesc, D3D_FE
     }
     uint32_t gpuIndex = util_select_best_gpu(gpuDesc, pContext->mGpuCount);
     ASSERT(gpuIndex < pContext->mGpuCount);
+
+    bool gpuSupported = util_check_is_gpu_supported(&gpuDesc[gpuIndex]);
+    if (!gpuSupported)
+    {
+        LOGF(eERROR, "Failed to Init Renderer: %s", getUnsupportedGPUMsg());
+        return false;
+    }
 
     // Get the latest and greatest feature level gpu
     pRenderer->pGpu = &pRenderer->pContext->mGpus[gpuIndex];
@@ -3640,6 +3657,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
     Texture* pTexture = (Texture*)tf_calloc_memalign(1, ALIGN_Texture, sizeof(Texture));
     pTexture->mDx.mDescriptors = D3D12_DESCRIPTOR_ID_NONE;
+    pTexture->mDx.mStencilDescriptor = D3D12_DESCRIPTOR_ID_NONE;
     ASSERT(pTexture);
 
     if (pDesc->pNativeHandle)
@@ -3889,11 +3907,30 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
     if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
     {
         ASSERT(srvDesc.ViewDimension != D3D12_SRV_DIMENSION_UNKNOWN);
-
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srvDesc.Format = util_to_dx12_srv_format(dxFormat);
+        srvDesc.Format = util_to_dx12_srv_format(dxFormat, false);
+        ASSERTMSG(srvDesc.Format != DXGI_FORMAT_UNKNOWN,
+                  "Attempted to create a depth buffer SRV with a format that doesn't support a depth component");
         AddSrv(pRenderer, NULL, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mDescriptors);
         ++pTexture->mDx.mUavStartIndex;
+
+        // Create Stencil texture SRV
+        bool shouldCreateStencilDesc = TinyImageFormat_HasStencil(pDesc->mFormat);
+        if (shouldCreateStencilDesc)
+        {
+            pTexture->mDx.mStencilDescriptor = consume_descriptor_handles(pHeap, 1);
+            // Stencil resides in plane 1 for all DX12 formats, meaning that we'd need to read the green channel by default.
+            // However, it's easier to map the stencil component to the red channel instead, so that we don't need to
+            // modify the code on other APIs
+            srvDesc.Format = util_to_dx12_srv_format(dxFormat, true);
+            ASSERTMSG(srvDesc.Format != DXGI_FORMAT_UNKNOWN,
+                      "Attempted to create a stencil buffer SRV with a format that doesn't support a stencil component");
+            srvDesc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(1, 1, 1, 1);
+            srvDesc.Texture2DArray.PlaneSlice = 1;
+            srvDesc.Texture2D.PlaneSlice = 1;
+            ++pTexture->mDx.mUavStartIndex;
+            AddSrv(pRenderer, NULL, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mStencilDescriptor);
+        }
     }
 
     if (descriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
@@ -3938,6 +3975,12 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
                                   pTexture->mDx.mHandleCount);
     }
 
+    if (pTexture->mDx.mStencilDescriptor != D3D12_DESCRIPTOR_ID_NONE)
+    {
+        return_descriptor_handles(pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV],
+                                  pTexture->mDx.mStencilDescriptor, 1);
+    }
+
     if (pTexture->mOwnsImage)
     {
         D3D12MA_ReleaseAllocation(pTexture->mDx.pAllocation);
@@ -3955,7 +3998,8 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
     ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
     const bool isDepth = TinyImageFormat_HasDepth(pDesc->mFormat);
-    ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
+    ASSERT(!((isDepth) && ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE) == DESCRIPTOR_TYPE_RW_TEXTURE)) &&
+           "Cannot use depth stencil as UAV");
 
     ((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
 
@@ -4433,9 +4477,10 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
             for (uint32_t arr = 0; arr < arrayCount; ++arr)
             {
                 VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
-
-                copy_descriptor_handle(pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV],
-                                       pParam->ppTextures[arr]->mDx.mDescriptors, pRenderer->mDx.pCbvSrvUavHeaps[nodeIndex],
+                DxDescriptorID targetDescriptor = pParam->mBindStencilResource ? pParam->ppTextures[arr]->mDx.mStencilDescriptor
+                                                                               : pParam->ppTextures[arr]->mDx.mDescriptors;
+                copy_descriptor_handle(pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], targetDescriptor,
+                                       pRenderer->mDx.pCbvSrvUavHeaps[nodeIndex],
                                        pDescriptorSet->mDx.mCbvSrvUavHandle + index * pDescriptorSet->mDx.mCbvSrvUavStride +
                                            pDesc->mOffset + arrayStart + arr);
             }

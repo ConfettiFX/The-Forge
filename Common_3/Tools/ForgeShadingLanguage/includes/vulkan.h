@@ -110,6 +110,7 @@
 #define select lerp
 
 bvec3 Equal(vec3 X, float Y) { return equal(X, vec3(Y));}
+bvec4 Equal(vec4 X, float Y) { return equal(X, vec4(Y)); }
 
 bvec2 LessThan(in(vec2) a, in(float) b)      { return lessThan(a, vec2(b)); }
 bvec2 LessThan(in(vec2) a, in(vec2) b)       { return lessThan(a, b);}
@@ -305,10 +306,17 @@ vec4 _LoadLvlOffsetTex3D( texture2DArray TEX, sampler SMP, ivec3 P, int L, ivec3
 
 #define LoadTex2DMS(NAME, SMP, P, S) _LoadTex2DMS((NAME), (SMP), ivec2(P.xy), int(S))
 vec4 _LoadTex2DMS(texture2DMS TEX, sampler SMP, ivec2 P, int S) { return texelFetch(sampler2DMS(TEX, SMP), P, S); }
+uvec4 _LoadTex2DMS(utexture2DMS TEX, sampler SMP, ivec2 P, int S) { return texelFetch(usampler2DMS(TEX, SMP), P, S); }
+ivec4 _LoadTex2DMS(itexture2DMS TEX, sampler SMP, ivec2 P, int S) { return texelFetch(isampler2DMS(TEX, SMP), P, S); }
+
 #define LoadTex2DArrayMS(NAME, SMP, P, S) _LoadTex2DArrayMS((NAME), (SMP), ivec3(P.xyz), int(S))
 vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, sampler SMP, ivec3 P, int S) { return texelFetch(sampler2DMSArray(TEX, SMP), P, S); }
+uvec4 _LoadTex2DArrayMS(utexture2DMSArray TEX, sampler SMP, ivec3 P, int S) { return texelFetch(usampler2DMSArray(TEX, SMP), P, S); }
+ivec4 _LoadTex2DArrayMS(itexture2DMSArray TEX, sampler SMP, ivec3 P, int S) { return texelFetch(isampler2DMSArray(TEX, SMP), P, S); }
 #ifdef GL_EXT_samplerless_texture_functions
 vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, uint _NO_SAMPLER, ivec3 P, int S) { return texelFetch(TEX, P, S); }
+uvec4 _LoadTex2DArrayMS(utexture2DMSArray TEX, uint _NO_SAMPLER, ivec3 P, int S) { return texelFetch(TEX, P, S); }
+ivec4 _LoadTex2DArrayMS(itexture2DMSArray TEX, uint _NO_SAMPLER, ivec3 P, int S) { return texelFetch(TEX, P, S); }
 #endif
 
 #define SampleGradTex2D(TEX, SMP, P, DX, DY) \
@@ -605,9 +613,11 @@ int2 imageSize(texture2DMS TEX) { return textureSize(TEX); }
 int2 imageSize(textureCube TEX) { return textureSize(TEX, 0); }
 int3 imageSize(texture2DArray TEX) { return textureSize(TEX, 0); }
 int3 imageSize(utexture2DArray TEX) { return textureSize(TEX, 0); }
+int3 imageSize(texture2DMSArray TEX) { return textureSize(TEX); }
 
 #define GetDimensions(TEX, SMP) imageSize(TEX)
 #define GetDimensionsMS(TEX, DIM) int2 DIM; { DIM = imageSize(TEX); }
+#define GetDimensionsMSArray(TEX, DIM) int3 DIM; { DIM = imageSize(TEX); }
 
 // int2 GetDimensions(writeonly iimage2D t, uint _NO_SAMPLER) { return imageSize(t); }
 // int2 GetDimensions(writeonly uimage2D t, uint _NO_SAMPLER) { return imageSize(t); }

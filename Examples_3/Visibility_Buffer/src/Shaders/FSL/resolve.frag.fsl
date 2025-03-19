@@ -23,12 +23,14 @@
 */
 
 #include "VisibilityBufferResources.h.fsl"
-#include "GLobal.srt.h"
-#include "VisibilityBufferResourcesUtil.h.fsl"
+#include "Resolve.srt.h"
 
 STRUCT(PsIn)
 {
 	DATA(float4, position, SV_Position);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD);
+#endif
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -39,9 +41,16 @@ float4 PS_MAIN( PsIn In )
     float4 value = f4(0);
 
     uint2 texCoord = uint2(In.position.xy);
+
     for(int i = 0; i < SAMPLE_COUNT; ++i)
-        value += LoadTex2DMS(gMSAASource, gSamplerPointClamp, texCoord, i);
-    value /= SAMPLE_COUNT;
+    {
+#if FT_MULTIVIEW
+        value += LoadTex2DArrayMS(gResolveSource, gSamplerPointClamp, uint3(texCoord, In.ViewID), i);
+#else
+        value += LoadTex2DMS(gResolveSource, gSamplerPointClamp, texCoord, i);
+#endif
+    }
+    value /= max(1.0, value.a);
 
     Out = value;
     RETURN(Out);

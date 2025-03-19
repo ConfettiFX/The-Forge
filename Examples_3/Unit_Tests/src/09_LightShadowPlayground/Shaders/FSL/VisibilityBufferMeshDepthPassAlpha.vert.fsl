@@ -25,7 +25,7 @@
 #include "ShaderDefs.h.fsl"
 #define MESH_PASS
 #include "VisibilityBufferResources.h.fsl"
-#include "VisibilityBuffer.srt.h"
+#include "VisibilityBufferDepthPass.srt.h"
 #include "VisibilityBufferResourcesUtil.h.fsl"
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -35,7 +35,7 @@ PsInAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 	PsInAlphaTested Out;
     float4 vertexPos = LoadVertex(vertexID);
 
-	Out.position = mul(gObjectUniformBlockPerDraw.worldViewProjMat, vertexPos);
+	Out.position = mul(gObjectUniformBlockPerDraw.mWorldViewProjMat, vertexPos);
 	Out.texCoord = LoadTexCoord(vertexID);
 	// IndirectDataBuffer stores mesh index, which in this case is the same as material ID
 	Out.materialID = gIndirectDataBuffer[vertexID]; 

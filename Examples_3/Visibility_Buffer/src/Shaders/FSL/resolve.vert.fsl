@@ -25,6 +25,9 @@
 STRUCT(PsIn)
 {
     DATA(float4, position, SV_Position);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD);
+#endif
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -36,5 +39,8 @@ PsIn VS_MAIN( SV_VertexID(uint) vertexID )
     Out.position.x = (vertexID == 2) ? 3.0 : -1.0;
     Out.position.y = (vertexID == 0) ? -3.0 : 1.0;
     Out.position.zw = float2(1,1);
+#if FT_MULTIVIEW
+    Out.ViewID = VR_VIEW_ID;
+#endif
     RETURN(Out);
 }

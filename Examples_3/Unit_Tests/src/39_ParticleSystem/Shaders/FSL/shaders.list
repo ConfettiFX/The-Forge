@@ -18,11 +18,21 @@
 #include "ParticleSimulate.comp.fsl"
 #end
 
+#comp particle_simulate_low_preset.comp
+#define USE_LOW_PRESET
+#include "ParticleSimulate.comp.fsl"
+#end
+
 #comp particle_simulate_hq.comp
 #define DETERMINISTIC_SIMULATION
 #include "ParticleSimulate.comp.fsl"
 #end
 
+#comp particle_simulate_low_preset_hq.comp
+#define USE_LOW_PRESET
+#define DETERMINISTIC_SIMULATION
+#include "ParticleSimulate.comp.fsl"
+#end
 
 #vert shadow_pass.vert
 #include "ShadowPass.vert.fsl"

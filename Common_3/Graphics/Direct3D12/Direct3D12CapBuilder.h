@@ -61,6 +61,16 @@ inline void d3d12CapsBuilder(ID3D12Device* pDevice, GpuDesc* pGpuDesc)
         {
             pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
         }
+        if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+        {
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_DEPTH_STENCIL;
+        }
+        // Textures support point sampling by default (see D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE spec)
+        if (formatSupport.Support1 &
+            (D3D12_FORMAT_SUPPORT1_TEXTURE1D | D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TEXTURECUBE))
+        {
+            pGpuDesc->mFormatCaps[i] |= FORMAT_CAP_READ;
+        }
     }
 }
 #endif

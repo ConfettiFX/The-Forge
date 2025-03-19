@@ -1,0 +1,815 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		64A4D5A42C98B13900B6B629 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E009E2A93F74500981E7B /* QuartzCore.framework */; };
+		64A4D5A52C98B14100B6B629 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */; };
+		64A4D5A62C98B14100B6B629 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
+		64A4D5A72C98B14100B6B629 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
+		64A4D5A82C98B14100B6B629 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5382A37F55A00FB75C1 /* CoreHaptics.framework */; };
+		64A4D5A92C98B14100B6B629 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2B73F1721751BF900324803 /* GameController.framework */; };
+		64A4D5AB2C98B14B00B6B629 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5AA2C98B14B00B6B629 /* UIKit.framework */; };
+		64A4D5AD2C98B15300B6B629 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64A4D5AC2C98B15300B6B629 /* CoreVideo.framework */; };
+		650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */; };
+		7F6E009D2A93F73B00981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E009C2A93F73B00981E7B /* AppKit.framework */; };
+		7F6E009F2A93F74500981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E009E2A93F74500981E7B /* QuartzCore.framework */; };
+		7F6E00D72A93FE5400981E7B /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00D62A93FE5400981E7B /* IOKit.framework */; };
+		997EE5362A37F55500FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2B73F1721751BF900324803 /* GameController.framework */; };
+		997EE5392A37F55B00FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5382A37F55A00FB75C1 /* CoreHaptics.framework */; };
+		B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
+		B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
+		B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */; };
+		B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFA21751B4E00F702BB /* libThe-Forge.a */; };
+		B2B73FC721754A3B00324803 /* 28_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 28_Skinning.cpp */; };
+		B2B73FEA2175504F00324803 /* 28_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 28_Skinning.cpp */; };
+		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
+		D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */; };
+		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
+		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		EC24607E2C94F8740002AE10 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC24607C2C94F8740002AE10 /* macOSAppDelegate.m */; };
+		EC2460822C94F8B10002AE10 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EC2460802C94F8A10002AE10 /* iOSAppDelegate.m */; };
+		EC66B91B2C9371CA0004DC3B /* Shaders in Resources */ = {isa = PBXBuildFile; fileRef = EC66B9192C9371CA0004DC3B /* Shaders */; };
+		ED60957B286F382000331537 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED48304C286EEC1700BF1613 /* ozz_animation_IOS.a */; };
+		ED60957C286F382000331537 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED48304E286EEC1700BF1613 /* ozz_base_IOS.a */; };
+		ED60957D286F382700331537 /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED483050286EEC1700BF1613 /* ozz_animation offline.a */; };
+		ED60957E286F382700331537 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED483048286EEC1700BF1613 /* ozz_animation.a */; };
+		ED60957F286F382700331537 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED48304A286EEC1700BF1613 /* ozz_base.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B2541CF921751B4E00F702BB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		B2541CFB21751B4E00F702BB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		B2541D0121751B6F00F702BB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		E958923223416EFA00B68D6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		ED483047286EEC1700BF1613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AD14F53CA01347BBA91C7F42;
+			remoteInfo = ozz_animation;
+		};
+		ED483049286EEC1700BF1613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A69A1ECFEC9145D3A46BAA96;
+			remoteInfo = ozz_base;
+		};
+		ED48304B286EEC1700BF1613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D0796ACD211ED7370028AFFD;
+			remoteInfo = ozz_animation_IOS;
+		};
+		ED48304D286EEC1700BF1613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
+			remoteInfo = ozz_base_IOS;
+		};
+		ED48304F286EEC1700BF1613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
+			remoteInfo = "ozz_animation offline";
+		};
+		ED609568286F380C00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B578F05FA1304339B5CEB8AB;
+			remoteInfo = ozz_animation;
+		};
+		ED60956A286F380C00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B28C6EDE21B209AA00FBA1BF;
+			remoteInfo = "ozz_animation offline";
+		};
+		ED60956C286F380C00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
+			remoteInfo = ozz_base;
+		};
+		ED609574286F381600331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B578F05FA1304339B5CEB8AB;
+			remoteInfo = ozz_animation;
+		};
+		ED609576286F381600331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D0796ABD211ED7370028AFFD;
+			remoteInfo = ozz_animation_IOS;
+		};
+		ED609578286F381600331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D0796ACE211ED7430028AFFD;
+			remoteInfo = ozz_base_IOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		64A4D5AA2C98B14B00B6B629 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		64A4D5AC2C98B15300B6B629 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		7F6E00802A93DA7C00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00812A93DA7C00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00822A93DA7C00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsDebug.xcconfig; sourceTree = "<group>"; };
+		7F6E00832A93DA7C00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Debug_iOS.xcconfig; sourceTree = "<group>"; };
+		7F6E00842A93DA7C00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/CommonSettingsRelease.xcconfig; sourceTree = "<group>"; };
+		7F6E00852A93DA7C00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/TF_App_Shared.xcconfig; sourceTree = "<group>"; };
+		7F6E00862A93DA7C00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = ../../../../Examples_3/Build_Props/XCode/Release_MacOS.xcconfig; sourceTree = "<group>"; };
+		7F6E009C2A93F73B00981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		7F6E009E2A93F74500981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		7F6E00D62A93FE5400981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		997EE5382A37F55A00FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
+		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B22D906820E2EDCE0036B88E /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		B2B73FC621754A3B00324803 /* 28_Skinning.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = 28_Skinning.cpp; sourceTree = "<group>"; };
+		C95132ED2010E68A002E584B /* 28_Skinning_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 28_Skinning_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/MacOS/Assets.xcassets; sourceTree = "<group>"; };
+		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/iOS/Info.plist; sourceTree = "<group>"; };
+		D0296BEB211EE433000C9281 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../../../Build_Props/XCode/MacOS/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E9A4390C233DC728005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		EA463C8B1EF81E8F005AC8C7 /* 28_Skinning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 28_Skinning.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../../../Build_Props/XCode/MacOS/Info.plist; sourceTree = SOURCE_ROOT; };
+		EC24607C2C94F8740002AE10 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		EC24607D2C94F8740002AE10 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		EC24607F2C94F8A10002AE10 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		EC2460802C94F8A10002AE10 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		EC66B9192C9371CA0004DC3B /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaders; sourceTree = "<group>"; };
+		ED48303C286EEC1700BF1613 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C95132EA2010E68A002E584B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				64A4D5AD2C98B15300B6B629 /* CoreVideo.framework in Frameworks */,
+				64A4D5AB2C98B14B00B6B629 /* UIKit.framework in Frameworks */,
+				64A4D5A52C98B14100B6B629 /* MetalPerformanceShaders.framework in Frameworks */,
+				64A4D5A62C98B14100B6B629 /* Metal.framework in Frameworks */,
+				64A4D5A72C98B14100B6B629 /* MetalKit.framework in Frameworks */,
+				64A4D5A82C98B14100B6B629 /* CoreHaptics.framework in Frameworks */,
+				64A4D5A92C98B14100B6B629 /* GameController.framework in Frameworks */,
+				64A4D5A42C98B13900B6B629 /* QuartzCore.framework in Frameworks */,
+				ED60957B286F382000331537 /* ozz_animation_IOS.a in Frameworks */,
+				ED60957C286F382000331537 /* ozz_base_IOS.a in Frameworks */,
+				B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ED60957D286F382700331537 /* ozz_animation offline.a in Frameworks */,
+				997EE5392A37F55B00FB75C1 /* CoreHaptics.framework in Frameworks */,
+				ED60957E286F382700331537 /* ozz_animation.a in Frameworks */,
+				7F6E009F2A93F74500981E7B /* QuartzCore.framework in Frameworks */,
+				997EE5362A37F55500FB75C1 /* GameController.framework in Frameworks */,
+				ED60957F286F382700331537 /* ozz_base.a in Frameworks */,
+				650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */,
+				7F6E009D2A93F73B00981E7B /* AppKit.framework in Frameworks */,
+				B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */,
+				B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */,
+				7F6E00D72A93FE5400981E7B /* IOKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		28A5ABEA201F482F000E571F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				64A4D5AC2C98B15300B6B629 /* CoreVideo.framework */,
+				64A4D5AA2C98B14B00B6B629 /* UIKit.framework */,
+				7F6E00D62A93FE5400981E7B /* IOKit.framework */,
+				7F6E009E2A93F74500981E7B /* QuartzCore.framework */,
+				7F6E009C2A93F73B00981E7B /* AppKit.framework */,
+				997EE5382A37F55A00FB75C1 /* CoreHaptics.framework */,
+				E9A4390C233DC728005BF1C7 /* libbz2.tbd */,
+				650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */,
+				B2B73F1721751BF900324803 /* GameController.framework */,
+				B22D906220E2EDCE0036B88E /* Metal.framework */,
+				B22D906820E2EDCE0036B88E /* MetalKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7F6E00122A93D9F800981E7B /* BuildConfigs */ = {
+			isa = PBXGroup;
+			children = (
+				7F6E00822A93DA7C00981E7B /* CommonSettingsDebug.xcconfig */,
+				7F6E00842A93DA7C00981E7B /* CommonSettingsRelease.xcconfig */,
+				7F6E00832A93DA7C00981E7B /* Debug_iOS.xcconfig */,
+				7F6E00802A93DA7C00981E7B /* Debug_MacOS.xcconfig */,
+				7F6E00812A93DA7C00981E7B /* Release_iOS.xcconfig */,
+				7F6E00862A93DA7C00981E7B /* Release_MacOS.xcconfig */,
+				7F6E00852A93DA7C00981E7B /* TF_App_Shared.xcconfig */,
+			);
+			name = BuildConfigs;
+			sourceTree = "<group>";
+		};
+		B2541CF421751B4E00F702BB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B2541CFA21751B4E00F702BB /* libThe-Forge.a */,
+				B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C95132EE2010E68A002E584B /* 28_Skinning_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				EC24607F2C94F8A10002AE10 /* iOSAppDelegate.h */,
+				EC2460802C94F8A10002AE10 /* iOSAppDelegate.m */,
+				C95132FE2010E68A002E584B /* Assets.xcassets */,
+				D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */,
+				C95133032010E68A002E584B /* Info.plist */,
+			);
+			name = 28_Skinning_iOS;
+			sourceTree = "<group>";
+		};
+		EA463C821EF81E8F005AC8C7 = {
+			isa = PBXGroup;
+			children = (
+				EC66B9152C93715A0004DC3B /* Examples_3 */,
+				7F6E00122A93D9F800981E7B /* BuildConfigs */,
+				ED48303C286EEC1700BF1613 /* ozz.xcodeproj */,
+				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
+				EA463C941EF81E8F005AC8C7 /* 28_Skinning */,
+				C95132EE2010E68A002E584B /* 28_Skinning_iOS */,
+				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				28A5ABEA201F482F000E571F /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		EA463C8C1EF81E8F005AC8C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA463C8B1EF81E8F005AC8C7 /* 28_Skinning.app */,
+				C95132ED2010E68A002E584B /* 28_Skinning_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA463C941EF81E8F005AC8C7 /* 28_Skinning */ = {
+			isa = PBXGroup;
+			children = (
+				EC24607D2C94F8740002AE10 /* macOSAppDelegate.h */,
+				EC24607C2C94F8740002AE10 /* macOSAppDelegate.m */,
+				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
+				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
+				EADF9D661EFD160E00B2008B /* Info.plist */,
+			);
+			name = 28_Skinning;
+			sourceTree = SOURCE_ROOT;
+		};
+		EC66B9152C93715A0004DC3B /* Examples_3 */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B9162C9371710004DC3B /* Unit_Tests */,
+			);
+			name = Examples_3;
+			path = ../../..;
+			sourceTree = "<group>";
+		};
+		EC66B9162C9371710004DC3B /* Unit_Tests */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B9172C93718B0004DC3B /* src */,
+			);
+			path = Unit_Tests;
+			sourceTree = "<group>";
+		};
+		EC66B9172C93718B0004DC3B /* src */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B9182C93719F0004DC3B /* 28_Skinning */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		EC66B9182C93719F0004DC3B /* 28_Skinning */ = {
+			isa = PBXGroup;
+			children = (
+				EC66B9192C9371CA0004DC3B /* Shaders */,
+				B2B73FC621754A3B00324803 /* 28_Skinning.cpp */,
+			);
+			path = 28_Skinning;
+			sourceTree = "<group>";
+		};
+		ED48303D286EEC1700BF1613 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				ED483048286EEC1700BF1613 /* ozz_animation.a */,
+				ED48304A286EEC1700BF1613 /* ozz_base.a */,
+				ED48304C286EEC1700BF1613 /* ozz_animation_IOS.a */,
+				ED48304E286EEC1700BF1613 /* ozz_base_IOS.a */,
+				ED483050286EEC1700BF1613 /* ozz_animation offline.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C95132EC2010E68A002E584B /* 28_Skinning_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C95133082010E68A002E584B /* Build configuration list for PBXNativeTarget "28_Skinning_iOS" */;
+			buildPhases = (
+				C95132E92010E68A002E584B /* Sources */,
+				C95132EA2010E68A002E584B /* Frameworks */,
+				C95132EB2010E68A002E584B /* Resources */,
+				5C61B5B824D365C100EF5D20 /* ShellScript */,
+				09F9CC5D284FD4A20064E142 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ED609575286F381600331537 /* PBXTargetDependency */,
+				ED609577286F381600331537 /* PBXTargetDependency */,
+				ED609579286F381600331537 /* PBXTargetDependency */,
+				B2541D0221751B6F00F702BB /* PBXTargetDependency */,
+			);
+			name = 28_Skinning_iOS;
+			productName = 01_Transformations_iOS;
+			productReference = C95132ED2010E68A002E584B /* 28_Skinning_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA463C8A1EF81E8F005AC8C7 /* 28_Skinning */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "28_Skinning" */;
+			buildPhases = (
+				EA463C871EF81E8F005AC8C7 /* Sources */,
+				EA463C881EF81E8F005AC8C7 /* Frameworks */,
+				EA463C891EF81E8F005AC8C7 /* Resources */,
+				5C13A4F324D1ACBB0023D339 /* ShellScript */,
+				09F9CC5B284FD48B0064E142 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ED609569286F380C00331537 /* PBXTargetDependency */,
+				ED60956B286F380C00331537 /* PBXTargetDependency */,
+				ED60956D286F380C00331537 /* PBXTargetDependency */,
+				E958923323416EFA00B68D6A /* PBXTargetDependency */,
+			);
+			name = 28_Skinning;
+			productName = 02_Texture;
+			productReference = EA463C8B1EF81E8F005AC8C7 /* 28_Skinning.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA463C831EF81E8F005AC8C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1130;
+				ORGANIZATIONNAME = "Confetti-FX";
+				TargetAttributes = {
+					C95132EC2010E68A002E584B = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Automatic;
+					};
+					EA463C8A1EF81E8F005AC8C7 = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "28_Skinning" */;
+			compatibilityVersion = "Xcode 10.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA463C821EF81E8F005AC8C7;
+			productRefGroup = EA463C8C1EF81E8F005AC8C7 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = ED48303D286EEC1700BF1613 /* Products */;
+					ProjectRef = ED48303C286EEC1700BF1613 /* ozz.xcodeproj */;
+				},
+				{
+					ProductGroup = B2541CF421751B4E00F702BB /* Products */;
+					ProjectRef = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				EA463C8A1EF81E8F005AC8C7 /* 28_Skinning */,
+				C95132EC2010E68A002E584B /* 28_Skinning_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		B2541CFA21751B4E00F702BB /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = B2541CF921751B4E00F702BB /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = B2541CFB21751B4E00F702BB /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ED483048286EEC1700BF1613 /* ozz_animation.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = ozz_animation.a;
+			remoteRef = ED483047286EEC1700BF1613 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ED48304A286EEC1700BF1613 /* ozz_base.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = ozz_base.a;
+			remoteRef = ED483049286EEC1700BF1613 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ED48304C286EEC1700BF1613 /* ozz_animation_IOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = ozz_animation_IOS.a;
+			remoteRef = ED48304B286EEC1700BF1613 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ED48304E286EEC1700BF1613 /* ozz_base_IOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = ozz_base_IOS.a;
+			remoteRef = ED48304D286EEC1700BF1613 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ED483050286EEC1700BF1613 /* ozz_animation offline.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "ozz_animation offline.a";
+			remoteRef = ED48304F286EEC1700BF1613 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C95132EB2010E68A002E584B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC66B91B2C9371CA0004DC3B /* Shaders in Resources */,
+				D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */,
+				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C891EF81E8F005AC8C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		09F9CC5B284FD48B0064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l MACOS --incremental --compile $debug\n";
+			showEnvVarsInLog = 0;
+		};
+		09F9CC5D284FD4A20064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/shaders.list\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" --cache-args -l IOS --incremental --compile $debug\n";
+			showEnvVarsInLog = 0;
+		};
+		5C13A4F324D1ACBB0023D339 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS_Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\" \"TRUE\"\n\n # Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
+		};
+		5C61B5B824D365C100EF5D20 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# Textures\nrsync -u -r \"$ASSETS/Textures/ktx/Stormtrooper_D.tex\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n# Meshes\nrsync -u -rv --include '*/' --include '*.bin' --exclude '*' --prune-empty-dirs \"$ASSETS/Meshes/\" \"$DST/Meshes/\"\n# Animations\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation/\"\n\n# Common resources (Shaders, Fonts, Scripts, GPUCfg)\n# Path is The-Forge/Examples_3/Unit_Tests/macOS_Xcode/common_post_build.command\n/bin/sh \"$SRCROOT/../common_post_build.command\" \"$SRC\" \"$SRCROOT\" \"$ASSETS\" \"$DST\" \"$PROJECT_NAME\"\n# Necessary because ReloadServer.py expect to be executed with cwd = \"The-Forge\"\ncd \"$SRCROOT/../../../../\"\n/bin/sh \"Common_3/Tools/ReloadServer/ReloadServer.sh\" > \"Common_3/Tools/ReloadServer/server-log.txt\" 2>&1 &\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C95132E92010E68A002E584B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC2460822C94F8B10002AE10 /* iOSAppDelegate.m in Sources */,
+				B2B73FEA2175504F00324803 /* 28_Skinning.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C871EF81E8F005AC8C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC24607E2C94F8740002AE10 /* macOSAppDelegate.m in Sources */,
+				B2B73FC721754A3B00324803 /* 28_Skinning.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B2541D0221751B6F00F702BB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = B2541D0121751B6F00F702BB /* PBXContainerItemProxy */;
+		};
+		E958923323416EFA00B68D6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = E958923223416EFA00B68D6A /* PBXContainerItemProxy */;
+		};
+		ED609569286F380C00331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_animation;
+			targetProxy = ED609568286F380C00331537 /* PBXContainerItemProxy */;
+		};
+		ED60956B286F380C00331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "ozz_animation offline";
+			targetProxy = ED60956A286F380C00331537 /* PBXContainerItemProxy */;
+		};
+		ED60956D286F380C00331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_base;
+			targetProxy = ED60956C286F380C00331537 /* PBXContainerItemProxy */;
+		};
+		ED609575286F381600331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_animation;
+			targetProxy = ED609574286F381600331537 /* PBXContainerItemProxy */;
+		};
+		ED609577286F381600331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_animation_IOS;
+			targetProxy = ED609576286F381600331537 /* PBXContainerItemProxy */;
+		};
+		ED609579286F381600331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_base_IOS;
+			targetProxy = ED609578286F381600331537 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D0296BEB211EE433000C9281 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			path = ../../../Build_Props/XCode/iOS;
+			sourceTree = "<group>";
+		};
+		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D2E631E01F3472DF005BFBA7 /* Base */,
+			);
+			name = MainMenu.xib;
+			path = ../../../Build_Props/XCode/MacOS;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		C95133062010E68A002E584B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00832A93DA7C00981E7B /* Debug_iOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		C95133072010E68A002E584B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00812A93DA7C00981E7B /* Release_iOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00852A93DA7C00981E7B /* TF_App_Shared.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00852A93DA7C00981E7B /* TF_App_Shared.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00802A93DA7C00981E7B /* Debug_MacOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00862A93DA7C00981E7B /* Release_MacOS.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				INFOPLIST_FILE = ../../../Build_Props/XCode/MacOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C95133082010E68A002E584B /* Build configuration list for PBXNativeTarget "28_Skinning_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C95133062010E68A002E584B /* Debug */,
+				C95133072010E68A002E584B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "28_Skinning" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAA1EF81E8F005AC8C7 /* Debug */,
+				EA463CAB1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "28_Skinning" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAD1EF81E8F005AC8C7 /* Debug */,
+				EA463CAE1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA463C831EF81E8F005AC8C7 /* Project object */;
+}

@@ -292,7 +292,7 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
@@ -822,7 +822,7 @@ public:
         /************************************************************************/
 
         // update camera with time
-        mat4 viewMat = pCameraController->getViewMatrix();
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
 
         const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float  horizontal_fov = PI / 2.0f;
@@ -856,7 +856,7 @@ public:
         getHiresTimerUSec(&gAnimationUpdateTimer, true);
 
         // Update uniforms that will be shared between all skeletons
-        gSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat, lightPos, lightColor);
+        gSkeletonBatcher.SetSharedUniforms(projViewMat, viewMat.mCamera, lightPos, lightColor);
 
         for (uint i = 0; i < pGeomData->mJointCount; ++i)
         {

@@ -35,7 +35,8 @@ END_SRT_SET(PerBatch)
 BEGIN_SRT_SET(PerDraw)
 	DECL_RWBUFFER(PerDraw, RWBuffer(uint), gBinBufferRW)
 	DECL_RWBUFFER(PerDraw, RWBuffer(uint64_t), gVisibilityBufferRW)
-END_SRT_SET(PerDraw)
+    DECL_CBUFFER(PerDraw, CBUFFER(VBViewConstantsData), gComputeVBViewConstants)
+    END_SRT_SET(PerDraw)
 
 
 END_SRT(TriangleFilteringCompSrtData)

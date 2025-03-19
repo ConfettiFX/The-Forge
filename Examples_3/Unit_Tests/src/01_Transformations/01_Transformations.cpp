@@ -439,7 +439,7 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
@@ -850,7 +850,7 @@ public:
         currentTime += deltaTime * 1000.0f;
 
         // update camera with time
-        mat4 viewMat = pCameraController->getViewMatrix();
+        CameraMatrix viewMat = pCameraController->getViewMatrix();
 
         const float  aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float  horizontal_fov = PI / 2.0f;

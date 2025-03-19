@@ -33,6 +33,7 @@
 
 #else
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferStructs.h.fsl"
 
 #define DEBUG_OUTPUT_MODE_NONE 0
 #define DEBUG_OUTPUT_MODE_EDGE_MASK 1
@@ -68,17 +69,17 @@
 #define TEXTURE_ATOMIC_SUPPORTED 1
 #endif
 
-
-
-
-
 STRUCT(ObjectUniform)
 {
-    DATA(float4x4, worldViewProjMat, None);
-    DATA(uint, viewID, None);
+    DATA(CameraMatrix, mWorldViewProjMat, None);
+    DATA(uint, mViewID, None);
 };
 
-
+STRUCT(ObjectShadowUniform)
+{
+    DATA(float4x4, mWorldViewProjMat, None);
+    DATA(uint, mViewID, None);
+};
 
 STRUCT(PsInOpaque)
 {
@@ -128,13 +129,13 @@ STRUCT(LightUniformBlock)
 
 STRUCT(CameraUniformBlock)
 {
-    DATA(float4x4, View, None);
-    DATA(float4x4, Project, None);
-    DATA(float4x4, ViewProject, None);
-    DATA(float4x4, InvView, None);
-	DATA(float4x4, InvProj, None);
-	DATA(float4x4, InvViewProject, None);
-	DATA(float4x4, SkyProjView, None);
+    DATA(CameraMatrix, View, None);
+    DATA(CameraMatrix, Project, None);
+    DATA(CameraMatrix, ViewProject, None);
+    DATA(CameraMatrix, InvView, None);
+	DATA(CameraMatrix, InvProj, None);
+	DATA(CameraMatrix, InvViewProject, None);
+	DATA(CameraMatrix, SkyProjView, None);
 	DATA(float4, mCameraPos, None);
 	DATA(float, mNear, None);
 	DATA(float, mFar, None);
@@ -206,6 +207,7 @@ STRUCT(SSSUniformData)
 	DATA(uint, mIgnoreEdgePixels, None);
 	DATA(uint, mBilinearSamplingOffsetMode, None);
 	DATA(uint, mDebugOutput, None);
+	DATA(uint, mViewIndex, None);
 };
 
 STRUCT(ScreenSpaceShadowsUniforms)
@@ -236,6 +238,11 @@ STRUCT(MeshConstants)
 	DATA(uint, vertexOffset, None);
 	DATA(uint, materialID, None);
 	DATA(uint, twoSided, None); //0 or 1
+};
+
+STRUCT(SDFPerDrawData) 
+{
+	DATA(uint, mViewID, None);
 };
 
 #endif /* vb_resources_h */

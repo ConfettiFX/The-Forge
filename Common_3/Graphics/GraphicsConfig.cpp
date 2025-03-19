@@ -38,7 +38,7 @@
 #define MAX_GPU_VENDOR_COUNT                64
 #define MAX_GPU_VENDOR_IDENTIFIER_LENGTH    20
 #define MAX_IDENTIFIER_PER_GPU_VENDOR_COUNT 8
-#define FORMAT_CAPABILITY_COUNT             6
+#define FORMAT_CAPABILITY_COUNT             7
 #define SCENE_RESOLUTION_COUNT              16
 
 enum GPUTarget
@@ -62,8 +62,12 @@ enum GPUTarget
     GPU_TARGET_STEAM_DECK,
 };
 
-static GPUTarget stringToTarget(const char* presetLevel);
-static GPUTarget getGPUTarget(uint32_t vendorId, uint32_t modelId);
+static GPUTarget           stringToTarget(const char* presetLevel);
+static GPUTarget           getGPUTarget(uint32_t vendorId, uint32_t modelId);
+static WaveOpsSupportFlags stringToWaveOpsSupportFlags(const char* str);
+static ShaderStage         stringToShaderStage(const char* str);
+static const char*         waveOpsSupportFlagsToString(uint32_t flags);
+static const char*         shaderStageToString(uint32_t stage);
 
 struct GPUVendorDefinition
 {
@@ -101,6 +105,7 @@ GPUTarget      gDefaultTarget = GPU_TARGET_UNDEFINED;
 typedef uint64_t (*PropertyRead)(const GpuDesc* pSetting);
 typedef void (*PropertyWrite)(GpuDesc* pSetting, uint64_t value);
 typedef uint32_t (*PropertyStringToEnum)(const char* name);
+typedef const char* (*EnumToPropertyString)(uint32_t);
 
 #define GPU_CONFIG_PROPERTY(name, prop, ...)                                    \
     {                                                                           \
@@ -154,6 +159,7 @@ struct GPUProperty
     PropertyRead         readValue;
     PropertyWrite        writeValue;
     PropertyStringToEnum strToEnum;
+    EnumToPropertyString enumToStr;
 };
 
 // should we enable all setter? modifying the model or vendor id for example...
@@ -250,7 +256,13 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY_READ_ONLY("vendorid", mGpuVendorPreset.mVendorId),
     GPU_CONFIG_PROPERTY("vram", mVRAM),
     GPU_CONFIG_PROPERTY("wavelanecount", mWaveLaneCount),
-    GPU_CONFIG_PROPERTY("waveopssupport", mWaveOpsSupportFlags),
+    GPU_CONFIG_PROPERTY(
+        "waveopssupportflags", mWaveOpsSupportFlags, [](const char* str) { return (uint32_t)stringToWaveOpsSupportFlags(str); },
+        [](uint32_t flags) { return waveOpsSupportFlagsToString(flags); }),
+    GPU_CONFIG_PROPERTY(
+        "waveopssupportstage", mWaveOpsSupportedStageFlags, [](const char* str) { return (uint32_t)stringToShaderStage(str); },
+        [](uint32_t stage) { return shaderStageToString(stage); }),
+    GPU_CONFIG_PROPERTY("64bitatomicssupported", m64BitAtomicsSupported),
     GPU_CONFIG_PROPERTY_GLOBAL("sceneres", gSceneResolutionIndex),
     GPU_CONFIG_PROPERTY("target", mGPUTarget, [](const char* str) { return (uint32_t)stringToTarget(str); })
 };
@@ -493,6 +505,9 @@ struct GraphicsConfigRules
 };
 
 static GraphicsConfigRules gGraphicsConfigRules;
+#define MAX_UNSUPPORTED_MSG_LEN 256
+static char gUnsupportedReason[MAX_UNSUPPORTED_MSG_LEN] = "Failed to Init Renderer";
+
 /************************************************************************/
 // Convert functions
 /************************************************************************/
@@ -661,6 +676,8 @@ FormatCapability stringToFormatCapability(const char* str)
         return FORMAT_CAP_READ_WRITE;
     if (!stricmp(str, "FORMAT_CAP_RENDER_TARGET"))
         return FORMAT_CAP_RENDER_TARGET;
+    if (!stricmp(str, "FORMAT_CAP_DEPTH_STENCIL"))
+        return FORMAT_CAP_DEPTH_STENCIL;
 
     return FORMAT_CAP_NONE;
 }
@@ -681,10 +698,192 @@ const char* formatCapabilityToString(FormatCapability cap)
         return "FORMAT_CAP_READ_WRITE";
     case FORMAT_CAP_RENDER_TARGET:
         return "FORMAT_CAP_RENDER_TARGET";
+    case FORMAT_CAP_DEPTH_STENCIL:
+        return "FORMAT_CAP_DEPTH_STENCIL";
     default:
         return "null";
     }
 }
+
+static const char* waveOpsSupportFlagsToString(uint32_t flags)
+{
+    const uint32_t MAX_WAVE_OPS_STR = 512;
+    static char    waveOpsStr[MAX_WAVE_OPS_STR];
+    memset(waveOpsStr, 0, MAX_WAVE_OPS_STR);
+
+    if (flags == WAVE_OPS_SUPPORT_FLAG_NONE)
+    {
+        snprintf(waveOpsStr, MAX_WAVE_OPS_STR, " WAVE_OPS_SUPPORT_FLAG_NONE ");
+        return waveOpsStr;
+    }
+
+    uint32_t waveOpsStrLen = 0;
+    if (flags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_BASIC_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_VOTE_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT)
+        waveOpsStrLen +=
+            snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_QUAD_BIT)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_QUAD_BIT |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV)
+        waveOpsStrLen +=
+            snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV |");
+
+    if (flags & WAVE_OPS_SUPPORT_FLAG_ALL)
+        waveOpsStrLen += snprintf(waveOpsStr + waveOpsStrLen, MAX_WAVE_OPS_STR - waveOpsStrLen, " WAVE_OPS_SUPPORT_FLAG_ALL |");
+
+    if (waveOpsStrLen > 0)
+        waveOpsStr[waveOpsStrLen - 1] = '\0'; // Remove the last | in the string
+
+    return waveOpsStr;
+}
+
+static WaveOpsSupportFlags stringToWaveOpsSupportFlags(const char* str)
+{
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_NONE"))
+        return WAVE_OPS_SUPPORT_FLAG_NONE;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_BASIC_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_VOTE_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_VOTE_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_QUAD_BIT"))
+        return WAVE_OPS_SUPPORT_FLAG_QUAD_BIT;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV"))
+        return WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV;
+    if (!stricmp(str, "WAVE_OPS_SUPPORT_FLAG_ALL"))
+        return WAVE_OPS_SUPPORT_FLAG_ALL;
+
+    return WAVE_OPS_SUPPORT_FLAG_NONE;
+}
+
+static const char* shaderStageToString(uint32_t stage)
+{
+    const uint32_t MAX_SHADER_STAGE_STR = 256;
+    static char    shaderStageStr[MAX_SHADER_STAGE_STR];
+    memset(shaderStageStr, 0, MAX_SHADER_STAGE_STR);
+
+    if (stage == SHADER_STAGE_NONE)
+    {
+        snprintf(shaderStageStr, MAX_SHADER_STAGE_STR, " SHADER_STAGE_NONE ");
+        return shaderStageStr;
+    }
+
+    uint32_t shaderStageStrLen = 0;
+    if (stage & SHADER_STAGE_VERT)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_VERT |");
+
+    if (stage & SHADER_STAGE_FRAG)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_FRAG |");
+
+    if (stage & SHADER_STAGE_COMP)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_COMP |");
+
+    if (stage & SHADER_STAGE_GEOM)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_GEOM |");
+
+    if (stage & SHADER_STAGE_TESC)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_TESC |");
+
+    if (stage & SHADER_STAGE_TESE)
+        shaderStageStrLen += snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_TESE |");
+
+#if defined(ENABLE_WORKGRAPH)
+    if (stage & SHADER_STAGE_WORKGRAPH)
+        shaderStageStrLen +=
+            snprintf(shaderStageStr + shaderStageStrLen, MAX_SHADER_STAGE_STR - shaderStageStrLen, " SHADER_STAGE_WORKGRAPH |");
+#endif
+    if (shaderStageStrLen > 0)
+        shaderStageStr[shaderStageStrLen - 1] = '\0'; // Remove the last | in the string
+
+    return shaderStageStr;
+}
+
+static ShaderStage stringToShaderStage(const char* str)
+{
+    if (!stricmp(str, "SHADER_STAGE_NONE"))
+        return SHADER_STAGE_NONE;
+    if (!stricmp(str, "SHADER_STAGE_VERT"))
+        return SHADER_STAGE_VERT;
+    if (!stricmp(str, "SHADER_STAGE_FRAG"))
+        return SHADER_STAGE_FRAG;
+    if (!stricmp(str, "SHADER_STAGE_COMP"))
+        return SHADER_STAGE_COMP;
+    if (!stricmp(str, "SHADER_STAGE_GEOM"))
+        return SHADER_STAGE_GEOM;
+    if (!stricmp(str, "SHADER_STAGE_TESC"))
+        return SHADER_STAGE_TESC;
+    if (!stricmp(str, "SHADER_STAGE_TESE"))
+        return SHADER_STAGE_TESE;
+    if (!stricmp(str, "SHADER_STAGE_ALL_GRAPHICS"))
+        return SHADER_STAGE_ALL_GRAPHICS;
+#if defined(ENABLE_WORKGRAPH)
+    if (!stricmp(str, "SHADER_STAGE_WORKGRAPH"))
+        return SHADER_STAGE_WORKGRAPH;
+#endif
+
+    return SHADER_STAGE_NONE;
+}
+
+// Function to generate the unsupported message based on the failed GPUConfig rule when the gpuVal is an int
+static const char* GenerateUnsupportedMessage(const char* propertyName, uint64_t gpuVal, const char* compareToken, uint64_t requiredVal)
+{
+    if ((strcmp(propertyName, "vendorid") == 0) || (strcmp(propertyName, "deviceid") == 0))
+    {
+        snprintf(gUnsupportedReason, MAX_UNSUPPORTED_MSG_LEN, "GPU Unsupported. Application does not run on this device.");
+    }
+    else
+    {
+        snprintf(gUnsupportedReason, MAX_UNSUPPORTED_MSG_LEN, "GPU Unsupported. Gpu property (%s) - '%lu' is NOT %s required value '%lu'",
+                 propertyName, (unsigned long)gpuVal, compareToken, (unsigned long)requiredVal);
+    }
+    return gUnsupportedReason;
+}
+
+// Function to generate the unsupported message based on the failed GPUConfig rule when the gpuVal is a string
+const char* GenerateUnsupportedMessage(const char* propertyName, const char* gpuVal, const char* requiredVal)
+{
+    if ((strcmp(propertyName, "vendorid") == 0) || (strcmp(propertyName, "deviceid") == 0))
+    {
+        snprintf(gUnsupportedReason, MAX_UNSUPPORTED_MSG_LEN, "GPU Unsupported. Application does not run on this device.");
+    }
+    else
+    {
+        snprintf(gUnsupportedReason, MAX_UNSUPPORTED_MSG_LEN, "GPU Unsupported. Gpu property (%s) - '%s' does not have required value '%s'",
+                 propertyName, gpuVal, requiredVal);
+    }
+    return gUnsupportedReason;
+}
+
+const char* getUnsupportedGPUMsg() { return gUnsupportedReason; }
+
 /************************************************************************/
 /************************************************************************/
 void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings)
@@ -1309,7 +1508,17 @@ void parseGPUConfigurationLine(char* currentLine, uint32_t preferedGpuId)
                     (strcmp(currentConfigurationRule->pUpdateProperty->name, "deviceid") == 0))
                         ? 16
                         : 10;
-        bool validConversion = stringToLargeInteger(assignmentValue, &currentConfigurationRule->assignmentValue, base);
+        bool validConversion = false;
+        if (strcmp(currentConfigurationRule->pUpdateProperty->name, "gpupresetlevel") == 0)
+        {
+            currentConfigurationRule->assignmentValue = stringToPresetLevel(assignmentValue);
+            validConversion = currentConfigurationRule->assignmentValue != GPU_PRESET_NONE;
+            ASSERT(validConversion);
+        }
+        else
+        {
+            validConversion = stringToLargeInteger(assignmentValue, &currentConfigurationRule->assignmentValue, base);
+        }
         // parse comparison rules separated by ","
         parseConfigurationRules(&currentConfigurationRule->pConfigurationRules, &currentConfigurationRule->comparisonRulesCount, rulesBegin,
                                 preferedGpuId);
@@ -1496,7 +1705,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
         *currentComparisonRule = {};
 
         //  read in the field name
-        size_t optionLength = strcspn(currentRule, " <=>!,");
+        size_t optionLength = strcspn(currentRule, " <=>!&,");
         ASSERT(optionLength < MAX_GPU_VENDOR_STRING_LENGTH - 1);
         char fieldName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
         strncpy(fieldName, currentRule, optionLength);
@@ -1504,7 +1713,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
 
         currentRule += optionLength;
         currentRule += strspn(currentRule, " ");
-        optionLength = strspn(currentRule, "<=>!");
+        optionLength = strspn(currentRule, "<=>!&");
 
         // this will be triggered for any platform specific rule, isheadless, graphicqueuesupported, ...
         if (currentComparisonRule->pGpuProperty == NULL)
@@ -1532,7 +1741,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
             // hack for preferred gpu
             if (strstr(stringToLower(parsedValue), "preferredgpu") != 0)
             {
-                currentComparisonRule->comparatorValue = preferedGpuId;
+                currentComparisonRule->comparatorValue = preferedGpuId != 0 ? preferedGpuId : INVALID_OPTION;
             }
             else
             {
@@ -1563,7 +1772,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
             currentRule += optionLength;
         }
         // skip spaces and comma,
-        currentRule += strspn(currentRule, " <=>!,");
+        currentRule += strspn(currentRule, " <=>!&,");
         ruleStr = currentRule;
     }
 }
@@ -1591,6 +1800,48 @@ void printConfigureRules(ConfigurationRule* pRules, uint32_t rulesCount, char* r
     }
 }
 
+bool util_check_is_gpu_supported(GpuDesc* gpuSettings)
+{
+    // Check each line within GPU_SELECTION section.
+    for (uint32_t selectionIndex = 0; selectionIndex < gGraphicsConfigRules.mGPUSelectionRulesCount; selectionIndex++)
+    {
+        GPUSelectionRule* selectionRule = &gGraphicsConfigRules.mGPUSelectionRules[selectionIndex];
+        // Check each comma separated rule within each GPU_SELECTION line
+        for (uint32_t ruleIndex = 0; ruleIndex < selectionRule->comparisonRulesCount; ruleIndex++)
+        {
+            ConfigurationRule* checkRule = &selectionRule->pGpuComparisonRules[ruleIndex];
+            // If the rule is a valid comparison rule
+            if (checkRule != NULL && checkRule->comparatorValue != INVALID_OPTION)
+            {
+                uint64_t checkValue = checkRule->pGpuProperty->readValue(gpuSettings);
+                if (checkValue != INVALID_OPTION)
+                {
+                    bool supported = tokenCompare(checkRule->comparator, checkValue, checkRule->comparatorValue);
+                    if (!supported)
+                    {
+                        if (checkRule->pGpuProperty->enumToStr)
+                        {
+                            const uint32_t MAX_REQ_VAL_STR = 256;
+                            char           requiredValueStr[MAX_REQ_VAL_STR] = { 0 };
+                            snprintf(requiredValueStr, MAX_REQ_VAL_STR, "%s",
+                                     checkRule->pGpuProperty->enumToStr((uint32_t)checkRule->comparatorValue));
+                            GenerateUnsupportedMessage(checkRule->pGpuProperty->name,
+                                                       checkRule->pGpuProperty->enumToStr((uint32_t)checkValue), requiredValueStr);
+                        }
+                        else
+                        {
+                            GenerateUnsupportedMessage(checkRule->pGpuProperty->name, checkValue, checkRule->comparator,
+                                                       checkRule->comparatorValue);
+                        }
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
 uint32_t util_select_best_gpu(GpuDesc* availableSettings, uint32_t gpuCount)
 {
     uint32_t gpuIndex = gpuCount > 0 ? 0 : UINT32_MAX;
@@ -1607,6 +1858,13 @@ uint32_t util_select_best_gpu(GpuDesc* availableSettings, uint32_t gpuCount)
                 ConfigurationRule* currentRule = &currentGPUChoice->pGpuComparisonRules[ruleIndex];
                 if (currentRule != NULL)
                 {
+                    if ((strcmp(currentRule->pGpuProperty->name, "vendorid") == 0) ||
+                        (strcmp(currentRule->pGpuProperty->name, "deviceid") == 0))
+                    {
+                        // Don't do comparisions for vendorid or deviceid
+                        continue;
+                    }
+
                     bool     refPass = true;
                     bool     testPass = true;
                     uint64_t refValue = currentRule->pGpuProperty->readValue(refSettings);
@@ -2033,13 +2291,14 @@ bool parseDriverVersion(const char* driverStr, DriverVersion* pDriverVersionOut)
  * t:  supports being used as a render target
  * s:  supports being sample inside a shader
  * f:  supports being sample by a linear sampler
+ * d:  supports being used as a depth/stencil target
  * w:  supports being written in a UAV
  * rw/wr: supports being both written and readen in a UAV
  */
 void formatCapabilityToCapabilityFlags(FormatCapability caps, char* pStrOut)
 {
-    FormatCapability availableCaps[3] = { FORMAT_CAP_READ, FORMAT_CAP_LINEAR_FILTER, FORMAT_CAP_RENDER_TARGET };
-    char             availableCapStr[3] = { 's', 'f', 't' };
+    FormatCapability availableCaps[4] = { FORMAT_CAP_READ, FORMAT_CAP_LINEAR_FILTER, FORMAT_CAP_RENDER_TARGET, FORMAT_CAP_DEPTH_STENCIL };
+    char             availableCapStr[4] = { 's', 'f', 't', 'd' };
     uint8_t          writeIndex = 0;
 
     if (caps & FORMAT_CAP_READ_WRITE)
@@ -2052,7 +2311,7 @@ void formatCapabilityToCapabilityFlags(FormatCapability caps, char* pStrOut)
         pStrOut[writeIndex++] = 'w';
     }
 
-    for (uint8_t currentCap = 0; currentCap < 3; currentCap++)
+    for (uint8_t currentCap = 0; currentCap < 4; currentCap++)
     {
         if (caps & availableCaps[currentCap])
         {

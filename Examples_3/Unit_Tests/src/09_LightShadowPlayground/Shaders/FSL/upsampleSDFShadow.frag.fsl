@@ -37,6 +37,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 STRUCT(PsOut)
@@ -57,9 +60,17 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	PsOut Out;
 	float2 UV = In.TexCoord.xy;
 #if SAMPLE_COUNT > 1
+#if FT_MULTIVIEW
+	float depthVal = LoadTex2DArrayMS(gDepthTextureUpSample, gSamplerPointClamp, uint3(In.Position.xy, In.ViewID), i).r;
+#else
 	float depthVal = LoadTex2DMS(gDepthTextureUpSample, gSamplerPointClamp, uint2(In.Position.xy), i).r;
+#endif
+#else
+#if FT_MULTIVIEW
+	float depthVal = SampleTex2DArray(gDepthTextureUpSample, gSamplerPointClamp, uint3(UV, In.ViewID)).r;
 #else
 	float depthVal = SampleTex2D(gDepthTextureUpSample, gSamplerPointClamp, UV).r;
+#endif/*FT_MULTIVIEW*/
 #endif
 	float worldDepth = ConvertFromDeviceZ(depthVal);
 	
@@ -72,6 +83,16 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	
 	float2 billinearWeights = (UV.xy - cornerUV.xy) * downSampledTextureSize;
 
+#if FT_MULTIVIEW
+	float2 textureValues_00 = SampleTex2DArray(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, float3(cornerUV, In.ViewID)).xy;
+	float2 textureValues_10 = SampleTex2DArray(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, float3(cornerUV + float2(downSampledTexelSize.x, 0.f), In.ViewID)).xy;
+	float2 textureValues_01 = SampleTex2DArray(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, float3(cornerUV + float2(0.f, downSampledTexelSize.y), In.ViewID)).xy;
+	float2 textureValues_11 = SampleTex2DArray(gSDFShadowTexture, 
+		gClampMiplessLinearSampler, float3(cornerUV + downSampledTexelSize, In.ViewID)).xy;
+#else
 	float2 textureValues_00 = SampleTex2D(gSDFShadowTexture, 
 		gClampMiplessLinearSampler, cornerUV).xy;
 	float2 textureValues_10 = SampleTex2D(gSDFShadowTexture, 
@@ -80,6 +101,7 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 		gClampMiplessLinearSampler, cornerUV + float2(0.f, downSampledTexelSize.y)).xy;
 	float2 textureValues_11 = SampleTex2D(gSDFShadowTexture, 
 		gClampMiplessLinearSampler, cornerUV + downSampledTexelSize).xy;
+#endif
 
 	float4 cornerWeights = float4(  ( (1.f - billinearWeights.y) * (1.f - billinearWeights.x) ),
 		(1.f - billinearWeights.y) * billinearWeights.x,

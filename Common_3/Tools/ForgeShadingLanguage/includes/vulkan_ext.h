@@ -76,14 +76,17 @@ bool hit##HasHitCandidates = rayQueryProceedEXT(hit);
 #define RayQueryBeginForEachCandidate(hit) while (hit##HasHitCandidates)
 #define RayQueryEndForEachCandidate(hit)
 #define RayQueryIsHit(hit) (rayQueryGetIntersectionTypeEXT(hit, true) != gl_RayQueryCommittedIntersectionNoneEXT)
+#define RayQueryIsHitTriangle(hit) (rayQueryGetIntersectionTypeEXT(hit, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
 #define RayQueryIsHitNonOpaqueTriangle(hit) (rayQueryGetIntersectionTypeEXT(hit, false) == gl_RayQueryCandidateIntersectionTriangleEXT)
 #define RayQueryCommitCandidate(hit) rayQueryConfirmIntersectionEXT(hit);
 #define RayQueryProceed(hit) hit##HasHitCandidates = rayQueryProceedEXT(hit);
 
 #define RayQueryBarycentrics(hit) (rayQueryGetIntersectionBarycentricsEXT(hit, true))
 #define RayQueryPrimitiveIndex(hit) (rayQueryGetIntersectionPrimitiveIndexEXT(hit, true))
-#define RayQueryInstanceID(hit) (rayQueryGetIntersectionInstanceIdEXT(hit, true))
+#define RayQueryInstanceID(hit) ( rayQueryGetIntersectionInstanceCustomIndexEXT(hit, true))
 #define RayQueryGeometryIndex(hit) (rayQueryGetIntersectionGeometryIndexEXT(hit, true))
+#define RayQueryInstanceIndex(hit) (rayQueryGetIntersectionInstanceIdEXT(hit, true))
+#define RayQueryRayT(hit) (rayQueryGetIntersectionTEXT(hit, true))
 
 #define RayQueryCandidateBarycentrics(hit) (rayQueryGetIntersectionBarycentricsEXT(hit, false))
 #define RayQueryCandidatePrimitiveIndex(hit) (rayQueryGetIntersectionPrimitiveIndexEXT(hit, false))

@@ -3413,6 +3413,9 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     loadDesc.mDesc.mStartState = isUma ? gIndexBufferState : pDesc->mStartState;
     loadDesc.mDesc.pName = pDesc->pNameIndexBuffer ? pDesc->pNameIndexBuffer : "GeometryBuffer Indices (unnamed)";
     loadDesc.mDesc.pPlacement = pDesc->pIndicesPlacement;
+    loadDesc.mDesc.mFlags |= (pDesc->mFlags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+                                 ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
+                                 : BUFFER_CREATION_FLAG_NONE;
     addResource(&loadDesc, nullptr);
 
     BufferChunkAllocatorDesc allocDesc = { pIndexBuffer };
@@ -3431,6 +3434,10 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
         loadDesc.mDesc.mStartState = isUma ? gVertexBufferState : pDesc->mStartState;
         loadDesc.mDesc.pName = pDesc->pNamesVertexBuffers[i] ? pDesc->pNamesVertexBuffers[i] : "GeometryBuffer Vertices (unnamed)";
         loadDesc.mDesc.pPlacement = pDesc->pVerticesPlacements[i];
+        loadDesc.mDesc.mFlags |=
+            (pDesc->mFlags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+                ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
+                : BUFFER_CREATION_FLAG_NONE;
         addResource(&loadDesc, nullptr);
 
         allocDesc = { pVertexBuffer };

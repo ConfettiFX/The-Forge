@@ -744,27 +744,17 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
 
-        if (!gGpuSettings.mBindlessSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. GPU does not support enough bindless texture entries");
-            return false;
-        }
-
-        if (!pRenderer->pGpu->mPrimitiveIdSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer does not run on this device. PrimitiveID is not supported");
-            return false;
-        }
-
         // turn off by default depending on gpu config rules
         gAppSettings.mEnableVRS &= pRenderer->pGpu->mSoftwareVRSSupported && (gGpuSettings.mMSAASampleCount >= SAMPLE_COUNT_4);
         gAppSettings.mEnableGodray &= !gGpuSettings.mDisableGodRays;
-        gAppSettings.mMsaaLevel = gAppSettings.mEnableVRS ? SAMPLE_COUNT_4 : (SampleCount)min(1u, gGpuSettings.mMSAASampleCount);
+        gAppSettings.mMsaaLevel =
+            gAppSettings.mEnableVRS ? SAMPLE_COUNT_4
+                                    : (SampleCount)clamp(gGpuSettings.mMSAASampleCount, (uint32_t)SAMPLE_COUNT_1, (uint32_t)SAMPLE_COUNT_4);
         gAppSettings.mMsaaIndex = (uint32_t)log2((uint32_t)gAppSettings.mMsaaLevel);
         gAppSettings.mMsaaIndexRequested = gAppSettings.mMsaaIndex;
 #if defined(ENABLE_WORKGRAPH)
@@ -2286,7 +2276,7 @@ public:
                 if (gAppSettings.mEnableVRS)
                 {
                     cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "VRS Resolve Pass");
-                    pScreenRenderTarget = pResolveVRSRenderTarget[1 - frameIdx];
+                    pScreenRenderTarget = pResolveVRSRenderTarget[frameIdx];
                     RenderTargetBarrier barriers[] = {
                         { pRenderTargetMSAA, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
                         { pIntermediateRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
@@ -2297,7 +2287,7 @@ public:
 
                     cmdBindPipeline(graphicsCmd, pPipelineResolveCompute);
                     cmdBindDescriptorSet(graphicsCmd, 1 - frameIdx, pDescriptorSetResolveVRSPerBatch);
-                    cmdBindDescriptorSet(graphicsCmd, 1 - frameIdx, pDescriptorSetPerFrame);
+                    cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
                     const uint32_t* pThreadGroupSize = pShaderResolveCompute->mNumThreadsPerGroup;
                     cmdDispatch(graphicsCmd, gSceneRes.mWidth / (gDivider * pThreadGroupSize[0]) + 1,
                                 gSceneRes.mHeight / (gDivider * pThreadGroupSize[1]) + 1, pThreadGroupSize[2]);
@@ -2538,9 +2528,9 @@ public:
             perFrameParams[13].mIndex = SRT_RES_IDX(SrtData, PerFrame, gPrevFrameTex);
             perFrameParams[13].ppTextures = &pResolveVRSRenderTarget[1 - i]->pTexture;
             perFrameParams[14].mIndex = SRT_RES_IDX(SrtData, PerFrame, gPrevHistoryTex);
-            perFrameParams[14].ppTextures = &pHistoryRenderTarget[i]->pTexture;
+            perFrameParams[14].ppTextures = &pHistoryRenderTarget[1 - i]->pTexture;
             perFrameParams[15].mIndex = SRT_RES_IDX(SrtData, PerFrame, gHistoryTex);
-            perFrameParams[15].ppTextures = &pHistoryRenderTarget[1 - i]->pTexture;
+            perFrameParams[15].ppTextures = &pHistoryRenderTarget[i]->pTexture;
             perFrameParams[16].mIndex = SRT_RES_IDX(SrtData, PerFrame, gMsaaSource);
             perFrameParams[16].ppTextures = &pRenderTargetMSAA->pTexture;
             perFrameParams[17].mIndex = SRT_RES_IDX(SrtData, PerFrame, gHistoryTexVBShade);
@@ -3426,7 +3416,7 @@ public:
             initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
             edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
 
-            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
             edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
             edescs[1].pixelShaderOptions.depthBeforeShader =
                 !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
@@ -3476,7 +3466,7 @@ public:
             initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
             // edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
-            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
             edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
             edescs[1].pixelShaderOptions.depthBeforeShader =
                 !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
@@ -3884,7 +3874,7 @@ public:
         PerFrameData*  currentFrame = &gPerFrame[frameIdx];
 
         mat4         cameraModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4         cameraView = pCameraController->getViewMatrix();
+        CameraMatrix cameraView = pCameraController->getViewMatrix();
         CameraMatrix cameraProj =
             CameraMatrix::perspectiveReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
@@ -3955,7 +3945,7 @@ public:
         // Cache eye position in object space for cluster culling on the CPU
         currentFrame->gEyeObjectSpace[VIEW_SHADOW] = (inverse(lightView * lightModel) * vec4(0, 0, 0, 1)).getXYZ();
         currentFrame->gEyeObjectSpace[VIEW_CAMERA] =
-            (inverse(cameraView * cameraModel) * vec4(0, 0, 0, 1)).getXYZ(); // vec4(0,0,0,1) is the camera position in eye space
+            (inverse(cameraView.mCamera * cameraModel) * vec4(0, 0, 0, 1)).getXYZ(); // vec4(0,0,0,1) is the camera position in eye space
         /************************************************************************/
         // Shading data
         /************************************************************************/
@@ -3966,8 +3956,8 @@ public:
         /************************************************************************/
         cameraView.setTranslation(vec3(0));
         currentFrame->gUniformDataSky.mCamPos = pCameraController->getViewPosition();
-        currentFrame->gUniformDataSky.mProjectView = cameraProj.mCamera * cameraView;
-        currentFrame->gUniformDataSkyTri.mInverseViewProjection = inverse(cameraProj.mCamera * cameraView);
+        currentFrame->gUniformDataSky.mProjectView = cameraProj.mCamera * cameraView.mCamera;
+        currentFrame->gUniformDataSkyTri.mInverseViewProjection = inverse(cameraProj.mCamera * cameraView.mCamera);
         /************************************************************************/
         // Tonemap
         /************************************************************************/
@@ -4080,8 +4070,9 @@ public:
         // Generate the shading rate image
         RenderTargetBarrier barriers[] = {
             { pHistoryRenderTarget[frameIdx], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+            { pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
         };
-        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
         cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "VRS Filling Pass");
         BindRenderTargetsDesc bindRenderTargets = {};
@@ -4095,7 +4086,6 @@ public:
 
         cmdBindPipeline(cmd, pPipelineFillStencil);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
-        cmdBindDescriptorSet(cmd, 1 - frameIdx, pDescriptorSetPerFrame);
 
         cmdSetStencilReferenceValue(cmd, 1);
         cmdDraw(cmd, 3, 0);
@@ -4105,8 +4095,9 @@ public:
         cmdBindRenderTargets(cmd, NULL);
 
         barriers[0] = { pHistoryRenderTarget[frameIdx], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+        barriers[1] = { pRenderTargetVBPass, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 
-        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
     }
 
     // Render the scene to perform the Visibility Buffer pass. In this pass the (filtered) scene geometry is rendered

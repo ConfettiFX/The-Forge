@@ -31,6 +31,9 @@ STRUCT(PsIn)
 {
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -38,7 +41,11 @@ float4 PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
 	float4 Out;
-	float4 sceneColor = SampleTex2D(gSourceTexture, gSamplerBilinearWrap, In.texCoord);
+#if FT_MULTIVIEW
+    float4 sceneColor = SampleTex2DArray(gSourceTexture, gSamplerBilinearWrap, float3(In.texCoord, In.ViewID));
+#else
+    float4 sceneColor = SampleTex2D(gSourceTexture, gSamplerBilinearWrap, In.texCoord);
+#endif
 	Out = float4(sceneColor.rgb, 1.0);
 	RETURN(Out);
 }

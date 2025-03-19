@@ -55,7 +55,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	// The dispatch size will be the size of the output buffer, so when the dispatch id.x
 	// is greater than the width, that means we need to read from the second eye RT.
 	uint eyeIndex = 0;
-	if (srcXY.x > inputDims.x)
+	if (srcXY.x >= inputDims.x)
 	{
 		srcXY.x -= inputDims.x;
 		eyeIndex = 1;

@@ -97,20 +97,35 @@ STATIC const float ditherOffsets[16] =
 	0.625f, 0.375f, 0.5625f, 0.3125f
 };
 
+#if(SAMPLE_COUNT > 1)
+EARLY_FRAGMENT_TESTS
+#endif
 ROOT_SIGNATURE(DefaultRootSignature)
-FSOutput PS_MAIN( PsIn In )
+FSOutput PS_MAIN( PsIn In, SV_SampleIndex(uint) sampleIndex)
 {
     INIT_MAIN;
     FSOutput Out;
 
 	float depth = 0.0f;
 #if SAMPLE_COUNT > 1
-	for(int i = 0; i < SAMPLE_COUNT; ++i)
-		depth += LoadTex2DMS(gDepthTexture, gTextureFilter, uint2(In.position.xy * 2), i).r;
+	for (uint i = 0; i < SAMPLE_COUNT; ++i)
+	{
+#if FT_MULTIVIEW
+		depth += LoadTex2DArrayMS(gDepthTex, gTextureFilter, uint3(In.position.xy * GODRAY_SCALE, In.ViewID), i).r;
 #else
-	depth = SampleLvlTex2D(gDepthTexture, gTextureFilter, In.texCoord, 0).r;
-#endif
+		depth += LoadTex2DMS(gDepthTex, gTextureFilter, uint2(In.position.xy * GODRAY_SCALE), i).r;
+#endif // FT_MULTIVIEW
+	}
 	depth /= SAMPLE_COUNT;
+#else
+
+#if FT_MULTIVIEW
+	depth = SampleLvlTex2DArray(gDepthTex, gTextureFilter, uint3(In.texCoord, In.ViewID), 0).r;
+#else
+	depth = SampleLvlTex2D(gDepthTex, gTextureFilter, In.texCoord, 0).r;
+#endif // FT_MULTIVIEW
+
+#endif // SAMPLE_COUNT > 1
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
 #if FT_MULTIVIEW
@@ -132,7 +147,7 @@ FSOutput PS_MAIN( PsIn In )
 
 	float3 samplePos = rayStart + offset * marchStep;
 
-	for(int j = 0; j < 10; j++)
+	for(int j = 0; j < GODRAY_STEPS; j++)
 	{
 #if FT_MULTIVIEW
 		float shadowFactor = GetShadowFactor(In.ViewID, samplePos);
@@ -140,12 +155,10 @@ FSOutput PS_MAIN( PsIn In )
 		float shadowFactor = GetShadowFactor(samplePos);
 #endif
 
-		color += gPerFrameConstants.lightColor.rgb * PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor * 0.3f;
+		color += PhaseHenyeyGreenstein(dot(marchDir, L)) * shadowFactor;
 
 		samplePos += marchStep;
 	}
-
-	color /= 10;
 	Out.result = float4(color, 1.0f);
 	
     RETURN(Out);

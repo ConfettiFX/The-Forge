@@ -48,6 +48,11 @@
 
 #define MAX_BLUR_KERNEL_SIZE 8
 
+#define GODRAY_SCALE 2
+
+#define GODRAY_STEPS 10
+
+#define MSAA_STENCIL_MASK 1
 
 STRUCT(MeshConstants)
 {
@@ -83,6 +88,11 @@ STRUCT(PerFrameConstantsData)
 	//========================================
 	DATA(float, aoIntensity, None);
 	DATA(uint, visualizeAo, None);
+	//========================================
+	DATA(float, godrayAttenuation, None);
+	//========================================
+	DATA(float, nearPlane, None);
+	DATA(float, farPlane, None);
 };
 
 
@@ -103,6 +113,18 @@ STRUCT(BlurRootConstantData)
 {
 	DATA(uint, mBlurPassType, None);
 	DATA(uint, mFilterRadius, None);
+};
+
+// Skybox
+STRUCT(UniformCameraSkyData)
+{
+	DATA(CameraMatrix, invProjViewOrigin, None);
+};
+
+// Resolve
+STRUCT(ResolveConstantData)
+{
+	DATA(float, mSampleWeight, None);
 };
 
 #include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShaderDefs.h.fsl"

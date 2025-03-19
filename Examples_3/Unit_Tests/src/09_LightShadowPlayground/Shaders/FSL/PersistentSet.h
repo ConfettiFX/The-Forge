@@ -22,7 +22,6 @@
  * under the License.
  */
 
-
 	BEGIN_SRT_SET(Persistent)
 		DECL_CBUFFER(Persistent, CBUFFER(VBConstantBufferData), gVBConstantBuffer)
 		DECL_CBUFFER(Persistent, CBUFFER(BlurWeightData), gBlurWeights)
@@ -42,23 +41,45 @@
         DECL_TEXTURE(Persistent, Tex2D(float), gESMShadowTexture)
         DECL_TEXTURE(Persistent, Tex2D(float4), gMSMShadowTexture)
 #if SAMPLE_COUNT > 1
-		DECL_TEXTURE(Persistent, Depth2DMS(float, SAMPLE_COUNT), gDepthTexture)
-        DECL_TEXTURE(Persistent, Tex2DMS(float, SAMPLE_COUNT), gDepthTextureUpSample)
-		DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gVBPassTexture)
+    #if FT_MULTIVIEW
+            DECL_TEXTURE(Persistent, Depth2DArrayMS(float, SAMPLE_COUNT), gDepthTexture)
+            DECL_TEXTURE(Persistent, Tex2DArrayMS(float, SAMPLE_COUNT), gDepthTextureUpSample)
+            DECL_TEXTURE(Persistent, Tex2DArrayMS(float4, SAMPLE_COUNT), gVBPassTexture)
+    #else
+            DECL_TEXTURE(Persistent, Depth2DMS(float, SAMPLE_COUNT), gDepthTexture)
+            DECL_TEXTURE(Persistent, Tex2DMS(float, SAMPLE_COUNT), gDepthTextureUpSample)
+            DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gVBPassTexture)
+    #endif /*FT_MULTIVIEW*/
 #else
-		DECL_TEXTURE(Persistent, Depth2D(float), gDepthTexture)
-        DECL_TEXTURE(Persistent, Tex2D(float), gDepthTextureUpSample)
-        DECL_TEXTURE(Persistent, Tex2D(float4), gVBPassTexture)
+    #if FT_MULTIVIEW
+            DECL_TEXTURE(Persistent, Depth2DArray(float), gDepthTexture)
+            DECL_TEXTURE(Persistent, Tex2DArray(float), gDepthTextureUpSample)
+            DECL_TEXTURE(Persistent, Tex2DArray(float4), gVBPassTexture)
+    #else
+            DECL_TEXTURE(Persistent, Depth2D(float), gDepthTexture)
+            DECL_TEXTURE(Persistent, Tex2D(float), gDepthTextureUpSample)
+            DECL_TEXTURE(Persistent, Tex2D(float4), gVBPassTexture)
+    #endif /*FT_MULTIVIEW*/
 #endif
-		DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gMsaaSource)
-		DECL_TEXTURE(Persistent, Tex2D(float2), gSDFShadowTexture)
+
+#if FT_MULTIVIEW
+        DECL_TEXTURE(Persistent, Tex2DArrayMS(float4, SAMPLE_COUNT), gMsaaSource)
+        DECL_TEXTURE(Persistent, Tex2DArray(float2), gSDFShadowTexture)
+#else
+        DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gMsaaSource)
+        DECL_TEXTURE(Persistent, Tex2D(float2), gSDFShadowTexture)
+#endif
 #ifdef USE_FLOAT4_VSM_RT
 		DECL_TEXTURE(Persistent, Tex2D(float4), gVSMShadowTexture)
 #else
 		DECL_TEXTURE(Persistent, Tex2D(float2), gVSMShadowTexture)
 #endif
 #if TEXTURE_ATOMIC_SUPPORTED
-		DECL_TEXTURE(Persistent, Tex2D(uint), gScreenSpaceShadowTexture)
+    #if FT_MULTIVIEW
+        DECL_TEXTURE(Persistent, Tex2DArray(uint), gScreenSpaceShadowTexture)
+    #else
+        DECL_TEXTURE(Persistent, Tex2D(uint), gScreenSpaceShadowTexture)
+    #endif /*FT_MULTIVIEW*/
 #else
 		DECL_BUFFER(Persistent, Buffer(uint), gScreenSpaceShadowTexture)
 #endif

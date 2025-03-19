@@ -1,0 +1,235 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Graphics\Direct3D12">
+      <UniqueIdentifier>{2addb92f-5019-4cc8-8e41-430106b62249}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{ba51f083-98fd-459f-8347-a38f480b081d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\ParticleSystem">
+      <UniqueIdentifier>{3bac518d-6064-484d-9b08-f87620defe28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{db288e4c-cf51-4ee7-9965-cf5b09be57d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\VisibilityBuffer">
+      <UniqueIdentifier>{2042f2ba-2384-497f-a348-242338f07dec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\ResourceLoader">
+      <UniqueIdentifier>{e56ef2d4-d673-4e19-95ef-d1061800113f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{411d1d89-edb8-4fb0-8ef8-5378fc12fead}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\Network">
+      <UniqueIdentifier>{90e0b53b-2482-4525-8a11-a33020697a7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{47f216b1-4008-4fe0-b8d9-e5093140ba91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ReloadServer">
+      <UniqueIdentifier>{e38353cf-9e2b-415e-a269-495b621ec3bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\FSL">
+      <UniqueIdentifier>{dcda0864-e5f8-41ca-90d8-83a703f77f40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Interfaces">
+      <UniqueIdentifier>{2a384d29-454f-44e0-b221-fd282ad3f1e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ForgeShadingLanguage\includes">
+      <UniqueIdentifier>{3ba37d9b-7b10-4340-9c65-f96c8f3b5fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ForgeShadingLanguage">
+      <UniqueIdentifier>{1ae4c353-3d97-4b9f-82f3-62a3cf850a95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\ThirdParty\OpenSource\ags">
+      <UniqueIdentifier>{fa35f3c3-5033-44f9-b555-40d754e505af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\ThirdParty\OpenSource">
+      <UniqueIdentifier>{f81e987b-388a-4f1a-b5b2-862d256449ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\ThirdParty">
+      <UniqueIdentifier>{763c190f-11c3-4fa9-9c17-a7e1d276d3d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\ThirdParty\OpenSource\nvapi">
+      <UniqueIdentifier>{1471029d-a22b-4ad5-bfab-153c9997223e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator">
+      <UniqueIdentifier>{39ca6788-864b-4f46-9415-8226f306b40b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Interfaces">
+      <UniqueIdentifier>{86bcef8f-3f45-467a-8189-9d5f3909420d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\ResourceLoader\Interfaces">
+      <UniqueIdentifier>{13c6c30f-45c5-4722-8644-2151a756b97d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\ParticleSystem\Shaders">
+      <UniqueIdentifier>{fab94082-e0eb-4be0-ac03-7fc763a3e428}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\VisibilityBuffer\Shaders\FSL">
+      <UniqueIdentifier>{8e72d272-689c-47d5-b54e-d6c0c7bd0630}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\VisibilityBuffer\Shaders">
+      <UniqueIdentifier>{2bbd7934-786a-479a-a064-c79055f9bae5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.c">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.c">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.c">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12_Cxx.cpp">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\ParticleSystem.cpp">
+      <Filter>Renderer\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\VisibilityBuffer.cpp">
+      <Filter>Renderer\VisibilityBuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
+      <Filter>Resources\ResourceLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Network\Network.c">
+      <Filter>Tools\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp">
+      <Filter>Tools\ReloadServer</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12_Cxx.h">
+      <Filter>Graphics\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\d3d12_srt.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\defaults.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\FSL\fsl_srt.h">
+      <Filter>Graphics\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
+      <Filter>Graphics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
+      <Filter>Graphics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\d3d12_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\fsl_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\metal_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\includes\vulkan_ext.h">
+      <Filter>Tools\ForgeShadingLanguage\includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h">
+      <Filter>Graphics\ThirdParty\OpenSource\ags</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h">
+      <Filter>Graphics\ThirdParty\OpenSource\nvapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
+      <Filter>Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IParticleSystem.h">
+      <Filter>Renderer\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Interfaces\IVisibilityBuffer.h">
+      <Filter>Renderer\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h">
+      <Filter>Resources\ResourceLoader\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\TextureContainers.h">
+      <Filter>Resources\ResourceLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Network\Network.h">
+      <Filter>Tools\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
+      <Filter>Tools\ReloadServer</Filter>
+    </ClInclude>
+    <None Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl">
+      <Filter>Graphics</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleBoids.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleDefs.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticlePacking.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleRandom.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleSets.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleShared.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleUtils.h.fsl">
+      <Filter>Renderer\ParticleSystem\Shaders</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\BatchCompaction.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\ClearBuffers.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\PreSkinVertexes.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\TriangleFiltering.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferResources.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShaderDefs.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferShadingUtilities.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+    <None Include="..\..\..\..\..\Common_3\Renderer\VisibilityBuffer\Shaders\FSL\VisibilityBufferStructs.h.fsl">
+      <Filter>Renderer\VisibilityBuffer\Shaders\FSL</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1870,13 +1870,29 @@ inline const Matrix4 Matrix4::perspectiveLH_ReverseZ(float fovRadians, float asp
 	return perspMatrix;
 }
 
-inline const Matrix4 Matrix4::perspectiveLH_AsymmetricFov(const float leftDegrees, const float rightDegrees, const float upDegrees, const float downDegrees, const float zNear, const float zFar)
+inline const Matrix4 Matrix4::perspectiveLH_AsymmetricFov(const float leftDegrees, const float rightDegrees, const float upDegrees, const float downDegrees, const float zNear, const float zFar, bool isDegrees)
 {
 	const float VECTORMATH_PI = 3.14159265358979323846f;
-    float leftTan = tanf(leftDegrees * (VECTORMATH_PI / 180.0f));
-    float rightTan = tanf(rightDegrees * (VECTORMATH_PI / 180.0f));
-    float downTan = tanf(downDegrees * (VECTORMATH_PI / 180.0f));
-    float upTan = tanf(upDegrees * (VECTORMATH_PI / 180.0f));
+    float leftTan;
+    float rightTan;
+	float downTan;
+	float upTan;
+
+    if (isDegrees)
+    {
+        leftTan = tanf(leftDegrees * (VECTORMATH_PI / 180.0f));
+        rightTan = tanf(rightDegrees * (VECTORMATH_PI / 180.0f));
+        downTan = tanf(downDegrees * (VECTORMATH_PI / 180.0f));
+        upTan = tanf(upDegrees * (VECTORMATH_PI / 180.0f));
+    }
+    else
+    {
+        leftTan = tanf(leftDegrees);
+        rightTan = tanf(rightDegrees);
+        downTan = tanf(downDegrees);
+        upTan = tanf(upDegrees);
+	}
+    
 
     float projXScale = 2.0f / (leftTan + rightTan);
     float projXOffset = (leftTan - rightTan) * projXScale * 0.5f;
@@ -1906,6 +1922,18 @@ inline const Matrix4 Matrix4::perspectiveLH_AsymmetricFov(const float leftDegree
     col3 = tmp.m128;
 
     return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
+}
+
+inline const Matrix4 Matrix4::perspectiveLH_ReverseZ_AsymmetricFov(const float leftDegrees, const float rightDegrees, const float upDegrees, const float downDegrees, float zNear, float zFar, bool isDegrees)
+{
+    Matrix4 perspMatrix = perspectiveLH_AsymmetricFov(leftDegrees, rightDegrees, upDegrees, downDegrees, zNear, zFar, isDegrees);
+
+    const Vector4& col2 = perspMatrix.mCol2;
+    const Vector4& col3 = perspMatrix.mCol3;
+    perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
+    perspMatrix.mCol3.setZ(-col3.getZ());
+
+    return perspMatrix;
 }
 
 inline const Matrix4 Matrix4::orthographicLH(float left, float right, float bottom, float top, float zNear, float zFar)

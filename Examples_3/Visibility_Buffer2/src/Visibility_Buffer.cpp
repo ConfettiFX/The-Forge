@@ -280,10 +280,10 @@ const uint32_t gNumGeomSets = NUM_GEOMETRY_SETS;
 struct PerFrameData
 {
     // Stores the camera/eye position in object space for cluster culling
-    vec3                    gEyeObjectSpace[NUM_CULLING_VIEWPORTS] = {};
-    PerFrameConstantsData   gPerFrameUniformData = {};
-    PerFrameVBConstantsData gPerFrameVBUniformData = {};
-    UniformDataSkybox       gUniformDataSky;
+    vec3                  gEyeObjectSpace[NUM_CULLING_VIEWPORTS] = {};
+    PerFrameConstantsData gPerFrameUniformData = {};
+    VBViewConstantsData   gVBViewUniformData = {};
+    UniformDataSkybox     gUniformDataSky;
 
     // These are just used for statistical information
     uint32_t gTotalClusters = 0;
@@ -350,6 +350,7 @@ Shader*        pShaderTriangleFiltering = nullptr;
 Pipeline*      pPipelineTriangleFiltering = nullptr;
 DescriptorSet* pDescriptorSetTriangleFilteringPerBatch = NULL;
 DescriptorSet* pDescriptorSetTriangleFilteringPerDraw = NULL;
+DescriptorSet* pDescriptorSetTriangleFilteringPerDrawCompute = NULL; // Used in async compute shaders
 /************************************************************************/
 // Clear light clusters pipeline
 /************************************************************************/
@@ -591,28 +592,10 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
-
-        if (!pRenderer->pGpu->m64BitAtomicsSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer 2 does not run on this device. GPU does not support 64 bit atomics");
-            return false;
-        }
-
-        if (!gGpuSettings.mBindlessSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer 2 does not run on this device. GPU does not support enough bindless texture entries");
-            return false;
-        }
-
-        if (!pRenderer->pGpu->mPrimitiveIdSupported)
-        {
-            ShowUnsupportedMessage("Visibility Buffer 2 does not run on this device. PrimitiveID is not supported");
-            return false;
-        }
 
         // turn off by default depending on gpu config rules
         gAppSettings.mEnableGodray &= !gGpuSettings.mDisableGodRays;
@@ -1463,8 +1446,10 @@ public:
             /************************************************************************/
             BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_COMPUTE][frameIdx] };
             beginUpdateResource(&update);
-            memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+            memcpy(update.pMappedData, &gPerFrame[frameIdx].gVBViewUniformData, sizeof(gPerFrame[frameIdx].gVBViewUniformData));
             endUpdateResource(&update);
+
+            updateRenderTargetInfo(frameIdx);
             /************************************************************************/
             // Triangle filtering async compute pass
             /************************************************************************/
@@ -1491,7 +1476,7 @@ public:
             triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
-            triangleFilteringDesc.pDescriptorSetTriangleFilteringPerDraw = pDescriptorSetTriangleFilteringPerDraw;
+            triangleFilteringDesc.pDescriptorSetTriangleFilteringPerDraw = pDescriptorSetTriangleFilteringPerDrawCompute;
             triangleFilteringDesc.mFrameIndex = frameIdx;
             triangleFilteringDesc.mBuffersIndex = frameIdx;
             triangleFilteringDesc.mGpuProfileToken = gComputeProfileToken;
@@ -1571,13 +1556,15 @@ public:
             {
                 BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_COMPUTE][frameIdx] };
                 beginUpdateResource(&update);
-                memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+                memcpy(update.pMappedData, &gPerFrame[frameIdx].gVBViewUniformData, sizeof(gPerFrame[frameIdx].gVBViewUniformData));
                 endUpdateResource(&update);
+
+                updateRenderTargetInfo(frameIdx);
             }
 
             BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][frameIdx] };
             beginUpdateResource(&update);
-            memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
+            memcpy(update.pMappedData, &gPerFrame[frameIdx].gVBViewUniformData, sizeof(gPerFrame[frameIdx].gVBViewUniformData));
             endUpdateResource(&update);
 
             update = { pPerFrameUniformBuffers[frameIdx] };
@@ -1753,6 +1740,7 @@ public:
         // Triangle Filtering per draw
         setDesc = SRT_SET_DESC(TriangleFilteringCompSrtData, PerDraw, gDataBufferCount, 0);
         addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFilteringPerDraw);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFilteringPerDrawCompute);
 
         // cluster lights set
         setDesc = SRT_SET_DESC(ClusterLightsSrtData, PerDraw, gDataBufferCount, 0);
@@ -1775,6 +1763,7 @@ public:
 
     void removeDescriptorSets()
     {
+        removeDescriptorSet(pRenderer, pDescriptorSetTriangleFilteringPerDrawCompute);
         removeDescriptorSet(pRenderer, pDescriptorSetTriangleFilteringPerDraw);
         removeDescriptorSet(pRenderer, pDescriptorSetClusterLights);
         removeDescriptorSet(pRenderer, pDescriptorSetGodRayBlurPassPerDraw);
@@ -1836,10 +1825,11 @@ public:
         // per frame set
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData perFrameSetParams[8] = {};
+            const uint32_t perFrameParameterCount = 7;
+            DescriptorData perFrameSetParams[perFrameParameterCount] = {};
             perFrameSetParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gPerFrameConstants);
             perFrameSetParams[0].ppBuffers = &pPerFrameUniformBuffers[i];
-            perFrameSetParams[1].mIndex = SRT_RES_IDX(SrtData, PerFrame, gPerFrameVBConstants);
+            perFrameSetParams[1].mIndex = SRT_RES_IDX(SrtData, PerFrame, gVBViewConstants);
             perFrameSetParams[1].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
             perFrameSetParams[2].mIndex = SRT_RES_IDX(SrtData, PerFrame, gLightClustersCount);
             perFrameSetParams[2].ppBuffers = &pLightClustersCount[i];
@@ -1849,22 +1839,25 @@ public:
             perFrameSetParams[4].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
             perFrameSetParams[5].mIndex = SRT_RES_IDX(SrtData, PerFrame, gVisibilityBuffer);
             perFrameSetParams[5].ppBuffers = &pVBDepthBuffer[i];
-            perFrameSetParams[6].mIndex = SRT_RES_IDX(SrtData, PerFrame, gVisibilityBufferBlitDepth);
-            perFrameSetParams[6].ppBuffers = &pVBDepthBuffer[i];
-            perFrameSetParams[7].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformCameraSky);
-            perFrameSetParams[7].ppBuffers = &pUniformBufferSky[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 8, perFrameSetParams);
+            perFrameSetParams[6].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformCameraSky);
+            perFrameSetParams[6].ppBuffers = &pUniformBufferSky[i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, perFrameParameterCount, perFrameSetParams);
         }
 
         // triangle filtering per draw
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
-            DescriptorData triangleFilteringPerDrawParams[2] = {};
+            DescriptorData triangleFilteringPerDrawParams[3] = {};
             triangleFilteringPerDrawParams[0].mIndex = SRT_RES_IDX(TriangleFilteringCompSrtData, PerDraw, gBinBufferRW);
             triangleFilteringPerDrawParams[0].ppBuffers = &pVisibilityBuffer->ppBinBuffer[i];
             triangleFilteringPerDrawParams[1].mIndex = SRT_RES_IDX(TriangleFilteringCompSrtData, PerDraw, gVisibilityBufferRW);
             triangleFilteringPerDrawParams[1].ppBuffers = &pVBDepthBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFilteringPerDraw, 2, triangleFilteringPerDrawParams);
+            triangleFilteringPerDrawParams[2].mIndex = SRT_RES_IDX(TriangleFilteringCompSrtData, PerDraw, gComputeVBViewConstants);
+            triangleFilteringPerDrawParams[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFilteringPerDraw, 3, triangleFilteringPerDrawParams);
+
+            triangleFilteringPerDrawParams[2].ppBuffers = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
+            updateDescriptorSet(pRenderer, i, pDescriptorSetTriangleFilteringPerDrawCompute, 3, triangleFilteringPerDrawParams);
         }
 
         // cluster lights set
@@ -2345,7 +2338,7 @@ public:
             initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
             // edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
-            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+            edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;
             edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
             edescs[1].pixelShaderOptions.depthBeforeShader =
                 !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
@@ -2567,8 +2560,8 @@ public:
             addResource(&ubDesc, NULL);
         }
 
-        ubDesc.mDesc.mSize = sizeof(PerFrameVBConstantsData);
-        ubDesc.mDesc.pName = "gPerFrameVBConstants Uniform Buffer Desc";
+        ubDesc.mDesc.mSize = sizeof(VBViewConstantsData);
+        ubDesc.mDesc.pName = "gVBViewConstants Uniform Buffer Desc";
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             ubDesc.ppBuffer = &pPerFrameVBUniformBuffers[VB_UB_COMPUTE][i];
@@ -2708,7 +2701,7 @@ public:
 
         mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
         // mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));
-        mat4 cameraView = pCameraController->getViewMatrix();
+        mat4 cameraView = pCameraController->getViewMatrix().mCamera;
         mat4 cameraProj = mat4::perspectiveLH_ReverseZ(PI / 2.0f, aspectRatioInv, gAppSettings.nearPlane, gAppSettings.farPlane);
 
         // Compute light matrices
@@ -2736,33 +2729,30 @@ public:
         /************************************************************************/
         // Matrix data
         /************************************************************************/
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].view = lightView;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp =
-            currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp * lightModel;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].cameraPlane = { gAppSettings.lightNearPlane,
-                                                                                    gAppSettings.lightFarPlane };
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].view = lightView;
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].invVP = inverse(currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].vp);
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].projection = lightProj;
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].mvp =
+            currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].vp * lightModel;
+        currentFrame->gVBViewUniformData.transform[VIEW_SHADOW].cameraPlane = { gAppSettings.lightNearPlane, gAppSettings.lightFarPlane };
 
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].view = cameraView;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].invVP =
-            inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp);
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].projection = cameraProj;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].mvp =
-            currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp * cameraModel;
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].cameraPlane = { gAppSettings.nearPlane, gAppSettings.farPlane };
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].vp = cameraProj * cameraView;
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].view = cameraView;
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].invVP = inverse(currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].vp);
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].projection = cameraProj;
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].mvp =
+            currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].vp * cameraModel;
+        currentFrame->gVBViewUniformData.transform[VIEW_CAMERA].cameraPlane = { gAppSettings.nearPlane, gAppSettings.farPlane };
 
         /************************************************************************/
         // Culling data
         /************************************************************************/
-        currentFrame->gPerFrameVBUniformData.cullingViewports[VIEW_SHADOW].sampleCount = 1;
-        currentFrame->gPerFrameVBUniformData.cullingViewports[VIEW_SHADOW].windowSize = { (float)gShadowMapSize, (float)gShadowMapSize };
+        currentFrame->gVBViewUniformData.cullingViewports[VIEW_SHADOW].sampleCount = 1;
+        currentFrame->gVBViewUniformData.cullingViewports[VIEW_SHADOW].windowSize = { (float)gShadowMapSize, (float)gShadowMapSize };
 
-        currentFrame->gPerFrameVBUniformData.cullingViewports[VIEW_CAMERA].sampleCount = SAMPLE_COUNT_1;
-        currentFrame->gPerFrameVBUniformData.cullingViewports[VIEW_CAMERA].windowSize = { (float)width, (float)height };
+        currentFrame->gVBViewUniformData.cullingViewports[VIEW_CAMERA].sampleCount = SAMPLE_COUNT_1;
+        currentFrame->gVBViewUniformData.cullingViewports[VIEW_CAMERA].windowSize = { (float)width, (float)height };
 
         // Cache eye position in object space for cluster culling on the CPU
         currentFrame->gEyeObjectSpace[VIEW_SHADOW] = (inverse(lightView * lightModel) * vec4(0, 0, 0, 1)).getXYZ();
@@ -2794,6 +2784,20 @@ public:
         /************************************************************************/
         currentFrame->gPerFrameUniformData.mLinearScale = gAppSettings.LinearScale;
         currentFrame->gPerFrameUniformData.mOutputMode = gAppSettings.mOutputMode;
+
+        /************************************************************************/
+        // Render Target Info - Used in rasterization
+        /************************************************************************/
+        gShadowRenderTargetInfo.view = VIEW_SHADOW;
+        gShadowRenderTargetInfo.width = gShadowMapSize;
+        gShadowRenderTargetInfo.height = gShadowMapSize;
+
+        gDepthRenderTargetInfo.view = VIEW_CAMERA;
+        gDepthRenderTargetInfo.width = (int)pRenderTargetVBPass->mWidth;
+        gDepthRenderTargetInfo.height = (int)pRenderTargetVBPass->mHeight;
+
+        int size = gSceneRes.mWidth * gSceneRes.mHeight + gShadowMapSize * gShadowMapSize;
+        gClearRenderTargetInfo = { 0U, size, 0 }; // dims
     }
     /************************************************************************/
     // UI
@@ -2879,19 +2883,13 @@ public:
     /************************************************************************/
     void clearVisibilityBuffer(Cmd* cmd, ProfileToken profileToken, uint32_t frameIdx)
     {
-        int              size = gSceneRes.mWidth * gSceneRes.mHeight + gShadowMapSize * gShadowMapSize;
-        RenderTargetInfo clearDepthData = { 0U, size, 0 }; // dims
-        BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][2] };
-        beginUpdateResource(&bufferUpdate);
-        memcpy(bufferUpdate.pMappedData, &clearDepthData, sizeof(RenderTargetInfo));
-        endUpdateResource(&bufferUpdate);
         cmdBeginGpuTimestampQuery(cmd, profileToken, "Clear Visibility Buffer");
         cmdBindPipeline(cmd, pPipelineClearRenderTarget);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetTriangleFilteringPerDraw);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + 2, pDescriptorSetRenderTargetPerBatch);
-        cmdDispatch(cmd, size / 256 + 1, 1, 1);
+        cmdDispatch(cmd, gClearRenderTargetInfo.width / 256 + 1, 1, 1);
 #ifdef METAL // is this necessary?
         cmdResourceBarrier(cmd, 1, nullptr, 0, nullptr, 0, nullptr);
 #endif
@@ -2902,22 +2900,13 @@ public:
     void drawShadowMapPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
         UNREF_PARAM(pGpuProfiler);
-
-        RenderTargetInfo pushConstantData = {};
-        pushConstantData.view = VIEW_SHADOW;
-        pushConstantData.width = gShadowMapSize;
-        pushConstantData.height = gShadowMapSize;
-        BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][VIEW_SHADOW] };
-        beginUpdateResource(&bufferUpdate);
-        memcpy(bufferUpdate.pMappedData, &pushConstantData, sizeof(RenderTargetInfo));
-        endUpdateResource(&bufferUpdate);
         cmdBindPipeline(cmd, pPipelineVisibilityBufferDepthRaster);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetTriangleFilteringPerDraw);
         cmdBindDescriptorSet(cmd, frameIdx * 3, pDescriptorSetRenderTargetPerBatch);
         const uint ts = 128;
-        cmdDispatch(cmd, (pushConstantData.width + ts - 1) / ts, (pushConstantData.height + ts - 1) / ts, 8);
+        cmdDispatch(cmd, (gShadowMapSize + ts - 1) / ts, (gShadowMapSize + ts - 1) / ts, 8);
 #ifdef METAL
         // force a barrier to anchor the small triangle dispatch to the frame // TODO: check if still necessary
         cmdResourceBarrier(cmd, 1, NULL, 0, NULL, 0, NULL);
@@ -2932,21 +2921,13 @@ public:
     {
         UNREF_PARAM(pGpuProfiler);
 
-        RenderTargetInfo pushConstantData = {};
-        pushConstantData.view = VIEW_CAMERA;
-        pushConstantData.width = (int)pRenderTargetVBPass->mWidth;
-        pushConstantData.height = (int)pRenderTargetVBPass->mHeight;
-        BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][VIEW_CAMERA] };
-        beginUpdateResource(&bufferUpdate);
-        memcpy(bufferUpdate.pMappedData, &pushConstantData, sizeof(RenderTargetInfo));
-        endUpdateResource(&bufferUpdate);
         cmdBindPipeline(cmd, pPipelineVisibilityBufferDepthRaster);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + 1, pDescriptorSetRenderTargetPerBatch);
         const uint32_t binRasterThreadsZCount = 64;
-        cmdDispatch(cmd, (pushConstantData.width + BIN_SIZE - 1) / BIN_SIZE, (pushConstantData.height + BIN_SIZE - 1) / BIN_SIZE,
-                    binRasterThreadsZCount);
+        cmdDispatch(cmd, (gDepthRenderTargetInfo.width + BIN_SIZE - 1) / BIN_SIZE,
+                    (gDepthRenderTargetInfo.height + BIN_SIZE - 1) / BIN_SIZE, binRasterThreadsZCount);
     }
 
     void blitVisibilityBufferDepthPass(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t view, uint32_t frameIdx, RenderTarget* depthTarget)
@@ -2964,12 +2945,6 @@ public:
         // Render target is cleared to (1,1,1,1) because (0,0,0,0) represents the first triangle of the first draw batch
         BindRenderTargetsDesc bindRenderTargets = {};
         bindRenderTargets.mDepthStencil = { depthTarget, LOAD_ACTION_CLEAR };
-
-        RenderTargetInfo data = { view, (int)depthTarget->mWidth, (int)depthTarget->mHeight };
-        BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][view] };
-        beginUpdateResource(&bufferUpdate);
-        memcpy(bufferUpdate.pMappedData, &data, sizeof(RenderTargetInfo));
-        endUpdateResource(&bufferUpdate);
 
         // Start render pass and apply load actions
         cmdBindRenderTargets(cmd, &bindRenderTargets);
@@ -3223,6 +3198,27 @@ public:
         cmdBindRenderTargets(cmd, NULL);
 
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
+    }
+
+    void updateRenderTargetInfo(uint32_t frameIdx)
+    {
+        // Update clear vb render target info (combined view pass)
+        BufferUpdateDesc bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][2] };
+        beginUpdateResource(&bufferUpdate);
+        memcpy(bufferUpdate.pMappedData, &gClearRenderTargetInfo, sizeof(RenderTargetInfo));
+        endUpdateResource(&bufferUpdate);
+
+        // Update main view render target data
+        bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][VIEW_CAMERA] };
+        beginUpdateResource(&bufferUpdate);
+        memcpy(bufferUpdate.pMappedData, &gDepthRenderTargetInfo, sizeof(RenderTargetInfo));
+        endUpdateResource(&bufferUpdate);
+
+        // Update shadow
+        bufferUpdate = { pRenderTargetInfoConstantsBuffers[frameIdx][VIEW_SHADOW] };
+        beginUpdateResource(&bufferUpdate);
+        memcpy(bufferUpdate.pMappedData, &gShadowRenderTargetInfo, sizeof(RenderTargetInfo));
+        endUpdateResource(&bufferUpdate);
     }
 
     // Draw GUI / 2D elements

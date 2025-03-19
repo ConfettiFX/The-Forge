@@ -166,7 +166,7 @@ public:
         // check for init success
         if (!pRenderer)
         {
-            ShowUnsupportedMessage("Failed To Initialize renderer!");
+            ShowUnsupportedMessage(getUnsupportedGPUMsg());
             return false;
         }
         setupGPUConfigurationPlatformParameters(pRenderer, settings.pExtendedSettings);
@@ -176,12 +176,6 @@ public:
         /************************************************************************/
         initRaytracing(pRenderer, &pRaytracing);
         gRaytracingTechniqueSupported[RAY_QUERY] = pRenderer->pGpu->mRayQuerySupported;
-
-        if (!gRaytracingTechniqueSupported[RAY_QUERY])
-        {
-            ShowUnsupportedMessage("GPU does not support hardware raytracing");
-            return false;
-        }
 
         gUseUavRwFallback = !(pRenderer->pGpu->mFormatCaps[TinyImageFormat_R16G16B16A16_SFLOAT] & FORMAT_CAP_READ_WRITE);
 
@@ -707,7 +701,7 @@ public:
             updateUIVisibility();
         }
 
-        mat4 viewMat = pCameraController->getViewMatrix();
+        mat4 viewMat = pCameraController->getViewMatrix().mCamera;
 
         const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
         const float horizontalFOV = PI / 2.0f;

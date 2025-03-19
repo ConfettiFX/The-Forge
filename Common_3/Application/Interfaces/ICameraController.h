@@ -31,8 +31,8 @@
 #include "../../Utilities/Math/MathTypes.h"
 
 #if defined(QUEST_VR)
-#include "../../OS/Quest/VrApi.h"
-extern QuestVR* pQuest;
+#include "../../Graphics/OpenXR/OpenXRApi.h"
+#include "../../Graphics/OpenXR/OpenXRApiUtils.h"
 #endif
 
 struct CameraMotionParameters
@@ -43,41 +43,6 @@ struct CameraMotionParameters
     float movementSpeed = 1.0f;  // customize move speed
     float rotationSpeed = 1.0f;  // customize rotation speed
 };
-
-class ICameraController
-{
-public:
-    virtual ~ICameraController() {}
-    virtual void setMotionParameters(const CameraMotionParameters&) = 0;
-    virtual void update(float deltaTime) = 0;
-
-    // there are also implicit dependencies on the keyboard state.
-
-    virtual mat4 getViewMatrix() const = 0;
-    virtual vec3 getViewPosition() const = 0;
-    virtual vec2 getRotationXY() const = 0;
-    virtual void moveTo(const vec3& location) = 0;
-    virtual void lookAt(const vec3& lookAt) = 0;
-    virtual void setViewRotationXY(const vec2& v) = 0;
-    virtual void resetView() = 0;
-
-    virtual void onMove(const float2& vec) = 0;
-    virtual void onMoveY(float y) = 0;
-    virtual void onRotate(const float2& vec) = 0;
-    virtual void onZoom(const float2& vec) = 0;
-};
-
-/// \c initGuiCameraController assumes that the camera is not rotated around the look direction;
-/// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
-FORGE_API ICameraController* initGuiCameraController(const vec3& startPosition, const vec3& startLookAt);
-
-/// \c initFpsCameraController does basic FPS-style god mode navigation; tf_free-look is constrained
-/// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
-FORGE_API ICameraController* initFpsCameraController(const vec3& startPosition, const vec3& startLookAt);
-
-FORGE_API bool loadCameraPath(const char* pFileName, uint32_t& outNumCameraPoints, float3** pOutCameraPoints);
-
-FORGE_API void exitCameraController(ICameraController* pCamera);
 
 class FORGE_API CameraMatrix
 {
@@ -93,12 +58,14 @@ public:
     // Applies offsets to the projection matrices (useful when needing to jitter the camera for techniques like TAA)
     void applyProjectionSampleOffset(float xOffset, float yOffset);
 
+    void setTranslation(const vec3& translation);
+
     static inline const CameraMatrix inverse(const CameraMatrix& mat);
     static inline const CameraMatrix transpose(const CameraMatrix& mat);
     static inline const CameraMatrix perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
     static inline const CameraMatrix perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
 #ifdef QUEST_VR
-    static inline const mat4 perspectiveCombinedVREyes(float zNear, float zFar);
+    static inline void superFrustumReverseZ(const CameraMatrix& views, float zNear, float zFar, mat4& outView, mat4& outProject);
 #endif
 
     static inline const CameraMatrix orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
@@ -181,12 +148,8 @@ inline const CameraMatrix CameraMatrix::perspective(float fovxRadians, float asp
 {
     CameraMatrix result;
 #if defined(QUEST_VR)
-    float4 fov;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    result.mLeftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
-
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    result.mRightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    GetOpenXRProjMatrixPerspective(LEFT_EYE_VIEW, zNear, zFar, &result.mLeftEye);
+    GetOpenXRProjMatrixPerspective(RIGHT_EYE_VIEW, zNear, zFar, &result.mRightEye);
 #else
     result.mCamera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
 #endif
@@ -197,36 +160,49 @@ inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, f
 {
     CameraMatrix result;
 #if defined(QUEST_VR)
-    float4 fov;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    result.mLeftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
-
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    result.mRightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
-
-    return result;
+    GetOpenXRProjMatrixPerspectiveReverseZ(LEFT_EYE_VIEW, zNear, zFar, &result.mLeftEye);
+    GetOpenXRProjMatrixPerspectiveReverseZ(RIGHT_EYE_VIEW, zNear, zFar, &result.mRightEye);
 #else
     result.mCamera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
 #endif
     return result;
 }
 
+// Create a new projection matrix based on the left and right eye asymmetric FOV matrices. This combines the maximum
+// field of view on each side (left, right, top, bottom). This will result in a new asymmetric matrix that will
+// encompass both eyes. Move camera back the necessary amount to get the new frustum to encompass both eyes.
+// This is useful to run a single pass triangle culling algorithm.
+// Inspired by Oculus' work here: https://i.sstatic.net/TpHYa.jpg
 #ifdef QUEST_VR
-inline const mat4 CameraMatrix::perspectiveCombinedVREyes(float zNear, float zFar)
+inline void CameraMatrix::superFrustumReverseZ(const CameraMatrix& views, float zNear, float zFar, mat4& outView, mat4& outProject)
 {
-    // Create a new projection matrix based on the left and right eye asymmetric FOV matrices. This combines the maximum
-    // field of view on each side (left, right, top, bottom). This will result in a new asymmetric matrix that will
-    // encompass both eyes. This is useful to run a single pass triangle culling algorithm.
-    float4 fovLeftEye;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fovLeftEye.x, &fovLeftEye.y, &fovLeftEye.z,
-                           &fovLeftEye.w);
+    EyesFOV fovs = GetOpenXRViewFovs();
 
-    float4 fovRightEye;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fovRightEye.x, &fovRightEye.y, &fovRightEye.z,
-                           &fovRightEye.w);
+    // Vector pointing from left eye to right eye
+    const Vector3 leftEyeToRightEyeDir = views.mRightEye.getTranslation() - views.mLeftEye.getTranslation();
+    const Vector3 normalizedLeftToRight = normalize(leftEyeToRightEyeDir);
 
-    float4 fov = max(fovLeftEye, fovRightEye);
-    return mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    // IPD is the distance between each view's origin, which is the real world distance between each eye
+    float ipd = length(leftEyeToRightEyeDir);
+
+    float leftFov = fovs.mLeftEye.x;
+    float rightFov = fovs.mRightEye.y;
+    float topFov = fovs.mLeftEye.z;
+    float bottomFov = fovs.mLeftEye.w;
+
+    // How we need the new view origin to go back
+    float recession = ipd / (tan(-leftFov) + tan(rightFov));
+    // The new view origin offset along the leftEyeToRightEyeDir axis
+    float viewCenterOffset = ipd * tan(-leftFov);
+
+    Vector3 viewDirection = normalize(-views.mLeftEye.getRow(2).getXYZ());
+
+    Vector3 superFrustumOrigin = views.mLeftEye.getTranslation();
+    superFrustumOrigin += viewCenterOffset * normalizedLeftToRight;
+    superFrustumOrigin -= recession * viewDirection;
+    outView = views.mLeftEye;
+    outView.setTranslation(superFrustumOrigin);
+    outProject = mat4::perspectiveLH_ReverseZ_AsymmetricFov(-leftFov, rightFov, topFov, -bottomFov, zNear, zFar, false);
 }
 #endif
 
@@ -311,3 +287,38 @@ inline void CameraMatrix::extractFrustumClipPlanes(const CameraMatrix& vp, Vecto
     mat4::extractFrustumClipPlanes(vp.mCamera, rcp, lcp, tcp, bcp, fcp, ncp, normalizePlanes);
 #endif
 }
+
+class ICameraController
+{
+public:
+    virtual ~ICameraController() {}
+    virtual void setMotionParameters(const CameraMotionParameters&) = 0;
+    virtual void update(float deltaTime) = 0;
+
+    // there are also implicit dependencies on the keyboard state.
+
+    virtual CameraMatrix getViewMatrix() const = 0;
+    virtual vec3         getViewPosition() const = 0;
+    virtual vec2         getRotationXY() const = 0;
+    virtual void         moveTo(const vec3& location) = 0;
+    virtual void         lookAt(const vec3& lookAt) = 0;
+    virtual void         setViewRotationXY(const vec2& v) = 0;
+    virtual void         resetView() = 0;
+
+    virtual void onMove(const float2& vec) = 0;
+    virtual void onMoveY(float y) = 0;
+    virtual void onRotate(const float2& vec) = 0;
+    virtual void onZoom(const float2& vec) = 0;
+};
+
+/// \c initGuiCameraController assumes that the camera is not rotated around the look direction;
+/// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
+FORGE_API ICameraController* initGuiCameraController(const vec3& startPosition, const vec3& startLookAt);
+
+/// \c initFpsCameraController does basic FPS-style god mode navigation; tf_free-look is constrained
+/// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
+FORGE_API ICameraController* initFpsCameraController(const vec3& startPosition, const vec3& startLookAt);
+
+FORGE_API bool loadCameraPath(const char* pFileName, uint32_t& outNumCameraPoints, float3** pOutCameraPoints);
+
+FORGE_API void exitCameraController(ICameraController* pCamera);

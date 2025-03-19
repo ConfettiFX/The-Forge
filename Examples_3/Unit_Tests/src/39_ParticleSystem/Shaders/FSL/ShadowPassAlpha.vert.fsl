@@ -52,7 +52,8 @@ PsInShadowAlphaTested VS_MAIN( SV_VertexID(uint) vertexID )
 			RETURN(Out);
 		}
 
-		ParticleData p = gParticlesDataBuffer[gShadowConstants.ParticleIndex];
+		ParticleData p;
+		GetParticleData(p, gParticlesDataBuffer, gShadowConstants.ParticleIndex);
 		float3 pos = UnpackParticlePosition(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], p);
 
 		Out.position = mul(gPerFrameVBConstants.transform[VIEW_SHADOW + gShadowConstants.CubeIndex].mvp.mat, float4(vertexPos.xyz - pos.xyz, 1.0f));

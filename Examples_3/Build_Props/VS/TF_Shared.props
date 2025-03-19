@@ -41,11 +41,11 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Condition="$(ProjectDir.Contains('Quest_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Quest.arm64.v8a.props" />
-    <Import Condition="$(ProjectDir.Contains('Android_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Android.arm64.v8a.props" />
-    <Import Condition="$(ProjectDir.Contains('PC Visual Studio 2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Examples.x64.props" />
-    <Import Condition="$(ProjectDir.Contains('PS4 Visual Studio 2019'))" Project="$(TheForgeRoot)PS4\VSProps\PS4.props" />
-    <Import Condition="$(ProjectDir.Contains('Prospero Visual Studio 2019'))" Project="$(TheForgeRoot)Prospero\VSProps\Prospero.props" />
-    <Import Condition="$(ProjectDir.Contains('NX'))" Project="$(TheForgeRoot)Switch\Examples_3\Unit_Tests\NX Visual Studio 2019\ImportNintendoSdk.props" />
+    <Import Condition="$(ProjectDir.Contains('Quest_VS2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Quest.arm64.v8a.props" />
+    <Import Condition="$(ProjectDir.Contains('Android_VS2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Android.arm64.v8a.props" />
+    <Import Condition="$(ProjectDir.Contains('PC_VS2019'))" Project="$(TheForgeRoot)Examples_3\Build_Props\VS\Examples.x64.props" />
+    <Import Condition="$(ProjectDir.Contains('PS4_VS2019'))" Project="$(TheForgeRoot)PS4\VSProps\PS4.props" />
+    <Import Condition="$(ProjectDir.Contains('Prospero_VS2019'))" Project="$(TheForgeRoot)Prospero\VSProps\Prospero.props" />
+    <Import Condition="$(ProjectDir.Contains('NX'))" Project="$(TheForgeRoot)Switch\Examples_3\Unit_Tests\NX_VS2019\ImportNintendoSdk.props" />
   </ImportGroup>
 </Project>

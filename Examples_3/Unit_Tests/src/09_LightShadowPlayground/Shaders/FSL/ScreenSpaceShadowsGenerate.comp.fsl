@@ -124,13 +124,23 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 			depths = f2(0.0f);
 			for (int smp = 0; smp < SAMPLE_COUNT; smp++)
 			{
+			#if FT_MULTIVIEW
+				depths.x += LoadTex2DArrayMS(gDepthTexture, NO_SAMPLER, int3(read_xy, gSSSUniform.mViewIndex), smp).r;
+				depths.y += LoadTex2DArrayMS(gDepthTexture, NO_SAMPLER, int3(read_xy + offset_xy, gSSSUniform.mViewIndex), smp).r;
+			#else
 				depths.x += LoadTex2DMS(gDepthTexture, NO_SAMPLER, read_xy, smp).r;
 				depths.y += LoadTex2DMS(gDepthTexture, NO_SAMPLER, read_xy + offset_xy, smp).r;
+			#endif
 			}
 			depths /= SAMPLE_COUNT;
 		#else
-			depths.x = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy, 0)).r;
-			depths.y = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy + offset_xy, 0)).r;
+			#if FT_MULTIVIEW
+				depths.x = f4(LoadTex3D(gDepthTexture, NO_SAMPLER, int3(read_xy, gSSSUniform.mViewIndex), 0)).r;
+				depths.y = f4(LoadTex3D(gDepthTexture, NO_SAMPLER, int3(read_xy + offset_xy, gSSSUniform.mViewIndex), 0)).r;
+			#else
+				depths.x = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy, 0)).r;
+				depths.y = f4(LoadTex2D(gDepthTexture, NO_SAMPLER, read_xy + offset_xy, 0)).r;
+			#endif
 		#endif
 
 		depth_thickness_scale[i] = abs(FAR_DEPTH_VALUE - depths.x);
@@ -245,7 +255,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
 
 	#if TEXTURE_ATOMIC_SUPPORTED
 		uint2 write_coord = write_xy;
-		AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
+		#if FT_MULTIVIEW
+			AtomicMin3D(gOutputTexture, uint3(write_coord, gSSSUniform.mViewIndex), mappedResult, temp);
+		#else
+			AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
+		#endif
 	#else
 		uint write_coord = write_xy.x + uint(gSSSUniform.mScreenSize.x) * write_xy.y;
 		AtomicMin(gOutputTexture[write_coord], mappedResult);
@@ -260,7 +274,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) dispatchID, SV_GroupThreadID(uint3) thr
         counter += float(mappedResult);
 		counter -= 0.0000001;
 	#if TEXTURE_ATOMIC_SUPPORTED
-		AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
+		#if FT_MULTIVIEW
+			AtomicMin3D(gOutputTexture, uint3(write_coord, gSSSUniform.mViewIndex), mappedResult, temp);
+		#else
+			AtomicMin2D(gOutputTexture, write_coord, mappedResult, temp);
+		#endif
 	#else
 		AtomicMin(gOutputTexture[write_coord], mappedResult);
 	#endif

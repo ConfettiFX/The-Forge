@@ -87,6 +87,18 @@
 #define UnpackAcceleration(particleSet)									float4(unpack2Floats(particleSet.Acceleration.x), unpack2Floats(particleSet.Acceleration.y))
 #define UnpackStartVelocity(particleSet)								float4(unpack2Floats(particleSet.StartVelocity.x), unpack2Floats(particleSet.StartVelocity.y))
 
+#define GetParticleData(result, particlesDataBuffer, particleIdx)					result.VelocityAndAge.x =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx)    ) << 2); \
+																																					result.VelocityAndAge.y =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 1) << 2); \
+																																					result.Position.x       =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 2) << 2); \
+																																					result.Position.y       =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 3) << 2); \
+																																					result.AnimationTime    = asfloat(LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 4) << 2))
+
+#define SetParticleData(particleData, particlesDataBuffer, particleIdx)   StoreByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx)    ) << 2, particleData.VelocityAndAge.x); \
+																																					StoreByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 1) << 2, particleData.VelocityAndAge.y); \
+																																					StoreByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 2) << 2, particleData.Position.x); \
+																																					StoreByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 3) << 2, particleData.Position.y); \
+																																					StoreByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 4) << 2, asuint(particleData.AnimationTime))
+
 uint FirstBits(uint v, uint nBits)
 {
 	return v & ((1 << nBits)-1);

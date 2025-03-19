@@ -7,6 +7,10 @@
 			BeforeTargets="AndroidPreGradle">
 		<Exec Command="xcopy $(TheForgeRoot)Common_3\OS\Android\Packaging $(IntDir) /s /y /d"/>
 	</Target>
+	<Target Name="TFGradleSync"
+			BeforeTargets="AndroidPreGradle">
+			<Exec Command="$(TheForgeRoot)Common_3\OS\Android\Packaging\gradle_sync.bat"/>
+	</Target>
 	<Target Name="TFAndroidAssetsCleanUp"
 			AfterTargets="AndroidPackageApk"
 			DependsOnTargets="AndroidPackageApk">

@@ -34,29 +34,33 @@ BEGIN_SRT_SET(Persistent)
     DECL_SAMPLER(Persistent, SamplerState, gDepthSampler)
     DECL_SAMPLER(Persistent, SamplerState, gTextureFilter)
 #if (SAMPLE_COUNT > 1)
+#if FT_MULTIVIEW
+    DECL_TEXTURE(Persistent, Tex2DArrayMS(float4, SAMPLE_COUNT), gVBTex)
+    DECL_TEXTURE(Persistent, Depth2DArrayMS(float, SAMPLE_COUNT), gDepthTex)
+#else
     DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gVBTex)
-    DECL_TEXTURE(Persistent, Tex2DMS(float, SAMPLE_COUNT), gDepthTex)
+    DECL_TEXTURE(Persistent, Depth2DMS(float, SAMPLE_COUNT), gDepthTex)
+#endif /*FT_MULTIVIEW*/
 #else
 #if FT_MULTIVIEW
     DECL_TEXTURE(Persistent, Tex2DArray(float4), gVBTex)
-    DECL_TEXTURE(Persistent, Tex2DArray(float), gDepthTex)
+    DECL_TEXTURE(Persistent, Depth2DArray(float), gDepthTex)
 #else
     DECL_TEXTURE(Persistent, Tex2D(float4), gVBTex)
-    DECL_TEXTURE(Persistent, Tex2D(float), gDepthTex)
+    DECL_TEXTURE(Persistent, Depth2D(float), gDepthTex)
 #endif /*FT_MULTIVIEW*/
 #endif /*SAMPLE_COUNT > 1*/
-#if SAMPLE_COUNT > 1
-	DECL_TEXTURE(Persistent, Depth2DMS(float, SAMPLE_COUNT), gDepthTexture)
-#else
-	DECL_TEXTURE(Persistent, Depth2D(float), gDepthTexture)
-#endif
 #if FT_MULTIVIEW
 	DECL_TEXTURE(Persistent, Tex2DArray(float4), gDisplayTexture)
 #else
 	DECL_TEXTURE(Persistent, Tex2D(float4), gDisplayTexture)
 #endif
+#if FT_MULTIVIEW
+    DECL_TEXTURE(Persistent, Tex2DArrayMS(uint2, SAMPLE_COUNT), gMSAAStencil)
+#else
+    DECL_TEXTURE(Persistent, Tex2DMS(uint2, SAMPLE_COUNT), gMSAAStencil)
+#endif
 	DECL_TEXTURE(Persistent, TexCube(float4), gSkyboxTex)
-	DECL_TEXTURE(Persistent, Tex2DMS(float4, SAMPLE_COUNT), gMSAASource)
 	DECL_TEXTURE(Persistent, Tex2D(float), gShadowMap)
 	DECL_TEXTURE(Persistent, Tex2D(float4), gGodRayTexture)
 	DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), gDiffuseMaps, MAX_TEXTURE_UNITS)

@@ -241,7 +241,7 @@ void CS_MAIN(SV_DispatchThreadID(uint2) tid)
 
         if (!RayQueryIsHit(hit))
         {
-            float3 skyColor = float3(0.3f, 0.6f, 1.2f);
+			float3 skyColor = float3(0.3f, 0.6f, 1.2f);
             surfaceAlbedo[bounce] = f3(1.0f);
             bounceRadiance[bounce] = skyColor;
             break;
