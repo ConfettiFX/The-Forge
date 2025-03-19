@@ -135,7 +135,7 @@ Godray samples 4xMSAA
 ![Godray samples 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/GodRaySamples.png)
 
 VB Shading samples 4xMSAA
-![VB Shading samples 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/ShadingSamples.png
+![VB Shading samples 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/ShadingSamples.png)
 
 Stencil mask 4xMSAA
 ![Stencil mask 4xMSAA](https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/VisibilityBuffer/StencilMask.png)
