@@ -50,6 +50,20 @@ action(VGPAD_LX)                 \
 action(VGPAD_LY)                 \
 action(VGPAD_RX)                 \
 action(VGPAD_RY)                 \
+action(VRCTRL_LTR)               \
+action(VRCTRL_LPX)               \
+action(VRCTRL_LPY)               \
+action(VRCTRL_LPZ)               \
+action(VRCTRL_LDX)               \
+action(VRCTRL_LDY)               \
+action(VRCTRL_LDZ)               \
+action(VRCTRL_RTR)               \
+action(VRCTRL_RPX)               \
+action(VRCTRL_RPY)               \
+action(VRCTRL_RPZ)               \
+action(VRCTRL_RDX)               \
+action(VRCTRL_RDY)               \
+action(VRCTRL_RDZ)               \
 action(K_ESCAPE)                 \
 action(K_0)                      \
 action(K_1)                      \
@@ -217,6 +231,10 @@ static const uint32_t GPAD_AXIS_FIRST = GPAD_LX;
 static const uint32_t GPAD_AXIS_LAST = GPAD_R2;
 static const uint32_t GPAD_AXIS_COUNT = GPAD_AXIS_LAST - GPAD_AXIS_FIRST + 1;
 
+static const uint32_t VRCTRL_AXIS_FIRST = VRCTRL_LTR;
+static const uint32_t VRCTRL_AXIS_LAST = VRCTRL_RDZ;
+static const uint32_t VRCTRL_AXIS_COUNT = VRCTRL_AXIS_LAST - VRCTRL_AXIS_FIRST + 1;
+
 struct Gamepad
 {
     const char* pName;
@@ -290,9 +308,11 @@ struct InputCustomBindingDesc
     uint32_t                  mCount;
 };
 
+#define INPUT_TOTAL_COUNT (MOUSE_BTN_COUNT + MOUSE_AXIS_COUNT + VGPAD_AXIS_COUNT + VRCTRL_AXIS_COUNT + K_COUNT + 1)
+
 Gamepad                 gGamepads[MAX_GAMEPADS] = {};
-float                   gInputValues[MOUSE_BTN_COUNT + MOUSE_AXIS_COUNT + VGPAD_AXIS_COUNT + K_COUNT + 1] = {};
-float                   gLastInputValues[MOUSE_BTN_COUNT + MOUSE_AXIS_COUNT + VGPAD_AXIS_COUNT + K_COUNT + 1] = {};
+float                   gInputValues[INPUT_TOTAL_COUNT] = {};
+float                   gLastInputValues[INPUT_TOTAL_COUNT] = {};
 char32_t                gCharacterBuffer[128] = {};
 uint32_t                gCharacterBufferCount = 0;
 GamepadCallback         gGamepadAddedCb = {};

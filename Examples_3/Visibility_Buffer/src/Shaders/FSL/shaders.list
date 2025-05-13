@@ -82,8 +82,8 @@
 #include "VisibilityBufferShade.vert.fsl"
 #end
 
-#vert FT_MULTIVIEW resolve.vert
-#include "Resolve.vert.fsl"
+#vert FT_MULTIVIEW progMSAAResolve.vert
+#include "ProgMSAAResolve.vert.fsl"
 #end
 
 //--------------------------------------------
@@ -154,19 +154,19 @@
 #include "VisibilityBufferShade.frag.fsl"
 #end
 
-#frag FT_MULTIVIEW resolve_SAMPLE_1.frag
+#frag FT_MULTIVIEW progMSAAResolve_SAMPLE_1.frag
 #define SAMPLE_COUNT 1
-#include "Resolve.frag.fsl"
+#include "ProgMSAAResolve.frag.fsl"
 #end
 
-#frag FT_MULTIVIEW resolve_SAMPLE_2.frag
+#frag FT_MULTIVIEW progMSAAResolve_SAMPLE_2.frag
 #define SAMPLE_COUNT 2
-#include "Resolve.frag.fsl"
+#include "ProgMSAAResolve.frag.fsl"
 #end
 
-#frag FT_MULTIVIEW resolve_SAMPLE_4.frag
+#frag FT_MULTIVIEW progMSAAResolve_SAMPLE_4.frag
 #define SAMPLE_COUNT 4
-#include "Resolve.frag.fsl"
+#include "ProgMSAAResolve.frag.fsl"
 #end
 
 #frag FT_MULTIVIEW msaa_edge_detect_SAMPLE_2.frag

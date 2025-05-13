@@ -25,6 +25,16 @@
 #ifndef FONTSTASH_SRT_H
 #define FONTSTASH_SRT_H
 
+#ifndef VR_MULTIVIEW_COUNT
+#ifdef TARGET_QUEST
+#define VR_MULTIVIEW_COUNT 2
+#else
+#define VR_MULTIVIEW_COUNT 1
+#endif
+#endif
+
+#include "Resources.h"
+
 // for low end iOS devices, do not use Argument buffers
 BEGIN_SRT_NO_AB(FontSrtData)
 	BEGIN_SRT_SET(PerDraw)

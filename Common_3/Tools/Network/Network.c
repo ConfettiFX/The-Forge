@@ -116,7 +116,7 @@ static bool platformSocketOnErrorConnect(const SocketAddr* addr)
 #endif
 
 // Some consoles don't support IPV6 so we define fake structs here since they will never be used.
-#if defined(NX64) || defined(PROSPERO) || defined(ORBIS)
+#if defined(PROSPERO) || defined(ORBIS)
 
 struct in6_addr
 {

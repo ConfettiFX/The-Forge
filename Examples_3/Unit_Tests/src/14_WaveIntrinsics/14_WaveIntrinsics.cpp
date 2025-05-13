@@ -81,8 +81,8 @@ Pipeline* pPipelineWave = NULL;
 Shader*   pShaderMagnify = NULL;
 Pipeline* pPipelineMagnify = NULL;
 
-DescriptorSet* pDescriptorSetUniforms = NULL;
-DescriptorSet* pDescriptorSetTexture = NULL;
+DescriptorSet* pDescriptorSetPerFrame = NULL;
+DescriptorSet* pDescriptorSetPersistent = NULL;
 
 Sampler* pSamplerPointWrap = NULL;
 
@@ -517,6 +517,8 @@ public:
 
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
         RenderTargetBarrier rtBarrier[] = {
@@ -538,7 +540,6 @@ public:
         const uint32_t triangleStride = sizeof(Vertex);
         cmdBeginDebugMarker(cmd, 0, 0, 1, "Wave Shader");
         cmdBindPipeline(cmd, pPipelineWave);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, &triangleStride, NULL);
         cmdDraw(cmd, 3, 0);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -561,8 +562,6 @@ public:
 
         const uint32_t quadStride = sizeof(Vertex2);
         cmdBindPipeline(cmd, pPipelineMagnify);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
         cmdBindVertexBuffer(cmd, 1, &pVertexBufferQuad, &quadStride, NULL);
         cmdDrawInstanced(cmd, 6, 0, 2, 0);
 
@@ -637,15 +636,15 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent);
         setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerFrame);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
     }
 
     void addShaders()
@@ -751,7 +750,7 @@ public:
             DescriptorData params[1] = {};
             params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gSceneConstantBuffer);
             params[0].ppBuffers = &pUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 1, params);
         }
 
         DescriptorData magnifyParams[2] = {};
@@ -759,7 +758,7 @@ public:
         magnifyParams[0].ppTextures = &pRenderTargetIntermediate->pTexture;
         magnifyParams[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
         magnifyParams[1].ppSamplers = &pSamplerPointWrap;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 2, magnifyParams);
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 2, magnifyParams);
     }
 
     bool addIntermediateRenderTarget()

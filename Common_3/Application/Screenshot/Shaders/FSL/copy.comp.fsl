@@ -48,9 +48,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	INIT_MAIN;
 
 	uint2 srcXY = DTid.xy;
+#if defined(COPY_MULTI_VIEW) && defined(TARGET_QUEST)
+	uint2 inputDims = uint2(GetDimensions(gInputTextureArray, NO_SAMPLER));
+#else
 	uint2 inputDims = uint2(GetDimensions(gInputTexture, NO_SAMPLER));
+#endif
 
-#if defined(TARGET_QUEST)
+#if defined(COPY_MULTI_VIEW)
 	// For VR we will be rendering both eye RTs into the output buffer as a single image.
 	// The dispatch size will be the size of the output buffer, so when the dispatch id.x
 	// is greater than the width, that means we need to read from the second eye RT.
@@ -69,8 +73,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) DTid)
 	// To be optimized, should improve cache usage by swizzling
 	// Use a sampler to ensure we always have linear color
 	float2 uv = float2(float(srcXY.x + 0.5f) / inputDims.x, float(srcXY.y + 0.5f) / inputDims.y);
-#if defined(TARGET_QUEST)
-	float4 color = SampleLvlTex2DArray(gInputTexture, gSamplerPointClamp, float3(uv, eyeIndex), 0);
+#if defined(COPY_MULTI_VIEW) && defined(TARGET_QUEST)
+	float4 color = SampleLvlTex2DArray(gInputTextureArray, gSamplerPointClamp, float3(uv, eyeIndex), 0);
 	uint offset = DTid.x + DTid.y * inputDims.x * 2;
 #else
 	float4 color = SampleLvlTex2D(gInputTexture, gSamplerPointClamp, uv, 0);

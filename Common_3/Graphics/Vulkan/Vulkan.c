@@ -112,10 +112,6 @@ static inline size_t tf_mem_hash_uint8_t(const uint8_t* mem, size_t size, size_t
 #include "../../../Common_3/Graphics/ThirdParty/OpenSource/volk/volkForgeExt.h"
 #endif
 
-#if defined(QUEST_VR)
-#include "../Quest/OpenXRVulkan.h"
-#endif
-
 #if defined(GFX_ENABLE_SWAPPY)
 #include "swappy/swappyVk.h"
 #endif
@@ -757,6 +753,73 @@ PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 PFN_vkCmdDrawIndirectCountAMD pfnVkCmdDrawIndirectCountKHR = NULL;
 PFN_vkCmdDrawIndexedIndirectCountAMD pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 #endif
+
+// OpenXR functions declarations
+#ifdef QUEST_VR
+
+#define MAX_OPENXR_LAYERS 16
+#define MAX_OPENXR_VIEWS  2
+#define LEFT_EYE_VIEW     0
+#define RIGHT_EYE_VIEW    1
+
+typedef struct OpenXRSwapChainDesc
+{
+    XrSwapchain mSwapchainHandle;
+    uint32_t    mWidth;
+    uint32_t    mHeight;
+} OpenXRSwapChainDesc;
+
+typedef struct OpenXRPresentDesc
+{
+    OpenXRSwapChainDesc mMainView;
+    OpenXRSwapChainDesc m2DLayer;
+    VR2DLayerDesc       m2DLayerSettings;
+} OpenXRPresentDesc;
+
+// OpenXR functions shared with other system/platforms.
+// Only tested on the Meta Quest platform.
+extern XrInstance                    GetCurrentXRInstance();
+extern XrSession                     GetCurrentXRSession();
+extern XrSystemId                    GetXRSystemId();
+extern XrFrameState*                 GetCurrentXRFrameState();
+extern XrViewConfigurationProperties GetXRViewConfig();
+extern uint32_t                      GetXRViewCount();
+extern XrView*                       GetXRViews();
+extern XrSpace                       GetXRLocalSpace();
+extern XrSpace                       GetXRViewSpace();
+extern XrResult                      VerifyOXRResult(XrResult res, const char* func, const char* cmd, bool assertOnErr);
+extern void                          InitXRSession(Renderer* pRenderer);
+
+// OpenXR specific debugging macro to check function results (similar to CHECK_VKRESULT)
+#define CHECK_OXRRESULT(func) VerifyOXRResult(func, __FUNCTION__, #func, true)
+
+// Functions to manage XRSwapchains
+bool VerifySwapchainFormat(int64_t format);
+void AddOpenXRSwapchain(uint32_t width, uint32_t height, bool multiView, int64_t format, uint32_t sampleCount,
+                        SwapChainCreationFlags swapchainFlags, XrSwapchain* outSwapchain, uint32_t* outSwapchainImagesCount);
+void RemoveOpenXRSwapchain(const XrSwapchain swapchainHandle);
+void GetOpenXRSwapchainImages(const XrSwapchain swapchainHandle, uint32_t swapchainImagesCount,
+                              XrSwapchainImageBaseHeader* outSwapchainImages);
+
+bool DidRequestFoveation(SwapChainCreationFlags swapchainFlags);
+void SetOpenXRFoveation(XrFoveationLevelFB level, float verticalOffset, XrFoveationDynamicFB dynamic, const XrSwapchain swapchainHandle);
+
+void AcquireOpenXRSwapchainImage(const XrSwapchain swapchainHandle, uint32_t* outSwapchainImageIndex);
+void ReleaseOpenXRSwapchainImage(const XrSwapchain swapchainHandle);
+
+void BeginOpenXRFrame();
+void EndOpenXRFrame(OpenXRPresentDesc* desc);
+
+bool OpenXRAddVKInstanceExt(const char** instanceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer,
+                            uint bufferSize);
+bool OpenXRAddVKDeviceExt(const char** deviceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer, uint bufferSize);
+bool OpenXRPostInitVKRenderer(Renderer* pRenderer, VkInstance instance, VkDevice device, uint8_t queueFamilyIndex);
+void OpenXRAddVKSwapchain(Renderer* pRenderer, const SwapChainDesc* pDesc, bool multiView, SwapChain** ppSwapChain);
+void OpenXRRemoveVKSwapchain(Renderer* pRenderer, SwapChain* pSwapChain);
+void OpenXRVKQueuePresent(const QueuePresentDesc* pQueuePresentDesc);
+
+#endif
+
 /************************************************************************/
 // IMPLEMENTATION
 /************************************************************************/
@@ -928,6 +991,7 @@ typedef struct RenderPassDesc
     StoreActionType        mStoreActionStencil;
     bool                   mVRMultiview;
     bool                   mVRFoveatedRendering;
+    bool                   mDepthLazilyAllocated;
 } RenderPassDesc;
 
 typedef struct RenderPass
@@ -1018,8 +1082,9 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
         const bool noStencilWrites = pDesc->mStoreActionStencil == STORE_ACTION_NONE || pDesc->mStoreActionStencil == STORE_ACTION_DONTCARE;
         const bool isLoadingDepth = pDesc->mLoadActionDepth == LOAD_ACTION_LOAD;
         const bool isLoadingStencil = pDesc->mLoadActionStencil == LOAD_ACTION_LOAD;
+        const bool isDepthLazilyAllocated = pDesc->mDepthLazilyAllocated;
 
-        VkImageLayout imageLayout = noDepthWrites && noStencilWrites && (isLoadingDepth || isLoadingStencil)
+        VkImageLayout imageLayout = !isDepthLazilyAllocated && noDepthWrites && noStencilWrites && (isLoadingDepth || isLoadingStencil)
                                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
                                         : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         uint32_t      idx = attachmentCount++;
@@ -1039,6 +1104,29 @@ static void AddRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, Rend
     }
 
     void* renderPassNext = NULL;
+#ifdef QUEST_VR
+    VkRenderPassFragmentDensityMapCreateInfoEXT fragDensityCreateInfo = { 0 };
+    // Foveation / Fragment Density Maps
+    if (pDesc->mVRFoveatedRendering && pRenderer->mVR.mIsFoveationEnabled)
+    {
+        uint32_t idx = attachmentCount++;
+        attachments[idx].flags = 0;
+        attachments[idx].format = VK_FORMAT_R8G8_UNORM;
+        attachments[idx].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[idx].initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        attachments[idx].finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+        fragDensityCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT;
+        fragDensityCreateInfo.fragmentDensityMapAttachment.attachment = idx;
+        fragDensityCreateInfo.fragmentDensityMapAttachment.layout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+        renderPassNext = &fragDensityCreateInfo;
+    }
+#endif
 
     VkSubpassDescription subpass = {        
         .flags = 0,
@@ -1244,6 +1332,16 @@ static void AddFramebuffer(Renderer* pRenderer, VkRenderPass renderPass, const B
         }
     }
 
+#if defined(QUEST_VR)
+    if (vrFoveatedRendering && pRenderer->mVR.mIsFoveationEnabled)
+    {
+        RenderTarget* pFoveationFDM = pRenderer->mVR.pCurrentFDM;
+        ASSERT(pFoveationFDM != NULL);
+        *iterViews = pFoveationFDM->mVk.pDescriptor;
+        ++iterViews;
+    }
+#endif
+
     VkFramebufferCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         .pNext = NULL,
@@ -1315,6 +1413,7 @@ typedef struct PipelineLayout
     uint32_t         mLayoutCount;
     uint32_t         mEmptyLayouts : 31;
     uint32_t         mEmptyStaticSamplerLayout : 1;
+    size_t           mDescSetsHashes[MAX_DESCRIPTOR_SETS];
 } PipelineLayout;
 
 typedef struct PipelineLayoutNode
@@ -2988,6 +3087,7 @@ static bool QueryGpuInfo(const RendererContextDesc* pDesc, RendererContext* pCon
     pGpuDesc->mMultiDrawIndirect = gpuFeatures2.features.multiDrawIndirect;
     pGpuDesc->mMultiDrawIndirectCount = pGpuDesc->mDrawIndirectCountExtension || pGpuDesc->mAMDDrawIndirectCountExtension;
     pGpuDesc->mMaxBoundTextures = gpuProperties.properties.limits.maxPerStageDescriptorSampledImages;
+    pGpuDesc->mMaxStorageBufferSize = gpuProperties.properties.limits.maxStorageBufferRange;
     pGpuDesc->mMaxTotalComputeThreads = gpuProperties.properties.limits.maxComputeWorkGroupInvocations;
     pGpuDesc->mPrimitiveIdPsSupported = true;
     COMPILE_ASSERT(sizeof(pGpuDesc->mMaxComputeThreads) == sizeof(gpuProperties.properties.limits.maxComputeWorkGroupSize));
@@ -4479,7 +4579,8 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
     add_default_resources(pRenderer);
 
 #if defined(QUEST_VR)
-    if (!OpenXRPostInitVKRenderer(pRenderer->pContext->mVk.pInstance, pRenderer->mVk.pDevice, pRenderer->mVk.mGraphicsQueueFamilyIndex))
+    if (!OpenXRPostInitVKRenderer(pRenderer, pRenderer->pContext->mVk.pInstance, pRenderer->mVk.pDevice,
+                                  pRenderer->mVk.mGraphicsQueueFamilyIndex))
     {
         vmaDestroyAllocator(pRenderer->mVk.pVmaAllocator);
         SAFE_FREE(pRenderer->pName);
@@ -4969,15 +5070,32 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
     ASSERT(pRenderer);
     ASSERT(pDesc);
     ASSERT(ppSwapChain);
-    ASSERT(pDesc->ppPresentQueues);
 
     LOGF(eINFO, "Adding Vulkan swapchain @ %ux%u", pDesc->mWidth, pDesc->mHeight);
 
 #if defined(QUEST_VR)
-    OpenXRAddVKSwapchain(pRenderer, pDesc, ppSwapChain);
+    OpenXRAddVKSwapchain(pRenderer, pDesc, true, ppSwapChain);
+
+    bool shouldAdd2DLayer = pDesc->mFlags & SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+    if (shouldAdd2DLayer)
+    {
+        SwapChainDesc swapChainDesc = {};
+        swapChainDesc.mPresentQueueCount = 0;
+        swapChainDesc.ppPresentQueues = NULL;
+        swapChainDesc.mWidth = pDesc->mWidth;
+        swapChainDesc.mHeight = pDesc->mHeight;
+        swapChainDesc.mImageCount = pDesc->mImageCount;
+        swapChainDesc.mColorFormat = (TinyImageFormat)pDesc->mColorFormat;
+        swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
+        OpenXRAddVKSwapchain(pRenderer, &swapChainDesc, false, &(*ppSwapChain)->mVR.m2DLayer.pSwapchain);
+        SwapChain* p2DSwapChain = (*ppSwapChain)->mVR.m2DLayer.pSwapchain;
+        p2DSwapChain->mVR.m2DLayer.mCurrentSwapChainIndex = 0;
+        p2DSwapChain->mVR.m2DLayer.mDesc = pDesc->mVR.m2DLayer;
+    }
     return;
 #endif
 
+    ASSERT(pDesc->ppPresentQueues);
     /************************************************************************/
     // Create surface
     /************************************************************************/
@@ -5290,6 +5408,10 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 #endif
 
 #if defined(QUEST_VR)
+    if (pSwapChain->mVR.m2DLayer.pSwapchain)
+    {
+        OpenXRRemoveVKSwapchain(pRenderer, pSwapChain->mVR.m2DLayer.pSwapchain);
+    }
     OpenXRRemoveVKSwapchain(pRenderer, pSwapChain);
     return;
 #endif
@@ -6289,6 +6411,7 @@ static void GetOrAddPipelineLayout(Renderer* pRenderer, const DescriptorSetLayou
     size_t   pipelineLayoutHash = 0;
     uint32_t emptyLayouts = 0;
     bool     emptyStaticSamplerLayout = false;
+    size_t   descSetsHashes[MAX_DESCRIPTOR_SETS] = { 0 };
 
     for (uint32_t layoutIndex = 0; layoutIndex < layoutCount; ++layoutIndex)
     {
@@ -6297,10 +6420,12 @@ static void GetOrAddPipelineLayout(Renderer* pRenderer, const DescriptorSetLayou
             setLayouts[layoutIndex] = pRenderer->mVk.pEmptyDescriptorSetLayout;
             emptyLayouts |= (1 << layoutIndex);
             pipelineLayoutHash = tf_mem_hash_uint8_t((const uint8_t*)&layoutIndex, sizeof(uint32_t), pipelineLayoutHash);
+            descSetsHashes[layoutIndex] = 0;
             continue;
         }
 
         size_t layoutHash = GetOrAddDescriptorSetLayout(pRenderer, pLayouts[layoutIndex], &setLayouts[layoutIndex]);
+        descSetsHashes[layoutIndex] = layoutHash;
         pipelineLayoutHash = tf_mem_hash_uint8_t((const uint8_t*)&layoutHash, sizeof(size_t), pipelineLayoutHash);
 
         if (pLayouts[layoutIndex]->mStaticSamplerCount && !pLayouts[layoutIndex]->mDescriptorCount)
@@ -6346,6 +6471,8 @@ static void GetOrAddPipelineLayout(Renderer* pRenderer, const DescriptorSetLayou
         pipelineLayout->mLayoutCount = layoutCount;
         pipelineLayout->mEmptyLayouts = emptyLayouts;
         pipelineLayout->mEmptyStaticSamplerLayout = emptyStaticSamplerLayout;
+
+        memcpy(pipelineLayout->mDescSetsHashes, descSetsHashes, sizeof(descSetsHashes));
         // No need of a lock here since this map is per thread
     }
 
@@ -6435,7 +6562,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
     layoutDesc.mStaticSamplerCount = pDesc->mStaticSamplerCount;
     layoutDesc.pDescriptors = pDesc->pDescriptors;
     layoutDesc.pStaticSamplers = pDesc->pStaticSamplers;
-    GetOrAddDescriptorSetLayout(pRenderer, &layoutDesc, &setLayout);
+    size_t descSetHash = GetOrAddDescriptorSetLayout(pRenderer, &layoutDesc, &setLayout);
 
     for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
     {
@@ -6545,6 +6672,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
         }
     }
 
+    pDescriptorSet->mVk.mHash = descSetHash;
     *ppDescriptorSet = pDescriptorSet;
 }
 
@@ -6854,6 +6982,17 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
     ASSERT(pDescriptorSet->mVk.pHandles);
     ASSERT(index < pDescriptorSet->mVk.mMaxSets);
 
+    pCmd->mVk.mBoundDescriptorSets[pDescriptorSet->mVk.mSetIndex] = pDescriptorSet;
+    pCmd->mVk.mBoundDescriptorSetIndices[pDescriptorSet->mVk.mSetIndex] = index;
+    pCmd->mVk.mBoundDescriptorSetHashes[pDescriptorSet->mVk.mSetIndex] = pDescriptorSet->mVk.mHash;
+
+    // if no pipeline layout is bound yet, mask this descriptor set to be bound when cmdBindPipeline is called
+    if (pCmd->mVk.pBoundPipelineLayout == NULL)
+    {
+        pCmd->mVk.mShouldRebindDescriptorSetsMask |= 0x01 << pDescriptorSet->mVk.mSetIndex;
+        return;
+    }
+
     vkCmdBindDescriptorSets(pCmd->mVk.pCmdBuf, gPipelineBindPoint[pCmd->mVk.mPipelineType], pCmd->mVk.pBoundPipelineLayout,
                             pDescriptorSet->mVk.mSetIndex, 1, &pDescriptorSet->mVk.pHandles[index], 0, NULL);
 }
@@ -7147,6 +7286,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 #endif
         renderPassDesc.mStoreActionDepth = gDefaultStoreActions[0];
         renderPassDesc.mStoreActionStencil = gDefaultStoreActions[1];
+        renderPassDesc.mDepthLazilyAllocated = false;
         AddRenderPass(pRenderer, &renderPassDesc, &renderPass);
     }
 
@@ -7693,6 +7833,11 @@ void beginCmd(Cmd* pCmd)
 
     // Reset CPU side data
     pCmd->mVk.pBoundPipelineLayout = NULL;
+    pCmd->mVk.mShouldRebindDescriptorSetsMask = 0;
+    for (uint32_t i = 0; i < MAX_DESCRIPTOR_SETS; i++)
+    {
+        pCmd->mVk.mBoundDescriptorSetHashes[i] = 0;
+    }
 }
 
 void endCmd(Cmd* pCmd)
@@ -8026,6 +8171,8 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     VkPipelineStageFlags srcStageMask = { 0 };
     VkPipelineStageFlags dstStageMask = { 0 };
 
+    bool isDepthLazilyAllocated = false;
+
     // Generate hash for render pass and frame buffer
     // NOTE:
     // Render pass does not care about underlying VkImageView. It only cares about the format and sample count of the attachments.
@@ -8047,8 +8194,12 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             colorStoreAction[i] = desc->pRenderTarget->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
         }
 
-        uint32_t renderPassHashValues[] = { (uint32_t)desc->pRenderTarget->mFormat, (uint32_t)desc->pRenderTarget->mSampleCount,
-                                            (uint32_t)desc->mLoadAction, (uint32_t)colorStoreAction[i] };
+        uint32_t renderPassHashValues[] = { (uint32_t)desc->pRenderTarget->mFormat,
+                                            (uint32_t)desc->pRenderTarget->mSampleCount,
+                                            (uint32_t)desc->mLoadAction,
+                                            (uint32_t)colorStoreAction[i],
+                                            (uint32_t)desc->pRenderTarget->pTexture->mArraySizeMinusOne,
+                                            (uint32_t)desc->pRenderTarget->mVRFoveatedRendering };
         uint32_t frameBufferHashValues[] = {
             desc->pRenderTarget->mVk.mId,
             ((uint32_t)desc->mUseArraySlice << 1) | ((uint32_t)desc->mUseMipSlice),
@@ -8077,6 +8228,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     if (hasDepth)
     {
         const BindDepthTargetDesc* desc = &pDesc->mDepthStencil;
+        isDepthLazilyAllocated = desc->pDepthStencil->pTexture->mLazilyAllocated;
         depthStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreAction;
         stencilStoreAction = desc->pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE : desc->mStoreActionStencil;
 
@@ -8092,6 +8244,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
             (uint32_t)desc->mLoadActionStencil,
             (uint32_t)depthStoreAction,
             (uint32_t)stencilStoreAction,
+            (uint32_t)desc->pDepthStencil->mVRFoveatedRendering,
         };
         uint32_t frameBufferHashValues[] = {
             desc->pDepthStencil->mVk.mId,
@@ -8165,6 +8318,7 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         renderPassDesc.mStoreActionStencil = stencilStoreAction;
         renderPassDesc.mVRMultiview = vrMultiview;
         renderPassDesc.mVRFoveatedRendering = vrFoveatedRendering;
+        renderPassDesc.mDepthLazilyAllocated = isDepthLazilyAllocated;
         AddRenderPass(pCmd->pRenderer, &renderPassDesc, &renderPass);
 
         // No need of a lock here since this map is per thread
@@ -8225,6 +8379,11 @@ void cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     pCmd->mVk.pActiveRenderPass = pRenderPass->pRenderPass;
 
     util_cache_sample_location_state(pCmd, &pDesc->mSampleLocation, sampleCount);
+
+#if defined(QUEST_VR)
+    // changing render targets invalidates the desc sets on quest ?
+    pCmd->mVk.mShouldRebindDescriptorSetsMask = MAX_DESCRIPTOR_SETS_MASK;
+#endif
 }
 
 void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
@@ -8278,27 +8437,36 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 
     VkPipelineBindPoint bindPoint = gPipelineBindPoint[pPipeline->mVk.mType];
     vkCmdBindPipeline(pCmd->mVk.pCmdBuf, bindPoint, pPipeline->mVk.pPipeline);
+    bool   isNewlayout = pCmd->mVk.pBoundPipelineLayout != pPipeline->mVk.pPipelineLayout->pLayout;
+    /// layout changed, desc sets need to rebind
+    size_t shouldRebindMask = isNewlayout ? 0xff : pCmd->mVk.mShouldRebindDescriptorSetsMask;
 
-    if (pCmd->mVk.pBoundPipeline != pPipeline->mVk.pPipeline || pCmd->mVk.pBoundPipelineLayout != pPipeline->mVk.pPipelineLayout->pLayout)
+    if (pCmd->mVk.pBoundPipeline != pPipeline->mVk.pPipeline || isNewlayout)
     {
         pCmd->mVk.pBoundPipelineLayout = pPipeline->mVk.pPipelineLayout->pLayout;
-
         const PipelineLayout* layout = pPipeline->mVk.pPipelineLayout;
 
         // Vulkan requires to bind all descriptor sets upto the highest set number even if they are empty
         // Example: If shader uses only set 2, we still have to bind empty sets for set=0 and set=1
         for (uint32_t setIndex = 0; setIndex < layout->mLayoutCount; ++setIndex)
         {
+            uint32_t currSetMask = 0x01 << setIndex;
             if (layout->mEmptyStaticSamplerLayout && setIndex == 0)
             {
                 ASSERT(pCmd->pRenderer->mVk.pEmptyStaticSamplerDescriptorSet);
                 vkCmdBindDescriptorSets(pCmd->mVk.pCmdBuf, bindPoint, layout->pLayout, setIndex, 1,
                                         &pCmd->pRenderer->mVk.pEmptyStaticSamplerDescriptorSet->mVk.pHandles[0], 0, NULL);
             }
-            else if (layout->mEmptyLayouts & (1 << setIndex))
+            else if (layout->mEmptyLayouts & currSetMask)
             {
                 vkCmdBindDescriptorSets(pCmd->mVk.pCmdBuf, bindPoint, layout->pLayout, setIndex, 1,
                                         &pCmd->pRenderer->mVk.pEmptyDescriptorSet, 0, NULL);
+            }
+            else if ((shouldRebindMask & currSetMask) &&
+                     (pCmd->mVk.mBoundDescriptorSetHashes[setIndex] == pPipeline->mVk.pPipelineLayout->mDescSetsHashes[setIndex]))
+            {
+                cmdBindDescriptorSet(pCmd, pCmd->mVk.mBoundDescriptorSetIndices[setIndex], pCmd->mVk.mBoundDescriptorSets[setIndex]);
+                pCmd->mVk.mShouldRebindDescriptorSetsMask ^= currSetMask;
             }
         }
     }
@@ -8735,13 +8903,20 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 {
     ASSERT(pRenderer);
     ASSERT(VK_NULL_HANDLE != pRenderer->mVk.pDevice);
-    ASSERT(pSignalSemaphore || pFence);
 
 #if defined(QUEST_VR)
-    OpenXRAcquireNextVKImage(pSwapChain, pImageIndex);
+    BeginOpenXRFrame();
+    AcquireOpenXRSwapchainImage(pSwapChain->mVR.pSwapchain, pImageIndex);
+    pRenderer->mVR.pCurrentFDM = pSwapChain->mVR.ppFoveationFragmentDensityMaps[*pImageIndex];
+    SwapChain* p2DLayerSwapchain = pSwapChain->mVR.m2DLayer.pSwapchain;
+    if (p2DLayerSwapchain != NULL)
+    {
+        AcquireOpenXRSwapchainImage(p2DLayerSwapchain->mVR.pSwapchain, &pSwapChain->mVR.m2DLayer.mCurrentSwapChainIndex);
+    }
     return;
 #else
     ASSERT(VK_NULL_HANDLE != pSwapChain->mVk.pSwapChain);
+    ASSERT(pSignalSemaphore || pFence);
 #endif
 
     VkResult vk_res = VK_SUCCESS;
@@ -8933,6 +9108,25 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
             desc.discardAlpha = true;
             desc.flipRedBlue = false;
             captureScreenshot(&desc);
+
+#if defined(QUEST_VR)
+            // When taking automated screenshots on Quest, we need to include a separate one for the 2D compositor layer.
+            SwapChain* p2DLayerSwapChain = pSwapChain->mVR.m2DLayer.pSwapchain;
+            if (p2DLayerSwapChain != NULL)
+            {
+                char* pScreenshotName = getScreenshotName();
+                strncat(pScreenshotName, "_UI", FS_MAX_PATH);
+                setScreenshotName(pScreenshotName);
+
+                desc.pRenderTarget = p2DLayerSwapChain->ppRenderTargets[pSwapChain->mVR.m2DLayer.mCurrentSwapChainIndex];
+                desc.ppWaitSemaphores = pDesc->ppWaitSemaphores;
+                desc.mWaitSemaphoresCount = pDesc->mWaitSemaphoreCount;
+                desc.mColorSpace = p2DLayerSwapChain->mColorSpace;
+                desc.discardAlpha = true;
+                desc.flipRedBlue = false;
+                captureScreenshot(&desc);
+            }
+#endif
         }
 #endif
 
@@ -9618,6 +9812,575 @@ void setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName
     SetVkObjectName(pRenderer, (uint64_t)pPipeline->mVk.pPipeline, VK_OBJECT_TYPE_PIPELINE, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT,
                     pName);
 }
+
+// OpenXR Vulkan functionality and bindings
+#ifdef QUEST_VR
+
+bool VerifySwapchainFormat(int64_t format)
+{
+    uint32_t  swapchainFormatCount;
+    XrSession xrSession = GetCurrentXRSession();
+    CHECK_OXRRESULT(xrEnumerateSwapchainFormats(xrSession, 0, &swapchainFormatCount, NULL));
+    int64_t* swapchainFormats = (int64_t*)tf_malloc(swapchainFormatCount * sizeof(int64_t));
+    CHECK_OXRRESULT(xrEnumerateSwapchainFormats(xrSession, swapchainFormatCount, &swapchainFormatCount, swapchainFormats));
+    bool verified = false;
+    for (uint32_t formatIndex = 0; formatIndex < swapchainFormatCount; formatIndex++)
+    {
+        if (format == swapchainFormats[formatIndex])
+        {
+            verified = true;
+            break;
+        }
+    }
+    tf_free(swapchainFormats);
+
+    return verified;
+}
+
+bool DidRequestFoveation(SwapChainCreationFlags swapchainFlags)
+{
+    return (bool)(swapchainFlags & SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR);
+}
+
+void AddOpenXRSwapchain(uint32_t width, uint32_t height, bool multiView, int64_t format, uint32_t sampleCount,
+                        SwapChainCreationFlags swapchainFlags, XrSwapchain* outSwapchain, uint32_t* outSwapchainImagesCount)
+{
+    ASSERT(GetXRViewCount() == MAX_OPENXR_VIEWS);
+
+    LOGF(eINFO, "Creating OpenXR Swapchains with dimensions %d X %d and SampleCount %d", width, height, sampleCount);
+
+    XrSwapchainCreateInfo swapchainCreateInfo = { .type = XR_TYPE_SWAPCHAIN_CREATE_INFO };
+    swapchainCreateInfo.arraySize = multiView ? GetXRViewCount() : 1;
+    swapchainCreateInfo.format = format;
+    swapchainCreateInfo.width = width;
+    swapchainCreateInfo.height = height;
+    swapchainCreateInfo.mipCount = 1;
+    swapchainCreateInfo.faceCount = 1;
+    swapchainCreateInfo.sampleCount = sampleCount;
+    swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+
+    XrSwapchainCreateInfoFoveationFB swapchainFoveationCreateInfo = { XR_TYPE_SWAPCHAIN_CREATE_INFO_FOVEATION_FB };
+    if (DidRequestFoveation(swapchainFlags))
+    {
+        swapchainFoveationCreateInfo.flags = XR_SWAPCHAIN_CREATE_FOVEATION_FRAGMENT_DENSITY_MAP_BIT_FB;
+        swapchainCreateInfo.next = &swapchainFoveationCreateInfo;
+    }
+
+    CHECK_OXRRESULT(xrCreateSwapchain(GetCurrentXRSession(), &swapchainCreateInfo, outSwapchain));
+
+    CHECK_OXRRESULT(xrEnumerateSwapchainImages(*outSwapchain, 0, outSwapchainImagesCount, NULL));
+}
+
+void RemoveOpenXRSwapchain(const XrSwapchain swapchainHandle)
+{
+    ASSERT(swapchainHandle != XR_NULL_HANDLE);
+    CHECK_OXRRESULT(xrDestroySwapchain(swapchainHandle));
+}
+
+void GetOpenXRSwapchainImages(const XrSwapchain swapchainHandle, uint32_t swapchainImagesCount,
+                              XrSwapchainImageBaseHeader* outSwapchainImages)
+{
+    ASSERT(swapchainHandle != XR_NULL_HANDLE);
+
+    CHECK_OXRRESULT(xrEnumerateSwapchainImages(swapchainHandle, swapchainImagesCount, &swapchainImagesCount, outSwapchainImages));
+}
+
+void AcquireOpenXRSwapchainImage(const XrSwapchain swapchainHandle, uint32_t* outSwapchainImageIndex)
+{
+    XrSwapchainImageAcquireInfo acquireInfo = { .type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
+    CHECK_OXRRESULT(xrAcquireSwapchainImage(swapchainHandle, &acquireInfo, outSwapchainImageIndex));
+
+    XrSwapchainImageWaitInfo waitInfo = { .type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
+    waitInfo.timeout = XR_INFINITE_DURATION;
+    CHECK_OXRRESULT(xrWaitSwapchainImage(swapchainHandle, &waitInfo));
+}
+
+void ReleaseOpenXRSwapchainImage(const XrSwapchain swapchainHandle)
+{
+    XrSwapchainImageReleaseInfo releaseInfo = { .type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+    CHECK_OXRRESULT(xrReleaseSwapchainImage(swapchainHandle, &releaseInfo));
+}
+
+void SetOpenXRFoveation(XrFoveationLevelFB level, float verticalOffset, XrFoveationDynamicFB dynamic, const XrSwapchain swapchainHandle)
+{
+    XrInstance                     xrInstance = GetCurrentXRInstance();
+    PFN_xrCreateFoveationProfileFB pfnCreateFoveationProfileFB;
+    CHECK_OXRRESULT(xrGetInstanceProcAddr(xrInstance, "xrCreateFoveationProfileFB", (PFN_xrVoidFunction*)(&pfnCreateFoveationProfileFB)));
+
+    PFN_xrDestroyFoveationProfileFB pfnDestroyFoveationProfileFB;
+    CHECK_OXRRESULT(xrGetInstanceProcAddr(xrInstance, "xrDestroyFoveationProfileFB", (PFN_xrVoidFunction*)(&pfnDestroyFoveationProfileFB)));
+
+    PFN_xrUpdateSwapchainFB pfnUpdateSwapchainFB;
+    CHECK_OXRRESULT(xrGetInstanceProcAddr(xrInstance, "xrUpdateSwapchainFB", (PFN_xrVoidFunction*)(&pfnUpdateSwapchainFB)));
+
+    XrFoveationLevelProfileCreateInfoFB levelProfileCreateInfo = { .type = XR_TYPE_FOVEATION_LEVEL_PROFILE_CREATE_INFO_FB };
+    levelProfileCreateInfo.level = level;
+    levelProfileCreateInfo.verticalOffset = verticalOffset;
+    levelProfileCreateInfo.dynamic = dynamic;
+
+    XrFoveationProfileCreateInfoFB profileCreateInfo = { .type = XR_TYPE_FOVEATION_PROFILE_CREATE_INFO_FB };
+    profileCreateInfo.next = &levelProfileCreateInfo;
+
+    XrFoveationProfileFB foveationProfile;
+
+    pfnCreateFoveationProfileFB(GetCurrentXRSession(), &profileCreateInfo, &foveationProfile);
+
+    XrSwapchainStateFoveationFB foveationUpdateState = { .type = XR_TYPE_SWAPCHAIN_STATE_FOVEATION_FB };
+    foveationUpdateState.profile = foveationProfile;
+
+    pfnUpdateSwapchainFB(swapchainHandle, (XrSwapchainStateBaseHeaderFB*)(&foveationUpdateState));
+
+    pfnDestroyFoveationProfileFB(foveationProfile);
+}
+
+void BeginOpenXRFrame()
+{
+    XrSession xrSession = GetCurrentXRSession();
+    ASSERT(xrSession != XR_NULL_HANDLE);
+
+    XrFrameState*   pXrFrameState = GetCurrentXRFrameState();
+    XrFrameWaitInfo frameWaitInfo = { .type = XR_TYPE_FRAME_WAIT_INFO };
+    memset(pXrFrameState, 0, sizeof(XrFrameState));
+    pXrFrameState->type = XR_TYPE_FRAME_STATE;
+    CHECK_OXRRESULT(xrWaitFrame(xrSession, &frameWaitInfo, pXrFrameState));
+
+    XrFrameBeginInfo frameBeginInfo = { .type = XR_TYPE_FRAME_BEGIN_INFO };
+    CHECK_OXRRESULT(xrBeginFrame(xrSession, &frameBeginInfo));
+
+    XrViewState viewState;
+    viewState.type = XR_TYPE_VIEW_STATE;
+    uint32_t viewCapacityInput = (uint32_t)MAX_OPENXR_VIEWS;
+    uint32_t viewCountOutput;
+
+    XrViewLocateInfo viewLocateInfo = { .type = XR_TYPE_VIEW_LOCATE_INFO };
+    viewLocateInfo.viewConfigurationType = GetXRViewConfig().viewConfigurationType;
+    viewLocateInfo.displayTime = pXrFrameState->predictedDisplayTime;
+    viewLocateInfo.space = GetXRLocalSpace();
+
+    CHECK_OXRRESULT(xrLocateViews(xrSession, &viewLocateInfo, &viewState, viewCapacityInput, &viewCountOutput, GetXRViews()));
+    ASSERTMSG(viewCountOutput == GetXRViewCount(), "Mismatch in Viewcount from xrLocateViews");
+
+    XrView mViewSpaceViews[MAX_OPENXR_VIEWS];
+    mViewSpaceViews[0].type = XR_TYPE_VIEW;
+    mViewSpaceViews[1].type = XR_TYPE_VIEW;
+
+    viewLocateInfo.space = GetXRViewSpace();
+    CHECK_OXRRESULT(xrLocateViews(xrSession, &viewLocateInfo, &viewState, viewCapacityInput, &viewCountOutput, mViewSpaceViews));
+}
+
+void EndOpenXRFrame(OpenXRPresentDesc* desc)
+{
+    XrSession xrSession = GetCurrentXRSession();
+    ASSERT(xrSession != XR_NULL_HANDLE);
+
+    XrCompositionLayerProjectionView    projectionLayerViews[MAX_OPENXR_VIEWS] = { [LEFT_EYE_VIEW] = { 0 }, [RIGHT_EYE_VIEW] = { 0 } };
+    const XrCompositionLayerBaseHeader* layerPtrs[MAX_OPENXR_LAYERS] = { 0 };
+    uint32_t                            layerCount = 0;
+    uint32_t                            viewCount = GetXRViewCount();
+    XrView*                             pXRViews = GetXRViews();
+
+    for (uint32_t layerViewIndex = 0; layerViewIndex < viewCount; layerViewIndex++)
+    {
+        projectionLayerViews[layerViewIndex].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+        projectionLayerViews[layerViewIndex].pose = pXRViews[layerViewIndex].pose;
+        projectionLayerViews[layerViewIndex].fov = pXRViews[layerViewIndex].fov;
+        projectionLayerViews[layerViewIndex].subImage.swapchain = desc->mMainView.mSwapchainHandle;
+        projectionLayerViews[layerViewIndex].subImage.imageRect.offset.x = 0;
+        projectionLayerViews[layerViewIndex].subImage.imageRect.offset.y = 0;
+        projectionLayerViews[layerViewIndex].subImage.imageRect.extent.width = desc->mMainView.mWidth;
+        projectionLayerViews[layerViewIndex].subImage.imageRect.extent.height = desc->mMainView.mHeight;
+        projectionLayerViews[layerViewIndex].subImage.imageArrayIndex = layerViewIndex;
+    }
+
+    XrCompositionLayerProjection layer = { .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION };
+    layer.space = GetXRLocalSpace();
+    layer.layerFlags = 0;
+    layer.viewCount = viewCount;
+    layer.views = projectionLayerViews;
+    layerPtrs[layerCount] = (XrCompositionLayerBaseHeader*)&layer;
+    ++layerCount;
+
+    XrCompositionLayerQuad quadLayer = { .type = XR_TYPE_COMPOSITION_LAYER_QUAD };
+    if (desc->m2DLayer.mSwapchainHandle != XR_NULL_HANDLE)
+    {
+        quadLayer.next = NULL;
+        quadLayer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+        quadLayer.space = GetXRViewSpace();
+        quadLayer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+        quadLayer.subImage.swapchain = desc->m2DLayer.mSwapchainHandle;
+        quadLayer.subImage.imageRect.offset.x = 0;
+        quadLayer.subImage.imageRect.offset.y = 0;
+        quadLayer.subImage.imageRect.extent.width = desc->m2DLayer.mWidth;
+        quadLayer.subImage.imageRect.extent.height = desc->m2DLayer.mHeight;
+
+        XrPosef pose;
+        XrPosef_CreateIdentity(&pose);
+        pose.position.x = desc->m2DLayerSettings.m2DLayerPosition.x;
+        pose.position.y = desc->m2DLayerSettings.m2DLayerPosition.y;
+        pose.position.z = desc->m2DLayerSettings.m2DLayerPosition.z;
+        pose.orientation.x = desc->m2DLayerSettings.m2DLayerRotQuat.x;
+        pose.orientation.y = desc->m2DLayerSettings.m2DLayerRotQuat.y;
+        pose.orientation.z = desc->m2DLayerSettings.m2DLayerRotQuat.z;
+        pose.orientation.w = desc->m2DLayerSettings.m2DLayerRotQuat.w;
+        quadLayer.pose = pose;
+
+        float effectiveScale = desc->m2DLayerSettings.m2DLayerScale;
+        effectiveScale = effectiveScale <= 0.0f ? 1.0f : effectiveScale;
+        float aspectRatio = (float)desc->m2DLayer.mHeight / (float)desc->m2DLayer.mWidth;
+        quadLayer.size.width = effectiveScale;
+        quadLayer.size.height = effectiveScale * aspectRatio;
+
+        layerPtrs[layerCount] = (XrCompositionLayerBaseHeader*)&quadLayer;
+        ++layerCount;
+    }
+
+    XrFrameState* pCurrentFrameState = GetCurrentXRFrameState();
+    ASSERT(pCurrentFrameState->type == XR_TYPE_FRAME_STATE);
+    XrFrameEndInfo frameEndInfo = { .type = XR_TYPE_FRAME_END_INFO };
+    frameEndInfo.displayTime = pCurrentFrameState->predictedDisplayTime;
+    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE; // TODO: Add support for additional blend modes?
+    frameEndInfo.layerCount = layerCount;
+    frameEndInfo.layers = layerPtrs;
+    CHECK_OXRRESULT(xrEndFrame(xrSession, &frameEndInfo));
+}
+
+XrResult GetVulkanGraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsVulkanKHR* graphicsRequirements)
+{
+    PFN_xrGetVulkanGraphicsRequirementsKHR pfnGetVulkanGraphicsRequirementsKHR = NULL;
+    xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsRequirementsKHR", (PFN_xrVoidFunction*)&pfnGetVulkanGraphicsRequirementsKHR);
+
+    pfnGetVulkanGraphicsRequirementsKHR(instance, systemId, graphicsRequirements);
+
+    return XR_SUCCESS;
+}
+
+XrResult GetVulkanGraphicsDeviceKHR(XrInstance instance, const XrSystemId systemId, VkInstance vkInstance, VkPhysicalDevice* physicalDevice)
+{
+    PFN_xrGetVulkanGraphicsDeviceKHR pfnGetVulkanGraphicsDeviceKHR = NULL;
+    xrGetInstanceProcAddr(instance, "xrGetVulkanGraphicsDeviceKHR", (PFN_xrVoidFunction*)&pfnGetVulkanGraphicsDeviceKHR);
+
+    return pfnGetVulkanGraphicsDeviceKHR(instance, systemId, vkInstance, physicalDevice);
+}
+
+bool OpenXRAddVKInstanceExt(const char** instanceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pExtensionsBuffer,
+                            uint extensionsBufferSize)
+{
+    XrInstance                           xrInstance = GetCurrentXRInstance();
+    XrSystemId                           xrSystemId = GetXRSystemId();
+    PFN_xrGetVulkanInstanceExtensionsKHR pfnGetVulkanInstanceExtensionsKHR = NULL;
+    xrGetInstanceProcAddr(xrInstance, "xrGetVulkanInstanceExtensionsKHR", (PFN_xrVoidFunction*)&pfnGetVulkanInstanceExtensionsKHR);
+
+    pfnGetVulkanInstanceExtensionsKHR(xrInstance, xrSystemId, 0, &extensionsBufferSize, NULL);
+    pfnGetVulkanInstanceExtensionsKHR(xrInstance, xrSystemId, extensionsBufferSize, &extensionsBufferSize, pExtensionsBuffer);
+
+    const char* vrExtensions[32];
+    vrExtensions[0] = pExtensionsBuffer;
+    int vrExtensionCount = 1;
+    for (int i = 0; i < extensionsBufferSize; ++i)
+    {
+        if (pExtensionsBuffer[i] == ' ')
+        {
+            vrExtensions[vrExtensionCount] = &pExtensionsBuffer[i + 1];
+            pExtensionsBuffer[i] = '\0';
+            ++vrExtensionCount;
+        }
+        else if (pExtensionsBuffer[i] == '\0')
+            break;
+    }
+
+    for (int i = 0; i < vrExtensionCount; ++i)
+    {
+        bool alreadyInCache = false;
+        for (int j = 0; j < (*extensionCount); ++j)
+        {
+            if (strcmp(vrExtensions[i], instanceExtensionCache[j]) == 0)
+            {
+                alreadyInCache = true;
+                break;
+            }
+        }
+
+        if (!alreadyInCache)
+        {
+            if ((*extensionCount) == maxExtensionCount)
+            {
+                LOGF(eERROR, "Reached maximum instance extension count");
+                ASSERT(false);
+                return false;
+            }
+            instanceExtensionCache[*extensionCount] = vrExtensions[i];
+            LOGF(eINFO, "Adding %s Vk Instance Extensions requested by the OpenXR runtime", vrExtensions[i]);
+            ++(*extensionCount);
+        }
+    }
+
+    return true;
+}
+
+bool OpenXRAddVKDeviceExt(const char** deviceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pExtensionsBuffer,
+                          uint extensionsBufferSize)
+{
+    XrInstance                         xrInstance = GetCurrentXRInstance();
+    PFN_xrGetVulkanDeviceExtensionsKHR pfnGetVulkanDeviceExtensionsKHR = NULL;
+    xrGetInstanceProcAddr(xrInstance, "xrGetVulkanDeviceExtensionsKHR", (PFN_xrVoidFunction*)(&pfnGetVulkanDeviceExtensionsKHR));
+
+    extensionsBufferSize = 0;
+    XrSystemId xrSystemId = GetXRSystemId();
+    pfnGetVulkanDeviceExtensionsKHR(xrInstance, xrSystemId, 0, &extensionsBufferSize, NULL);
+    if (extensionsBufferSize > 0)
+    {
+        pfnGetVulkanDeviceExtensionsKHR(xrInstance, xrSystemId, extensionsBufferSize, &extensionsBufferSize, pExtensionsBuffer);
+    }
+
+    const char* vrExtensions[32];
+    vrExtensions[0] = pExtensionsBuffer;
+    int vrExtensionCount = 1;
+    for (int i = 0; i < extensionsBufferSize; ++i)
+    {
+        if (pExtensionsBuffer[i] == ' ')
+        {
+            vrExtensions[vrExtensionCount] = &pExtensionsBuffer[i + 1];
+            pExtensionsBuffer[i] = '\0';
+            ++vrExtensionCount;
+        }
+        else if (pExtensionsBuffer[i] == '\0')
+            break;
+    }
+
+    for (int i = 0; i < vrExtensionCount; ++i)
+    {
+        bool alreadyInCache = false;
+        for (int j = 0; j < (*extensionCount); ++j)
+        {
+            if (strcmp(vrExtensions[i], deviceExtensionCache[j]) == 0)
+            {
+                alreadyInCache = true;
+                break;
+            }
+        }
+
+        if (!alreadyInCache)
+        {
+            if ((*extensionCount) == maxExtensionCount)
+            {
+                LOGF(eERROR, "Reached maximum device extension count");
+                ASSERT(false);
+                return false;
+            }
+            deviceExtensionCache[*extensionCount] = vrExtensions[i];
+            LOGF(eINFO, "Adding %s Vk Device Extensions requested by the OpenXR runtime", vrExtensions[i]);
+            ++(*extensionCount);
+        }
+    }
+
+    return true;
+}
+
+bool OpenXRPostInitVKRenderer(Renderer* pRenderer, VkInstance instance, VkDevice device, uint8_t queueFamilyIndex)
+{
+    // Create the Vulkan device for the adapter associated with the system.
+    // Extension function must be loaded by name
+    XrInstance                      xrInstance = GetCurrentXRInstance();
+    XrGraphicsRequirementsVulkanKHR graphicsRequirements = { .type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR };
+    GetVulkanGraphicsRequirementsKHR(xrInstance, GetXRSystemId(), &graphicsRequirements);
+
+    VkPhysicalDevice vkPhysicalDevice;
+    GetVulkanGraphicsDeviceKHR(xrInstance, GetXRSystemId(), instance, &vkPhysicalDevice);
+
+    XrGraphicsBindingVulkanKHR* pGraphicsBinding = &pRenderer->pContext->mVR.mXRGraphicsBinding;
+    memset(pGraphicsBinding, 0, sizeof(XrGraphicsBindingVulkanKHR));
+    pGraphicsBinding->type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
+    pGraphicsBinding->instance = instance;
+    pGraphicsBinding->physicalDevice = vkPhysicalDevice;
+    pGraphicsBinding->device = device;
+    pGraphicsBinding->queueFamilyIndex = queueFamilyIndex;
+    pGraphicsBinding->queueIndex = 0;
+    pRenderer->mVR.pCurrentFDM = NULL;
+    pRenderer->mVR.mIsFoveationEnabled = false;
+
+    InitXRSession(pRenderer);
+
+    return true;
+}
+
+void OpenXRAddVKSwapchain(Renderer* pRenderer, const SwapChainDesc* pDesc, bool multiView, SwapChain** ppSwapChain)
+{
+    VkFormat vkFormat = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mColorFormat);
+    ASSERTMSG(VerifySwapchainFormat(vkFormat), "Requested swapchain format is not a supported OpenXR swapchain format");
+
+    bool foveationEnabled = DidRequestFoveation(pDesc->mFlags);
+    pRenderer->mVR.mIsFoveationEnabled |= foveationEnabled;
+
+    XrSwapchain swapchain;
+    uint32_t    imageCount;
+    AddOpenXRSwapchain(pDesc->mWidth, pDesc->mHeight, multiView, vkFormat, VK_SAMPLE_COUNT_1_BIT, pDesc->mFlags, &swapchain, &imageCount);
+    ASSERT(imageCount >= pDesc->mImageCount);
+
+    SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + 2 * imageCount * sizeof(RenderTarget*) +
+                                                         imageCount * sizeof(XrSwapchainImageVulkanKHR) +
+                                                         imageCount * sizeof(XrSwapchainImageFoveationVulkanFB) + sizeof(SwapChainDesc));
+    ASSERT(pSwapChain);
+
+    RenderTarget**                     ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
+    RenderTarget**                     ppFragmentDensityMapRTs = ppRenderTargets + imageCount;
+    XrSwapchainImageVulkanKHR*         pSwapchainImages = (XrSwapchainImageVulkanKHR*)(ppFragmentDensityMapRTs + imageCount);
+    XrSwapchainImageFoveationVulkanFB* pFoveationImages = (XrSwapchainImageFoveationVulkanFB*)(pSwapchainImages + imageCount);
+    SwapChainDesc*                     pSwapchainDesc = (SwapChainDesc*)(pFoveationImages + imageCount);
+
+    pSwapChain->ppRenderTargets = ppRenderTargets;
+    pSwapChain->mVR.ppFoveationFragmentDensityMaps = ppFragmentDensityMapRTs;
+    pSwapChain->mVR.pSwapchainImages = (XrSwapchainImageBaseHeader*)pSwapchainImages;
+    pSwapChain->mVk.pDesc = pSwapchainDesc;
+
+    pSwapChain->mVR.pSwapchain = swapchain;
+
+    if (foveationEnabled)
+    {
+        XrFoveationDynamicFB dynamicFoveationLevel = (pDesc->mVR.mFoveationLevel == FOVEATION_LEVEL_DYNAMIC)
+                                                         ? XR_FOVEATION_DYNAMIC_LEVEL_ENABLED_FB
+                                                         : XR_FOVEATION_DYNAMIC_DISABLED_FB;
+        XrFoveationLevelFB   foveationLevel;
+
+        switch (pDesc->mFlags)
+        {
+        case FOVEATION_LEVEL_LOW:
+            foveationLevel = XR_FOVEATION_LEVEL_LOW_FB;
+            break;
+        case FOVEATION_LEVEL_MEDIUM:
+            foveationLevel = XR_FOVEATION_LEVEL_MEDIUM_FB;
+            break;
+        case FOVEATION_LEVEL_HIGH:
+        default:
+            foveationLevel = XR_FOVEATION_LEVEL_HIGH_FB;
+            break;
+        }
+
+        SetOpenXRFoveation(foveationLevel, 0, dynamicFoveationLevel, pSwapChain->mVR.pSwapchain);
+    }
+
+    for (uint32_t imageIndex = 0; imageIndex < imageCount; imageIndex++)
+    {
+        XrSwapchainImageVulkanKHR* pSwapchainImage = pSwapchainImages + imageIndex;
+        pSwapchainImage->type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+        pSwapchainImage->image = VK_NULL_HANDLE;
+
+        if (foveationEnabled)
+        {
+            XrSwapchainImageFoveationVulkanFB* pFoveationImage = pFoveationImages + imageIndex;
+            pFoveationImage->type = XR_TYPE_SWAPCHAIN_IMAGE_FOVEATION_VULKAN_FB;
+            pFoveationImage->next = NULL;
+
+            pSwapchainImage->next = pFoveationImage;
+        }
+    }
+    GetOpenXRSwapchainImages(pSwapChain->mVR.pSwapchain, imageCount, pSwapChain->mVR.pSwapchainImages);
+
+    RenderTargetDesc rtDesc = {};
+    rtDesc.mWidth = pDesc->mWidth;
+    rtDesc.mHeight = pDesc->mHeight;
+    rtDesc.mDepth = 1;
+    rtDesc.mArraySize = 1; // TODO: Support non multiview rendering
+    rtDesc.mFormat = pDesc->mColorFormat;
+    rtDesc.mClearValue = pDesc->mColorClearValue;
+    rtDesc.mSampleCount = SAMPLE_COUNT_1;
+    rtDesc.mSampleQuality = 0;
+    rtDesc.mStartState = RESOURCE_STATE_PRESENT;
+    if (multiView)
+    {
+        rtDesc.mFlags |= TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+    }
+    if (foveationEnabled)
+    {
+        rtDesc.mFlags |= TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING;
+    }
+
+    RenderTargetDesc fragmentDensityMapDesc = {};
+    fragmentDensityMapDesc.mDepth = 1;
+    fragmentDensityMapDesc.mArraySize = 1;
+    fragmentDensityMapDesc.mFormat = TinyImageFormat_R8G8_UNORM;
+    fragmentDensityMapDesc.mSampleCount = SAMPLE_COUNT_1;
+    fragmentDensityMapDesc.mSampleQuality = 0;
+    fragmentDensityMapDesc.mStartState = RESOURCE_STATE_SHADING_RATE_SOURCE;
+    fragmentDensityMapDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+
+    for (uint32_t rtIndex = 0; rtIndex < imageCount; rtIndex++)
+    {
+        XrSwapchainImageVulkanKHR* pSwapchainImage = &((XrSwapchainImageVulkanKHR*)pSwapChain->mVR.pSwapchainImages)[rtIndex];
+        rtDesc.pNativeHandle = (void*)pSwapchainImage->image;
+        addRenderTarget(pRenderer, &rtDesc, &pSwapChain->ppRenderTargets[rtIndex]);
+
+        if (foveationEnabled)
+        {
+            XrSwapchainImageFoveationVulkanFB* pFoveationImage = (XrSwapchainImageFoveationVulkanFB*)pSwapchainImage->next;
+            fragmentDensityMapDesc.mWidth = pFoveationImage->width;
+            fragmentDensityMapDesc.mHeight = pFoveationImage->height;
+            fragmentDensityMapDesc.pNativeHandle = (void*)pFoveationImage->image;
+            addRenderTarget(pRenderer, &fragmentDensityMapDesc, &pSwapChain->mVR.ppFoveationFragmentDensityMaps[rtIndex]);
+        }
+    }
+
+    *pSwapChain->mVk.pDesc = *pDesc;
+    pSwapChain->mEnableVsync = pDesc->mEnableVsync;
+    pSwapChain->mImageCount = imageCount;
+    pSwapChain->mVk.pSurface = NULL;
+    pSwapChain->mVk.mPresentQueueFamilyIndex = 0;
+    pSwapChain->mVk.pPresentQueue = NULL;
+    pSwapChain->mVk.pSwapChain = NULL;
+    pSwapChain->mFormat = pDesc->mColorFormat;
+
+    *ppSwapChain = pSwapChain;
+}
+
+void OpenXRRemoveVKSwapchain(Renderer* pRenderer, SwapChain* pSwapChain)
+{
+    for (uint32_t i = 0; i < pSwapChain->mImageCount; ++i)
+    {
+        removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
+    }
+
+    pRenderer->mVR.pCurrentFDM = NULL;
+    pRenderer->mVR.mIsFoveationEnabled = false;
+    for (uint32_t i = 0; i < pSwapChain->mImageCount; ++i)
+    {
+        RenderTarget* pFDM = pSwapChain->mVR.ppFoveationFragmentDensityMaps[i];
+        if (pFDM != NULL)
+        {
+            removeRenderTarget(pRenderer, pFDM);
+        }
+    }
+
+    RemoveOpenXRSwapchain(pSwapChain->mVR.pSwapchain);
+
+    if (pSwapChain)
+        tf_free(pSwapChain);
+}
+
+void OpenXRVKQueuePresent(const QueuePresentDesc* pQueuePresentDesc)
+{
+    SwapChain* pSwapchain = pQueuePresentDesc->pSwapChain;
+    SwapChain* p2DLayerSwapChain = pSwapchain->mVR.m2DLayer.pSwapchain;
+
+    OpenXRPresentDesc presentDesc;
+    presentDesc.mMainView.mSwapchainHandle = pSwapchain->mVR.pSwapchain;
+    presentDesc.mMainView.mWidth = pSwapchain->mVk.pDesc->mWidth;
+    presentDesc.mMainView.mHeight = pSwapchain->mVk.pDesc->mHeight;
+    presentDesc.m2DLayer.mSwapchainHandle = XR_NULL_HANDLE;
+
+    ReleaseOpenXRSwapchainImage(pSwapchain->mVR.pSwapchain);
+    if (p2DLayerSwapChain != NULL)
+    {
+        ReleaseOpenXRSwapchainImage(p2DLayerSwapChain->mVR.pSwapchain);
+
+        presentDesc.m2DLayer.mWidth = p2DLayerSwapChain->mVk.pDesc->mWidth;
+        presentDesc.m2DLayer.mHeight = p2DLayerSwapChain->mVk.pDesc->mHeight;
+        presentDesc.m2DLayer.mSwapchainHandle = p2DLayerSwapChain->mVR.pSwapchain;
+        presentDesc.m2DLayerSettings = p2DLayerSwapChain->mVR.m2DLayer.mDesc;
+    }
+
+    EndOpenXRFrame(&presentDesc);
+}
+
+#endif
 
 #include "../ThirdParty/OpenSource/volk/volk.c"
 #if defined(VK_USE_DISPATCH_TABLES)

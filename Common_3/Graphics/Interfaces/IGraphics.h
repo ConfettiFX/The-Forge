@@ -56,15 +56,14 @@ enum
     MAX_GPU_VENDOR_STRING_LENGTH = 256, // max size for GPUVendorPreset strings
     MAX_SAMPLE_LOCATIONS = 16,
     MAX_PUSH_CONSTANTS_32BIT_COUNT = 16,
+    MAX_DESCRIPTOR_SETS = 4,
+    MAX_DESCRIPTOR_SETS_MASK = 0x0F,
 #if defined(DIRECT3D12)
     MAX_DESCRIPTOR_TABLES = 8,
 #endif
 #if defined(VULKAN)
     MAX_PLANE_COUNT = 3,
     MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 1,
-#endif
-#if defined(METAL)
-    MAX_DESCRIPTOR_SETS = 8,
 #endif
 };
 #endif
@@ -1390,6 +1389,7 @@ typedef struct DEFINE_ALIGNED(DescriptorSet, ALIGN_DescriptorSet)
         uint32_t                 mMaxSets;
         uint32_t                 mSetIndex;
         uint32_t                 mNodeIndex;
+        size_t                   mHash;
     } mVk;
 #endif
 #if defined(METAL)
@@ -1411,6 +1411,8 @@ typedef struct DEFINE_ALIGNED(DescriptorSet, ALIGN_DescriptorSet)
         uint32_t                       mRootTextureCount : 10;
         uint32_t                       mRootSamplerCount : 10;
         uint8_t                        mNodeIndex;
+        uint8_t                        mSetIndex;
+        uint8_t                        mArgumentBufferIndex;
         uint8_t                        mStages;
         uint8_t                        mForceArgumentBuffer;
     };
@@ -1501,13 +1503,14 @@ typedef struct DEFINE_ALIGNED(Cmd, ALIGN_Cmd)
         D3D12_GPU_DESCRIPTOR_HANDLE mBoundHeapStartHandles[2];
 
         // Command buffer state
-        D3D12_GPU_DESCRIPTOR_HANDLE mBoundDescriptorSets[2][MAX_DESCRIPTOR_TABLES];
+        D3D12_GPU_DESCRIPTOR_HANDLE mBoundDescriptorSets[MAX_DESCRIPTOR_TABLES];
 #if defined(XBOX)
         D3D12_SAMPLE_POSITION mSampleLocations[MAX_SAMPLE_LOCATIONS];
 #endif
         uint32_t mNodeIndex : 4;
         uint32_t mType : 3;
         uint32_t mPipelineType : 3;
+        uint32_t mDescriptorTableDirtyMask: MAX_DESCRIPTOR_TABLES;
 #if defined(XBOX)
         // Required for setting occlusion query control
         uint32_t mSampleCount : 5;
@@ -1535,6 +1538,10 @@ typedef struct DEFINE_ALIGNED(Cmd, ALIGN_Cmd)
         uint32_t         mGridSizeX : 2;
         uint32_t         mGridSizeY : 2;
         uint32_t         mSampleCount : 5;
+        uint32_t         mShouldRebindDescriptorSetsMask: MAX_DESCRIPTOR_SETS;
+        DescriptorSet*   mBoundDescriptorSets[MAX_DESCRIPTOR_SETS];
+        uint32_t         mBoundDescriptorSetIndices[MAX_DESCRIPTOR_SETS];
+        size_t           mBoundDescriptorSetHashes[MAX_DESCRIPTOR_SETS];
     } mVk;
 #endif
 #if defined(METAL)
@@ -1566,6 +1573,7 @@ typedef struct DEFINE_ALIGNED(Cmd, ALIGN_Cmd)
         uint32_t             mSelectedPrimitiveType : 4;
         uint32_t             mPipelineType : 3;
         uint32_t             mShouldRebindPipeline : 1;
+        uint32_t             mShouldRebindDescriptorSetsMask: MAX_DESCRIPTOR_SETS;
         DescriptorSet*       mBoundDescriptorSets[MAX_DESCRIPTOR_SETS];
         uint32_t             mBoundDescriptorSetIndices[MAX_DESCRIPTOR_SETS];
 #ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
@@ -1927,8 +1935,9 @@ typedef struct StaticSamplerDesc
 #endif
 
 #if defined(METAL)
-// for metal : Buffers 0 to 3 are reserved for Argument buffers
-#define METAL_BUFFER_BIND_START_INDEX  4
+// for metal : Buffers 0 and 1 are reserved for markers
+// for metal : Buffers 2 to 5 are reserved for Argument buffers
+#define METAL_BUFFER_BIND_START_INDEX  6
 #define METAL_TEXTURE_BIND_START_INDEX 0
 struct MetalDescriptorSet
 {
@@ -1958,6 +1967,7 @@ typedef struct DescriptorSetDesc
     uint32_t          mDescriptorCount;
     const Descriptor* pDescriptors;
 #if defined(METAL)
+    uint32_t                  mSetIndex;
     uint32_t                  mForceArgumentBuffer;
     const MetalDescriptorSet* pSrtSets;
     uint32_t                  mSrtSetCount;
@@ -2231,8 +2241,39 @@ typedef enum SwapChainCreationFlags
 {
     SWAP_CHAIN_CREATION_FLAG_NONE = 0x0,
     SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR = 0x1,
+    SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER = 0x2,
 } SwapChainCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, SwapChainCreationFlags);
+
+typedef enum VRFoveationLevel
+{
+    FOVEATION_LEVEL_LOW = 0,
+    FOVEATION_LEVEL_MEDIUM = 1,
+    FOVEATION_LEVEL_HIGH = 2,
+    FOVEATION_LEVEL_DYNAMIC = 3
+} VRFoveationLevel;
+MAKE_ENUM_FLAG(uint32_t, VRFoveationLevel);
+
+typedef struct VR2DLayerDesc
+{
+    /// World-space position of the UI/2D layer
+    struct
+    {
+        float x;
+        float y;
+        float z;
+    } m2DLayerPosition;
+    // Layer rotation. Default rotation with surface normal facing the +Z axis.
+    struct
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+    } m2DLayerRotQuat;
+    /// Scale of the UI layer
+    float m2DLayerScale;
+} VR2DLayerDesc;
 
 typedef struct SwapChainDesc
 {
@@ -2260,6 +2301,12 @@ typedef struct SwapChainDesc
     bool                   mUseFlipSwapEffect;
     /// Optional colorspace for HDR
     ColorSpace             mColorSpace;
+    // Optional VR settings
+    struct
+    {
+        VR2DLayerDesc    m2DLayer;
+        VRFoveationLevel mFoveationLevel;
+    } mVR;
 } SwapChainDesc;
 
 typedef struct SwapChain
@@ -2322,6 +2369,13 @@ typedef struct SwapChain
     {
         XrSwapchain                 pSwapchain;
         XrSwapchainImageBaseHeader* pSwapchainImages;
+        struct
+        {
+            struct SwapChain*    pSwapchain;
+            uint32_t             mCurrentSwapChainIndex;
+            struct VR2DLayerDesc mDesc;
+        } m2DLayer;
+        RenderTarget** ppFoveationFragmentDensityMaps;
     } mVR;
 #endif // QUEST_VR
     uint32_t        mImageCount : 8;
@@ -2576,6 +2630,7 @@ typedef struct GpuDesc
 
 #endif
     uint32_t mMaxBoundTextures;
+    uint32_t mMaxStorageBufferSize;
     uint32_t mSamplerAnisotropySupported : 1;
     uint32_t mGraphicsQueueSupported : 1;
 #if defined(METAL)
@@ -2657,6 +2712,13 @@ typedef struct DEFINE_ALIGNED(Renderer, ALIGN_Renderer)
         MTLTimestamp        mPrevGpuTimestamp;
     };
 #endif
+#if defined(QUEST_VR)
+    struct
+    {
+        bool          mIsFoveationEnabled;
+        RenderTarget* pCurrentFDM;
+    } mVR;
+#endif
 
     struct NullDescriptors* pNullDescriptors;
     struct RendererContext* pContext;
@@ -2734,6 +2796,14 @@ typedef struct RendererContext
     {
         uint32_t mExtendedEncoderDebugReport : 1;
     } mMtl;
+#endif
+#if defined(QUEST_VR)
+    struct
+    {
+#ifdef XR_USE_GRAPHICS_API_VULKAN
+        XrGraphicsBindingVulkanKHR mXRGraphicsBinding;
+#endif
+    } mVR;
 #endif
     GpuDesc  mGpus[MAX_MULTIPLE_GPUS];
     uint32_t mGpuCount;

@@ -29,6 +29,7 @@
 #include "ShaderDefs.h.fsl"
 #include "ParticleShared.h.fsl"
 #include "ParticlePacking.h.fsl"
+#include "ParticleRandom.h.fsl"
 
 bool IsParticleSetVisible(ParticleSet particleSet)
 {
@@ -43,7 +44,7 @@ bool IsParticleSetVisible(ParticleSet particleSet)
 
 
 	float fov = 2.0 * atan(1.0 / gParticleConstantBuffer.ProjTransform[1][1]);
-	float3 particleSetScale = UnpackParticleSetSize(particleSet.SpawnVolume);
+	float3 particleSetScale = UnpackParticleSetVisibilityVolume(particleSet.VisibilityVolume);
 
 	float setRadius = 2.0 * max(particleSetScale.x, max(particleSetScale.y, particleSetScale.z)) * (1 / tan(fov * 0.5f)) / clipSpacePos.w;
 	float ratio = float(gParticleConstantBuffer.ScreenSize.x) / float(gParticleConstantBuffer.ScreenSize.y);
@@ -119,5 +120,28 @@ void SaveParticle(ParticleSet particleSet, uint particleIdx, uint bitfield, floa
 	gBitfieldBufferRW[particleIdx] = bitfield;
 }
 
+float4 RefractLight(float4 currColor, float2 uv, float2 screenPos)
+{
+	if (all(GreaterThan(screenPos.xy, 0.0f)) && all(LessThan(screenPos.xy, 1.0f))){
+		// Approximate normal
+		float2 spherePoint = uv * 2.0 - 1.0;
+		float3 sphereNormal = normalize(float3(spherePoint.xy, sqrt(1.0 - spherePoint.x*spherePoint.x - spherePoint.y*spherePoint.y)));
+
+		float theta = atan2(sphereNormal.x, sphereNormal.z);
+		float phi = asin(sphereNormal.y);
+
+		float2 refractCoords = clamp(float2(theta / (2 * PI), -phi / PI), -1.f, 1.f);
+		refractCoords = refractCoords * REFRACTIONS_BACKGROUND_SCALE + screenPos;
+
+		float4 refractedColor = SampleLvlTex2D(gShadedScene, gSamplerBilinearClamp, refractCoords.xy, 0);
+	
+		float fakeFresnel = pow(length(sphereNormal.xy), 4.0);
+		float fakeFresnelSharp = pow(length(sphereNormal.xy), 8.0);
+		refractedColor.w = max(refractedColor.w * uint(currColor.w > 0.0) * fakeFresnel * REFRACTIONS_FRESNEL_INTENSITY, currColor.w);
+		refractedColor.xyz += f3(fakeFresnelSharp) * REFLECTIONS_FRESNEL_INTENSITY + currColor.w * currColor.xyz;
+		return refractedColor;
+	}
+	return f4(0.f);
+}
 
 #endif // PARTICLE_SIMULATE_H

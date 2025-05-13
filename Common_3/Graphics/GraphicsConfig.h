@@ -79,6 +79,8 @@
 #define XR_USE_PLATFORM_ANDROID    1
 #endif // VULKAN
 #include <openxr/openxr.h>
+#include <openxr/openxr_platform.h>
+#include <xr_linear.h>
 #endif // QUEST_VR
 
 // Uncomment this macro to define custom rendering max options

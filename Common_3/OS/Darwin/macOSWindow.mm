@@ -51,7 +51,7 @@ bool gCursorInsideTrackingArea = true;
 MonitorDesc* gMonitors = nullptr;
 uint32_t     gMonitorCount = 0;
 float (*gDPIScales)[2] = nullptr;
-NSWindowLevel gDefaultWindowLevel = NSPopUpMenuWindowLevel;
+NSWindowLevel gDefaultWindowLevel = NSFloatingWindowLevel;
 
 extern WindowDesc             gCurrentWindow;
 extern CustomMessageProcessor sCustomProc;
@@ -888,13 +888,12 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
     [window makeKeyAndOrderFront:nil];
 
     [NSApp activateIgnoringOtherApps:YES];
-    // NSPopupWindowLevel is the default as it allows the window
-    // to be on top of the taskbar.
+    gDefaultWindowLevel = NSFloatingWindowLevel;
     if (isDebuggerAttached())
     {
         gDefaultWindowLevel = NSNormalWindowLevel;
         LOGF(LogLevel::eINFO,
-             "Setting Window level to NSNormalWindowLevel instead of NSPopupWindowLevel to allow debugger window to be on top of app.");
+             "Setting Window level to NSNormalWindowLevel instead of NSFloatingWindowLevel to allow debugger window to be on top of app.");
     }
     [view.window setLevel:gDefaultWindowLevel];
 

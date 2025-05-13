@@ -241,8 +241,6 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     if (pDesc->pWorkgraph)
     {
         cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "GPU Pipeline");
-        cmdBindDescriptorSet(pCmd, 0, pDesc->pDescriptorSetTriangleFiltering);
-        cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
         cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerBatch);
         struct EntryRecord
         {
@@ -265,7 +263,6 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     /************************************************************************/
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Buffers");
     cmdBindPipeline(pCmd, pDesc->pPipelineClearBuffers);
-    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
     cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerBatch);
     cmdDispatch(pCmd, 1, 1, 1);
     cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
@@ -292,8 +289,6 @@ void cmdVBTriangleFilteringPass(VisibilityBuffer* pVisibilityBuffer, Cmd* pCmd, 
     if (pDesc->mVBPreFilterStats.mNumDispatchGroups > 0)
     {
         cmdBindPipeline(pCmd, pDesc->pPipelineTriangleFiltering);
-        cmdBindDescriptorSet(pCmd, 0, pDesc->pDescriptorSetTriangleFiltering);
-        cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
         cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerBatch);
         cmdDispatch(pCmd, pDesc->mVBPreFilterStats.mNumDispatchGroups, 1, 1);
     }

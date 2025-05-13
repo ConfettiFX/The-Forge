@@ -43,6 +43,9 @@
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
 #include "./Shaders/FSL/Textured.srt.h"
 #endif
+#if defined(ENABLE_FORGE_VR_UI)
+#include "./Shaders/FSL/VRMarker.srt.h"
+#endif
 
 #define FALLBACK_FONT_TEXTURE_INDEX 0
 
@@ -147,6 +150,38 @@ typedef struct UserInterface
 
     // Stops rendering UI elements (disables command recording)
     bool mEnableRendering = true;
+
+#ifdef ENABLE_FORGE_VR_UI
+    struct
+    {
+        // Used to raycast 3D controllers
+        float2 mSize = float2(0.0f);
+        float2 mResolution = float2(0.0f);
+        float3 mPosition = float3(0.0f);
+
+        float2 mCursorLocation = float2(0.0f);
+        bool   mCursorValid = false;
+
+        // Used to render a marker in the 2D layer
+        Shader*        pVRMarkerShader = NULL;
+        Pipeline*      pVRMarkerPipeline = NULL;
+        DescriptorSet* pVRMarkerDescriptorSet = NULL;
+        Buffer*        pVRMarkerBuffer = { NULL };
+    } mVRLayer;
+
+    struct
+    {
+        InputEnum mRightTrigger{};
+        InputEnum mRightControllerTracking{};
+        InputEnum mRightControllerPosX{};
+        InputEnum mRightControllerPosY{};
+        InputEnum mRightControllerPosZ{};
+        InputEnum mRightControllerDirX{};
+        InputEnum mRightControllerDirY{};
+        InputEnum mRightControllerDirZ{};
+    } mVRInput;
+#endif
+
 } UserInterface;
 
 #if defined(GFX_DRIVER_MEMORY_TRACKING) || defined(GFX_DEVICE_MEMORY_TRACKING)
@@ -2580,6 +2615,16 @@ void uiEndFrame() { ImGui::EndFrame(); }
 // MARK: - Private Platform Layer Life Cycle Functions
 /****************************************************************************/
 
+#ifdef ENABLE_FORGE_VR_UI
+// VR UI forward declaractions
+void initVRUserInterface();
+void exitVRUserInterface();
+void loadVRUserInterface(const UserInterfaceLoadDesc* pDesc);
+void unloadVRUserInterface(uint32_t unloadType);
+void updateVRUserMarker();
+void drawVRUserMarker();
+#endif
+
 static InputEnum gKeyMap[ImGuiKey_NamedKey_COUNT] = {};
 
 bool platformInitUserInterface()
@@ -2614,6 +2659,11 @@ bool platformInitUserInterface()
     pUserInterface = pAppUI;
     pUserInterface->mFramePadding = float2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y);
     pUserInterface->mWindowPadding = float2(ImGui::GetStyle().WindowPadding.x, ImGui::GetStyle().WindowPadding.y);
+
+#if defined(ENABLE_FORGE_VR_UI)
+    initVRUserInterface();
+#endif
+
 #endif
 
     return true;
@@ -2622,6 +2672,11 @@ bool platformInitUserInterface()
 void platformExitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
+
+#if defined(ENABLE_FORGE_VR_UI)
+    exitVRUserInterface();
+#endif
+
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->mComponents); ++i)
     {
         uiRemoveAllComponentWidgets(pUserInterface->mComponents[i]);
@@ -2677,6 +2732,10 @@ void platformUpdateUserInterface(float deltaTime)
         }
         io.AddKeyEvent((ImGuiKey)k, inputGetValue(0, gKeyMap[k - ImGuiKey_NamedKey_BEGIN]));
     }
+
+// On most platorms, the mouse position is retrieved from the actual hardware values.
+// In VR, we raycast the 2D layer to determine the cursor position
+#ifndef ENABLE_FORGE_VR_UI
     const float x = inputGetValue(0, gKeyMap[ImGuiKey_MouseX1 - ImGuiKey_NamedKey_BEGIN]) * io.DisplayFramebufferScale.x;
     const float y = inputGetValue(0, gKeyMap[ImGuiKey_MouseX2 - ImGuiKey_NamedKey_BEGIN]) * io.DisplayFramebufferScale.y;
     const float wheel = inputGetValue(0, gKeyMap[ImGuiKey_MouseWheelX - ImGuiKey_NamedKey_BEGIN]) -
@@ -2684,11 +2743,22 @@ void platformUpdateUserInterface(float deltaTime)
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
     io.AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
 #endif
+
     io.AddMousePosEvent(x, y);
     io.AddMouseWheelEvent(0.0f, wheel);
     io.AddMouseButtonEvent(ImGuiMouseButton_Left, inputGetValue(0, gKeyMap[ImGuiKey_MouseLeft - ImGuiKey_NamedKey_BEGIN]));
     io.AddMouseButtonEvent(ImGuiMouseButton_Right, inputGetValue(0, gKeyMap[ImGuiKey_MouseRight - ImGuiKey_NamedKey_BEGIN]));
     io.AddMouseButtonEvent(ImGuiMouseButton_Middle, inputGetValue(0, gKeyMap[ImGuiKey_MouseMiddle - ImGuiKey_NamedKey_BEGIN]));
+#else
+    updateVRUserMarker();
+    const float x = pUserInterface->mVRLayer.mCursorLocation.x;
+    const float y = pUserInterface->mVRLayer.mCursorLocation.y;
+    if (pUserInterface->mVRLayer.mCursorValid)
+    {
+        io.AddMousePosEvent(x, y);
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, inputGetValue(0, pUserInterface->mVRInput.mRightTrigger));
+    }
+#endif
 
     if (io.WantTextInput)
     {
@@ -3333,6 +3403,247 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color, uint64_t vOffset)
 }
 #endif
 
+#if defined(ENABLE_FORGE_VR_UI)
+
+#define VR_MARKER_SIZE 10.0f
+
+// This quaternion represents a 45 degree rotation around the X axis. Used to make the controller pointing direction a bit more natural,
+// since the default rotation has the device flat on a surface
+const Quat gControllerRotationCorrection(-0.38268, 0, 0, 0.92388);
+
+const float4 gVRMarkerColor(0.85f, 0.85f, 0.85f, 0.50f);
+
+void initVRUserInterface()
+{
+    inputAddCustomBindings(R"(
+right_trigger; button; GPAD_R1; pressed;
+right_tracking; analog; VRCTRL_RTR; 1.0f
+right_pos_x; analog; VRCTRL_RPX; 1.0f
+right_pos_y; analog; VRCTRL_RPY; 1.0f
+right_pos_z; analog; VRCTRL_RPZ; 1.0f
+right_dir_x; analog; VRCTRL_RDX; 1.0f
+right_dir_y; analog; VRCTRL_RDY; 1.0f
+right_dir_z; analog; VRCTRL_RDZ; 1.0f)");
+
+    pUserInterface->mVRInput.mRightTrigger = inputGetCustomBindingEnum("right_trigger");
+    pUserInterface->mVRInput.mRightControllerTracking = inputGetCustomBindingEnum("right_tracking");
+    pUserInterface->mVRInput.mRightControllerPosX = inputGetCustomBindingEnum("right_pos_x");
+    pUserInterface->mVRInput.mRightControllerPosY = inputGetCustomBindingEnum("right_pos_y");
+    pUserInterface->mVRInput.mRightControllerPosZ = inputGetCustomBindingEnum("right_pos_z");
+    pUserInterface->mVRInput.mRightControllerDirX = inputGetCustomBindingEnum("right_dir_x");
+    pUserInterface->mVRInput.mRightControllerDirY = inputGetCustomBindingEnum("right_dir_y");
+    pUserInterface->mVRInput.mRightControllerDirZ = inputGetCustomBindingEnum("right_dir_z");
+}
+
+void exitVRUserInterface()
+{
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightTrigger);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerTracking);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerPosX);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerPosY);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerPosZ);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerDirX);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerDirY);
+    inputRemoveCustomBinding(pUserInterface->mVRInput.mRightControllerDirZ);
+}
+
+void loadVRUserInterface(const UserInterfaceLoadDesc* pDesc)
+{
+    // Initialize logical 2D layer size, will be used to raycast VR controllers
+    float2 layerRes = float2(pDesc->mWidth, pDesc->mHeight);
+    float  layerScale = pDesc->mVR2DLayer.mScale;
+    pUserInterface->mVRLayer.mPosition = pDesc->mVR2DLayer.mPosition;
+    pUserInterface->mVRLayer.mResolution = layerRes;
+    pUserInterface->mVRLayer.mSize = float2(layerScale, layerScale * layerRes.y / layerRes.x);
+
+    // Initialize VR marker rendering resources
+    ReloadType loadType = (ReloadType)pDesc->mLoadType;
+
+    BufferLoadDesc ubDesc = {};
+    ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    ubDesc.mDesc.mSize = sizeof(VRMarkerConstants);
+    ubDesc.mDesc.pName = "VR Marker Constants";
+    ubDesc.ppBuffer = &pUserInterface->mVRLayer.pVRMarkerBuffer;
+    addResource(&ubDesc, NULL);
+
+    VRMarkerConstants markerConstants;
+    markerConstants.mColor = gVRMarkerColor;
+
+    BufferUpdateDesc update = { pUserInterface->mVRLayer.pVRMarkerBuffer };
+    beginUpdateResource(&update);
+    memcpy(update.pMappedData, &markerConstants, sizeof(VRMarkerConstants));
+    endUpdateResource(&update);
+
+    Renderer* pRenderer = pUserInterface->pRenderer;
+    if (loadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+    {
+        if (loadType & RELOAD_TYPE_SHADER)
+        {
+            /************************************************************************/
+            // Shader
+            /************************************************************************/
+            ShaderLoadDesc vrMarkerShaderDesc = {};
+            vrMarkerShaderDesc.mVert.pFileName = "vr_marker.vert";
+            vrMarkerShaderDesc.mFrag.pFileName = "vr_marker.frag";
+            addShader(pRenderer, &vrMarkerShaderDesc, &pUserInterface->mVRLayer.pVRMarkerShader);
+
+            DescriptorSetDesc descriptorSetDesc = SRT_SET_DESC(SrtVRMarker, Persistent, 1, 0);
+            addDescriptorSet(pRenderer, &descriptorSetDesc, &pUserInterface->mVRLayer.pVRMarkerDescriptorSet);
+        }
+
+        BlendStateDesc blendStateDesc = {};
+        blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+        blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+        blendStateDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
+        blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+        blendStateDesc.mIndependentBlend = false;
+
+        DepthStateDesc depthStateDesc = {};
+        depthStateDesc.mDepthTest = false;
+        depthStateDesc.mDepthWrite = false;
+
+        RasterizerStateDesc rasterizerStateDesc = {};
+        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+        rasterizerStateDesc.mScissor = true;
+
+        PipelineDesc desc = {};
+        PIPELINE_LAYOUT_DESC(desc, SRT_LAYOUT_DESC(SrtVRMarker, Persistent), NULL, NULL, NULL);
+        desc.pCache = pUserInterface->pPipelineCache;
+        desc.mType = PIPELINE_TYPE_GRAPHICS;
+        GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
+        pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+        pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+        pipelineDesc.mRenderTargetCount = 1;
+        pipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.mSampleQuality = 0;
+        pipelineDesc.pBlendState = &blendStateDesc;
+        TinyImageFormat colorFormat = (TinyImageFormat)pDesc->mColorFormat;
+        pipelineDesc.pColorFormats = &colorFormat;
+        pipelineDesc.pDepthState = &depthStateDesc;
+        pipelineDesc.pRasterizerState = &rasterizerStateDesc;
+        pipelineDesc.pShaderProgram = pUserInterface->mVRLayer.pVRMarkerShader;
+        addPipeline(pRenderer, &desc, &pUserInterface->mVRLayer.pVRMarkerPipeline);
+    }
+
+    DescriptorData params[1] = {};
+    params[0].mIndex = SRT_RES_IDX(SrtVRMarker, Persistent, gVRMarkerConstants);
+    params[0].ppBuffers = &pUserInterface->mVRLayer.pVRMarkerBuffer;
+    updateDescriptorSet(pUserInterface->pRenderer, 0, pUserInterface->mVRLayer.pVRMarkerDescriptorSet, 1, params);
+}
+
+void unloadVRUserInterface(uint32_t unloadType)
+{
+    if (unloadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+    {
+        Renderer* pRenderer = pUserInterface->pRenderer;
+        removePipeline(pRenderer, pUserInterface->mVRLayer.pVRMarkerPipeline);
+
+        if (unloadType & RELOAD_TYPE_SHADER)
+        {
+            removeDescriptorSet(pRenderer, pUserInterface->mVRLayer.pVRMarkerDescriptorSet);
+            removeShader(pRenderer, pUserInterface->mVRLayer.pVRMarkerShader);
+        }
+    }
+
+    removeResource(pUserInterface->mVRLayer.pVRMarkerBuffer);
+}
+
+bool CheckController2DLayerIntersection(Vector2& result)
+{
+    Vector3 controllerPosition(inputGetValue(0, pUserInterface->mVRInput.mRightControllerPosX),
+                               inputGetValue(0, pUserInterface->mVRInput.mRightControllerPosY),
+                               inputGetValue(0, pUserInterface->mVRInput.mRightControllerPosZ));
+    Vector3 controllerDirection(inputGetValue(0, pUserInterface->mVRInput.mRightControllerDirX),
+                                inputGetValue(0, pUserInterface->mVRInput.mRightControllerDirY),
+                                inputGetValue(0, pUserInterface->mVRInput.mRightControllerDirZ));
+
+    controllerDirection = rotate(gControllerRotationCorrection, controllerDirection);
+
+    // Raycast controller pos + dir against 2D layer quad
+    {
+        float3  _layerCenter = pUserInterface->mVRLayer.mPosition;
+        Vector3 layerCenter(_layerCenter.x, _layerCenter.y, _layerCenter.z);
+        float2  _quadSize = pUserInterface->mVRLayer.mSize;
+        Vector2 quadSize(_quadSize.x, _quadSize.y);
+
+        float halfWidth = quadSize.getX() / 2.0f;
+        float halfHeight = quadSize.getY() / 2.0f;
+
+        // Compute quad normal using world-space corners
+        Vector3 topLeftCorner = layerCenter + Vector3(-halfWidth, halfHeight, 0.0f);
+        Vector3 topRightCorner = layerCenter + Vector3(halfWidth, halfHeight, 0.0f);
+        Vector3 bottomLeftCorner = layerCenter + Vector3(-halfWidth, -halfHeight, 0.0f);
+
+        Vector3 tlToTr = topRightCorner - topLeftCorner;
+        Vector3 tlToBl = bottomLeftCorner - topLeftCorner;
+
+        Vector3 planeNormal = normalize(cross(tlToTr, tlToBl));
+
+        // Compute hit on plane
+        float denom = dot(planeNormal, controllerDirection);
+
+        FORGE_CONSTEXPR float TOLERANCE = 1e-6;
+        if (abs(denom) < TOLERANCE)
+        {
+            return false;
+        }
+
+        // Get world-space ray hit position
+        float hitAlongRayAxis = dot(planeNormal, layerCenter - controllerPosition);
+        if (hitAlongRayAxis < 0.0f)
+        {
+            return false;
+        }
+
+        Vector3 intersectionWS = controllerPosition + hitAlongRayAxis * controllerDirection;
+
+        // Convert hit-point to 2D layer local space, to figure out the collision coordinates
+        Vector3 localHitPoint = intersectionWS - layerCenter;
+        result.setX(dot(localHitPoint, normalize(tlToTr)));
+        result.setY(dot(localHitPoint, normalize(tlToBl)));
+
+        return true;
+    }
+}
+
+void updateVRUserMarker()
+{
+    bool isRightControllerTracked = inputGetValue(0, pUserInterface->mVRInput.mRightControllerTracking) != 0.0f;
+    pUserInterface->mVRLayer.mCursorValid = false;
+    if (isRightControllerTracked)
+    {
+        Vector2 cursorLocation;
+        if (CheckController2DLayerIntersection(cursorLocation))
+        {
+            pUserInterface->mVRLayer.mCursorLocation = float2(cursorLocation.getX() * pUserInterface->mVRLayer.mResolution.x,
+                                                              cursorLocation.getY() * pUserInterface->mVRLayer.mResolution.y);
+            pUserInterface->mVRLayer.mCursorValid = true;
+        }
+    }
+}
+
+void drawVRUserMarker(Cmd* pCmd)
+{
+    // Draw a circle in the UI layer so that the user can track where there controller is pointing to.
+    if (pUserInterface->mVRLayer.mCursorValid)
+    {
+        float2 cursorLocation = pUserInterface->mVRLayer.mCursorLocation;
+        float2 viewportLeft = cursorLocation - float2(VR_MARKER_SIZE);
+
+        cmdSetViewport(pCmd, viewportLeft.getX(), viewportLeft.getY(), VR_MARKER_SIZE, VR_MARKER_SIZE, 0.0f, 1.0f);
+        cmdSetScissor(pCmd, viewportLeft.getX(), viewportLeft.getY(), VR_MARKER_SIZE, VR_MARKER_SIZE);
+        cmdBindPipeline(pCmd, pUserInterface->mVRLayer.pVRMarkerPipeline);
+        cmdBindDescriptorSet(pCmd, 0, pUserInterface->mVRLayer.pVRMarkerDescriptorSet);
+        cmdDraw(pCmd, 3, 0);
+    }
+}
+
+#endif
+
 void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_UI
@@ -3399,7 +3710,7 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
         pipelineDesc.pVertexLayout = &pUserInterface->mVertexLayoutTextured;
         pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineDesc.mVRFoveatedRendering = true;
+        pipelineDesc.mVRFoveatedRendering = false;
         for (uint32_t s = 0; s < TF_ARRAY_COUNT(pUserInterface->pShaderTextured); ++s)
         {
             pipelineDesc.pShaderProgram = pUserInterface->pShaderTextured[s];
@@ -3423,9 +3734,14 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
         updateDescriptorSet(pUserInterface->pRenderer, (uint32_t)tex, pUserInterface->pDescriptorSet, 1, params);
     }
 
+#ifdef ENABLE_FORGE_VR_UI
+    loadVRUserInterface(pDesc);
+#endif
+
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
     loadVirtualJoystick((ReloadType)pDesc->mLoadType, (TinyImageFormat)pDesc->mColorFormat);
 #endif
+
 #else
     (void)pDesc;
 #endif
@@ -3434,8 +3750,13 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 void unloadUserInterface(uint32_t unloadType)
 {
 #ifdef ENABLE_FORGE_UI
+
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
     unloadVirtualJoystick((ReloadType)unloadType);
+#endif
+
+#if defined(ENABLE_FORGE_VR_UI)
+    unloadVRUserInterface(unloadType);
 #endif
 
     if (unloadType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
@@ -3457,6 +3778,39 @@ void unloadUserInterface(uint32_t unloadType)
 #else
     (void)unloadType;
 #endif
+}
+
+RenderTarget* cmdBeginDrawingUserInterface(Cmd* pCmd, SwapChain* pSwapchain, RenderTarget* pRenderTarget)
+{
+#ifdef ENABLE_FORGE_UI
+#ifndef ENABLE_FORGE_VR_UI
+    UNREF_PARAM(pSwapchain);
+    BindRenderTargetsDesc bindRenderTargets = {};
+    bindRenderTargets.mRenderTargetCount = 1;
+    bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+    cmdBindRenderTargets(pCmd, &bindRenderTargets);
+    cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+    cmdSetScissor(pCmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
+    return pRenderTarget;
+#else
+    UNREF_PARAM(pRenderTarget);
+    cmdBindRenderTargets(pCmd, NULL);
+
+    SwapChain* p2DLayerSwapChain = pSwapchain->mVR.m2DLayer.pSwapchain;
+    ASSERT(p2DLayerSwapChain);
+    RenderTarget*       p2DLayerRT = p2DLayerSwapChain->ppRenderTargets[pSwapchain->mVR.m2DLayer.mCurrentSwapChainIndex];
+    RenderTargetBarrier barrier = { p2DLayerRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
+    cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
+
+    BindRenderTargetsDesc bindRenderTargets = {};
+    bindRenderTargets.mRenderTargetCount = 1;
+    bindRenderTargets.mRenderTargets[0] = { p2DLayerRT, LOAD_ACTION_CLEAR };
+    cmdBindRenderTargets(pCmd, &bindRenderTargets);
+    cmdSetViewport(pCmd, 0.0f, 0.0f, (float)p2DLayerRT->mWidth, (float)p2DLayerRT->mHeight, 0.0f, 1.0f);
+    cmdSetScissor(pCmd, 0, 0, p2DLayerRT->mWidth, p2DLayerRT->mHeight);
+    return p2DLayerRT;
+#endif
+#endif // ENABLE_FORGE_UI
 }
 
 void cmdDrawUserInterface(Cmd* pCmd)
@@ -3573,8 +3927,29 @@ void cmdDrawUserInterface(Cmd* pCmd)
     float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
     drawVirtualJoystick(pCmd, &color, vtxDst);
 #endif
+
+#if defined(ENABLE_FORGE_VR_UI)
+    drawVRUserMarker(pCmd);
+#endif
+
 #else
     (void)pCmd;
+#endif
+}
+
+void cmdEndDrawingUserInterface(Cmd* pCmd, SwapChain* pSwapchain)
+{
+#ifdef ENABLE_FORGE_UI
+    UNREF_PARAM(pSwapchain);
+    cmdBindRenderTargets(pCmd, NULL);
+
+#ifdef ENABLE_FORGE_VR_UI
+    SwapChain* p2DLayerSwapChain = pSwapchain->mVR.m2DLayer.pSwapchain;
+    ASSERT(p2DLayerSwapChain);
+    RenderTarget*       p2DLayerRT = p2DLayerSwapChain->ppRenderTargets[pSwapchain->mVR.m2DLayer.mCurrentSwapChainIndex];
+    RenderTargetBarrier barrier = { p2DLayerRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+    cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
+#endif
 #endif
 }
 

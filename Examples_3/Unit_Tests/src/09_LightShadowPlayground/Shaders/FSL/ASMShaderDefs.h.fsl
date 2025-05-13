@@ -51,9 +51,6 @@
 #define gs_ASMDistanceMax 500
 #define gs_ASMLargestTileWorldSize 60
 
-
-#define PACKED_QUADS_ARRAY_REGS 192
-
 STATIC const float2 ASMDepthAtlasSizeOverDepthTileSize = float2(gs_ASMDepthAtlasTextureWidth, gs_ASMDepthAtlasTextureHeight) / gs_ASMTileSize;  //-V1043
 STATIC const float2 ASMDEMTileSizeOverDEMAtlasSize = gs_ASMDEMTileSize / float2(gs_ASMDEMAtlasTextureWidth, gs_ASMDEMAtlasTextureHeight);       //-V1043
 STATIC const float2 ASMDEMTileCoord = 1.5 / float2(gs_ASMDEMAtlasTextureWidth, gs_ASMDEMAtlasTextureHeight);                                    //-V1043

@@ -639,12 +639,10 @@ public:
         samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
         addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
 
-        supportLinearFiltering = pRenderer->pGpu->mFormatCaps[TinyImageFormat_DXBC1_RGBA_UNORM] & FORMAT_CAP_LINEAR_FILTER;
-
         samplerDesc = {};
-        samplerDesc.mMinFilter = supportLinearFiltering ? FILTER_LINEAR : FILTER_NEAREST;
-        samplerDesc.mMagFilter = supportLinearFiltering ? FILTER_LINEAR : FILTER_NEAREST;
-        samplerDesc.mMipMapMode = supportLinearFiltering ? MIPMAP_MODE_LINEAR : MIPMAP_MODE_NEAREST;
+        samplerDesc.mMinFilter = FILTER_LINEAR;
+        samplerDesc.mMagFilter = FILTER_LINEAR;
+        samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
         samplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
         samplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
         samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
@@ -1914,8 +1912,6 @@ public:
         {
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, profileNames[i]);
             cmdBindPipeline(cmd, pPipelineVBBufferPass[i]);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[0];
@@ -1931,7 +1927,7 @@ public:
     // DrawVisibilityBufferPass
     //  to get the draw / triangle IDs to reconstruct and interpolate vertex attributes per pixel. This method doesn't set any vertex/index
     //  buffer because the triangle positions are calculated internally using vertex_id.
-    void drawVisibilityBufferShade(Cmd* cmd, uint32_t frameIdx)
+    void drawVisibilityBufferShade(Cmd* cmd)
     {
         RenderTarget* pNormalRoughnessBuffer = pNormalRoughnessBuffers[gFrameIndex];
 
@@ -1951,8 +1947,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pSceneBuffer->mWidth, pSceneBuffer->mHeight);
 
         cmdBindPipeline(cmd, pPipelineVBShadeSrgb);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
 
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -1973,8 +1967,6 @@ public:
             // Draw the skybox
             const uint32_t skyboxStride = sizeof(float) * 4;
             cmdBindPipeline(cmd, pSkyboxPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
             cmdDraw(cmd, 36, 0);
 
@@ -2050,7 +2042,8 @@ public:
 
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
-
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         gCurrentGpuProfileToken = gReflectionType == PP_REFLECTION ? gPPRGpuProfileToken : gSSSRGpuProfileToken;
 
         cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
@@ -2058,9 +2051,6 @@ public:
         TriangleFilteringPassDesc triangleFilteringDesc = {};
         triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
         triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
-        triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPersistent;
-        triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
         triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
 
         triangleFilteringDesc.mFrameIndex = gFrameIndex;
@@ -2088,7 +2078,7 @@ public:
         RenderTarget* pNormalRoughnessBuffer = pNormalRoughnessBuffers[gFrameIndex];
 
         drawVisibilityBufferPass(cmd);
-        drawVisibilityBufferShade(cmd, gFrameIndex);
+        drawVisibilityBufferShade(cmd);
 
         RenderTargetBarrier rtBarriers[4] = {};
         rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
@@ -2104,9 +2094,7 @@ public:
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "ProjectionPass");
 
             cmdBindPipeline(cmd, pPPR_ProjectionPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mNumThreadsPerGroup;
             cmdDispatch(cmd, (gSceneRes.mWidth * gSceneRes.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
@@ -2128,8 +2116,6 @@ public:
 
             cmdBindPipeline(cmd, pPPR_ReflectionPipeline);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
             cmdDraw(cmd, 3, 0);
 
@@ -2155,8 +2141,6 @@ public:
             cmdBindPipeline(cmd, pCopyDepthPipeline);
 
             cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Depth mips generation");
-
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetCopyDepth);
             cmdDispatch(cmd, dim_x, dim_y, 1);
 
@@ -2210,9 +2194,7 @@ public:
             cmdResourceBarrier(cmd, 4, bufferBarriers, 3, textureBarriers, 2, rtBarriers);
 
             cmdBindPipeline(cmd, pSSSR_ClassifyTilesPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdDispatch(cmd, dim_x, dim_y, pSceneBuffer->mArraySize);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2227,7 +2209,6 @@ public:
             cmdResourceBarrier(cmd, 4, bufferBarriers, 0, NULL, 0, NULL);
 
             cmdBindPipeline(cmd, pSSSR_PrepareIndirectArgsPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
             cmdDispatch(cmd, 1, 1, 1);
 
@@ -2247,9 +2228,7 @@ public:
             cmdResourceBarrier(cmd, 3, bufferBarriers, 3, textureBarriers, 2, rtBarriers);
 
             cmdBindPipeline(cmd, pSSSR_IntersectPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
             cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_IntersectArgsBuffer, 0, NULL, 0);
 
@@ -2268,9 +2247,7 @@ public:
                 cmdResourceBarrier(cmd, 1, bufferBarriers, 3, textureBarriers, 1, rtBarriers);
 
                 cmdBindPipeline(cmd, pSSSR_ResolveSpatialPipeline);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                 cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
                 cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
@@ -2290,9 +2267,7 @@ public:
                     cmdResourceBarrier(cmd, 0, NULL, 4, textureBarriers, 1, rtBarriers);
 
                     cmdBindPipeline(cmd, pSSSR_ResolveTemporalPipeline);
-                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                     cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
@@ -2307,7 +2282,6 @@ public:
                 cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 
                 cmdBindPipeline(cmd, pSSSR_ResolveEAWPipeline);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                 cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSSSR);
 
                 cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
@@ -2326,7 +2300,6 @@ public:
                     cmdBindPipeline(cmd, pSSSR_ResolveEAWStride2Pipeline);
 
                     cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
@@ -2341,8 +2314,6 @@ public:
 
                     cmdBindPipeline(cmd, pSSSR_ResolveEAWStride4Pipeline);
                     cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
-
                     cmdExecuteIndirect(cmd, INDIRECT_DISPATCH, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
                     cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2365,9 +2336,7 @@ public:
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPPR_HolePatchingPipeline);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
         cmdDraw(cmd, 3, 0);
 
@@ -2695,13 +2664,12 @@ public:
         removeDescriptorSet(pRenderer, pDescriptorSetPPR);
         removeDescriptorSet(pRenderer, pDescriptorSetSSSR);
         removeDescriptorSet(pRenderer, pDescriptorSetDepthDownSamplePerBatch);
-        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
-        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
-
         if (gSSSRSupported)
         {
             removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
         }
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
     }
 
     void addShaders()

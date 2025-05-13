@@ -173,10 +173,11 @@ float2 calcPrevPixelPos(float2 screenPos, uint primitiveID, uint geomSet)
         // Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
         //       therefore we don't need thi assignment.
         animatedAttrVertexOffset = preSkinnedVtxOffset - meshConstant.vertexOffset;
-		mvp = mul(mvp, meshConstant.modelMtx);
-		invMvp = mul(meshConstant.invModelMtx, invMvp);
-		prevMvp = mul(prevMvp, meshConstant.prevModelMtx);
 	}
+	
+	mvp = mul(mvp, meshConstant.modelMtx);
+	invMvp = mul(meshConstant.invModelMtx, invMvp);
+	prevMvp = mul(prevMvp, meshConstant.prevModelMtx);
 
 	uint animIndex0 = index0 - animatedAttrVertexOffset;
 	uint animIndex1 = index1 - animatedAttrVertexOffset;

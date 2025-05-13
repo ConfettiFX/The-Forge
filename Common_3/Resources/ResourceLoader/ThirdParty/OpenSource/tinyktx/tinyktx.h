@@ -508,6 +508,20 @@ typedef enum TinyKtx_Format {
 	TINYKTX_MEV(ASTC_12x10_SRGB_BLOCK),
 	TINYKTX_MEV(ASTC_12x12_UNORM_BLOCK),
 	TINYKTX_MEV(ASTC_12x12_SRGB_BLOCK),
+    TINYKTX_MEV(ASTC_4x4_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_5x4_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_5x5_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_6x5_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_6x6_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_8x5_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_8x6_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_8x8_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_10x5_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_10x6_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_10x8_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_10x10_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_12x10_SFLOAT_BLOCK),
+    TINYKTX_MEV(ASTC_12x12_SFLOAT_BLOCK),
 
 } TinyKtx_Format;
 #undef TINYKTX_MEV
@@ -1252,6 +1266,12 @@ void const *TinyKtx_ImageRawData(TinyKtx_ContextHandle handle, uint32_t mipmaple
                                     *glinternalformat = TINYKTX_GL_COMPRESSED_##intfmt; \
                                     *typesize = 1; \
                                     return true;
+#define FTC16(fmt, intfmt)                                \
+    *glformat = TINYKTX_GL_FORMAT_##fmt;                \
+    *gltype = TINYKTX_GL_TYPE_COMPRESSED;               \
+    *glinternalformat = TINYKTX_GL_COMPRESSED_##intfmt; \
+    *typesize = 2;                                      \
+    return true;
 
 bool TinyKtx_CrackFormatToGL(TinyKtx_Format format,
 														 uint32_t *glformat,
@@ -1425,6 +1445,20 @@ bool TinyKtx_CrackFormatToGL(TinyKtx_Format format,
 	case TKTX_ASTC_12x10_SRGB_BLOCK: FTC(SRGB_ALPHA, SRGB8_ALPHA8_ASTC_12x10)
 	case TKTX_ASTC_12x12_UNORM_BLOCK: FTC(RGBA, RGBA_ASTC_12x12)
 	case TKTX_ASTC_12x12_SRGB_BLOCK: FTC(SRGB_ALPHA, SRGB8_ALPHA8_ASTC_12x12)
+	case TKTX_ASTC_4x4_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_4x4);
+    case TKTX_ASTC_5x4_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_5x4);
+    case TKTX_ASTC_5x5_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_5x5);
+    case TKTX_ASTC_6x5_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_6x5);
+    case TKTX_ASTC_6x6_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_6x6);
+    case TKTX_ASTC_8x5_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_8x5);
+    case TKTX_ASTC_8x6_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_8x6);
+    case TKTX_ASTC_8x8_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_8x8);
+    case TKTX_ASTC_10x5_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_10x5);
+    case TKTX_ASTC_10x6_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_10x6);
+    case TKTX_ASTC_10x8_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_10x8);
+    case TKTX_ASTC_10x10_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_10x10);
+    case TKTX_ASTC_12x10_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_12x10);
+    case TKTX_ASTC_12x12_SFLOAT_BLOCK: FTC16(RGBA, RGBA_ASTC_12x12);
 
 	default:break;
 	}
@@ -2293,6 +2327,20 @@ TinyImageFormat TinyImageFormat_FromTinyKtxFormat(TinyKtx_Format format)
 	case TKTX_ASTC_12x10_SRGB_BLOCK: return TinyImageFormat_ASTC_12x10_SRGB;
 	case TKTX_ASTC_12x12_UNORM_BLOCK: return TinyImageFormat_ASTC_12x12_UNORM;
 	case TKTX_ASTC_12x12_SRGB_BLOCK: return TinyImageFormat_ASTC_12x12_SRGB;
+    case TKTX_ASTC_4x4_SFLOAT_BLOCK: return TinyImageFormat_ASTC_4x4_SFLOAT;
+    case TKTX_ASTC_5x4_SFLOAT_BLOCK: return TinyImageFormat_ASTC_5x4_SFLOAT;
+    case TKTX_ASTC_5x5_SFLOAT_BLOCK: return TinyImageFormat_ASTC_5x5_SFLOAT;
+    case TKTX_ASTC_6x5_SFLOAT_BLOCK: return TinyImageFormat_ASTC_6x5_SFLOAT;
+    case TKTX_ASTC_6x6_SFLOAT_BLOCK: return TinyImageFormat_ASTC_6x6_SFLOAT;
+    case TKTX_ASTC_8x5_SFLOAT_BLOCK: return TinyImageFormat_ASTC_8x5_SFLOAT;
+    case TKTX_ASTC_8x6_SFLOAT_BLOCK: return TinyImageFormat_ASTC_8x6_SFLOAT;
+    case TKTX_ASTC_8x8_SFLOAT_BLOCK: return TinyImageFormat_ASTC_8x8_SFLOAT;
+    case TKTX_ASTC_10x5_SFLOAT_BLOCK: return TinyImageFormat_ASTC_10x5_SFLOAT;
+    case TKTX_ASTC_10x6_SFLOAT_BLOCK: return TinyImageFormat_ASTC_10x6_SFLOAT;
+    case TKTX_ASTC_10x8_SFLOAT_BLOCK: return TinyImageFormat_ASTC_10x8_SFLOAT;
+    case TKTX_ASTC_10x10_SFLOAT_BLOCK: return TinyImageFormat_ASTC_10x10_SFLOAT;
+    case TKTX_ASTC_12x10_SFLOAT_BLOCK: return TinyImageFormat_ASTC_12x10_SFLOAT;
+    case TKTX_ASTC_12x12_SFLOAT_BLOCK: return TinyImageFormat_ASTC_12x12_SFLOAT;
 
 	case TKTX_A8B8G8R8_UNORM_PACK32:break;
 	case TKTX_A8B8G8R8_SNORM_PACK32:break;
@@ -2435,6 +2483,20 @@ TinyKtx_Format TinyImageFormat_ToTinyKtxFormat(TinyImageFormat format) {
 	case TinyImageFormat_ASTC_12x10_SRGB:	return TKTX_ASTC_12x10_SRGB_BLOCK;
 	case TinyImageFormat_ASTC_12x12_UNORM:	return TKTX_ASTC_12x12_UNORM_BLOCK;
 	case TinyImageFormat_ASTC_12x12_SRGB:	return TKTX_ASTC_12x12_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_4x4_SFLOAT:	return TKTX_ASTC_4x4_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_5x4_SFLOAT:	return TKTX_ASTC_5x4_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_5x5_SFLOAT:	return TKTX_ASTC_5x5_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_6x5_SFLOAT:	return TKTX_ASTC_6x5_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_6x6_SFLOAT:	return TKTX_ASTC_6x6_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_8x5_SFLOAT:	return TKTX_ASTC_8x5_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_8x6_SFLOAT:	return TKTX_ASTC_8x6_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_8x8_SFLOAT:	return TKTX_ASTC_8x8_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_10x5_SFLOAT:	return TKTX_ASTC_10x5_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_10x6_SFLOAT:	return TKTX_ASTC_10x6_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_10x8_SFLOAT:	return TKTX_ASTC_10x8_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_10x10_SFLOAT:	return TKTX_ASTC_10x10_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_12x10_SFLOAT:	return TKTX_ASTC_12x10_SFLOAT_BLOCK;
+	case TinyImageFormat_ASTC_12x12_SFLOAT:	return TKTX_ASTC_12x12_SFLOAT_BLOCK;
 
 	default: return TKTX_UNDEFINED;
 	};

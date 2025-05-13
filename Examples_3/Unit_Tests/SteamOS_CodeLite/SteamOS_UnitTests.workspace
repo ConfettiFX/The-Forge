@@ -4,6 +4,7 @@
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
+  <Project Name="04_QueueSubmitProfiling" Path="04_QueueSubmitProfiling/04_QueueSubmitProfiling.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="10_ScreenSpaceReflections" Path="10_ScreenSpaceReflections/10_ScreenSpaceReflections.project" Active="No"/>
@@ -18,7 +19,7 @@
   <Project Name="ozz_animation" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="15a_VisibilityBufferOIT" Path="15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.project" Active="No"/>
-  <Project Name="34_Input" Path="34_Input/34_Input.project" Active="Yes"/>
+  <Project Name="34_Input" Path="34_Input/34_Input.project" Active="No"/>
   <Project Name="36_AlgorithmsAndContainers" Path="36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.project" Active="No"/>
   <Project Name="39_ParticleSystem" Path="39_ParticleSystem/39_ParticleSystem.project" Active="Yes"/>
   <BuildMatrix>
@@ -28,6 +29,7 @@
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="01_Transformations" ConfigName="Debug"/>
       <Project Name="03_MultiThread" ConfigName="Debug"/>
+      <Project Name="04_QueueSubmitProfiling" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
@@ -77,6 +79,7 @@
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
       <Project Name="03_MultiThread" ConfigName="Release"/>
+      <Project Name="04_QueueSubmitProfiling" ConfigName="Release"/>
       <Project Name="01_Transformations" ConfigName="Release"/>
       <Project Name="29_InverseKinematic" ConfigName="Release"/>
       <Project Name="15a_VisibilityBufferOIT" ConfigName="Release"/>

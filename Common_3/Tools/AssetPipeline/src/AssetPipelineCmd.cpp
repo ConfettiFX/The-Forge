@@ -56,6 +56,8 @@ void PrintHelp()
     printf("\n\t\t--meshletnumtriangles [num]\t\t: Overrides maximum number of triangles in each meshlet\n");
     printf("\n\t%s\t(PNG/DDS/KTX to DDS/KTX)\tProcess Textures\n", gAssetPipelineCommands[PROCESS_TEXTURES].mCommandString);
     printf("\n\t\t--astc\t\t Perform ASTC compression | default astc4x4 | overrides --astc4x4 --astc8x8 \n");
+    printf("\n\t\t--astc_ispc\t\t Perform ASTC compression using the Fast ISPC compressor. No support for HDR. | default astc4x4 | "
+           "overrides --astc4x4 --astc8x8 \n");
     printf("\n\t\t--bc\t\t Perform DXT BC compression | default bc3 | overrides --bc1 --bc3 --bc4 --bc5 --bc7\n");
     printf("\n\t\t--genmips\t Generate mip maps if not existing \n");
     printf("\n\t\t--in-linear\t\t Specify input Color space as Linear \n");
@@ -180,7 +182,6 @@ int AssetPipelineCmd(int argc, char** argv)
     }
 
     params.mInDir = input;
-    params.mOutDir = output;
 
     FileSystemInitDesc fsDesc = {};
     fsDesc.pAppName = gApplicationName;
@@ -199,7 +200,7 @@ int AssetPipelineCmd(int argc, char** argv)
         inputPath[size] = '/';
 
     char outputPath[FS_MAX_PATH] = { 0 };
-    fsNormalizePath(output, '/', outputPath);
+    size = fsNormalizePath(output, '/', outputPath);
     if (outputPath[size - 1] != '/')
         outputPath[size] = '/';
 

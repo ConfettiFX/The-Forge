@@ -31,6 +31,7 @@
 #include "ShaderDefs.h.fsl"
 #include "VisibilityBufferResources.h.fsl"
 #include "VisibilityBufferShade.srt.h"
+#include "SceneLighting.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/VisibilityBufferShadingUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleShared.h.fsl"
@@ -44,8 +45,6 @@ STRUCT(VSOutput)
 	DATA(float4, position, SV_Position);
 	DATA(float2, screenPos, TEXCOORD0);
 };
-
-
 
 ROOT_SIGNATURE(DefaultRootSignature)
 float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
@@ -63,7 +62,14 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	// Early exit if this pixel doesn't contain triangle data
 	if (geomSetPrimID == ~0u)
 	{
-		RETURN(float4(0.0,0.0,0.0, 1.0));
+		float2 ndc = (float2(In.position.xy) / (2.0 / gPerFrameConstants.twoOverRes)) * 2.0 - 1.0;
+		ndc.y *= -1;
+		float4 viewDirH = mul(gPerFrameConstants.invProj, float4(ndc, 1.0, 1.0));
+		float3 worldDir = normalize(mul(float3x3(gPerFrameConstants.viewMat[0].xyz, gPerFrameConstants.viewMat[1].xyz, gPerFrameConstants.viewMat[2].xyz), normalize(viewDirH.xyz / viewDirH.w)));
+
+		// Draw the skybox
+		float4 skyboxCol = float4(getSkyColor(worldDir), 1.0);
+		RETURN(skyboxCol);
 	}
 	// Extract packed data
 	uint primitiveID = (geomSetPrimID >> PRIM_ID_LOW_BIT) & PRIM_ID_MASK;
@@ -176,14 +182,18 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	
 	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
 	float Metallic = specularColor.b;
-
-	float ao = 1.0f;
+	if (materialID == 203)
+	{
+		Roughness = gPerFrameConstants.groundRoughness;
+		Metallic = gPerFrameConstants.groundMetallic;
+	}
 
 	bool isTwoSided =  (geomSet == GEOMSET_ALPHA_CUTOUT) && (gMeshConstantsBuffer[materialID].twoSided == 1);
 
 	float3 ViewVec = normalize(gPerFrameConstants.camPos.xyz - wsPosition.xyz);
 	float NoV = dot(normal, ViewVec);
-	
+	float3 R = reflect(-ViewVec, normal);
+
 	// if it is backface NoV should be < 0.0f 
 	if (isTwoSided && NoV < 0.0f)
 	{
@@ -200,20 +210,57 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	// Deal with two faced materials
 	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
 
+	uint currentTimeOfTheDay = 0;
+	for (uint f=0; f<DAY_CYCLE_KEY_FRAME_COUNT; f++)
+	{
+		if (gPerFrameConstants.timeOfDay > gPerFrameConstants.dayCycleKeyFrames[f / 4][f % 4])
+		{
+			currentTimeOfTheDay = f;
+		}
+	}
+	
+
+	float3 ambientDiffuse = f3(0.f);
+	
+	if (gPerFrameConstants.ambientLightFromSky > 0.0)
+	{
+		float ambientIntensity = 0.05f + gPerFrameConstants.ambientLightIntensity * pow(NoL, 2.0);
+		ambientDiffuse = getSkyColor(normal).xyz * ambientIntensity;
+	}
+	else
+	{
+		uint nextTimeOfTheDay = (currentTimeOfTheDay + 1) % DAY_CYCLE_KEY_FRAME_COUNT;
+		float currentKeyFrame = gPerFrameConstants.dayCycleKeyFrames[currentTimeOfTheDay/4][currentTimeOfTheDay%4];
+		float nextKeyFrame = gPerFrameConstants.dayCycleKeyFrames[nextTimeOfTheDay/4][nextTimeOfTheDay%4];
+
+		float timeOfDayT = clamp(abs(gPerFrameConstants.timeOfDay - currentKeyFrame) / 
+			abs((nextTimeOfTheDay == 0 ? 1.0 - nextKeyFrame  : nextKeyFrame) - currentKeyFrame), 0.0f, 1.0f);
+		float ambientIntensity = 0.05f + gPerFrameConstants.ambientLightIntensity * pow(NoL, 2.0);
+		ambientDiffuse = lerp(gPerFrameConstants.ambientColors[currentTimeOfTheDay].xyz,
+								gPerFrameConstants.ambientColors[nextTimeOfTheDay].xyz,
+								timeOfDayT) * ambientIntensity;
+		// Lightning strikes
+		if((timeOfDayT >= 0.3f && timeOfDayT <= 0.32f || timeOfDayT >= 0.8f && timeOfDayT <= 0.82f) && currentTimeOfTheDay == 4){
+			ambientDiffuse = float3(0.85f, 0.6f, 1.0f) * (0.05f + pow(-NoL, 2.0));
+		}
+	}
+	
+	float3 ambientSpecular = ambientDiffuse;
+
 	float3 F0 = f3(0.08); // 0.08 is the index of refraction
 	float3 SpecularColor = lerp(F0, diffuseColor.rgb, Metallic);
 	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
-	
+
 	// Calculate Shadow Factor
 	float4 posLS = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat, float4(wsPosition, 1.0f));
-	float shadowFactor = calcESMShadowFactor(posLS, gShadowMap, gDepthSampler, gPerFrameConstants.esmControl);
+	float shadowFactor = gPerFrameConstants.lightDir.y <= 0 ? calcESMShadowFactor(posLS, gShadowMap, gDepthSampler, gPerFrameConstants.esmControl) : 0.0;
 
 	// Calculate Sun Illumation
 	float3 shadedColor = PBR_shadowFactor(
 					NoL, NoV, 
 					ViewVec, HalfVec, normal, 
 					DiffuseColor, F0, Roughness, Metallic, shadowFactor);
-	shadedColor *= gPerFrameConstants.lightColor.rgb * gPerFrameConstants.lightColor.a * NoL * ao * shadowFactor;
+	shadedColor *= gPerFrameConstants.lightColor.rgb * gPerFrameConstants.lightColor.a * NoL * shadowFactor;
 
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((In.screenPos * 0.5f + 0.5f) * float2(LIGHT_CLUSTER_WIDTH * VERTICAL_SUBCLUSTER_COUNT, LIGHT_CLUSTER_HEIGHT * HORIZONTAL_SUBCLUSTER_COUNT)));
@@ -269,12 +316,15 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 						wsPosition, pointLightPos, particleColor.xyz, lightRadius, isTwoSided);
 	}
 
+	float3 F = FresnelSchlickRoughness(NoV, F0, Roughness);
+	float3 kS = F;
+	float3 kD = f3(1.0f) - kS;
+	kD *= 1.0f - Metallic;
+	shadedColor += (diffuseColor.xyz * ambientDiffuse * kD + ambientSpecular * kS);
+
 	// Save shadow data
 	if (currShadow < 1.0)
 		Write2D(gShadowCollectorDest, uint2(In.position.xy), saturate(currShadow));
 
-	// Shaded + ambient color
-	float3 FinalColor = shadedColor + diffuseColor.xyz * 0.05;
-
-	RETURN(float4(FinalColor, 1.0));
+	RETURN(float4(shadedColor, 1.0));
 }

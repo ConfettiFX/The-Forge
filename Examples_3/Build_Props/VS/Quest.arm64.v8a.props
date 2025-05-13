@@ -33,8 +33,6 @@
   <ItemDefinitionGroup Condition="'$(UseQuest)' != ''">
 	<ClCompile>
       <AdditionalIncludeDirectories>
-        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;
-        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Include;
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\include;
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\mobile_sdk\OpenXR;
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\mobile_sdk\Samples\3rdParty\khronos\openxr\OpenXR-SDK\src\common;
@@ -42,14 +40,13 @@
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>QUEST_VR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 	</ClCompile>
-	<Link>
-	  <AdditionalLibraryDirectories>
+    <Link>
+      <AdditionalLibraryDirectories>
         $(SolutionDir)\$(Platform)\$(Configuration);
-        $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);
         $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\libs\android.$(PlatformTarget);
         $(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
-      <LibraryDependencies>vrapi;openxr_loader;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>openxr_loader;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -89,7 +86,6 @@
       </Command>
       <Command Condition="'$(UseQuest)' != ''">
         %(Command)
-        xcopy  $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(OutDir) /s /y /d
         xcopy  $(TheForgeRoot)Common_3\OS\ThirdParty\PrivateOculus\ovr_openxr\openxr_loader\libs\android.$(PlatformTarget)\*.so $(OutDir) /s /y /d
       </Command>
     </PreBuildEvent>

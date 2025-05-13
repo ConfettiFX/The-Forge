@@ -4,3 +4,8 @@
 #comp FT_NO_AB copy.comp
 #include "Copy.comp.fsl"
 #end
+
+#comp FT_NO_AB copy_array.comp
+#define COPY_MULTI_VIEW
+#include "Copy.comp.fsl"
+#end

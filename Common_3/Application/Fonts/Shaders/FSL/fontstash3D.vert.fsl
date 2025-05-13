@@ -23,7 +23,7 @@
  */
 
 #define FONTSTASH3D
-#include "Resources.h"
+#include "FontStash.srt.h"
 
 STRUCT(VsIn)
 {
@@ -42,11 +42,7 @@ PsIn VS_MAIN( VsIn In )
 {
 	INIT_MAIN;
 
-#if FT_MULTIVIEW
 	float4x4 modelViewProj = gUniformBlock.mvp[VR_VIEW_ID];
-#else
-	float4x4 modelViewProj = gUniformBlock.mvp;
-#endif
 
 	PsIn Out;
 	Out.position = mul(modelViewProj, float4(In.position * gUniformBlock.scaleBias.xy, 1.0f, 1.0f));

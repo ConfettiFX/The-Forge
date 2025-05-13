@@ -4,12 +4,6 @@
     <Filter Include="Graphics">
       <UniqueIdentifier>{975e765a-72ed-49b0-a13d-506b8beb52c2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\OpenXR">
-      <UniqueIdentifier>{9f61a887-ca3c-42bf-92cc-31756c6cfa28}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Quest">
-      <UniqueIdentifier>{634cfb96-ab28-4deb-84ee-e85d019ff60e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Vulkan">
       <UniqueIdentifier>{35b05cf3-6777-4f3c-b5fe-2b3d0ef89507}</UniqueIdentifier>
     </Filter>
@@ -42,15 +36,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenXR\OpenXRApi.c">
-      <Filter>Graphics\OpenXR</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\OpenXR\OpenXRApiUtils.cpp">
-      <Filter>Graphics\OpenXR</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Quest\OpenXRVulkan.c">
-      <Filter>Graphics\Quest</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.c">
       <Filter>Graphics\Vulkan</Filter>
     </ClCompile>
@@ -74,15 +59,6 @@
     </ClCompile>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
       <Filter>Graphics\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\OpenXR\OpenXRApi.h">
-      <Filter>Graphics\OpenXR</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\OpenXR\OpenXRApiUtils.h">
-      <Filter>Graphics\OpenXR</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Quest\OpenXRVulkan.h">
-      <Filter>Graphics\Quest</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
       <Filter>Graphics\Vulkan</Filter>

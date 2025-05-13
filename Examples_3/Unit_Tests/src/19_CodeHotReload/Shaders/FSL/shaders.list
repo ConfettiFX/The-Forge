@@ -10,7 +10,7 @@
 #include "Basic.frag.fsl"
 #end
 
-#vert FT_NO_AB FT_MULTIVIEW  basic.vert
+#vert FT_NO_AB basic.vert
 #include "Basic.vert.fsl"
 #end
 

@@ -132,7 +132,7 @@ void requestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReload
 
 void errorMessagePopup(const char* title, const char* msg, WindowHandle* windowHandle, errorMessagePopupCallbackFn callback)
 {
-#if defined(AUTOMATED_TESTING)
+#if defined(AUTOMATED_TESTING) && !defined(BROWSERSTACK_TESTING)
     LOGF(eERROR, title);
     LOGF(eERROR, msg);
     if (callback)
@@ -155,7 +155,23 @@ void errorMessagePopup(const char* title, const char* msg, WindowHandle* windowH
 
     [alert addAction:okAction];
     UIViewController* vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+#if !defined(BROWSERSTACK_TESTING)
     [vc presentViewController:alert animated:YES completion:nil];
+#else
+    [vc presentViewController:alert
+                     animated:YES
+                   completion:^{
+                       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                           [vc dismissViewControllerAnimated:YES
+                                                  completion:^{
+                                                      if (callback)
+                                                      {
+                                                          callback();
+                                                      }
+                                                  }];
+                       });
+                   }];
+#endif
 #endif
 }
 

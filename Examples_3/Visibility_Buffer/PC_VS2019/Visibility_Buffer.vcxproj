@@ -25,7 +25,7 @@
     <ClInclude Include="..\src\Shaders\FSL\TriangleFiltering.srt.h" />
     <ClInclude Include="..\src\Shaders\FSL\VisibilityBufferResources.h.fsl" />
     <ClInclude Include="..\src\Shaders\FSL\GLobal.srt.h" />
-    <ClInclude Include="..\src\Shaders\FSL\Resolve.srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\ProgMSAAResolve.srt.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\Shaders\FSL\BatchCompaction.comp.fsl" />
@@ -37,8 +37,8 @@
     <FSLShader Include="..\src\Shaders\FSL\Display.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\Godray.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\GodrayBlur.comp.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.frag.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\MsaaEdgeDetect.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\MsaaStencilDownscale.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shaders.list" />

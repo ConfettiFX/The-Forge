@@ -140,11 +140,46 @@ inline void load_block_interleaved(float pixels[], uniform rgba_surface src[], i
     }
 }
 
+inline void load_block_interleaved_16bit(float pixels[], uniform rgba_surface* uniform src, int xx, int yy, uniform int width, uniform int height)
+{
+    for (uniform int y = 0; y < height; y++)
+    for (uniform int x = 0; x < width; x++)
+    {
+        unsigned int32 xr = gather_uint((uint32_t*)src->ptr, ((yy * height + y)*src->stride + 0) + (xx * width + x) * 2);
+        unsigned int32 xg = gather_uint((uint32_t*)src->ptr, ((yy * height + y)*src->stride + 2) + (xx * width + x) * 2);
+        unsigned int32 xb = gather_uint((uint32_t*)src->ptr, ((yy * height + y)*src->stride + 4) + (xx * width + x) * 2);
+        unsigned int32 xa = gather_uint((uint32_t*)src->ptr, ((yy * height + y)*src->stride + 6) + (xx * width + x) * 2);
+
+        set_pixel(pixels, 0, x, y, (int)(xr & 0xFFFF));
+        set_pixel(pixels, 1, x, y, (int)(xg & 0xFFFF));
+        set_pixel(pixels, 2, x, y, (int)(xb & 0xFFFF));
+        set_pixel(pixels, 3, x, y, (int)(xa & 0xFFFF));
+    }
+}
+
+inline void load_block_interleaved_32bit(float pixels[], uniform rgba_surface* uniform src, int xx, int yy, uniform int width, uniform int height)
+{
+    for (uniform int y = 0; y < height; y++)
+    for (uniform int x = 0; x < width; x++)
+    {
+        float xr = gather_float((float*)src->ptr, ((yy * height + y)*(src->stride / 4) + 0) + (xx * width + x) * 4);
+        float xg = gather_float((float*)src->ptr, ((yy * height + y)*(src->stride / 4) + 1) + (xx * width + x) * 4);
+        float xb = gather_float((float*)src->ptr, ((yy * height + y)*(src->stride / 4) + 2) + (xx * width + x) * 4);
+        float xa = gather_float((float*)src->ptr, ((yy * height + y)*(src->stride / 4) + 3) + (xx * width + x) * 4);
+
+        set_pixel(pixels, 0, x, y, xr);
+        set_pixel(pixels, 1, x, y, xg);
+        set_pixel(pixels, 2, x, y, xb);
+        set_pixel(pixels, 3, x, y, xa);
+    }
+}
+
 struct astc_enc_settings
 {
     int block_width;
     int block_height;
     int channels;
+    int bytesPerChannel;
 
     int fastSkipTreshold;
     int refineIterations;
@@ -1246,7 +1281,19 @@ export void astc_rank_ispc(uniform rgba_surface src[], uniform int xx, uniform i
 
     assert(state->fastSkipTreshold <= 64);
 
-    load_block_interleaved(state->pixels, src, xx + programIndex, yy, state->block_width, state->block_height);
+    if (settings->bytesPerChannel == 1)
+    {
+        load_block_interleaved(state->pixels, src, xx + programIndex, yy, state->block_width, state->block_height);
+    }
+    else if (settings->bytesPerChannel == 2)
+    {
+        load_block_interleaved_16bit(state->pixels, src, xx + programIndex, yy, state->block_width, state->block_height);
+    }
+    else if (settings->bytesPerChannel == 4)
+    {
+        load_block_interleaved_32bit(state->pixels, src, xx + programIndex, yy, state->block_width, state->block_height);
+    }
+    
     if (settings->channels == 3) clear_alpha(state->pixels, state->block_width, state->block_height);
 
     compute_metrics(state);
@@ -2186,7 +2233,18 @@ export void astc_encode_ispc(uniform rgba_surface src[], uniform float block_sco
     state->block_height = settings->block_height;
     state->refineIterations = settings->refineIterations;
 
-    load_block_interleaved(state->pixels, src, xx, yy, state->block_width, state->block_height);
+    if (settings->bytesPerChannel == 1)
+    {
+        load_block_interleaved(state->pixels, src, xx, yy, state->block_width, state->block_height);
+    }
+    else if (settings->bytesPerChannel == 2)
+    {
+        load_block_interleaved_16bit(state->pixels, src, xx, yy, state->block_width, state->block_height);
+    }
+    else if (settings->bytesPerChannel == 4)
+    {
+        load_block_interleaved_32bit(state->pixels, src, xx, yy, state->block_width, state->block_height);
+    }
 
     astc_block _block;
     varying astc_block* uniform block = &_block;

@@ -166,8 +166,8 @@ Buffer*   pSpriteIndexBuffer = NULL;
 Buffer*   pSpriteVertexBuffer = NULL;
 Pipeline* pSpritePipeline = NULL;
 
-DescriptorSet* pDescriptorSetTexture = NULL;
-DescriptorSet* pDescriptorSetUniforms = NULL;
+DescriptorSet* pDescriptorSetPersistent = NULL;
+DescriptorSet* pDescriptorSetPerFrame = NULL;
 
 Texture* pSpriteTexture = NULL;
 
@@ -175,6 +175,9 @@ uint32_t gFrameIndex = 0;
 
 SpriteData* gSpriteData = NULL;
 uint        gDrawSpriteCount = 0;
+
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 
 ecs_world_t* gECSWorld = NULL;
 
@@ -804,6 +807,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -948,32 +953,36 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-        // Draw Sprites
-        if (gDrawSpriteCount > 0)
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
         {
-            cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Sprites");
-            cmdBindPipeline(cmd, pSpritePipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
-            uint32_t vertexStride = sizeof(float);
-            cmdBindVertexBuffer(cmd, 1, &pSpriteVertexBuffer, &vertexStride, NULL);
-            cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, INDEX_TYPE_UINT16, 0);
-            cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
+            // Draw Sprites
+            if (gDrawSpriteCount > 0)
+            {
+                cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Sprites");
+                cmdBindPipeline(cmd, pSpritePipeline);
+                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+                uint32_t vertexStride = sizeof(float);
+                cmdBindVertexBuffer(cmd, 1, &pSpriteVertexBuffer, &vertexStride, NULL);
+                cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, INDEX_TYPE_UINT16, 0);
+                cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
+                cmdEndDebugMarker(cmd);
+            }
+
+            cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+
+            FontDrawDesc uiTextDesc; // default
+            uiTextDesc.mFontColor = 0xff00cc00;
+            uiTextDesc.mFontSize = 18;
+            uiTextDesc.mFontID = gFontID;
+            float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
+            cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 75.f), gGpuProfileToken, &uiTextDesc);
+
+            cmdDrawUserInterface(cmd);
+            cmdBindRenderTargets(cmd, NULL);
             cmdEndDebugMarker(cmd);
         }
-
-        cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-
-        FontDrawDesc uiTextDesc; // default
-        uiTextDesc.mFontColor = 0xff00cc00;
-        uiTextDesc.mFontSize = 18;
-        uiTextDesc.mFontID = gFontID;
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
-        cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 75.f), gGpuProfileToken, &uiTextDesc);
-
-        cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, NULL);
-        cmdEndDebugMarker(cmd);
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
 
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
@@ -1022,6 +1031,9 @@ public:
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mColorClearValue = { { 0.02f, 0.02f, 0.02f, 1.0f } };
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;
@@ -1030,15 +1042,15 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent);
         setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerFrame);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-        removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
     }
 
     void addShaders()
@@ -1106,12 +1118,12 @@ public:
         DescriptorData params[1] = {};
         params[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
         params[0].ppTextures = &pSpriteTexture;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 1, params);
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gInstanceBuffer);
             params[0].ppBuffers = &pSpriteVertexBuffers[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 1, params);
         }
     }
 };

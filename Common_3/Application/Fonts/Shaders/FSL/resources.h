@@ -27,16 +27,9 @@
 
 STRUCT(UniformBlock)
 {
-#if FT_MULTIVIEW
-	DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
-#else
-	DATA(float4x4, mvp, None);
-#endif
+    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
     DATA(float4, color, None);
     DATA(float2, scaleBias, None);
     DATA(float2, pad, None);
 };
-
-#include "FontStash.srt.h"
-
 #endif

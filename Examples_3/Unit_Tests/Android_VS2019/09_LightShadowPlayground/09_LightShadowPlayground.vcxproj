@@ -44,6 +44,7 @@
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\MeshMSMDepthPassAlpha.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\MeshVSMDepthPass.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\MeshVSMDepthPassAlpha.frag.fsl" />
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\MsaaEdgeDetect.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsCopyDEM.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsCopyDEM.vert.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsCopyDepth.frag.fsl" />
@@ -52,8 +53,8 @@
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsFillIndirection.vert.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsGenerateAsmDEM.frag.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\PackedQuadsGenerateAsmDEM.vert.fsl" />
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Resolve.frag.fsl" />
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Resolve.vert.fsl" />
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ProgMSAAResolve.frag.fsl" />
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ProgMSAAResolve.vert.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ScreenSpaceShadowsClear.comp.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ScreenSpaceShadowsGenerate.comp.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\SDFConstants.h.fsl" />
@@ -61,8 +62,6 @@
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\SDFMeshVisualize.comp.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\ShaderDefs.h.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Shaders.list" />
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Skybox.frag.fsl" />
-    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Skybox.vert.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\TriangleFiltering.comp.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\TriangleFilteringClear.comp.fsl" />
     <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\UpdateRegion3DTexture.comp.fsl" />

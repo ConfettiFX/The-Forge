@@ -44,7 +44,7 @@
 
 #include "../../Graphics/FSL/fsl_srt.h"
 #include "../../Graphics/FSL/defaults.h"
-#include "./Shaders/FSL/Resources.h"
+#include "./Shaders/FSL/FontStash.srt.h"
 
 #ifdef ENABLE_FORGE_FONTS
 
@@ -186,7 +186,7 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     uniformBlockData.mvp[0] = mvp.mLeftEye;
     uniformBlockData.mvp[1] = mvp.mRightEye;
 #else
-    uniformBlockData.mvp = mvp.mLeftEye;
+    uniformBlockData.mvp[0] = mvp.mLeftEye;
 #endif
 
     memcpy(updateDesc.pMappedData, &uniformBlockData, size);
@@ -366,7 +366,7 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
             text2DShaderDesc.mFrag = { "fontstash.frag" };
             ShaderLoadDesc text3DShaderDesc = {};
             text3DShaderDesc.mVert = { "fontstash3D.vert" };
-            text3DShaderDesc.mFrag = { "fontstash.frag" };
+            text3DShaderDesc.mFrag = { "fontstash3D.frag" };
 
             addShader(gFontstash.pRenderer, &text2DShaderDesc, &gFontstash.pShaders[0]);
             addShader(gFontstash.pRenderer, &text3DShaderDesc, &gFontstash.pShaders[1]);
@@ -423,7 +423,6 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         PIPELINE_LAYOUT_DESC(pipelineDesc, NULL, NULL, NULL, SRT_LAYOUT_DESC(FontSrtData, PerDraw))
         pipelineDesc.pCache = pDesc->pCache;
         pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-        pipelineDesc.mGraphicsDesc.mVRFoveatedRendering = true;
         pipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
         pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;

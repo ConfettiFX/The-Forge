@@ -30,11 +30,6 @@
 
 #include "../../Utilities/Math/MathTypes.h"
 
-#if defined(QUEST_VR)
-#include "../../Graphics/OpenXR/OpenXRApi.h"
-#include "../../Graphics/OpenXR/OpenXRApiUtils.h"
-#endif
-
 struct CameraMotionParameters
 {
     float maxSpeed = 160.0f;
@@ -84,6 +79,17 @@ public:
     mat4 mRightEye;
 #endif
 };
+
+#if defined(QUEST_VR)
+#define LEFT_EYE_VIEW  0
+#define RIGHT_EYE_VIEW 1
+
+extern void GetOpenXRViewMatrix(uint32_t eyeIndex, mat4* outMatrix);
+extern void GetOpenXRProjMatrixPerspective(uint32_t eyeIndex, float zNear, float zFar, mat4* outMatrix);
+extern void GetOpenXRProjMatrixPerspectiveReverseZ(uint32_t eyeIndex, float zNear, float zFar, mat4* outMatrix);
+// Order is (left, right, up, down)
+extern void GetOpenXRViewFovs(float4& outLeftEye, float4& outRightEye);
+#endif
 
 inline const CameraMatrix& CameraMatrix::operator=(const CameraMatrix& mat)
 {
@@ -176,7 +182,9 @@ inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, f
 #ifdef QUEST_VR
 inline void CameraMatrix::superFrustumReverseZ(const CameraMatrix& views, float zNear, float zFar, mat4& outView, mat4& outProject)
 {
-    EyesFOV fovs = GetOpenXRViewFovs();
+    float4 leftEyeFovs;
+    float4 rightEyeFovs;
+    GetOpenXRViewFovs(leftEyeFovs, rightEyeFovs);
 
     // Vector pointing from left eye to right eye
     const Vector3 leftEyeToRightEyeDir = views.mRightEye.getTranslation() - views.mLeftEye.getTranslation();
@@ -185,10 +193,10 @@ inline void CameraMatrix::superFrustumReverseZ(const CameraMatrix& views, float 
     // IPD is the distance between each view's origin, which is the real world distance between each eye
     float ipd = length(leftEyeToRightEyeDir);
 
-    float leftFov = fovs.mLeftEye.x;
-    float rightFov = fovs.mRightEye.y;
-    float topFov = fovs.mLeftEye.z;
-    float bottomFov = fovs.mLeftEye.w;
+    float leftFov = leftEyeFovs.x;
+    float rightFov = rightEyeFovs.y;
+    float topFov = leftEyeFovs.z;
+    float bottomFov = leftEyeFovs.w;
 
     // How we need the new view origin to go back
     float recession = ipd / (tan(-leftFov) + tan(rightFov));

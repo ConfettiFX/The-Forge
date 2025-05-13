@@ -37,11 +37,8 @@ BEGIN_SRT_NO_AB(SrtCopyCompData)
 	BEGIN_SRT_SET(PerDraw)
 		DECL_CBUFFER(PerDraw, CBUFFER(ScreenShotParams), gScreenShotConstants);
 		DECL_RWBUFFER(PerDraw, RWByteBuffer, gOutputBuffer)
-	#if defined(TARGET_QUEST)
-		DECL_TEXTURE(PerDraw, Tex2DArray(float4), gInputTexture)
-	#else
+		DECL_TEXTURE(PerDraw, Tex2DArray(float4), gInputTextureArray)
 		DECL_TEXTURE(PerDraw, Tex2D(float4), gInputTexture)
-	#endif
 	END_SRT_SET(PerDraw)
 END_SRT(SrtCopyCompData)
 

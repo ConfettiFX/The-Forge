@@ -48,16 +48,18 @@
 #include "Shaders/FSL/GodrayBlur.srt.h"
 #include "Shaders/FSL/LightClusters.srt.h"
 #include "Shaders/FSL/TriangleFiltering.srt.h"
-#include "Shaders/FSL/Resolve.srt.h"
+#include "Shaders/FSL/ProgMSAAResolve.srt.h"
 
 #include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 
-#define FOREACH_SETTING(X)  \
-    X(BindlessSupported, 1) \
-    X(DisableAO, 0)         \
-    X(DisableGodRays, 0)    \
-    X(MSAASampleCount, 2)   \
-    X(AddGeometryPassThrough, 0)
+#define FOREACH_SETTING(X)       \
+    X(BindlessSupported, 1)      \
+    X(DisableAO, 0)              \
+    X(DisableGodRays, 0)         \
+    X(MSAASampleCount, 4)        \
+    X(AddGeometryPassThrough, 0) \
+    X(MaxMSAALevel, 4)           \
+    X(DisableAsyncCompute, 0)
 
 #define GENERATE_ENUM(x, y)   x,
 #define GENERATE_STRING(x, y) #x,
@@ -251,6 +253,7 @@ typedef struct AppSettings
     DisplaySignalRange mDisplaySignalRange = Display_SIGNAL_RANGE_FULL;
 
     SampleCount mMsaaLevel = SAMPLE_COUNT_1;
+    SampleCount mMaxMsaaLevel = SAMPLE_COUNT_4;
     uint32_t    mMsaaIndex = (uint32_t)log2((uint32_t)mMsaaLevel);
     uint32_t    mMsaaIndexRequested = mMsaaIndex;
 
@@ -258,6 +261,8 @@ typedef struct AppSettings
     bool  cameraWalking = false;
     float cameraWalkingSpeed = 1.0f;
 
+    // VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+    VR2DLayerDesc mVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 } AppSettings;
 
 /************************************************************************/
@@ -651,9 +656,12 @@ public:
         // turn off by default depending on gpu config rules
         gAppSettings.mEnableGodray &= !gGpuSettings.mDisableGodRays;
         gAppSettings.mEnableAO &= !gGpuSettings.mDisableAO;
-        gAppSettings.mMsaaLevel = (SampleCount)clamp(gGpuSettings.mMSAASampleCount, (uint32_t)SAMPLE_COUNT_1, (uint32_t)SAMPLE_COUNT_4);
+        gAppSettings.mMaxMsaaLevel = (SampleCount)gGpuSettings.mMaxMSAALevel;
+        gAppSettings.mMsaaLevel =
+            (SampleCount)clamp(gGpuSettings.mMSAASampleCount, (uint32_t)SAMPLE_COUNT_1, (uint32_t)gAppSettings.mMaxMsaaLevel);
         gAppSettings.mMsaaIndex = (uint32_t)log2((uint32_t)gAppSettings.mMsaaLevel);
         gAppSettings.mMsaaIndexRequested = gAppSettings.mMsaaIndex;
+        gAppSettings.mAsyncCompute &= !gGpuSettings.mDisableAsyncCompute;
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -1057,15 +1065,6 @@ public:
             /************************************************************************/
             // Most important options
             /************************************************************************/
-            // Default NX settings for better performance.
-#if NX64
-            // Async compute is not optimal on the NX platform. Turning this off to make use of default graphics queue for triangle
-            // visibility.
-            gAppSettings.mAsyncCompute = false;
-            // High fill rate features are also disabled by default for performance.
-            gAppSettings.mEnableGodray = false;
-            gAppSettings.mEnableAO = false;
-#endif
 
             gAppSettings.mHoldFilteredResults = false;
 
@@ -1183,7 +1182,8 @@ public:
             DropdownWidget ddMSAA;
             ddMSAA.pData = &gAppSettings.mMsaaIndexRequested;
             ddMSAA.pNames = msaaSampleNames;
-            ddMSAA.mCount = sizeof(msaaSampleNames) / sizeof(msaaSampleNames[0]);
+            uint32_t msaaOptionsCount = 1 + (((uint32_t)gAppSettings.mMaxMsaaLevel) >> 1);
+            ddMSAA.mCount = msaaOptionsCount;
 
             UIWidget* msaaWidget = uiAddComponentWidget(pGuiWindow, "MSAA", &ddMSAA, WIDGET_TYPE_DROPDOWN);
             uiSetWidgetOnEditedCallback(msaaWidget, nullptr,
@@ -1264,7 +1264,9 @@ public:
                     gAppSettings.mMsaaLevel = (SampleCount)(1 << gAppSettings.mMsaaIndex);
                     while (gAppSettings.mMsaaIndex > 0)
                     {
-                        if ((pRenderer->pGpu->mFrameBufferSamplesCount & gAppSettings.mMsaaLevel) == 0)
+                        bool isValidLevel = (pRenderer->pGpu->mFrameBufferSamplesCount & gAppSettings.mMsaaLevel) != 0;
+                        isValidLevel &= gAppSettings.mMsaaLevel <= gAppSettings.mMaxMsaaLevel;
+                        if (!isValidLevel)
                         {
                             gAppSettings.mMsaaIndex--;
                             gAppSettings.mMsaaLevel = (SampleCount)(gAppSettings.mMsaaLevel / 2);
@@ -1300,6 +1302,9 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        VR2DLayerDesc vr2DLayer = gAppSettings.mVR2DLayer;
+        uiLoad.mVR2DLayer.mPosition = float3(vr2DLayer.m2DLayerPosition.x, vr2DLayer.m2DLayerPosition.y, vr2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = vr2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -1489,15 +1494,14 @@ public:
 
             resetCmdPool(pRenderer, computeElem.pCmdPool);
             beginCmd(computeCmd);
+            cmdBindDescriptorSet(computeCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(computeCmd, frameIdx, pDescriptorSetPerFrame);
             cmdBeginGpuFrameProfile(computeCmd, gComputeProfileToken);
 
             TriangleFilteringPassDesc triangleFilteringDesc = {};
             triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
             triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
 
-            triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPerFrame;
-            triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-            triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFiltering;
 
             triangleFilteringDesc.mFrameIndex = frameIdx;
@@ -1559,6 +1563,9 @@ public:
 
             GpuCmdRingElement graphicsElem = getNextGpuCmdRingElement(&gGraphicsCmdRing, true, 1);
 
+            // Get the current render target for this frame
+            acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
+
             // check to see if we can use the cmd buffer
             FenceStatus fenceStatus;
             getFenceStatus(pRenderer, graphicsElem.pFence, &fenceStatus);
@@ -1601,6 +1608,8 @@ public:
             // Submit all render commands for this frame
             resetCmdPool(pRenderer, graphicsElem.pCmdPool);
             beginCmd(graphicsCmd);
+            cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
 
             cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
 
@@ -1610,9 +1619,6 @@ public:
                 triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
                 triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
 
-                triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPerFrame;
-                triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-                triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
                 triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFiltering;
 
                 triangleFilteringDesc.mFrameIndex = frameIdx;
@@ -1706,15 +1712,11 @@ public:
 
             cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, 0, NULL);
 
-            // Get the current render target for this frame
-            acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
-            presentImage(graphicsCmd, frameIdx, pScreenRenderTarget, pSwapChain->ppRenderTargets[presentIndex]);
+            presentImage(graphicsCmd, pScreenRenderTarget, pSwapChain->ppRenderTargets[presentIndex]);
 
-#if !defined(QUEST_VR)
             cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "UI Pass");
             drawGUI(graphicsCmd, presentIndex);
             cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
-#endif
 
             RenderTargetBarrier barrierPresent = { pSwapChain->ppRenderTargets[presentIndex], RESOURCE_STATE_RENDER_TARGET,
                                                    RESOURCE_STATE_PRESENT };
@@ -1951,6 +1953,10 @@ public:
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mColorClearValue = { { 1, 1, 1, 1 } };
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER | SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
+        swapChainDesc.mVR.m2DLayer = gAppSettings.mVR2DLayer;
+
+        swapChainDesc.mVR.mFoveationLevel = FOVEATION_LEVEL_HIGH;
 
         TinyImageFormat hdrFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_P2020);
         const bool      wantsHDR = OUTPUT_MODE_P2020 == gAppSettings.mOutputMode;
@@ -1990,6 +1996,10 @@ public:
         ClearValue optimizedColorClearBlack = { { 0.0f, 0.0f, 0.0f, 0.0f } };
         ClearValue optimizedColorClearWhite = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 
+        // Disable foveation when rendering with MSAA (stencil + foveation)
+        TextureCreationFlags foveationFlags =
+            gAppSettings.mMsaaLevel > SAMPLE_COUNT_1 ? TEXTURE_CREATION_FLAG_NONE : TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING;
+
         /************************************************************************/
         // Main depth buffer
         /************************************************************************/
@@ -2005,8 +2015,8 @@ public:
         depthRT.mHeight = height;
         depthRT.mSampleCount = gAppSettings.mMsaaLevel;
         depthRT.mSampleQuality = 0;
-        depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_VR_MULTIVIEW
-                                                                  : TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW | foveationFlags |
+                         (gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_NONE : TEXTURE_CREATION_FLAG_ESRAM);
         depthRT.mWidth = width;
         depthRT.pName = "Depth Buffer RT";
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
@@ -2045,7 +2055,7 @@ public:
         vbRTDesc.mHeight = height;
         vbRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
         vbRTDesc.mSampleQuality = 0;
-        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW | foveationFlags;
         vbRTDesc.mWidth = width;
         vbRTDesc.pName = "VB RT";
         addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
@@ -2068,7 +2078,7 @@ public:
         msaaRTDesc.mSampleQuality = 0;
         msaaRTDesc.mWidth = width;
         msaaRTDesc.pName = "MSAA RT";
-        msaaRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        msaaRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW | foveationFlags;
         // Disabling compression data will avoid decompression phase before resolve pass.
         // However, the shading pass will require more memory bandwidth.
         // We measured with and without compression and without compression is faster in our case.
@@ -2099,7 +2109,7 @@ public:
         postProcRTDesc.mWidth = width;
         postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
         postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW | foveationFlags;
         postProcRTDesc.pName = "pIntermediateRenderTarget";
         addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
@@ -2121,7 +2131,7 @@ public:
         GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
         GRRTDesc.mSampleCount = SAMPLE_COUNT_1;
         GRRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_VR_MULTIVIEW | foveationFlags;
 
         GRRTDesc.pName = "GodRay RT A";
         addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
@@ -2256,9 +2266,9 @@ public:
         };
 
         const char* resolveShaders[] = {
-            "resolve_SAMPLE_1.frag",
-            "resolve_SAMPLE_2.frag",
-            "resolve_SAMPLE_4.frag",
+            "progMSAAResolve_SAMPLE_1.frag",
+            "progMSAAResolve_SAMPLE_2.frag",
+            "progMSAAResolve_SAMPLE_4.frag",
         };
 
         for (uint32_t i = 0; i < kNumVisBufShaderVariants; ++i)
@@ -2291,7 +2301,7 @@ public:
         for (uint32_t i = 0; i < MSAA_LEVELS_COUNT; ++i)
         {
             // Resolve shader
-            resolvePass[i].mVert.pFileName = "resolve.vert";
+            resolvePass[i].mVert.pFileName = "progMSAAResolve.vert";
             resolvePass[i].mFrag.pFileName = resolveShaders[i];
         }
 
@@ -2451,6 +2461,7 @@ public:
         rasterizerStateCullNoneMsDesc.mMultiSample = true;
 
         const bool isMSAAEnabled = gAppSettings.mMsaaLevel > SAMPLE_COUNT_1;
+        const bool isFoveationEnabled = !isMSAAEnabled;
 
         /************************************************************************/
         // Setup the Shadow Pass Pipeline
@@ -2494,6 +2505,7 @@ public:
         vbPassPipelineSettings.pVertexLayout = NULL;
         vbPassPipelineSettings.pRasterizerState =
             (gAppSettings.mMsaaLevel > 1) ? &rasterizerStateCullNoneMsDesc : &rasterizerStateCullNoneDesc;
+        vbPassPipelineSettings.mVRFoveatedRendering = isFoveationEnabled;
 
         for (uint32_t i = 0; i < gNumGeomSets; ++i)
         {
@@ -2531,7 +2543,7 @@ public:
         vbShadePipelineSettings.pDepthState = isMSAAEnabled ? &depthStateOnlyReadStencilDesc : &depthStateDisableDesc;
         vbShadePipelineSettings.mDepthStencilFormat = isMSAAEnabled ? pMSAAEdgesStencilBuffer->mFormat : TinyImageFormat_UNDEFINED;
         vbShadePipelineSettings.pRasterizerState = isMSAAEnabled ? &rasterizerStateCullNoneMsDesc : &rasterizerStateCullNoneDesc;
-
+        vbShadePipelineSettings.mVRFoveatedRendering = isFoveationEnabled;
         // Shader variants excluding godray
         const uint32_t kNumShaderVariantsExGodray = 2 * MSAA_LEVELS_COUNT;
         for (uint32_t i = 0; i < 2; ++i)
@@ -2578,14 +2590,14 @@ public:
         pipelineSettingsGodRay = { 0 };
         pipelineSettingsGodRay.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettingsGodRay.pRasterizerState = &rasterizerStateCullNoneDesc;
+        pipelineSettingsGodRay.mVRFoveatedRendering = isFoveationEnabled;
         pipelineSettingsGodRay.mRenderTargetCount = 1;
         pipelineSettingsGodRay.pColorFormats = isMSAAEnabled ? &pRenderTargetGodRayMS->mFormat : &pRenderTargetGodRay[0]->mFormat;
         pipelineSettingsGodRay.mSampleCount = gAppSettings.mMsaaLevel;
         pipelineSettingsGodRay.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettingsGodRay.pShaderProgram = pGodRayPass[gAppSettings.mMsaaIndex];
-        vbShadePipelineSettings.pDepthState = isMSAAEnabled ? &depthStateOnlyReadStencilDesc : &depthStateDisableDesc;
-        vbShadePipelineSettings.mDepthStencilFormat =
-            isMSAAEnabled ? pDownscaledMSAAEdgesStencilBuffer->mFormat : TinyImageFormat_UNDEFINED;
+        pipelineSettingsGodRay.pDepthState = isMSAAEnabled ? &depthStateOnlyReadStencilDesc : &depthStateDisableDesc;
+        pipelineSettingsGodRay.mDepthStencilFormat = isMSAAEnabled ? pDownscaledMSAAEdgesStencilBuffer->mFormat : TinyImageFormat_UNDEFINED;
         pipelineDesc.pName = "God Ray";
         addPipeline(pRenderer, &pipelineDesc, &pPipelineGodRayPass);
 
@@ -2597,6 +2609,7 @@ public:
         pipelineSettingsFinalPass = { 0 };
         pipelineSettingsFinalPass.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettingsFinalPass.pRasterizerState = &rasterizerStateCullNoneDesc;
+        pipelineSettingsFinalPass.mVRFoveatedRendering = true;
         pipelineSettingsFinalPass.mRenderTargetCount = 1;
         pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
         pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
@@ -3098,9 +3111,6 @@ public:
             cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[geomSet]);
             cmdBindPipeline(cmd, pPipelineShadowPass[geomSet]);
 
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
-
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_SHADOW, geomSet, 0) * sizeof(uint32_t);
             Buffer*  pIndirectBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx];
             cmdExecuteIndirect(cmd, INDIRECT_DRAW_INDEX, 1, pIndirectBuffer, indirectBufferByteOffset, NULL, 0);
@@ -3135,8 +3145,6 @@ public:
             cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[i]);
 
             cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[i]);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx];
@@ -3150,7 +3158,7 @@ public:
     // Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by
     // DrawVisibilityBufferPass to get the draw / triangle IDs to reconstruct and interpolate vertex attributes per pixel. This method
     // doesn't set any vertex/index buffer because the triangle positions are calculated internally using vertex_id.
-    void drawVisibilityBufferShade(Cmd* cmd, uint32_t frameIdx)
+    void drawVisibilityBufferShade(Cmd* cmd)
     {
         const bool    isDrawingToMSRT = gAppSettings.mMsaaLevel > SAMPLE_COUNT_1;
         RenderTarget* pDestinationRenderTarget = gAppSettings.mMsaaLevel > 1 ? pRenderTargetMSAA : pScreenRenderTarget;
@@ -3179,8 +3187,6 @@ public:
 
         cmdBindPipeline(cmd, pPipelineVisibilityBufferShadeSrgb[gAppSettings.mEnableAO]);
         cmdSetStencilReferenceValue(cmd, MSAA_STENCIL_MASK);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using
         // vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -3212,9 +3218,7 @@ public:
     void clearLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
         cmdBindPipeline(cmd, pPipelineClearLightClusters);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetClusterLights);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, 1, 1, 1);
     }
 
@@ -3222,13 +3226,11 @@ public:
     void computeLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
         cmdBindPipeline(cmd, pPipelineClusterLights);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetClusterLights);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, LIGHT_COUNT, 1, 1);
     }
 
-    void drawMSAAEdgesStencil(Cmd* cmd, uint32_t frameIdx)
+    void drawMSAAEdgesStencil(Cmd* cmd)
     {
         // This depth-only pass will render to the stencil buffer. Samples that must be shaded in
         // future shading or post-processing passes will be set to 0x01.
@@ -3247,8 +3249,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pMSAAEdgesStencilBuffer->mWidth, pMSAAEdgesStencilBuffer->mHeight);
 
         cmdBindPipeline(cmd, pPipelineDrawMSAAEdges);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdSetStencilReferenceValue(cmd, MSAA_STENCIL_MASK);
         cmdDraw(cmd, 3, 0);
 
@@ -3257,7 +3257,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
-    void downscaleMSAAEdgesStencil(Cmd* cmd, uint32_t frameIdx)
+    void downscaleMSAAEdgesStencil(Cmd* cmd)
     {
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "MSAA Edges Stencil Downscale Pass");
 
@@ -3278,8 +3278,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pDownscaledMSAAEdgesStencilBuffer->mWidth, pDownscaledMSAAEdgesStencilBuffer->mHeight);
 
         cmdBindPipeline(cmd, pPipelineDownscaleMSAAEdges);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdSetStencilReferenceValue(cmd, MSAA_STENCIL_MASK);
         cmdDraw(cmd, 3, 0);
 
@@ -3312,7 +3310,7 @@ public:
 
         if (gAppSettings.mMsaaLevel > SAMPLE_COUNT_1)
         {
-            drawMSAAEdgesStencil(cmd, frameIdx);
+            drawMSAAEdgesStencil(cmd);
         }
 
         // Draw GodRay after Initial VB Pass
@@ -3321,9 +3319,9 @@ public:
         {
             if (gAppSettings.mMsaaLevel > SAMPLE_COUNT_1)
             {
-                downscaleMSAAEdgesStencil(cmd, frameIdx);
+                downscaleMSAAEdgesStencil(cmd);
             }
-            drawGodray(cmd, frameIdx);
+            drawGodray(cmd);
             if (gAppSettings.mMsaaLevel > SAMPLE_COUNT_1)
             {
                 resolveGodRay(cmd, frameIdx);
@@ -3333,7 +3331,7 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Shading Pass");
 
-        drawVisibilityBufferShade(cmd, frameIdx);
+        drawVisibilityBufferShade(cmd);
 
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
 
@@ -3346,7 +3344,7 @@ public:
         }
     }
 
-    void drawGodray(Cmd* cmd, uint frameIdx)
+    void drawGodray(Cmd* cmd)
     {
         const bool isMSAAEnabled = gAppSettings.mMsaaLevel > SAMPLE_COUNT_1;
 
@@ -3372,8 +3370,6 @@ public:
 
         cmdBindPipeline(cmd, pPipelineGodRayPass);
         cmdSetStencilReferenceValue(cmd, MSAA_STENCIL_MASK);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDraw(cmd, 3, 0);
 
         cmdBindRenderTargets(cmd, NULL);
@@ -3424,7 +3420,6 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, renderTargetBarrier);
 
         cmdBindPipeline(cmd, pPipelineGodRayBlurPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
 
         const uint32_t threadGroupSizeX = pRenderTargetGodRay[0]->mWidth / 16 + 1;
         const uint32_t threadGroupSizeY = pRenderTargetGodRay[0]->mHeight / 16 + 1;
@@ -3461,7 +3456,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
-    void presentImage(Cmd* const cmd, uint32_t frameIdx, RenderTarget* pSrc, RenderTarget* pDstCol)
+    void presentImage(Cmd* const cmd, RenderTarget* pSrc, RenderTarget* pDstCol)
     {
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Present Image");
 
@@ -3478,8 +3473,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
         cmdBindPipeline(cmd, pPipelinePresentPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDraw(cmd, 3, 0);
         cmdBindRenderTargets(cmd, NULL);
 
@@ -3524,39 +3517,34 @@ public:
     {
         UNREF_PARAM(frameIdx);
 
-        RenderTarget*         rt = pSwapChain->ppRenderTargets[frameIdx];
-        BindRenderTargetsDesc bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { rt, LOAD_ACTION_LOAD };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, rt->mWidth, rt->mHeight);
-
-        gFrameTimeDraw.mFontColor = gAppSettings.mVisualizeAO ? 0xff000000 : 0xff00ffff;
-        gFrameTimeDraw.mFontSize = 18.0f;
-        gFrameTimeDraw.mFontID = gFontID;
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-
-        if (gAppSettings.mAsyncCompute)
+        RenderTarget* rt = pSwapChain->ppRenderTargets[frameIdx];
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, rt);
         {
-            if (!gAppSettings.mHoldFilteredResults)
+            gFrameTimeDraw.mFontColor = gAppSettings.mVisualizeAO ? 0xff000000 : 0xff00ffff;
+            gFrameTimeDraw.mFontSize = 18.0f;
+            gFrameTimeDraw.mFontID = gFontID;
+            cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+
+            if (gAppSettings.mAsyncCompute)
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gComputeProfileToken, &gFrameTimeDraw);
-                cmdDrawGpuProfile(cmd, float2(8.0f, 425.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+                if (!gAppSettings.mHoldFilteredResults)
+                {
+                    cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gComputeProfileToken, &gFrameTimeDraw);
+                    cmdDrawGpuProfile(cmd, float2(8.0f, 425.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+                }
+                else
+                {
+                    cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+                }
             }
             else
             {
                 cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
             }
-        }
-        else
-        {
-            cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
-        }
 
-        cmdDrawUserInterface(cmd);
-
-        cmdBindRenderTargets(cmd, NULL);
+            cmdDrawUserInterface(cmd);
+        }
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
     }
 };
 

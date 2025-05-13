@@ -1,0 +1,81 @@
+/*
+ * Copyright (c) 2017-2025 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+// Shader for Skybox in Unit Test 01 - Transformations
+
+#include "Resources.h.fsl"
+
+STRUCT(VSOutput)
+{
+    DATA(float4, Position, SV_Position);
+    DATA(float4, TexCoord, TEXCOORD);
+};
+
+ROOT_SIGNATURE(DefaultRootSignature)
+float4 PS_MAIN(VSOutput In)
+{
+    INIT_MAIN;
+    float4 Out;
+
+    float2 newtextcoord;
+    int    side = int(round(In.TexCoord.w));
+
+    if (side == 1)
+    {
+        newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
+        newtextcoord = float2(1.0 - newtextcoord.x, 1.0 - newtextcoord.y);
+        Out = SampleTex2D(gRightTexture, gSampler, newtextcoord);
+    }
+    else if (side == 2)
+    {
+        newtextcoord = (In.TexCoord.zy) / 20.0 + 0.5;
+        newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
+        Out = SampleTex2D(gLeftTexture, gSampler, newtextcoord);
+    }
+    else if (side == 4)
+    {
+        newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
+        newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
+        Out = SampleTex2D(gBotTexture, gSampler, newtextcoord);
+    }
+    else if (side == 5)
+    {
+        newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
+        newtextcoord = float2(newtextcoord.x, 1.0 - newtextcoord.y);
+        Out = SampleTex2D(gFrontTexture, gSampler, newtextcoord);
+    }
+    else if (side == 6)
+    {
+        newtextcoord = (In.TexCoord.xy) / 20.0 + 0.5;
+        newtextcoord = float2(1.0 - newtextcoord.x, 1.0 - newtextcoord.y);
+        Out = SampleTex2D(gBackTexture, gSampler, newtextcoord);
+    }
+    else
+    {
+        newtextcoord = (In.TexCoord.xz) / 20.0 + 0.5;
+        newtextcoord = float2(newtextcoord.x, newtextcoord.y);
+        Out = SampleTex2D(gTopTexture, gSampler, newtextcoord);
+    }
+    RETURN(Out);
+}

@@ -76,8 +76,9 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
     # directly embed metal header in shader
     shader_src += ['#include "includes/metal.h"\n']
 
-
-    ids = [4,0,0]
+    # since 0 and 1 are reserved for markers, 2 to 5 for argument buffers
+    # other buffers begin from 6
+    ids = [6,0,0]
 
     def consumeIdAt(i, inc):
         val = ids[i]
@@ -199,7 +200,10 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
     def declare_argument_buffers(mainArgs, mainArgsNames):
         ab_decl = []
         # declare argument buffer structs
-        buffer_index = 0
+        # 0 and 1 are reserved for markers, 2 to 5 for argument buffers
+        # Keep in sync with DESCRIPTOR_SET_ARGUMENT_BUFFER_START_INDEX in Common_3/Graphics/Metal/MetalRenderer.mm
+        DESCRIPTOR_SET_ARGUMENT_BUFFER_START_INDEX = 2
+        buffer_index = DESCRIPTOR_SET_ARGUMENT_BUFFER_START_INDEX
         for freq, elements in ab_elements.items():
 
             # skip empty update frequencies

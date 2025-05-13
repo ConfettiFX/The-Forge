@@ -35,7 +35,8 @@ STRUCT(VSOutput)
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
 	DATA(FLAT(uint), Color, TEXCOORD1);
-	DATA(FLAT(uint), TexIndex, TEXCOORD2);
+	DATA(FLAT(uint), TexIndex_ParticleType_Collided, TEXCOORD2);
+	DATA(FLAT(float4), WorldPosition, TEXCOORD3);
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -47,7 +48,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 	result.Position = float4(0,0,0,0);
 	result.TexCoord = float2(0,0);
 	result.Color = 0;
-	result.TexIndex = 0;
+	result.TexIndex_ParticleType_Collided = 0;
 
 	uint particleIdx = gParticlesToRasterizeRW[instanceId];
 
@@ -63,7 +64,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 
 	float scale = UnpackParticleSize(gParticleSetsBuffer[Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK], particleIdx, UnpackParticleAgeOverMaxAge(particleData));
 	if ((Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0)
-		scale *= 20.0f;
+		scale *= ANIMATION_TEXTURE_SCALE_FACTOR;
 
 	const float3 vertexPosCache_indexed[4] =
 	{
@@ -153,11 +154,12 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexId, SV_InstanceID(uint) instanceId )
 		UnpackParticleColorSpeed(gParticleSetsBuffer[particleSetIdx].StartColor, gParticleSetsBuffer[particleSetIdx].EndColor, 
 			ageOverMaxAge, pow(speedOverMaxSpeed, PARTICLE_COLOR_OVER_SPEED_STRENGTH));
 	col *= float4(1,1,1,UnpackAlpha(gParticleSetsBuffer[particleSetIdx], particleIdx));
+	col.w *= ((Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0) ? randFloat_zeroToPlusOne(particleIdx) * 0.6  : 1.0;
 
 	result.Position = mul(gParticleConstantBuffer.ProjTransform, result.Position);
 	result.TexCoord = vertexTexCache_indexed[vertIndex] / float2(tileAmount) + tileOffset;
 	result.Color = packUnorm4x8(col);
-	result.TexIndex = texIndex;
+	result.TexIndex_ParticleType_Collided = (texIndex << 16) | (((Bitfield & PARTICLE_BITFIELD_TYPE_BITS_MASK) >> 19) << 1) | uint((Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0);
 
 	RETURN(result);
 }

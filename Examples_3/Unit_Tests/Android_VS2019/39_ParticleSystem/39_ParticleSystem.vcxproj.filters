@@ -14,7 +14,7 @@
       <UniqueIdentifier>{ed829792-c84e-4748-a040-10e185f92be2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Scripts">
-      <UniqueIdentifier>{ec9ccd06-befd-44d9-a9f1-925e3b201414}</UniqueIdentifier>
+      <UniqueIdentifier>{ec6c94d4-4d07-4429-b6a2-3ffee1ced0ad}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -114,6 +114,9 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPassAlpha.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Sky.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFiltering.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
@@ -150,7 +153,10 @@
     <None Include="..\..\src\39_ParticleSystem\GPUCfg\gpu.cfg">
       <Filter>Misc</Filter>
     </None>
-    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_AllSets.lua">
+    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_Fireflies.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_Rain.lua">
       <Filter>Scripts</Filter>
     </None>
   </ItemGroup>

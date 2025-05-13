@@ -1783,6 +1783,7 @@ void profileUpdateWidgetUI(Profile& S)
 void toggleProfilerUI(bool active) { gProfilerWidgetUIEnabled = active; }
 void toggleProfilerMenuUI(bool active) { gProfilerWidgetMenuUIEnabled = active; }
 void toggleProfilerDrawing(bool active) { gProfilerDrawingEnabled = active; }
+bool getIsProfilerDrawing() { return gProfilerDrawingEnabled; }
 
 void updateProfilerUI()
 {
@@ -5231,4 +5232,5 @@ void   updateProfilerUI() {}
 void   toggleProfilerUI(bool /*active*/) {}
 void   toggleProfilerMenuUI(bool /*active*/) {}
 void   toggleProfilerDrawing(bool /*active*/) {}
+bool   getIsProfilerDrawing() { return false; }
 #endif

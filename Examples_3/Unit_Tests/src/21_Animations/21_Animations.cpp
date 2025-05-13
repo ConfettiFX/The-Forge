@@ -307,6 +307,9 @@ const unsigned int kSpineJointIndex = 3;             // index of the spine joint
 // used for AdditiveBlending example
 const float kDefaultNeckCrackJointsWeight = 1.0f;
 
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
+
 struct UIData
 {
     struct GeneralSettingsData
@@ -2658,6 +2661,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -3080,30 +3085,29 @@ public:
 
         //// draw the UI
         cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-        bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
-
-        gFrameTimeDraw.mFontColor = 0xff00ffff;
-        gFrameTimeDraw.mFontSize = 18.0f;
-        gFrameTimeDraw.mFontID = gFontID;
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-
-        snprintf(gAnimationUpdateText, 64, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
-
-        // Disable UI rendering when taking screenshots
-        if (uiIsRenderingEnabled())
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
         {
-            gFrameTimeDraw.pText = gAnimationUpdateText;
-            cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 50.0f), &gFrameTimeDraw);
+            gFrameTimeDraw.mFontColor = 0xff00ffff;
+            gFrameTimeDraw.mFontSize = 18.0f;
+            gFrameTimeDraw.mFontID = gFontID;
+            float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+
+            snprintf(gAnimationUpdateText, 64, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
+
+            // Disable UI rendering when taking screenshots
+            if (getIsProfilerDrawing())
+            {
+                gFrameTimeDraw.pText = gAnimationUpdateText;
+                cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 50.0f), &gFrameTimeDraw);
+            }
+
+            cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.0f), gGpuProfileToken, &gFrameTimeDraw);
+
+            cmdDrawUserInterface(cmd);
+
+            cmdBindRenderTargets(cmd, NULL);
         }
-
-        cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.0f), gGpuProfileToken, &gFrameTimeDraw);
-
-        cmdDrawUserInterface(cmd);
-
-        cmdBindRenderTargets(cmd, NULL);
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
         cmdEndDebugMarker(cmd);
 
         // PRESENT THE GRPAHICS QUEUE
@@ -3154,6 +3158,9 @@ public:
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mColorClearValue = { { 0.39f, 0.41f, 0.37f, 1.0f } };
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;

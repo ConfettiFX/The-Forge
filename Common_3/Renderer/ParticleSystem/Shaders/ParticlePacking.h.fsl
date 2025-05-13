@@ -36,6 +36,7 @@
 // ParticleSet size and Particle scale
 /*****************************************/
 #define UnpackParticleSetSize(packedSize)							float3(unpack2Floats(packedSize.x).xy, unpack2Floats(packedSize.y).x)
+#define UnpackParticleSetVisibilityVolume(packedVolume)				float3(unpack2Floats(packedVolume.x).xy, unpack2Floats(packedVolume.y).x)
 
 																	// Interpolate between minimum and maximum size using a random t, then multiply by fade in and by fade out
 #define UnpackParticleSize(particleSet, seed, ageOverMaxAge)		(lerp(unpack2Floats(particleSet.SpawnVolume.y).y, unpack2Floats(particleSet.MaxSizeAndSpeed).x, UnpackRandomInterpolator(seed)) \
@@ -76,7 +77,7 @@
 // Other
 /*****************************************/
 // Lights
-#define UnpackLightModulationFactor(particleSet, time, particleIdx)		clamp(cos(unpack2Floats(particleSet.LightPulseSpeedAndOffset).x * float(time + particleIdx)) + unpack2Floats(particleSet.LightPulseSpeedAndOffset).y, 0.0, 1.0)
+#define UnpackLightModulationFactor(particleSet, time, particleIdx)		clamp(sin(unpack2Floats(particleSet.LightPulseSpeedAndOffset).x * float(time + particleIdx)) + unpack2Floats(particleSet.LightPulseSpeedAndOffset).y, 0.0, 1.0)
 
 #define UnpackMaxParticles(particleSet)									ceil(particleSet.ParticlesPerSecond * particleSet.PositionAndInitialAge.w)
 
@@ -86,6 +87,8 @@
 #define UnpackAttractorIndex(particleSet)								(particleSet.AllocatedAndAttractorIndex & 0xFFFF)
 #define UnpackAcceleration(particleSet)									float4(unpack2Floats(particleSet.Acceleration.x), unpack2Floats(particleSet.Acceleration.y))
 #define UnpackStartVelocity(particleSet)								float4(unpack2Floats(particleSet.StartVelocity.x), unpack2Floats(particleSet.StartVelocity.y))
+#define UnpackGradualParticlesDeath(volumeDeath)						(unpack2Floats(volumeDeath.y).y > 0.0)
+#define TimeOfDayInParticleAlivePeriod(timeOfDay, bounds)				(timeOfDay > bounds.x && (timeOfDay < bounds.y || (bounds.x >= bounds.y)))
 
 #define GetParticleData(result, particlesDataBuffer, particleIdx)					result.VelocityAndAge.x =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx)    ) << 2); \
 																																					result.VelocityAndAge.y =					LoadByte(particlesDataBuffer, (PARTICLE_DATA_STRIDE * (particleIdx) + 1) << 2); \

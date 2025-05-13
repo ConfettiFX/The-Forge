@@ -95,6 +95,9 @@ FORGE_API void toggleProfilerMenuUI(bool active);
 // Toggle profiler display on/off. Includes system information. Used when taking screenshots.
 FORGE_API void toggleProfilerDrawing(bool active);
 
+// Returns whether profiler display on/off.
+FORGE_API bool getIsProfilerDrawing();
+
 //------ Gpu profiler ------------//
 
 // Call only after initProfiler(), for manually adding Gpu Profilers

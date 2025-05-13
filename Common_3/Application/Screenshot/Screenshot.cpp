@@ -48,7 +48,9 @@ typedef struct ScreenshotCapturer
 {
     Renderer*      pRenderer;
     Shader*        pCopyShader;
+    Shader*        pCopyArrayShader;
     Pipeline*      pCopyPipeline;
+    Pipeline*      pCopyArrayPipeline;
     DescriptorSet* pCopyDescriptorSet;
     CmdPool*       pCmdPool;
     Cmd*           pCmd;
@@ -191,6 +193,9 @@ void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphicsQueue, const ch
     copyShaderDesc.mComp.pFileName = "copy.comp";
     addShader(pRenderer, &copyShaderDesc, &pScreenshotCapturer->pCopyShader);
 
+    copyShaderDesc.mComp.pFileName = "copy_array.comp";
+    addShader(pRenderer, &copyShaderDesc, &pScreenshotCapturer->pCopyArrayShader);
+
     // All work happen sequentially, we won't have two inflight captures. So one descriptor is enough.
     DescriptorSetDesc descriptorSetDesc = SRT_SET_DESC(SrtCopyCompData, PerDraw, 1, 0);
 
@@ -205,6 +210,8 @@ void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphicsQueue, const ch
     ComputePipelineDesc* copyPipelineDesc = &pipelineDesc.mComputeDesc;
     copyPipelineDesc->pShaderProgram = pScreenshotCapturer->pCopyShader;
     addPipeline(pRenderer, &pipelineDesc, &pScreenshotCapturer->pCopyPipeline);
+    copyPipelineDesc->pShaderProgram = pScreenshotCapturer->pCopyArrayShader;
+    addPipeline(pRenderer, &pipelineDesc, &pScreenshotCapturer->pCopyArrayPipeline);
 #else
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pGraphicsQueue);
@@ -221,8 +228,10 @@ void exitScreenshotCapturer()
     // Clean up gpu resources
     removeResource(pScreenshotCapturer->pScreenShotUniformsBuffer);
     removeSampler(pRenderer, pScreenshotCapturer->pSampler);
+    removePipeline(pRenderer, pScreenshotCapturer->pCopyArrayPipeline);
     removePipeline(pRenderer, pScreenshotCapturer->pCopyPipeline);
     removeDescriptorSet(pRenderer, pScreenshotCapturer->pCopyDescriptorSet);
+    removeShader(pRenderer, pScreenshotCapturer->pCopyArrayShader);
     removeShader(pRenderer, pScreenshotCapturer->pCopyShader);
     if (pScreenshotCapturer->pScreenshotScratchBuffer)
     {
@@ -240,7 +249,11 @@ void exitScreenshotCapturer()
 #ifdef ENABLE_SCREENSHOT
 static void updateUIVisibility()
 {
+    // UI renders to a separate compositor layer on Quest so there's no need of disabling it when taking a screenshot, since it'll not
+    // obscure the actual 3d render
+#ifndef QUEST_VR
     uiToggleRendering(!pScreenshotCapturer->mScreenshotCaptureRequested);
+#endif
     toggleProfilerDrawing(!pScreenshotCapturer->mScreenshotCaptureRequested);
 }
 #endif
@@ -261,7 +274,9 @@ void requestScreenshotCapture(const char* name)
         pScreenshotCapturer->mScreenshotName[nameLen + appNameLen + 1] = '\0';
     }
     pScreenshotCapturer->mScreenshotCaptureRequested = true;
+
     updateUIVisibility();
+
 #else
     UNREF_PARAM(name);
 #endif
@@ -274,6 +289,24 @@ bool isScreenshotCaptureRequested()
     return pScreenshotCapturer->mScreenshotCaptureRequested;
 #else
     return false;
+#endif
+}
+
+void setScreenshotName(char* pName)
+{
+#ifdef ENABLE_SCREENSHOT
+    ASSERT(pScreenshotCapturer);
+    strcpy(pScreenshotCapturer->mScreenshotName, pName);
+#endif
+}
+
+char* getScreenshotName()
+{
+#ifdef ENABLE_SCREENSHOT
+    ASSERT(pScreenshotCapturer);
+    return pScreenshotCapturer->mScreenshotName;
+#else
+    retun NULL;
 #endif
 }
 
@@ -341,8 +374,17 @@ void captureScreenshot(ScreenshotDesc* pDesc)
     memcpy(uniformsUpdateDesc.pMappedData, &rootConstant, sizeof(ScreenShotParams));
     endUpdateResource(&uniformsUpdateDesc);
 
+    Pipeline*      pCopyPipeline = pScreenshotCapturer->pCopyPipeline;
     DescriptorData copyParam[3] = {};
     copyParam[0].mIndex = SRT_RES_IDX(SrtCopyCompData, PerDraw, gInputTexture);
+#ifdef QUEST_VR
+    // Multi-view shader only used on Quest, for now
+    if (pRenderTarget->pTexture->mArraySizeMinusOne > 0)
+    {
+        pCopyPipeline = pScreenshotCapturer->pCopyArrayPipeline;
+        copyParam[0].mIndex = SRT_RES_IDX(SrtCopyCompData, PerDraw, gInputTextureArray);
+    }
+#endif
     copyParam[0].ppTextures = &pRenderTarget->pTexture;
     copyParam[1].mIndex = SRT_RES_IDX(SrtCopyCompData, PerDraw, gOutputBuffer);
     copyParam[1].ppBuffers = &pScreenshotCapturer->pScreenshotScratchBuffer;
@@ -363,7 +405,7 @@ void captureScreenshot(ScreenshotDesc* pDesc)
     cmdResourceBarrier(cmd, 1, &bufBarrier, 0, NULL, 1, &rtBarrier);
 
     uint3 threadGroupSize = pScreenshotCapturer->pCopyShader->mNumThreadsPerGroup;
-    cmdBindPipeline(cmd, pScreenshotCapturer->pCopyPipeline);
+    cmdBindPipeline(cmd, pCopyPipeline);
     cmdBindDescriptorSet(cmd, 0, pScreenshotCapturer->pCopyDescriptorSet);
     cmdDispatch(cmd, (rtWidth + threadGroupSize.x - 1) / threadGroupSize.x, (rtHeight + threadGroupSize.y - 1) / threadGroupSize.y, 1);
 

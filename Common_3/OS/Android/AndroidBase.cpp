@@ -49,10 +49,6 @@
 #endif
 #include "../CPUConfig.h"
 
-#if defined(QUEST_VR)
-#include "../../Graphics/OpenXR/OpenXRApi.h"
-#endif
-
 #include "../../Utilities/Interfaces/IMemory.h"
 
 static IApp*       pApp = NULL;
@@ -160,6 +156,21 @@ extern "C" jint AndroidAttachToCurrentThread(WindowDesc* pWindow, JNIEnv** ppEnv
     ASSERT(pWindow->handle.activity->vm);
     return pWindow->handle.activity->vm->AttachCurrentThread(ppEnv, NULL);
 }
+
+#ifdef QUEST_VR
+
+// Shared OpenXR platform functions
+extern "C"
+{
+    extern void InitOpenXR(struct android_app* pAndroidApp, const char* appName);
+    extern void GetOpenXRRecommendedResolution(RectDesc* rect);
+    extern void QueryOpenXRRefreshRates(float* outSupportedRefreshRates, uint32_t* outRefreshRatesCount, uint32_t* currentRefreshRateIndex);
+    extern bool RequestOpenXRRefreshRate(float refreshRate);
+    extern bool PollOpenXREvent(bool* exitRequired);
+    extern void ExitOpenXRLoader();
+}
+
+#endif
 
 // this callback is called only for states other then MEMORYADVICE_STATE_OK.
 void memoryStateWatcherCallback(MemoryAdvice_MemoryState state, void* userData)
@@ -592,11 +603,14 @@ static int32_t HandleInputEvent(struct android_app* app, AInputEvent* event)
     const int32_t keyCode = AKeyEvent_getKeyCode(event);
     const int32_t action = AKeyEvent_getAction(event);
 
+    // Quest input is handled by OpenXR
+#ifndef QUEST_VR
     extern int32_t platformInputEvent(struct android_app*, AInputEvent*);
     if (platformInputEvent(app, event))
     {
         return 1;
     }
+#endif
 
     if (AKEYCODE_BACK == keyCode && AKEY_EVENT_ACTION_UP == action)
     {
@@ -681,9 +695,7 @@ int AndroidMain(void* param, IApp* app)
     pSettings->mMonitorIndex = 0;
     RectDesc rect = {};
 #if defined(QUEST_VR)
-    InitOpenXRLoader(android_app);
-    CreateOpenXRInstance(app->GetName());
-    InitOpenXRSystem();
+    InitOpenXR(android_app, pApp->GetName());
     GetOpenXRRecommendedResolution(&rect);
 #else
     getRecommendedResolution(&rect);
@@ -740,7 +752,6 @@ int AndroidMain(void* param, IApp* app)
     }
 
 #if defined(QUEST_VR)
-    InitOpenXRSession();
     QueryOpenXRRefreshRates(gSupportedRefreshRates, &gSupportedRefreshRatesCount, &gSelectedRefreshRateIndex);
 #else
     // Query supported refresh rates
@@ -784,10 +795,10 @@ int AndroidMain(void* param, IApp* app)
         }
 
 #if defined(QUEST_VR)
-        PollOpenXREvent(&gShutdownRequested);
+        bool xrSessionStarted = PollOpenXREvent(&gShutdownRequested);
 
         bool isNotShuttingDown = !(gShutdownRequested || android_app->destroyRequested);
-        if (isNotShuttingDown && !pOXR->mSessionStarted)
+        if (isNotShuttingDown && !xrSessionStarted)
         {
             usleep(250); // Throttle the next call to Poll since XrWaitFrame is not called
             continue;
@@ -915,23 +926,29 @@ int AndroidMain(void* param, IApp* app)
                 pApp->Unload(&gReloadDescriptor);
                 isLoaded = false;
             }
-
+#ifndef QUEST_VR
+            // When rendering in VR, we should still perform the rendering loop since the application will still be rendered in the
+            // background. Input is disabled by the runtime since the app is not in focus.
             usleep(1);
             continue;
+#endif
         }
 
-        // UPDATE APP
-        pApp->Update(deltaTime);
-        // Skip the fram we are changing refresh rate...
-        if (!gRefreshRateChanged)
+        if (windowReady)
         {
-            pApp->Draw();
-            baseSubsystemAppDrawn = true;
-        }
+            // UPDATE APP
+            pApp->Update(deltaTime);
+            // Skip the frame we are changing refresh rate...
+            if (!gRefreshRateChanged)
+            {
+                pApp->Draw();
+                baseSubsystemAppDrawn = true;
+            }
 
-        if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
-        {
-            togglePlatformUI();
+            if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+            {
+                togglePlatformUI();
+            }
         }
 
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
@@ -976,11 +993,11 @@ int AndroidMain(void* param, IApp* app)
 
     pApp->Exit();
 
+    exitBaseSubsystems();
+
 #if defined(QUEST_VR)
     ExitOpenXRLoader();
 #endif
-
-    exitBaseSubsystems();
 
     exitWindowSystem();
 

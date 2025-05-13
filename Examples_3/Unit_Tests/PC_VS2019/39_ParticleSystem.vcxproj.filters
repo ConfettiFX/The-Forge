@@ -84,7 +84,13 @@
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\OitCompose.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\SceneLighting.h.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\Shaders.list">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\Sky.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\TriangleFilteringClear.comp.fsl">
@@ -168,7 +174,10 @@
     <None Include="..\src\39_ParticleSystem\GPUCfg\gpu.cfg">
       <Filter>Misc</Filter>
     </None>
-    <None Include="..\src\39_ParticleSystem\Scripts\Test_AllSets.lua">
+    <None Include="..\src\39_ParticleSystem\Scripts\Test_Fireflies.lua">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\src\39_ParticleSystem\Scripts\Test_Rain.lua">
       <Filter>Scripts</Filter>
     </None>
   </ItemGroup>

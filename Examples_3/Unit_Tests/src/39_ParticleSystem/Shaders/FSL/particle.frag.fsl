@@ -26,8 +26,9 @@
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleShared.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleSets.h.fsl"
 #include "ShaderDefs.h.fsl"
-#include "VisibilityBufferResources.h.fsl"
 #include "Particle.srt.h"
+#include "SceneLighting.h.fsl"
+#include "VisibilityBufferResources.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleUtils.h.fsl"
 
 STRUCT(VSOutput)
@@ -35,7 +36,7 @@ STRUCT(VSOutput)
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
 	DATA(FLAT(uint), Color, TEXCOORD1);
-	DATA(FLAT(uint), TexIndex, TEXCOORD2);
+	DATA(FLAT(uint), TexIndex_ParticleType_Collided, TEXCOORD2);
 };
 
 ROOT_SIGNATURE(DefaultRootSignature)
@@ -55,12 +56,15 @@ void PS_MAIN( VSOutput In )
 
 	float4 texColor;
 
-	uint texIndex = In.TexIndex;
+	uint texIndex = In.TexIndex_ParticleType_Collided >> 16;
 
 	BeginNonUniformResourceIndex(texIndex, MAX_PARTICLE_TEXTURES_COUNT);
 		texColor = SampleTex2D(ParticleTextures[texIndex], gBilinearClampMiplessSampler, In.TexCoord);
 	EndNonUniformResourceIndex();
 	texColor = texColor * unpackUnorm4x8(In.Color); 
+	texColor = (((In.TexIndex_ParticleType_Collided & 0xFF) & (PARTICLE_BITFIELD_TYPE_RAIN >> 18)) > 0 && (In.TexIndex_ParticleType_Collided & 1) == 0) ? 
+		RefractLight(texColor, In.TexCoord, float2(In.Position.xy) / float2(gParticleConstantBuffer.ScreenSize)) : texColor;
+	texColor.xyz = (In.TexIndex_ParticleType_Collided & 1) == 1 ? lerp(texColor.xyz, GetAmbientLight(float3(0,1,0), 0.0), SPLASHES_AMBIENT_LIGHT_INTENSITY) : texColor.xyz;
 
 	if (texColor.w <= TRANSPARENCY_CONTRIBUTION_THRESHOLD)
 	{

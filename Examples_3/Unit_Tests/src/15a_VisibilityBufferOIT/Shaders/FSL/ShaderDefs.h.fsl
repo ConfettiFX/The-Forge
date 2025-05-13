@@ -41,6 +41,9 @@
 
 #define MAX_BLUR_KERNEL_SIZE 8
 
+#define GODRAY_SCALE 2
+#define GODRAY_ATTENUATION 0.3f
+
 STRUCT(MeshData)
 {
   DATA(float4x4, modelMtx, None);

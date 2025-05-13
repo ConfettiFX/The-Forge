@@ -24,7 +24,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\39_ParticleSystem\GPUCfg\gpu.cfg" />
-    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_AllSets.lua" />
+    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_Fireflies.lua" />
+    <None Include="..\..\src\39_ParticleSystem\Scripts\Test_Rain.lua" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\BatchCompaction.comp.fsl" />
@@ -48,6 +49,7 @@
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPass.vert.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPassAlpha.frag.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\ShadowPassAlpha.vert.fsl" />
+    <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\Sky.h.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFiltering.comp.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\TriangleFilteringClear.comp.fsl" />
     <FSLShader Include="..\..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferPass.frag.fsl" />
@@ -148,7 +150,9 @@
         xcopy $(TheForgeArtDir)Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
         xcopy /Y /S /D "$(TheForgeArtDir)cameraPath.txt" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
         xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\Particles\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\Particles\"
-
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\skybox\cloudy\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\cloudy\"
+		xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+        
         xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
         xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
         xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
@@ -212,7 +216,8 @@
         xcopy $(TheForgeArtDir)Textures\ktx\DLUT\*.tex $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
         xcopy /Y /S /D "$(TheForgeArtDir)cameraPath.txt" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
         xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\Particles\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\Particles\"
-
+        xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\skybox\cloudy\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\skybox\cloudy\"
+		xcopy /Y /S /D "$(TheForgeArtDir)Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
         xcopy /Y /S /D "$(TheForgeRoot)Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\gpu.data*"
         xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"

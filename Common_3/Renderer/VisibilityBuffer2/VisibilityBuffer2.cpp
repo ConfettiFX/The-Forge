@@ -230,7 +230,6 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
     /************************************************************************/
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Clear Bin Buffer");
     cmdBindPipeline(pCmd, pDesc->pPipelineClearBuffers);
-    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
     cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetTriangleFilteringPerDraw);
     cmdDispatch(pCmd, 1, 1, 1);
     bufferIndex = 0;
@@ -244,8 +243,6 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
     /************************************************************************/
     cmdBeginGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken, "Filter Triangles");
     cmdBindPipeline(pCmd, pDesc->pPipelineTriangleFiltering);
-    cmdBindDescriptorSet(pCmd, 0, pDesc->pDescriptorSetTriangleFiltering);
-    cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
     cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerDraw);
 
     const uint32_t      maxTotalFilterBatches = gVBSettings.mFilterBatchCount * gVBSettings.mNumFilterBatchChunks;

@@ -27,6 +27,7 @@
 #include "ShaderDefs.h.fsl"
 #include "VisibilityBufferResources.h.fsl"
 #include "Particle.srt.h"
+#include "SceneLighting.h.fsl"
 #include "../../../Graphics/ShaderUtilities.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleBoids.h.fsl"
 #include "../../../../../../Common_3/Renderer/ParticleSystem/Shaders/ParticleRandom.h.fsl"
@@ -78,6 +79,15 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 #ifdef _DEBUG
 		gParticleStatsBufferRW[0].VisibleParticlesCount = 0;
 		gParticleStatsBufferRW[0].VisibleLightsCount = 0;
+		gParticleStatsBufferRW[0].SoftwareRasterized = 0;
+		gParticleStatsBufferRW[0].HardwareRasterized = 0;
+
+		UNROLL_N(PARTICLE_BUFFER_SECTION_COUNT)
+		for (uint i=0; i<PARTICLE_BUFFER_SECTION_COUNT; i++)
+		{
+			gParticleStatsBufferRW[0].AliveCount[i] = 0;
+			gParticleStatsBufferRW[0].AllocatedCount[i] = 0;
+		}
 #endif
 	}
 
@@ -112,7 +122,8 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	}
 
 	// Initialize particle if it has just been uploaded
-	if ((Bitfield & PARTICLE_BITFIELD_REQUIRES_INIT) > 0)
+	float2 alivePeriod = unpack2Floats(gParticleSetsBuffer[setIndex].AlivePeriod);
+	if ((Bitfield & PARTICLE_BITFIELD_REQUIRES_INIT) > 0 && TimeOfDayInParticleAlivePeriod(gParticleConstantBuffer.TimeOfDay, alivePeriod))
 	{
 		Bitfield = (Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK) | PARTICLE_BITFIELD_LIGHT_CULLED | PARTICLE_BITFIELD_IS_ALLOCATED | gParticleSetsBuffer[setIndex].ParticleSetBitfield;
 	
@@ -159,6 +170,13 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	{
 		if (Age >= 0.0f)
 		{
+			// Mechanism used to let particles fade out instead of disappearing abruptly
+			if (!TimeOfDayInParticleAlivePeriod(gParticleConstantBuffer.TimeOfDay, alivePeriod))
+			{
+				Bitfield |= PARTICLE_BITFIELD_REQUIRES_INIT;
+				SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, velocityAge.xyz, 0);
+				RETURN();
+			}
 #ifdef _DEBUG
 			uint foo;
 			AtomicAdd(gParticleStatsBufferRW[0].AliveCount[currBufferSection], 1, foo);
@@ -166,6 +184,58 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 			// Initialize particle.
 			Age = particleSet.PositionAndInitialAge.w - Age;
 			Position = (UnpackAttractorIndex(particleSet) != 0 ? gParticleConstantBuffer.SeekPositions[0].xyz : particleSet.PositionAndInitialAge.xyz) + randFloat3_negOneToPlusOne(rngSeed) * UnpackParticleSetSize(particleSet.SpawnVolume);
+
+			if((Bitfield & PARTICLE_BITFIELD_SPAWN_FROM_SHADOW_MAP) > 0)
+			{
+				float4 posLS = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].mvp.mat, float4(Position, 1.0f));
+				posLS /= posLS.w;
+				posLS.y *= -1;
+				posLS.xy = posLS.xy * 0.5 + f2(0.5);
+
+				if (all(GreaterThan(posLS.xy, 0.0f)) && all(LessThan(posLS.xy, 1.0f)))
+				{
+					int2 pixelPos = int2(posLS.xy * 2048.f);
+					float smDepth = LoadTex2D(gShadowMap, NO_SAMPLER, pixelPos, 0).r;
+					float minDepth = 1e9;
+					int2 minPixel = pixelPos;
+					int2 pixelOffsets[4] = {
+						int2(0, -1),
+						int2(0, 1),
+						int2(-1, 0),
+						int2(0, 1)
+					};
+					float d[4];
+					UNROLL
+					for (int i = 0; i < 4; ++i)
+					{
+						int2 pix = pixelPos + pixelOffsets[i];
+						d[i] = LoadTex2D(gShadowMap, NO_SAMPLER, pix, 0).r;
+						if (d[i] < minDepth)
+						{
+							minDepth = d[i];
+							minPixel = pix + pixelOffsets[i] * 3;
+						}
+					}
+					float dx = abs(d[0] - d[1]);
+					float dy = abs(d[2] - d[3]);
+
+					float edgeValue = sqrt(dx * dx + dy * dy);
+					if(edgeValue < 0.07){
+						Age = -1.f;
+					}
+
+					posLS.xy = float2(minPixel) / 2048.f;
+					//float2 ndcXY = posLS.xy * 2.0f - 1.0f;
+					float4 clipPos = float4(posLS.x * 2.f - 1.f, (1.0 - posLS.y) * 2.0f - 1.0f, smDepth, 1.0f);
+					clipPos = mul(gPerFrameVBConstants.transform[VIEW_SHADOW].invVP.mat, clipPos);
+					clipPos /= clipPos.w;
+					Position = clipPos.xyz;
+				}
+				else{
+					Age = -1.f;
+				}
+			}
+
 			velocityAge.xyz = UnpackStartVelocity(particleSet).xyz + clamp(UnpackStartVelocity(particleSet).w, 0.0, 1000.0) * randFloat3_negOneToPlusOne(rngSeed);
 
 			Bitfield = (Bitfield & PARTICLE_BITFIELD_SET_INDEX_MASK) | PARTICLE_BITFIELD_LIGHT_CULLED | PARTICLE_BITFIELD_IS_ALLOCATED | gParticleSetsBuffer[setIndex].ParticleSetBitfield;
@@ -197,7 +267,10 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	// Add noise
 	float2 LightRadiusNoiseIntensity = unpack2Floats(particleSet.LightRadiusAndVelocityNoise);
 	LightRadiusNoiseIntensity.x *= UnpackFadeValue(Age / particleSet.PositionAndInitialAge.w, particleSet.StartColor, particleSet.EndColor);
-	velocityAge.xyz += randFloat3_negOneToPlusOne(rngSeed) * LightRadiusNoiseIntensity.y;
+	velocityAge.xyz += (LightRadiusNoiseIntensity.y > 0 && (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) == 0) ?
+		randFloat3_negOneToPlusOne(rngSeed) * 0.25 * LightRadiusNoiseIntensity.y :
+		float3(0,0,0);
+
 	Position += velocityAge.xyz * deltaTime;
 	
 	float4 vertexPos = float4(Position, 1.0f);
@@ -221,7 +294,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 				| PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK
 			) | PARTICLE_BITFIELD_HAS_COLLIDED);
 
-			Position -= deltaTime * velocityAge.xyz;
+			Position -= deltaTime * velocityAge.xyz * 3.f;
 			velocityAge.xyz = float3(0,0,0);
 		}
 	}
@@ -319,10 +392,6 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	if ((Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT) > 0 && blinkFactor <= 0.0)
 	{
 		Bitfield |= PARTICLE_BITFIELD_LIGHT_CULLED;
-		SaveParticle(particleSet, particleIdx, Bitfield, Position, Age, velocityAge.xyz, animationTime);
-
-		// If the light is not visible, than the particle isn't either
-		RETURN();
 	}
 
 	// Cull lights
@@ -366,9 +435,9 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	/*********************************/
 	float scale = UnpackParticleSize(particleSet, particleIdx, 1.0 - (Age / particleSet.PositionAndInitialAge.w));
 	if ((Bitfield & PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT) > 0)
-		scale *= blinkFactor;
+		scale *= max(blinkFactor, 0.2);
 	if ((Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0 && (Bitfield & PARTICLE_BITFIELD_TYPE_RAIN) > 0)
-		scale *= 15.0f;
+		scale = ANIMATION_TEXTURE_SCALE_FACTOR;
 
 	float4 quadVertices[QUAD_VERTEX_COUNT] = {
 		float4(-scale, -scale, 0.0f, 1.0f),
@@ -439,6 +508,12 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 		minMaxY.y = max(minMaxY.y, quadVertices[i].y);
 	}
 
+	// Don't rasterize particles that are too small (1/4th of a pixel)
+	if (abs(minMaxX.y - minMaxX.x) < 1.0/(gParticleConstantBuffer.ScreenSize.x*2) || abs(minMaxY.y - minMaxY.x) < 1.0/(gParticleConstantBuffer.ScreenSize.x*2))
+	{
+		RETURN();
+	}
+
 	// check if the particle is visible in the camera
 	if (vertexPos.z < 0.0f || minMaxX.y < 0.0f || minMaxX.x > 1.0f || minMaxY.y < 0.0f || minMaxY.x > 1.0f)
 	{
@@ -446,6 +521,9 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 	}
 
 	vertexPos.xy *= float2(gParticleConstantBuffer.ScreenSize);
+	float2 minMaxU = minMaxX;
+	float2 minMaxV = minMaxY;
+
 	UNROLL_N(QUAD_VERTEX_COUNT)
 	for (uint i=0; i<QUAD_VERTEX_COUNT; i++)
 		quadVertices[i].xy *= float2(gParticleConstantBuffer.ScreenSize);
@@ -462,12 +540,15 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 		uint hwRasterizerIdx;
 		AtomicAdd(gParticleRenderIndirectDataRW[1], 1, hwRasterizerIdx);
 		gParticlesToRasterizeRW[hwRasterizerIdx] = particleIdx;
+#if defined(_DEBUG)
+		AtomicAdd(gParticleStatsBufferRW[0].HardwareRasterized, 1, hwRasterizerIdx);
+#endif
 		RETURN();
 	}
 
 	float speedOverMaxSpeed = maxSpeed == minSpeed ? 0.0 : (length(velocityAge.xyz) - minSpeed) / (maxSpeed - minSpeed);
 	uint texIndex = (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0 ? UnpackSecondaryTextureIndex(particleSet) :
-		UnpackPrimaryTextureIndex(particleSet);
+		UnpackPrimaryTextureIndex(gParticleSetsBuffer[setIndex]);
 	float2 tileOffset = float2(0,0);
 	uint2 tileAmount = uint2(1,1);
 	
@@ -499,13 +580,16 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 			UnpackParticleColorLifetime(particleSet.StartColor, particleSet.EndColor, 1.0 - Age / particleSet.PositionAndInitialAge.w) : 
 			UnpackParticleColorSpeed(particleSet.StartColor, particleSet.EndColor, 1.0 - Age / particleSet.PositionAndInitialAge.w, pow(speedOverMaxSpeed, PARTICLE_COLOR_OVER_SPEED_STRENGTH))); 
 		
+		texColor.xyz = (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0 ? lerp(texColor.xyz, GetAmbientLight(float3(0, 1, 0), 0.0f), SPLASHES_AMBIENT_LIGHT_INTENSITY) : texColor.xyz;
 		texColor.w *= 0.2f * UnpackAlpha(particleSet, particleIdx);
+		texColor = (Bitfield & PARTICLE_BITFIELD_TYPE_RAIN) > 0 ? RefractLight(texColor, uv, float2((minMaxU.x + minMaxU.y) / 2.f, (minMaxV.x + minMaxV.y) / 2.f)) : texColor;
 
 		SaveTransparencyEntry(gParticleConstantBuffer.ScreenSize, uint2(minMaxX.y, minMaxY.y), texColor, vertexPos.z);
 
 #ifdef _DEBUG
 		uint foo;
 		AtomicAdd(gParticleStatsBufferRW[0].VisibleParticlesCount, 1, foo);
+		AtomicAdd(gParticleStatsBufferRW[0].SoftwareRasterized, 1, foo);
 #endif
 
 		RETURN();
@@ -526,17 +610,14 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
             if (toAdd == 2)
                 continue;
                 
-            float3 baryCoords = float3(baryCoords2D.x, baryCoords2D.y,0);
-
-            float depthBufferSample = LoadTex2D(gDepthBuffer, NO_SAMPLER, int2(x, y), 0).x;
-            if (vertexPos.z < depthBufferSample)
-                continue;
+            float3 baryCoords = float3(baryCoords2D.x, baryCoords2D.y,0);       
 
             // Compute UVs using the barycentric coordinates we found
             baryCoords.z = 1.0f - baryCoords.x - baryCoords.y;
             uv = float2(0,0);
             for (uint i=0; i<3; i++)
                 uv += quadUVs[2 - i + (i!=2 ? toAdd : 0)] * baryCoords[i];
+			uv.y = 1.0 - uv.y;
 
             // Sample texture
             float4 texColor = float4(0,0,0,0);
@@ -548,7 +629,16 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
             texColor = texColor * ((particleSet.ParticleSetBitfield & PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME) > 0 ?
                 UnpackParticleColorLifetime(particleSet.StartColor, particleSet.EndColor, 1.0 - Age / particleSet.PositionAndInitialAge.w) :
                 UnpackParticleColorSpeed(particleSet.StartColor, particleSet.EndColor, 1.0 - Age / particleSet.PositionAndInitialAge.w, pow(speedOverMaxSpeed, PARTICLE_COLOR_OVER_SPEED_STRENGTH)));
+			texColor.xyz = (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) > 0 ? lerp(texColor.xyz, GetAmbientLight(float3(0, 1, 0), 0.0f), SPLASHES_AMBIENT_LIGHT_INTENSITY) : texColor.xyz;
             texColor.w *= UnpackAlpha(particleSet, particleIdx);
+
+			texColor = (Bitfield & PARTICLE_BITFIELD_TYPE_RAIN) > 0 && (Bitfield & PARTICLE_BITFIELD_HAS_COLLIDED) == 0 ? RefractLight(texColor, uv, float2((minMaxU.x + minMaxU.y) / 2, (minMaxV.x + minMaxV.y) / 2)) : texColor;
+			if (texColor.w <= 0.0)
+				continue;
+
+			float depthBufferSample = LoadTex2D(gDepthBuffer, NO_SAMPLER, int2(x, y), 0).x;
+            if (vertexPos.z < depthBufferSample)
+                continue;
 
             SaveTransparencyEntry(gParticleConstantBuffer.ScreenSize, uint2(x, y), texColor, vertexPos.z);
 		}
@@ -557,6 +647,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) inGroupThreadId, SV_DispatchThreadID(uint3)
 #ifdef _DEBUG
 	uint foo;
 	AtomicAdd(gParticleStatsBufferRW[0].VisibleParticlesCount, 1, foo);
+	AtomicAdd(gParticleStatsBufferRW[0].SoftwareRasterized, 1, foo);
 #endif
 
 	RETURN();

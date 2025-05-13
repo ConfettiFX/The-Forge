@@ -75,6 +75,9 @@
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ASMShaderDefs.h.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\MsaaEdgeDetect.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\SDFMeshBakedShadow.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
@@ -144,10 +147,10 @@
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\MeshVSMDepthPassAlpha.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\Resolve.frag.fsl">
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ProgMSAAResolve.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\Resolve.vert.fsl">
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ProgMSAAResolve.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ScreenSpaceShadowsGenerate.comp.fsl">
@@ -157,12 +160,6 @@
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ShaderDefs.h.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\Skybox.frag.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\Skybox.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\TriangleFiltering.comp.fsl">

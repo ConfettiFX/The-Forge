@@ -62,6 +62,34 @@
                ReferencedContainer = "container:03_MultiThread/03_MultiThread.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+        <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "04_QueueSubmitProfiling.app"
+               BlueprintName = "04_QueueSubmitProfiling"
+               ReferencedContainer = "container:04_QueueSubmitProfiling/04_QueueSubmitProfiling.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5ABFF201F58BF000E571F"
+               BuildableName = "04_QueueSubmitProfiling_iOS.app"
+               BlueprintName = "04_QueueSubmitProfiling_iOS"
+               ReferencedContainer = "container:04_QueueSubmitProfiling/04_QueueSubmitProfiling.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
@@ -112,24 +140,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "09a_HybridRaytracing.app"
-               BlueprintName = "09a_HybridRaytracing"
-               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
-               BuildableName = "09a_HybridRaytracing_iOS.app"
-               BlueprintName = "09a_HybridRaytracing_iOS"
-               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "09_LightShadowPlayground_iOS.app"
+               BlueprintName = "09_LightShadowPlayground_iOS"
+               ReferencedContainer = "container:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -171,6 +185,20 @@
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "14_WaveIntrinsics.app"
                BlueprintName = "14_WaveIntrinsics"
+               ReferencedContainer = "container:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D062DABE2210FFED00CF2B1B"
+               BuildableName = "14_WaveIntrinsics_iOS.app"
+               BlueprintName = "14_WaveIntrinsics_iOS"
                ReferencedContainer = "container:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

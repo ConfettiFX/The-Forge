@@ -110,8 +110,8 @@ Buffer*        pSkyBoxVertexBuffer = NULL;
 Pipeline*      pSkyBoxDrawPipeline = NULL;
 Texture*       pSkyBoxTextures[6];
 Sampler*       pSkyBoxSampler = {};
-DescriptorSet* pDescriptorSetTexture = { NULL };
-DescriptorSet* pDescriptorSetUniforms = { NULL };
+DescriptorSet* pDescriptorSetPersistent = { NULL };
+DescriptorSet* pDescriptorSetPerFrame = { NULL };
 
 Buffer* pUniformBuffer[gDataBufferCount] = { NULL };
 
@@ -121,6 +121,8 @@ ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 int              gNumberOfSpherePoints;
 UniformBlock     gUniformData;
 PlanetInfoStruct gPlanetInfoData[gNumPlanets];
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc    gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 
 ICameraController* pCameraController = NULL;
 
@@ -772,6 +774,9 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
+
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -958,6 +963,8 @@ public:
 
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
         if (pRenderer->pGpu->mPipelineStatsQueries)
@@ -988,8 +995,6 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
         cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
         cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxVbStride, NULL);
         cmdDraw(cmd, 36, 0);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1016,22 +1021,19 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
-        bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-        bindRenderTargets.mDepthStencil = { NULL, LOAD_ACTION_DONTCARE };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
+        {
+            gFrameTimeDraw.mFontColor = 0xff00ffff;
+            gFrameTimeDraw.mFontSize = 18.0f;
+            gFrameTimeDraw.mFontID = gFontID;
+            float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &gFrameTimeDraw);
+            cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
 
-        gFrameTimeDraw.mFontColor = 0xff00ffff;
-        gFrameTimeDraw.mFontSize = 18.0f;
-        gFrameTimeDraw.mFontID = gFontID;
-        float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &gFrameTimeDraw);
-        cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
-
-        cmdDrawUserInterface(cmd);
+            cmdDrawUserInterface(cmd);
+        }
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-        cmdBindRenderTargets(cmd, NULL);
 
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
@@ -1089,7 +1091,10 @@ public:
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
-        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR | SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+        swapChainDesc.mVR.mFoveationLevel = FOVEATION_LEVEL_DYNAMIC;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;
@@ -1111,7 +1116,8 @@ public:
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
         depthRT.mWidth = mSettings.mWidth;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM | TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW |
+                         TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING;
         addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
         ESRAM_END_ALLOC(pRenderer);
@@ -1122,15 +1128,15 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc descPersisent = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &descPersisent, &pDescriptorSetTexture);
+        addDescriptorSet(pRenderer, &descPersisent, &pDescriptorSetPersistent);
         DescriptorSetDesc descUniforms = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &descUniforms, &pDescriptorSetUniforms);
+        addDescriptorSet(pRenderer, &descUniforms, &pDescriptorSetPerFrame);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
     }
 
     void addShaders()
@@ -1225,14 +1231,14 @@ public:
         params[5].ppTextures = &pSkyBoxTextures[5];
         params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
         params[6].ppSamplers = &pSkyBoxSampler;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, TF_ARRAY_COUNT(params), params);
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, TF_ARRAY_COUNT(params), params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData uParams[1] = {};
             uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
             uParams[0].ppBuffers = &pUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, uParams);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 1, uParams);
         }
     }
 };

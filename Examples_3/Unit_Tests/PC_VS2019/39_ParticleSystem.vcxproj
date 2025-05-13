@@ -20,7 +20,9 @@
     <FSLShader Include="..\..\..\Common_3\Renderer\ParticleSystem\Shaders\ParticleUtils.h.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\FullScreenQuad.vert.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\OitCompose.frag.fsl" />
+    <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\SceneLighting.h.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\Shaders.list" />
+    <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\Sky.h.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\TriangleFilteringClear.comp.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\LightClustersClear.comp.fsl" />
     <FSLShader Include="..\src\39_ParticleSystem\Shaders\FSL\VisibilityBufferShadeClearTexture.comp.fsl" />
@@ -66,7 +68,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\39_ParticleSystem\GPUCfg\gpu.cfg" />
-    <None Include="..\src\39_ParticleSystem\Scripts\Test_AllSets.lua" />
+    <None Include="..\src\39_ParticleSystem\Scripts\Test_Fireflies.lua" />
+    <None Include="..\src\39_ParticleSystem\Scripts\Test_Rain.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C3E55E0E-9251-4FF0-8650-1A374CFDF657}</ProjectGuid>
@@ -115,7 +118,7 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -154,7 +157,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>

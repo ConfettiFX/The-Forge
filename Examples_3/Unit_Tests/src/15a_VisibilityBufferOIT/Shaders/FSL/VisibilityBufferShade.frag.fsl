@@ -41,7 +41,12 @@ struct NodeFinalOIT
 	float3 color;
 	float  alpha;
 	float  depth;
-	uint   next; 
+	uint   next;
+	#if defined(TARGET_ANDROID)
+	// Note: Required for some old Mali drivers
+	uint pad0;
+	uint pad1;
+	#endif
 };
 
 struct ShadedFragment
@@ -351,12 +356,15 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	if(nodeIdx == OIT_HEAD_INVALID && opaqueShaded == 0u)
 	{
-		discard;
+		float3 skyTexCoord = mul(gSkyboxUniformBuffer.InverseViewProjection, float4(In.screenPos.x, In.screenPos.y, 1, 1)).xyz;
+		OutColor = SampleTexCube(gSkyboxTexture, gSamplerBilinearWrap, skyTexCoord).xyz;
+		RETURN(float4(OutColor, 1.0));
 	}
 
 #if defined(ENABLED_GODRAY)
 	// Sample Godray
 	float3 godrayColor = SampleLvlTex2D(gGodrayTexture, gVBTextureSampler, In.screenPos.xy * float2(0.5, -0.5) + 0.5, 0).rgb;
+	godrayColor *= gPerFrameConstants.lightColor.rgb * GODRAY_ATTENUATION;
 #endif
 
 	float transAlpha = 0.f;

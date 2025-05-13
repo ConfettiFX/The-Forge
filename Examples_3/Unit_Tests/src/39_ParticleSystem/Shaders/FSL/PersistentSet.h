@@ -45,10 +45,12 @@
         DECL_TEXTURE(Persistent, Tex2D(float4), gVBTex)
 #endif
         DECL_TEXTURE(Persistent, Tex2D(float), gDepthBuffer)
+        DECL_TEXTURE(Persistent, Tex2D(float4), gShadedScene)
         DECL_TEXTURE(Persistent, Tex2D(float2), gDownsampledDepthBuffer)
         DECL_TEXTURE(Persistent, Tex2D(float), gShadowMap)
         DECL_TEXTURE(Persistent, Tex2D(float4), gInputTexture)
         DECL_TEXTURE(Persistent, Tex2D(float), gShadowCollector)
+        DECL_TEXTURE(Persistent, Tex2D(float4), gPerlinNoise)
         // Array of textures for each particle set
         DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), ParticleTextures, MAX_PARTICLE_TEXTURES_COUNT)
         DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), gDiffuseMaps, MAX_TEXTURE_UNITS)

@@ -54,7 +54,7 @@
     <ClInclude Include="..\src\Shaders\FSL\GLobal.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\Resolve.srt.h">
+    <ClInclude Include="..\src\Shaders\FSL\ProgMSAAResolve.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <FSLShader Include="..\src\Shaders\FSL\BatchCompaction.comp.fsl">
@@ -84,10 +84,10 @@
     <FSLShader Include="..\src\Shaders\FSL\GodrayBlur.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.frag.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.vert.fsl">
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\MsaaEdgeDetect.frag.fsl">

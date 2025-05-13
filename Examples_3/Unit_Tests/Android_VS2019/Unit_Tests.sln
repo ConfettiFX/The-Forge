@@ -73,6 +73,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "16_Raytracing", "16_Raytrac
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "39_ParticleSystem", "39_ParticleSystem\39_ParticleSystem.vcxproj", "{8ACC82DD-1721-45DC-9244-E07D9A177070}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_QueueSubmitProfiling", "04_QueueSubmitProfiling\04_QueueSubmitProfiling.vcxproj", "{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Android-arm64-v8a = Debug|Android-arm64-v8a
@@ -163,6 +168,10 @@ Global
 		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
 		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
 		{8ACC82DD-1721-45DC-9244-E07D9A177070}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
+		{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C}.Debug|Android-arm64-v8a.ActiveCfg = Debug|Android-arm64-v8a
+		{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C}.Debug|Android-arm64-v8a.Build.0 = Debug|Android-arm64-v8a
+		{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C}.Release|Android-arm64-v8a.ActiveCfg = Release|Android-arm64-v8a
+		{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C}.Release|Android-arm64-v8a.Build.0 = Release|Android-arm64-v8a
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -188,6 +197,7 @@ Global
 		{A99DA1E5-B36E-41E3-88D1-0154F0B60A29} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{E4E20BF1-2A51-455C-9FE9-EF63EE34C28B} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{8ACC82DD-1721-45DC-9244-E07D9A177070} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{3A1E7DAB-A1F9-4E4F-BD79-464013BE213C} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {948F21A0-5B36-35C9-B219-88B1DAC0D0C2}

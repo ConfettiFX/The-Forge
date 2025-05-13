@@ -196,11 +196,8 @@ typedef struct TriangleFilteringPassDesc
     Pipeline* pPipelineClearBuffers;
     Pipeline* pPipelineTriangleFiltering;
 
-    DescriptorSet* pDescriptorSetTriangleFiltering;
-    DescriptorSet* pDescriptorSetTriangleFilteringPerFrame;
     DescriptorSet* pDescriptorSetTriangleFilteringPerBatch;
     DescriptorSet* pDescriptorSetTriangleFilteringPerDraw;
-    DescriptorSet* pDescriptorSetClearBuffers;
 
     uint64_t mGpuProfileToken;
     uint32_t mClearThreadCount;

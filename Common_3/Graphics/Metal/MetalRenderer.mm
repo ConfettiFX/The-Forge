@@ -70,10 +70,10 @@
 #if defined(AUTOMATED_TESTING)
 #include "IScreenshot.h"
 #endif
-#define MAX_BUFFER_BINDINGS            31
+#define MAX_BUFFER_BINDINGS                        31
 // Start vertex attribute bindings at index 30 and decrement so we can bind regular buffers from index 0 for simplicity
-#define VERTEX_BINDING_OFFSET          (MAX_BUFFER_BINDINGS - 1)
-#define DESCRIPTOR_UPDATE_FREQ_PADDING 0
+#define VERTEX_BINDING_OFFSET                      (MAX_BUFFER_BINDINGS - 1)
+#define DESCRIPTOR_SET_ARGUMENT_BUFFER_START_INDEX 2
 
 VkAllocationCallbacks gMtlAllocationCallbacks = {
     // pUserData
@@ -397,8 +397,14 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
     ASSERT(pDescriptorSet);
     ASSERT(index < pDescriptorSet->mMaxSets);
 
-    pCmd->mBoundDescriptorSets[pDescriptorSet->mNodeIndex] = pDescriptorSet;
-    pCmd->mBoundDescriptorSetIndices[pDescriptorSet->mNodeIndex] = index;
+    // if no pipeline is bound yet, mask this descriptor set to be bound when cmdBindPipeline is called
+    if (pCmd->pBoundPipeline == NULL)
+    {
+        pCmd->mBoundDescriptorSets[pDescriptorSet->mSetIndex] = pDescriptorSet;
+        pCmd->mBoundDescriptorSetIndices[pDescriptorSet->mSetIndex] = index;
+        pCmd->mShouldRebindDescriptorSetsMask |= 0x01 << pDescriptorSet->mSetIndex;
+        return;
+    }
     uint8_t stages = (pCmd->pBoundPipeline->mType == PIPELINE_TYPE_COMPUTE) ? SHADER_STAGE_COMP : SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
     if (pDescriptorSet->pRootDescriptorData)
     {
@@ -488,17 +494,17 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
         // argument buffers
         if (stages & SHADER_STAGE_VERT)
         {
-            [pCmd->pRenderEncoder setVertexBuffer:buffer offset:offset atIndex:pDescriptorSet->mNodeIndex];
+            [pCmd->pRenderEncoder setVertexBuffer:buffer offset:offset atIndex:pDescriptorSet->mArgumentBufferIndex];
         }
 
         if (stages & SHADER_STAGE_FRAG)
         {
-            [pCmd->pRenderEncoder setFragmentBuffer:buffer offset:offset atIndex:pDescriptorSet->mNodeIndex];
+            [pCmd->pRenderEncoder setFragmentBuffer:buffer offset:offset atIndex:pDescriptorSet->mArgumentBufferIndex];
         }
 
         if (stages & SHADER_STAGE_COMP)
         {
-            [pCmd->pComputeEncoder setBuffer:buffer offset:offset atIndex:pDescriptorSet->mNodeIndex];
+            [pCmd->pComputeEncoder setBuffer:buffer offset:offset atIndex:pDescriptorSet->mArgumentBufferIndex];
         }
 
         // useResource on the untracked resources (UAVs, RTs)
@@ -601,7 +607,10 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
     ASSERT(pDescriptorSet);
 
     pDescriptorSet->pDescriptors = pDesc->pDescriptors;
-    pDescriptorSet->mNodeIndex = pDesc->mIndex;
+    pDescriptorSet->mNodeIndex = pDesc->mNodeIndex;
+    // 0 and 1 are reserved for cmdWriteMarker
+    pDescriptorSet->mArgumentBufferIndex = pDesc->mIndex + DESCRIPTOR_SET_ARGUMENT_BUFFER_START_INDEX;
+    pDescriptorSet->mSetIndex = pDesc->mSetIndex;
     pDescriptorSet->mMaxSets = pDesc->mMaxSets;
     pDescriptorSet->mForceArgumentBuffer = pDesc->mForceArgumentBuffer;
 
@@ -1701,10 +1710,10 @@ bool FillGPUVendorPreset(id<MTLDevice> gpu, GPUVendorPreset& gpuVendor)
     return true;
 }
 
-uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
+uvec2 queryThreadExecutionWidthAndTotalThreads(id<MTLDevice> gpu)
 {
     if (!gpu)
-        return 0;
+        return uvec2(0);
 
     NSError*  error = nil;
     NSString* defaultComputeShader =
@@ -1719,7 +1728,7 @@ uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
     if (error != nil)
     {
         LOGF(LogLevel::eWARNING, "Could not create library for simple compute shader: %s", [error.description UTF8String]);
-        return 0;
+        return uvec2(0);
     }
 
     // Load the kernel function from the library
@@ -1730,10 +1739,10 @@ uint32_t queryThreadExecutionWidth(id<MTLDevice> gpu)
     if (error != nil)
     {
         LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s", [error.description UTF8String]);
-        return 0;
+        return uvec2(0);
     }
 
-    return (uint32_t)computePipelineState.threadExecutionWidth;
+    return uvec2((uint32_t)computePipelineState.threadExecutionWidth, (uint32_t)computePipelineState.maxTotalThreadsPerThreadgroup);
 }
 
 static MTLResourceOptions gMemoryOptions[VK_MAX_MEMORY_TYPES] = {
@@ -2117,8 +2126,11 @@ static void QueryGpuDesc(GpuDesc* pGpuDesc)
     pGpuDesc->mPipelineStatsQueries = false;
     pGpuDesc->mGpuMarkers = true;
 
+    uvec2 threadWidthAndTotalCount = queryThreadExecutionWidthAndTotalThreads(gpu);
+    pGpuDesc->mWaveLaneCount = threadWidthAndTotalCount.getX();
+    pGpuDesc->mMaxTotalComputeThreads = threadWidthAndTotalCount.getY();
+
     const MTLSize maxThreadsPerThreadgroup = [gpu maxThreadsPerThreadgroup];
-    pGpuDesc->mMaxTotalComputeThreads = (uint32_t)maxThreadsPerThreadgroup.width;
     pGpuDesc->mMaxComputeThreads[0] = (uint32_t)maxThreadsPerThreadgroup.width;
     pGpuDesc->mMaxComputeThreads[1] = (uint32_t)maxThreadsPerThreadgroup.height;
     pGpuDesc->mMaxComputeThreads[2] = (uint32_t)maxThreadsPerThreadgroup.depth;
@@ -2128,7 +2140,6 @@ static void QueryGpuDesc(GpuDesc* pGpuDesc)
     pGpuDesc->mROVsSupported = [gpu areRasterOrderGroupsSupported];
     pGpuDesc->mTessellationSupported = true;
     pGpuDesc->mGeometryShaderSupported = false;
-    pGpuDesc->mWaveLaneCount = queryThreadExecutionWidth(gpu);
 
     // Note: With enabled Shader Validation we are getting no performance benefit for stencil samples other than
     // first even if stencil test for those samples was failed
@@ -3591,8 +3602,6 @@ void addComputePipelineImpl(Renderer* pRenderer, const char* pName, const Comput
     ASSERT(pPipeline);
 
     pPipeline->mType = PIPELINE_TYPE_COMPUTE;
-    const uint32_t* numThreadsPerGroup = pDesc->pShaderProgram->mNumThreadsPerGroup;
-    pPipeline->mNumThreadsPerGroup = MTLSizeMake(numThreadsPerGroup[0], numThreadsPerGroup[1], numThreadsPerGroup[2]);
 
     MTLComputePipelineDescriptor* pipelineDesc = [[MTLComputePipelineDescriptor alloc] init];
     pipelineDesc.computeFunction = pDesc->pShaderProgram->pComputeShader;
@@ -3613,6 +3622,22 @@ void addComputePipelineImpl(Renderer* pRenderer, const char* pName, const Comput
         LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [error.description UTF8String]);
         SAFE_FREE(pPipeline);
         return;
+    }
+
+    const uint32_t* numThreadsPerGroup = pDesc->pShaderProgram->mNumThreadsPerGroup;
+    uint32_t        totalThreadsPerGroup = numThreadsPerGroup[0] * numThreadsPerGroup[1] * numThreadsPerGroup[2];
+    uint32_t        maxTotalThreadsPerThreadgroup = (uint32_t)pPipeline->pComputePipelineState.maxTotalThreadsPerThreadgroup;
+    if (maxTotalThreadsPerThreadgroup < totalThreadsPerGroup)
+    {
+        LOGF(LogLevel::eERROR,
+             "The total threads per threadgroup for this pipeline (%d) is insufficient for the numThreadsPerGroup (%d). Failing Pipeline "
+             "creation",
+             maxTotalThreadsPerThreadgroup, totalThreadsPerGroup);
+        removePipeline(pRenderer, pPipeline);
+    }
+    else
+    {
+        pPipeline->mNumThreadsPerGroup = MTLSizeMake(numThreadsPerGroup[0], numThreadsPerGroup[1], numThreadsPerGroup[2]);
     }
 
     *ppPipeline = pPipeline;
@@ -4019,6 +4044,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
     ASSERT(pCmd);
     ASSERT(pPipeline);
 
+    uint32_t shouldRebind = pCmd->mShouldRebindPipeline;
     pCmd->pBoundPipeline = pPipeline;
     pCmd->mShouldRebindPipeline = 0;
 
@@ -4107,6 +4133,23 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
             ASSERT(false); // unknown pipeline type
         }
     }
+
+    // if pipeline type changed we need to force rebind the shared sets
+    bool     pipelineTypeChanged = barrierRequired;
+    uint32_t rebindMask = (pipelineTypeChanged || shouldRebind) ? MAX_DESCRIPTOR_SETS_MASK : pCmd->mShouldRebindDescriptorSetsMask;
+    for (uint32_t i = 0; i < MAX_DESCRIPTOR_SETS; i++)
+    {
+        uint32_t currSetMask = 0x01 << i;
+
+        if (rebindMask & currSetMask)
+        {
+            if (pCmd->mBoundDescriptorSets[i])
+            {
+                cmdBindDescriptorSet(pCmd, pCmd->mBoundDescriptorSetIndices[i], pCmd->mBoundDescriptorSets[i]);
+            }
+        }
+    }
+    pCmd->mShouldRebindDescriptorSetsMask = 0;
 }
 
 void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)

@@ -93,7 +93,6 @@ struct AssetPipelineParams
     const char* mInExt;
 
     const char* mInDir;
-    const char* mOutDir;
     const char* mOutSubdir; // If set, the subdirectory of the input filepath will be ignored and this one will be used instead
 
     // From argc and argv

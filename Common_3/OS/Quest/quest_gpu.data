@@ -19,9 +19,9 @@ END_VENDOR_LIST;
 
 BEGIN_GPU_LIST;
 #qualcomm
-0x5143; 0x6050001; verylow; #Qualcomm; Adreno (TM) 650
-0x5143; 0x6050002; verylow; #Qualcomm; Adreno (TM) 650
-0x5143; 0x43050B00; low; #Qualcomm; Adreno (TM) 740
+0x5143; 0x6050001; verylow; Qualcomm; Adreno (TM) 650; quest2
+0x5143; 0x6050002; verylow; Qualcomm; Adreno (TM) 650; quest2
+0x5143; 0x43050B00; low; Qualcomm; Adreno (TM) 740; quest3
 
 END_GPU_LIST;
 

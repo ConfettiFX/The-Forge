@@ -27,7 +27,7 @@
 
 
 #define MAX_SHADOW_COUNT		8
-#define MAX_LIGHT_COUNT			20000
+#define MAX_LIGHT_COUNT			40000
 
 #define MAX_STANDARD_COUNT		8000000
 
@@ -43,8 +43,6 @@
 #define MAX_PARTICLES_COUNT MAX_PARTICLES_COUNT_LOW
 #endif
 
-#define PARTICLE_TYPES_COUNT	3
-
 #define PARTICLES_BATCH_X			32
 #define PARTICLES_BATCH_Y			1
 #define MAX_PARTICLE_SET_COUNT		128
@@ -56,18 +54,8 @@
 
 // The particle buffer is divided in 3 sections, one for each light mode
 #define PARTICLE_BUFFER_SECTION_COUNT	3
-// When swapping particles, we might receive a particle that has to be swapped as well. To reduce the 
-// probability that a single thread gets to perform too many memory accesses, we try PARTICLE_SWAP_ATTEMPTS_COUNT
-// times. Then we wait for the other threads to swap particles and finally we insert the particle.
-#define PARTICLE_SWAP_ATTEMPTS_COUNT    2048
-#define PARTICLE_SWAP_FAILURE_ATTEMPTS_COUNT	PARTICLE_SWAP_ATTEMPTS_COUNT
-// Maximum amount of threads that failed swapping in a group needed to trigger the help system
-#define PARTICLE_SWAP_HELP_THRESHOLD			6
-// If PARTICLE_SWAP_SELF_RESOLVE_THRESHOLD threads failed swapping, they can continue trying safely
-#define PARTICLE_SWAP_SELF_RESOLVE_THRESHOLD	8
-
 // Maximum screen space area that allows for software rasterization. Bigger particles are forwarded to the hardware rasterizer
-#define PARTICLE_HW_RASTERIZATION_THRESHOLD	1024
+#define PARTICLE_HW_RASTERIZATION_THRESHOLD	64
 // Max particle set size, used to clamp position values between 0 and 1
 #define PARTICLE_PACKING_SCALE		64.0
 // Max distance between particles to be considered neighbors
@@ -75,7 +63,13 @@
 // Modifier to make color over speed more noticeable
 #define PARTICLE_COLOR_OVER_SPEED_STRENGTH	1.2
 
-#define QUAD_VERTEX_COUNT	4
+#define ANIMATION_TEXTURE_SCALE_FACTOR		24
+#define SHADOW_INTENSITY					1
+#define SPLASHES_AMBIENT_LIGHT_INTENSITY	0.6
+#define REFRACTIONS_BACKGROUND_SCALE		0.01
+#define	REFRACTIONS_FRESNEL_INTENSITY		0.9
+#define	REFLECTIONS_FRESNEL_INTENSITY		0.0
+#define QUAD_VERTEX_COUNT					4
 
 // Used to access previous/current values
 #define PARTICLE_SET_VISIBILITY_FLAG_AMOUNT	4
@@ -113,6 +107,7 @@
 #define PARTICLE_BITFIELD_TYPE_RAIN				0x80000U
 #define PARTICLE_BITFIELD_TYPE_BOIDS			0x100000U
 #define PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER 0x200000U
+#define PARTICLE_BITFIELD_SPAWN_FROM_SHADOW_MAP 0x10000000U
 
 #define PARTICLE_BITFIELD_BILLBOARD_MODE_BITS_MASK 0xC00000U
 #define PARTICLE_BITFIELD_BILLBOARD_MODE_SCREEN_ALIGNED 0x0U
@@ -173,7 +168,7 @@ STRUCT(ParticleSet)
 	DATA(uint, StartSizeAndTime, None);
 	// End size and time when the transition to it starts
 	DATA(uint, EndSizeAndTime, None);
-	DATA(uint, Pad0, None);
+	DATA(uint, AlivePeriod, None);
 
 	// Forces for the flocking algorithm
 	DATA(uint, BoidsSeparationSeekStrength, None);
@@ -232,28 +227,9 @@ STRUCT(ParticleConstantBufferData)
 	DATA(uint2, ScreenSize, None);
 	// Camera planes
 	DATA(float2, CameraPlanes, None);
-};
 
-
-STRUCT(ParticleBufferStateData)
-{
-	// Amount of particles for each section: LightNShadow - Light - Standard
-	DATA(uint, ParticleCounts[3], None);
-	// Counter used to allocate new particles and make their age uniform
-	DATA(uint, AllocationCounter, None);
-
-	// Attributes that changed in the last frame
-	DATA(uint, ChangedAttributesBitmask, None);
-	// Index of the last allocated particle set. We keep track of the previous one so that the simulation shader can detect changes.
-	DATA(uint, LastParticleSetIndex, None);
-	DATA(uint, PrevLastParticleSetIndex, None);
-	DATA(uint, Pad, None);
-
-	// Start indices of inactive particles. The first element contains the value of the previous frame, 
-	// the second one contains the value of the current frame
-	DATA(uint, ParticleSectionsIndices[PARTICLE_BUFFER_SECTION_COUNT * 2], None);
-	DATA(uint, MaxParticles[MAX_PARTICLE_SET_COUNT], None);
-	DATA(uint, PrevBitfield[MAX_PARTICLE_SET_COUNT], None);
+	// Time of day
+	DATA(float, TimeOfDay, None);
 };
 
 STRUCT(ParticleSystemStats)
@@ -264,6 +240,9 @@ STRUCT(ParticleSystemStats)
 
 	DATA(uint, AllocatedCount[PARTICLE_BUFFER_SECTION_COUNT], None);
 	DATA(uint, VisibleParticlesCount, None);
+
+	DATA(uint, HardwareRasterized, None);
+	DATA(uint, SoftwareRasterized, None);
 };
 
 

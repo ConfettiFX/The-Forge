@@ -30,6 +30,7 @@
 
 #define CAMERA_NEAR		0.1f
 #define CAMERA_FAR		200.0f
+#define DAY_CYCLE_KEY_FRAME_COUNT	6
 
 #ifndef USE_RELAXED_LOCAL_GROUP
 #define USE_RELAXED_LOCAL_GROUP 0
@@ -86,6 +87,8 @@
 #define FLAG_MASK  0x0000FFFF // 0000 0000 0000 0000 1111 1111 1111 1111
 #define MESH_CONSTANT_FLAG_TWO_SIDED (1u << 0)
 
+#define SKYBOX_INTENSITY	2.0
+
 STRUCT(MeshConstants)
 {
 	DATA(uint, indexOffset, None);
@@ -103,17 +106,34 @@ STRUCT(PerFrameConstantsData)
 	DATA(float4, lightColor, None);
 	//========================================
 	DATA(float2, CameraPlane, None); //x : near, y : far
-	DATA(uint, _pad0, None);
+	DATA(float, groundRoughness, None);
 	DATA(uint, outputMode, None);
 	//========================================
 	DATA(float2, twoOverRes, None);
 	DATA(float, esmControl, None);
-	DATA(float, _pad1, None);
+	DATA(float, groundMetallic, None);
 	//========================================
 	DATA(uint2, downSampleSize, None); 
 	DATA(uint2, finalPresentSize, None); 
+	//========================================
+	DATA(float4x4, invProj, None);
+	DATA(float4x4, viewMat, None);
+    DATA(float4, ambientColors[DAY_CYCLE_KEY_FRAME_COUNT], None);
+	//========================================
+	DATA(float, timeOfDay, None);
+    DATA(float, ambientLightIntensity, None);
+	DATA(uint,  ambientLightFromSky, None);
+	DATA(float, Pad, None);
+	//========================================
+    DATA(float4, dayCycleKeyFrames[(DAY_CYCLE_KEY_FRAME_COUNT + 3) / 4], None);
+	//========================================
+	DATA(float4, perezA, None);
+	DATA(float4, perezB, None);
+	DATA(float4, perezC, None);
+	DATA(float4, perezD, None);
+	//========================================
+	DATA(float4, perezE, None);
 };
-
 
 STRUCT(LightData)
 {

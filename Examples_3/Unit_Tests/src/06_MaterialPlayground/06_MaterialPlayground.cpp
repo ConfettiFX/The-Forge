@@ -705,6 +705,9 @@ bool gSupportTextureAtomics = true;
 CameraMatrix gTextProjView;
 mat4         gTextWorldMats[MATERIAL_INSTANCE_COUNT] = {};
 
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
+
 void ReloadScriptButtonCallback(void* pUserData)
 {
     UNREF_PARAM(pUserData);
@@ -1146,6 +1149,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -1551,7 +1556,8 @@ public:
         // Draw
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
-
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         gCurrentGpuProfileToken = gMaterialType == MATERIAL_HAIR ? gHairGpuProfileToken : gMetalWoodGpuProfileToken;
 
         cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
@@ -1573,8 +1579,6 @@ public:
 
         if (gMaterialType != MATERIAL_HAIR)
         {
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
-
             // DRAW THE GROUND
             //
             cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], &gMeshes[MESH_CUBE]->mVertexStrides[0], NULL);
@@ -1620,8 +1624,6 @@ public:
         {
             const uint32_t skyboxStride = sizeof(float) * 4;
             cmdBindPipeline(cmd, pPipelineSkybox);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, &skyboxStride, NULL);
             cmdDraw(cmd, 36, 0);
         }
@@ -1653,8 +1655,6 @@ public:
         cmdBindPipeline(cmd, ppSceneMaterialPipelines[SCENE_MATERIAL_FLOOR]);
         cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], &gMeshes[MESH_CUBE]->mVertexStrides[0], NULL);
         cmdBindIndexBuffer(cmd, gMeshes[MESH_CUBE]->pIndexBuffer, gMeshes[MESH_CUBE]->mIndexType, 0);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, 0, ppSceneMaterialDescriptorSets[SCENE_MATERIAL_FLOOR]);
         cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 
@@ -1667,8 +1667,6 @@ public:
                 // DRAW THE NAME PLATES
                 //
                 cmdBindPipeline(cmd, ppSceneMaterialPipelines[SCENE_MATERIAL_NAME_PLATE]);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
                 for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
                 {
                     cmdBindDescriptorSet(cmd, 1 + j, ppSceneMaterialDescriptorSets[SCENE_MATERIAL_NAME_PLATE]);
@@ -1686,8 +1684,6 @@ public:
                     uint32_t descriptorIndex = 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT) + i;
 
                     cmdBindPipeline(cmd, ppSceneMaterialPipelines[materialindex]);
-                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
                     cmdBindDescriptorSet(cmd, descriptorIndex, ppSceneMaterialDescriptorSets[materialindex]);
                     cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
                 }
@@ -1698,8 +1694,6 @@ public:
                 // DRAW THE NAME PLATES
                 //
                 cmdBindPipeline(cmd, ppSceneMaterialPipelines[SCENE_MATERIAL_NAME_PLATE]);
-                cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
                 for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
                 {
                     cmdBindDescriptorSet(cmd, 1 + j, ppSceneMaterialDescriptorSets[SCENE_MATERIAL_NAME_PLATE]);
@@ -1717,8 +1711,6 @@ public:
                     uint32_t descriptorIndex = 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT) + i;
 
                     cmdBindPipeline(cmd, ppSceneMaterialPipelines[materialindex]);
-                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
                     cmdBindDescriptorSet(cmd, descriptorIndex, ppSceneMaterialDescriptorSets[materialindex]);
                     cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
                 }
@@ -1772,7 +1764,6 @@ public:
                     if (gFirstHairSimulationFrame || gHairTypeInfo[hairType].mPreWarm)
                     {
                         cmdBindPipeline(cmd, pPipelineHairPreWarm);
-                        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                         cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
 
                         cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
@@ -1786,7 +1777,6 @@ public:
                     }
 
                     cmdBindPipeline(cmd, pPipelineHairIntegrate);
-                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                     cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
                     cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
@@ -1800,7 +1790,6 @@ public:
                     if (hair.mUniformDataHairSimulation.mShockPropagationStrength > 0.0f)
                     {
                         cmdBindPipeline(cmd, pPipelineHairShockPropagation);
-                        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                         cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
                         cmdDispatch(cmd, dispatchGroupCountPerStrand, 1, 1);
 
@@ -1816,7 +1805,6 @@ public:
                         hair.mUniformDataHairSimulation.mLocalStiffness > 0.0f)
                     {
                         cmdBindPipeline(cmd, pPipelineHairLocalConstraints);
-                        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                         cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
 
                         for (int j = 0; j < 3; ++j)
@@ -1838,7 +1826,6 @@ public:
                     bufferBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
                     bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
                     cmdResourceBarrier(cmd, 1, bufferBarriers, 0, NULL, 0, NULL);
-                    cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                     cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
                     cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
@@ -1854,7 +1841,6 @@ public:
                         bufferBarriers[1].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
                         bufferBarriers[1].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
                         cmdResourceBarrier(cmd, 2, bufferBarriers, 0, NULL, 0, NULL);
-                        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
                         cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairPerDraw);
                         cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
                     }
@@ -1905,7 +1891,6 @@ public:
             cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
             cmdBindPipeline(cmd, pPipelineHairClear);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairPerDraw);
             cmdDraw(cmd, 3, 0);
 
@@ -1944,8 +1929,6 @@ public:
             cmdSetScissor(cmd, 0, 0, pRenderTargetDepthPeeling->mWidth, pRenderTargetDepthPeeling->mHeight);
 
             cmdBindPipeline(cmd, pPipelineHairDepthPeeling);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
             descriptorSetIndex = gFrameIndex * gHairDynamicDescriptorSetCount;
 
@@ -1993,9 +1976,8 @@ public:
             bindRenderTargets = {};
             bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_LOAD };
             cmdBindRenderTargets(cmd, &bindRenderTargets);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairPerDraw);
             cmdBindPipeline(cmd, pPipelineHairDepthResolve);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
             cmdDraw(cmd, 3, 0);
 
             cmdBindRenderTargets(cmd, NULL);
@@ -2032,7 +2014,6 @@ public:
                     cmdSetScissor(cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth, pRenderTargetHairShadows[hairType][i]->mHeight);
 
                     cmdBindPipeline(cmd, pPipelineHairShadow);
-                    cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
                     for (size_t j = 0; j < gHairTypeIndicesCount[hairType]; ++j)
                     {
@@ -2084,8 +2065,6 @@ public:
             cmdSetScissor(cmd, 0, 0, pRenderTargetFillColors->mWidth, pRenderTargetFillColors->mHeight);
 
             cmdBindPipeline(cmd, pPipelineHairFillColors);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
             descriptorSetIndex = gFrameIndex * gHairDynamicDescriptorSetCount;
 
@@ -2135,7 +2114,6 @@ public:
             cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
             cmdBindPipeline(cmd, pPipelineHairColorResolve);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
             cmdDraw(cmd, 3, 0);
 
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
@@ -2156,7 +2134,6 @@ public:
                 cmdBindPipeline(cmd, pPipelineShowCapsules);
                 cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CAPSULE]->pVertexBuffers[0], &gMeshes[MESH_CAPSULE]->mVertexStrides[0], NULL);
                 cmdBindIndexBuffer(cmd, gMeshes[MESH_CAPSULE]->pIndexBuffer, gMeshes[MESH_CAPSULE]->mIndexType, 0);
-                cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
 
                 uint32_t capsuleIndex = 0;
                 for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
@@ -2230,32 +2207,30 @@ public:
 
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
 
-        bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
-
-        // draw HUD text
-        float2 screenCoords = float2(8, 15);
-
-        gFrameTimeDraw.mFontColor = 0xff00ff00;
-        gFrameTimeDraw.mFontSize = 18.0f;
-        gFrameTimeDraw.mFontID = gFontID;
-        float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
-
-        screenCoords = float2(8.0f, txtSize.y + 75.f);
-        cmdDrawGpuProfile(cmd, screenCoords, gCurrentGpuProfileToken, &gFrameTimeDraw);
-
-        if (!gbLuaScriptingSystemLoadedSuccessfully)
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
         {
-            gErrMsgDrawDesc.pText = "Error loading LUA scripts!";
-            gErrMsgDrawDesc.mFontColor = 0xff0000ee;
-            gErrMsgDrawDesc.mFontSize = 18.0f;
-            cmdDrawTextWithFont(cmd, screenCoords, &gErrMsgDrawDesc);
-        }
+            // draw HUD text
+            float2 screenCoords = float2(8, 15);
 
-        cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, NULL);
+            gFrameTimeDraw.mFontColor = 0xff00ff00;
+            gFrameTimeDraw.mFontSize = 18.0f;
+            gFrameTimeDraw.mFontID = gFontID;
+            float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
+
+            screenCoords = float2(8.0f, txtSize.y + 75.f);
+            cmdDrawGpuProfile(cmd, screenCoords, gCurrentGpuProfileToken, &gFrameTimeDraw);
+
+            if (!gbLuaScriptingSystemLoadedSuccessfully)
+            {
+                gErrMsgDrawDesc.pText = "Error loading LUA scripts!";
+                gErrMsgDrawDesc.mFontColor = 0xff0000ee;
+                gErrMsgDrawDesc.mFontSize = 18.0f;
+                cmdDrawTextWithFont(cmd, screenCoords, &gErrMsgDrawDesc);
+            }
+
+            cmdDrawUserInterface(cmd);
+        }
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken); // UI
 
         // PRESENT THE GFX QUEUE
@@ -4460,6 +4435,9 @@ public:
         swapChainDesc.mColorClearValue.b = 0.0f;
         swapChainDesc.mColorClearValue.a = 0.0f;
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;

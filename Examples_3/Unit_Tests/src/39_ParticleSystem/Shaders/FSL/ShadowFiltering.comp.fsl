@@ -37,7 +37,7 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 		RETURN();
 	}
 
-	int stepCount = 1;
+	const int stepCount = 1;
 	float sigma = float(stepCount * 2 + 1) / 2.0;
 	
 	uint horizontal = gShadowFilteringConstants.Horizontal;
@@ -50,8 +50,8 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadInDispatch, SV_GroupThreadID(uint
 	currSample = LoadRWTex2D(gShadowTexturesRW[readIdx], threadInDispatch.xy).x;
 	EndNonUniformResourceIndex();
 
-	float anisoSize = currSample * 5;
-	float anisoStep = anisoSize / stepCount;
+	const float anisoSize = 1;
+	const float anisoStep = anisoSize / stepCount;
 
 	float val = 0.0;
 	float currOffset = -anisoStep * stepCount;

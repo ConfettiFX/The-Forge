@@ -69,6 +69,7 @@
 #include "../../../../Common_3/Utilities/Interfaces/IMemory.h" // Must be the last include in a cpp file
 
 #define SCENE_SCALE 1.0f
+#define EPSILON     (1.e-4f)
 #if defined(ANDROID)
 #define RESOLUTION_FACTOR 0.5f
 #else
@@ -77,8 +78,8 @@
 
 #define CUBE_FACE_SIZE              6
 
-#define DEFAULT_PARTICLE_SETS_COUNT 5
-#define PARTICLE_TEXTURES_COUNT     4
+#define DEFAULT_PARTICLE_SETS_COUNT 6
+#define PARTICLE_TEXTURES_COUNT     8
 #define STATS_COLLECTION_FREQUENCY  30
 
 #define pack2Floats(x, y)           (half(x).sh | (half(y).sh << 16))
@@ -152,7 +153,9 @@ ParticleSet* pDefaultParticleSets = NULL;
 uint32_t*    pDefaultBitfields = NULL;
 
 // Particle textures
-Texture* ppParticleTextures[PARTICLE_TEXTURES_COUNT] = { NULL };
+Texture* ppParticleTextures[MAX_PARTICLE_TEXTURES_COUNT] = { NULL };
+uint32_t gParticleTextureCount = 0;
+Texture* pPerlinNoise = NULL;
 
 // Depth cubemap for shadows
 RenderTarget* pDepthCube = NULL;
@@ -173,14 +176,20 @@ float gFirefliesWhirlSpeeds[MAX_PARTICLE_ATTRACTORS_COUNT] = { -0.3f, 0.4f, -0.8
 float gFirefliesWhirlAngles[MAX_PARTICLE_ATTRACTORS_COUNT] = { 0.0f, PI / 4, PI / 2, (3 * PI) / 2 };
 float gFirefliesElevationTs[MAX_PARTICLE_ATTRACTORS_COUNT] = { 0.0f, 0.25f, 0.5f, 0.25f };
 
+// Rain
+float gGroundWetnessT = 0.0f;
+float gGroundWetnessSpeed = 0.1f;
+
 /******************************************************/
 // Shadowmap filtering
 /******************************************************/
 Pipeline* pPipelineFilterShadows = NULL;
 Shader*   pShaderFilterShadows = NULL;
 
+bool   gEnableDayNightCycle = true;
+float  gDayNightCycleSpeed = 0.1f;
 float2 gSunControl = { -1.556f, -0.58f };
-float  gESMControl = 50.0f;
+float  gESMControl = 225.0f;
 
 uint32_t gShadowPushConstsIndex = 0;
 uint32_t gShadowFilteringPushConstsIndex = 0;
@@ -193,6 +202,8 @@ bool gJustLoaded = true;
 bool gAsyncComputeEnabled = DEFAULT_ASYNC_COMPUTE;
 // True after 10 seconds since the start of the app
 bool gParticlesLoaded = false;
+// True 4 seconds after changing the light direction
+bool gFirefliesLoaded = false;
 
 #if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
 bstring gParticleStatsText = bempty();
@@ -499,11 +510,16 @@ public:
         initUserInterface(&uiRenderDesc);
 
         // Setup scripts
+#if !defined(REMOTE_SERVER)
         LuaScriptDesc scriptDesc = {};
-        scriptDesc.pScriptFileName = "Test_AllSets.lua";
+        scriptDesc.pScriptFileName = "Test_Rain.lua";
         scriptDesc.pWaitCondition = &gParticlesLoaded;
         luaDefineScripts(&scriptDesc, 1);
 
+        scriptDesc.pScriptFileName = "Test_Fireflies.lua";
+        scriptDesc.pWaitCondition = &gFirefliesLoaded;
+        luaDefineScripts(&scriptDesc, 1);
+#endif
         // Initialize micro profiler and its UI.
         ProfilerDesc profiler = {};
         profiler.pRenderer = pRenderer;
@@ -516,6 +532,7 @@ public:
 
         gGraphicsProfileToken = initGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
         gComputeProfileToken = initGpuProfiler(pRenderer, pComputeQueue, "Compute");
+
         /************************************************************************/
         // Start timing the scene load
         /************************************************************************/
@@ -687,20 +704,23 @@ public:
         // Load textures
         /************************************************************************/
         // Particle textures
+        const char* particleTextureNames[] = { "Particles/FireflyParticle.tex", "Particles/WaterSplash.tex", "Particles/SwarmParticle.tex",
+                                               "Particles/RainParticle.tex" };
         TextureLoadDesc particleTexLoad = {};
         particleTexLoad.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
-        particleTexLoad.pFileName = "Particles/FireflyParticle.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[0];
-        addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "Particles/WaterSplash.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[1];
-        addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "Particles/SwarmParticle.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[2];
-        addResource(&particleTexLoad, NULL);
-        particleTexLoad.pFileName = "Particles/RainParticle.tex";
-        particleTexLoad.ppTexture = &ppParticleTextures[3];
-        addResource(&particleTexLoad, NULL);
+
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            particleTexLoad.pFileName = particleTextureNames[i];
+            particleTexLoad.ppTexture = &ppParticleTextures[gParticleTextureCount++];
+            addResource(&particleTexLoad, NULL);
+        }
+
+        TextureLoadDesc perlinDesc = {};
+        perlinDesc.pFileName = "PerlinNoise.tex";
+        perlinDesc.ppTexture = &pPerlinNoise;
+        addResource(&perlinDesc, NULL);
+
         waitForAllResourceLoads();
 
         // Depth bounds buffer
@@ -742,117 +762,130 @@ public:
 #if !defined(ENABLE_REMOTE_STREAMING)
     void initDefaultParticleSets(ParticleSet* pParticleSets, uint32_t* pBitfields)
     {
-        const uint32_t maxSwarmParticles = 2000000;
-        const uint32_t maxRainParticles = 2000000;
+        const uint32_t maxLightRainParticles = 200000;
+        const uint32_t maxHeavyRainParticles = 2000000;
+        const uint32_t maxEdgeRainParticles = 200000;
         const uint32_t maxShadowParticles = 8;
-        const uint32_t maxLightParticles = 15000;
+        const uint32_t maxLightParticles = 30000;
 
-        const float gSteeringStrength = 1.02f;
-        const float gBoidsSeek = 0.2f;
-        const float gBoidsSeparation = 1.5f;
-        const float gBoidsCohesion = 0.44f;
-        const float gBoidsAlignment = 0.17f;
-
-        ParticleSet swarmBase = {};
-        swarmBase.PositionAndInitialAge = float4(8, 6, 11, 10);
-        swarmBase.ParticleSetBitfield =
-            PARTICLE_BITFIELD_TYPE_BOIDS | PARTICLE_BITFIELD_LIGHTING_MODE_NONE | PARTICLE_BITFIELD_MODULATION_TYPE_SPEED;
-        swarmBase.ParticlesPerSecond = maxSwarmParticles / swarmBase.PositionAndInitialAge.w;
-        swarmBase.BoidsSeparationSeekStrength = pack2Floats(gBoidsSeparation, gBoidsSeek);
-        swarmBase.BoidsCohesionAlignmentStrength = pack2Floats(gBoidsCohesion, gBoidsAlignment);
-        swarmBase.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.0f);
-        swarmBase.SpawnVolume = uint2(pack2Floats(0.2f, 0.2f), pack2Floats(0.2f, 0.001f));
-        swarmBase.VisibilityVolume = uint2(pack2Floats(2.0f, 2.0f), pack2Floats(2.0f, 0.0f));
-        swarmBase.MaxSizeAndSpeed = pack2Floats(0.005f, 5.0f);
-        swarmBase.LightRadiusAndVelocityNoise = 0;
-        swarmBase.StartSizeAndTime = pack2Floats(0.0f, 0.3f);
-        swarmBase.EndSizeAndTime = pack2Floats(0.0f, 0.7f);
-        swarmBase.TextureIndices = 2 << 16;
-        swarmBase.AllocatedAndAttractorIndex = 1 << 16;
-        swarmBase.MinAndMaxAlpha = pack2Floats(1.0f, 1.0f);
-        swarmBase.VelocityStretch = 1.5f;
-        swarmBase.StartVelocity = uint2(pack2Floats(0.0f, 0.0f), pack2Floats(0.0f, 1.0f));
+        const float gSteeringStrength = 2.02f;
 
         ParticleSet lightSet = {};
         lightSet.AllocatedAndAttractorIndex = 1 << 16;
         lightSet.ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHT | PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
-        lightSet.StartColor = packUnorm4x8(float4(1.0f, 1.0f, 0.2f, 0.1f));
-        lightSet.EndColor = packUnorm4x8(float4(1.0f, 0.2f, 0.0f, 0.9f));
+        lightSet.StartColor = packUnorm4x8(float4(0.63f, 1.0f, 0.13f, 0.1f));
+        lightSet.EndColor = packUnorm4x8(float4(0.44f, 1.0f, 0.1f, 0.9f));
         lightSet.SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 0.05f);
-        lightSet.LightRadiusAndVelocityNoise = pack2Floats(0.5f, 0.01f);
-        lightSet.LightPulseSpeedAndOffset = pack2Floats(1.0f, 0.5f);
+        lightSet.LightRadiusAndVelocityNoise = pack2Floats(0.5f, 0.05f);
+        lightSet.LightPulseSpeedAndOffset = pack2Floats(1.0f, -0.2f);
         lightSet.SpawnVolume = uint2(pack2Floats(10, 6), pack2Floats(8.0f, 0.01f));
         lightSet.VisibilityVolume = lightSet.SpawnVolume;
-        lightSet.PositionAndInitialAge = float4(2.0f, 8.0f, 5.0f, 10.0f);
-        lightSet.MaxSizeAndSpeed = pack2Floats(0.1f, 0.25f);
+        lightSet.PositionAndInitialAge = float4(2.0f, 8.0f, 5.0f, 6.5f);
+        lightSet.MaxSizeAndSpeed = pack2Floats(0.03f, 0.25f);
         lightSet.ParticlesPerSecond = maxLightParticles / lightSet.PositionAndInitialAge.w;
-        lightSet.StartSizeAndTime = pack2Floats(0.0f, 0.1f);
+        lightSet.StartSizeAndTime = pack2Floats(0.0f, 0.3f);
         lightSet.EndSizeAndTime = pack2Floats(0.0f, 0.9f);
         lightSet.TextureIndices = 0;
         lightSet.MinAndMaxAlpha = pack2Floats(1.0f, 1.0f);
-
+        lightSet.StartVelocity = uint2(pack2Floats(0.0f, 3.0f), pack2Floats(0.0f, 1.0f));
+        lightSet.BoidsCohesionAlignmentStrength = pack2Floats(0.45f, 0.65f);
+        // lightSet.Acceleration = uint2(pack2Floats(0.0f, 0.5f), pack2Floats(0.0f, 0.0f));
         for (uint32_t i = 0; i < DEFAULT_PARTICLE_SETS_COUNT; i++)
-            pParticleSets[i] = swarmBase;
+            pParticleSets[i] = {};
 
         uint32_t particleSetIdx = 0;
 
         // Shadow casting
         pParticleSets[particleSetIdx] = lightSet;
         pParticleSets[particleSetIdx].StartIdx = 0;
-        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(5.0f, 7.0f, 5.0f, 10.0f);
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(5.0f, 7.0f, 5.0f, 5.0f);
         pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_LIGHTING_MODE_LIGHTNSHADOW;
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.2f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 1.0f, 0.1f, 0.8f));
-        pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(3.0f, 0.0f);
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.83f, 1.0f, 0.13f, 0.2f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.64f, 1.0f, 0.1f, 0.8f));
+        pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(3.0f, 0.1f);
         pParticleSets[particleSetIdx].ParticlesPerSecond = maxShadowParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
-        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(10.0f, 6.0f), pack2Floats(8.0f, 0.1f));
+        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(8.0f, 3.0f), pack2Floats(4.0f, 0.1f));
         pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(gSteeringStrength, 1.0f);
+        pParticleSets[particleSetIdx].AlivePeriod = pack2Floats(0.65f, 0.25f);
+        pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(10.0f, 10.0f), pack2Floats(10.0f, 0.0f));
         pParticleSets[particleSetIdx++].LightPulseSpeedAndOffset = pack2Floats(0.0f, 1.0f);
 
         // Fireflies
         pParticleSets[particleSetIdx] = lightSet;
+        pParticleSets[particleSetIdx].VelocityStretch = 0.0f;
+        pParticleSets[particleSetIdx].AlivePeriod = pack2Floats(0.65f, 0.25f);
         pParticleSets[particleSetIdx++].StartIdx = MAX_SHADOW_COUNT;
 
-        // Red particles
-        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(6.0f, 6.0f, 10.0f, 10.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.6f, 0.0f, 0.0f, 0.2f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(1.0f, 1.0f, 0.0f, 0.8f));
-        pParticleSets[particleSetIdx].AllocatedAndAttractorIndex |= 1;
-        pParticleSets[particleSetIdx].StartIdx = MAX_LIGHT_COUNT + MAX_SHADOW_COUNT;
-        pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(10.0f, 10.0f), pack2Floats(10.0f, 0.001f));
-        pParticleSets[particleSetIdx++].SpawnVolume = uint2(pack2Floats(4.0f, 4.0f), pack2Floats(4.0f, 0.001f));
-
-        // Green particles
-        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(-6.0f, 6.0f, 10.0f, 10.0f);
-        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.5f, 0.5f, 1.0f, 0.1f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.5f, 1.0f, 0.0f, 0.9f));
-        pParticleSets[particleSetIdx].ParticleSetBitfield &= ~(PARTICLE_BITFIELD_TYPE_BOIDS | PARTICLE_BITFIELD_MODULATION_TYPE_SPEED);
-        pParticleSets[particleSetIdx].ParticleSetBitfield |= PARTICLE_BITFIELD_MODULATION_TYPE_LIFETIME;
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxSwarmParticles;
-        pParticleSets[particleSetIdx].ParticlesPerSecond = 0.0f;
-        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.005f, 3.0f);
-        pParticleSets[particleSetIdx++].SteeringStrengthMinSpeed = pack2Floats(0.5f, 1.0f);
-
-        // Rain
+        // Light Rain
         pParticleSets[particleSetIdx] = {};
         pParticleSets[particleSetIdx].AllocatedAndAttractorIndex = 1 << 16;
         pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER | PARTICLE_BITFIELD_TYPE_RAIN;
         pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 0.1f));
-        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.5f, 0.5f, 0.6f, 0.95f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 2.1f));
         pParticleSets[particleSetIdx].PositionAndInitialAge = float4(0.9f, 17.3f, 6.8f, 5.0f);
-        pParticleSets[particleSetIdx].ParticlesPerSecond = maxRainParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
-        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(7.55f, 0.5f), pack2Floats(6.85f, 0.0005f));
+        pParticleSets[particleSetIdx].ParticlesPerSecond = maxLightRainParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
+        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(8.0f, 0.5f), pack2Floats(6.85f, 0.001f));
         pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(7.55f, 8.0f), pack2Floats(6.85f, 0.0005f));
-        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(0.0f, 0.1f);
-        pParticleSets[particleSetIdx].EndSizeAndTime = pack2Floats(0.0f, 0.9f);
-        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.002f, 4.26f);
+        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(1.0f, 0.1f);
+        pParticleSets[particleSetIdx].EndSizeAndTime = pack2Floats(1.0f, 0.9f);
+        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.0025f, 4.26f);
         pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 1.25f);
-        pParticleSets[particleSetIdx].MinAndMaxAlpha = pack2Floats(0.65f, 0.85f);
-        pParticleSets[particleSetIdx].VelocityStretch = 1.0f;
+        pParticleSets[particleSetIdx].MinAndMaxAlpha = pack2Floats(0.7f, 1.0f);
+        pParticleSets[particleSetIdx].VelocityStretch = 1.15f;
+        pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(0.0f, 0.1f);
         pParticleSets[particleSetIdx].TextureIndices = (3 << 16) | 1;
         pParticleSets[particleSetIdx].AnimationTiling = (8 << 16) | 4;
-        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxRainParticles;
-        pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, 0.0f), pack2Floats(0.0f, 0.0f));
+        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxLightParticles;
+        pParticleSets[particleSetIdx].AlivePeriod = pack2Floats(0.0f, 0.4f);
+        pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, -2.0f), pack2Floats(0.0f, 0.0f));
+        pParticleSets[particleSetIdx++].Acceleration = uint2(pack2Floats(0.0f, -9.8f), pack2Floats(0.0f, 5.0f));
+
+        // Heavy Rain
+        pParticleSets[particleSetIdx] = {};
+        pParticleSets[particleSetIdx].AllocatedAndAttractorIndex = 1 << 16;
+        pParticleSets[particleSetIdx].ParticleSetBitfield = PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER | PARTICLE_BITFIELD_TYPE_RAIN;
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 0.1f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 2.1f));
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(0.9f, 17.3f, 6.8f, 5.0f);
+        pParticleSets[particleSetIdx].ParticlesPerSecond = maxHeavyRainParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
+        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(8.0f, 0.5f), pack2Floats(6.85f, 0.001f));
+        pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(7.55f, 8.0f), pack2Floats(6.85f, 0.0005f));
+        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(1.0f, 0.1f);
+        pParticleSets[particleSetIdx].EndSizeAndTime = pack2Floats(1.0f, 0.9f);
+        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.0025f, 4.26f);
+        pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 1.25f);
+        pParticleSets[particleSetIdx].MinAndMaxAlpha = pack2Floats(0.7f, 1.0f);
+        pParticleSets[particleSetIdx].VelocityStretch = 1.15f;
+        pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(0.0f, 0.3f);
+        pParticleSets[particleSetIdx].TextureIndices = (3 << 16) | 1;
+        pParticleSets[particleSetIdx].AnimationTiling = (8 << 16) | 4;
+        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxLightRainParticles;
+        pParticleSets[particleSetIdx].AlivePeriod = pack2Floats(0.35f, 0.6f);
+        pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, -2.0f), pack2Floats(0.0f, 0.0f));
+        pParticleSets[particleSetIdx++].Acceleration = uint2(pack2Floats(0.0f, -9.8f), pack2Floats(0.0f, 5.0f));
+
+        // Rain from object edges
+        pParticleSets[particleSetIdx] = {};
+        pParticleSets[particleSetIdx].AllocatedAndAttractorIndex = 1 << 16;
+        pParticleSets[particleSetIdx].ParticleSetBitfield =
+            PARTICLE_BITFIELD_SPAWN_FROM_SHADOW_MAP | PARTICLE_BITFIELD_COLLIDE_WITH_DEPTH_BUFFER | PARTICLE_BITFIELD_TYPE_RAIN;
+        pParticleSets[particleSetIdx].StartColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 0.1f));
+        pParticleSets[particleSetIdx].EndColor = packUnorm4x8(float4(0.8f, 0.8f, 1.0f, 0.95f));
+        pParticleSets[particleSetIdx].PositionAndInitialAge = float4(0.9f, 17.3f, 6.8f, 0.5f);
+        pParticleSets[particleSetIdx].ParticlesPerSecond = maxEdgeRainParticles / pParticleSets[particleSetIdx].PositionAndInitialAge.w;
+        pParticleSets[particleSetIdx].SpawnVolume = uint2(pack2Floats(8.0f, 0.5f), pack2Floats(6.85f, 0.001f));
+        pParticleSets[particleSetIdx].VisibilityVolume = uint2(pack2Floats(7.55f, 8.0f), pack2Floats(6.85f, 0.0005f));
+        pParticleSets[particleSetIdx].StartSizeAndTime = pack2Floats(7.5f, 0.1f);
+        pParticleSets[particleSetIdx].EndSizeAndTime = pack2Floats(0.5f, 0.9f);
+        pParticleSets[particleSetIdx].MaxSizeAndSpeed = pack2Floats(0.0075f, 4.26f);
+        pParticleSets[particleSetIdx].SteeringStrengthMinSpeed = pack2Floats(0.0f, 1.25f);
+        pParticleSets[particleSetIdx].MinAndMaxAlpha = pack2Floats(0.80f, 1.0f);
+        pParticleSets[particleSetIdx].VelocityStretch = 1.15f;
+        pParticleSets[particleSetIdx].LightRadiusAndVelocityNoise = pack2Floats(0.0f, 0.0f);
+        pParticleSets[particleSetIdx].TextureIndices = (3 << 16) | 1;
+        pParticleSets[particleSetIdx].StartIdx = pParticleSets[particleSetIdx - 1].StartIdx + maxHeavyRainParticles;
+        pParticleSets[particleSetIdx].AlivePeriod = pack2Floats(0.0f, 0.4f);
+        pParticleSets[particleSetIdx].StartVelocity = uint2(pack2Floats(0.0f, -2.0f), pack2Floats(0.0f, 0.0f));
         pParticleSets[particleSetIdx++].Acceleration = uint2(pack2Floats(0.0f, -9.8f), pack2Floats(0.0f, 5.0f));
 
         memset((void*)pBitfields, 0, sizeof(uint32_t) * gMaxParticlesCount);
@@ -959,9 +992,11 @@ public:
         removeResource(pParticleSetsBuffer);
         for (uint32_t i = 0; i < PARTICLE_TEXTURES_COUNT; i++)
         {
-            removeResource(ppParticleTextures[i]);
+            if (ppParticleTextures[i])
+                removeResource(ppParticleTextures[i]);
         }
         removeResource(pDepthBoundsBuffer);
+        removeResource(pPerlinNoise);
 
         exitGpuProfiler(gGraphicsProfileToken);
         exitGpuProfiler(gComputeProfileToken);
@@ -1055,10 +1090,23 @@ public:
             textWidget.pColor = &gTextColor;
             uiAddComponentWidget(pGuiWindow, "Particle System stats", &textWidget, WIDGET_TYPE_DYNAMIC_TEXT);
 #endif
-            CheckboxWidget asyncCompute;
-            asyncCompute.pData = &gAsyncComputeEnabled;
-            UIWidget* pAsyncCompute = uiAddComponentWidget(pGuiWindow, "Enable async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX);
-            REGISTER_LUA_WIDGET(pAsyncCompute);
+            SliderFloat2Widget sunControls;
+            sunControls.pData = &gSunControl;
+            sunControls.mMin = float2(-PI);
+            sunControls.mMax = float2(PI);
+            sunControls.mStep = float2(0.00001f);
+            uiAddComponentWidget(pGuiWindow, "Sun Controls", &sunControls, WIDGET_TYPE_SLIDER_FLOAT2);
+
+            CheckboxWidget enableDayCycle;
+            enableDayCycle.pData = &gEnableDayNightCycle;
+            uiAddComponentWidget(pGuiWindow, "Enable day cycle", &enableDayCycle, WIDGET_TYPE_CHECKBOX);
+
+            SliderFloatWidget dayCycleSpeed;
+            dayCycleSpeed.pData = &gDayNightCycleSpeed;
+            dayCycleSpeed.mMin = 0.0f;
+            dayCycleSpeed.mMax = 1.0f;
+            dayCycleSpeed.mStep = 0.01f;
+            uiAddComponentWidget(pGuiWindow, "Day cycle speed", &dayCycleSpeed, WIDGET_TYPE_SLIDER_FLOAT);
 
             CheckboxWidget cameraWalkingCheckbox;
             cameraWalkingCheckbox.pData = &gCameraWalking;
@@ -1070,6 +1118,11 @@ public:
             cameraWalkingSpeedSlider.mMax = 20.0f;
             luaRegisterWidget(
                 uiAddComponentWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraWalkingSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+            CheckboxWidget asyncCompute;
+            asyncCompute.pData = &gAsyncComputeEnabled;
+            UIWidget* pAsyncCompute = uiAddComponentWidget(pGuiWindow, "Enable async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX);
+            REGISTER_LUA_WIDGET(pAsyncCompute);
 
             if (!addSwapChain())
                 return false;
@@ -1149,6 +1202,7 @@ public:
         particleDesc.mColorSampleQuality = pScreenRenderTarget->mSampleQuality;
         particleDesc.pColorBuffer = pScreenRenderTarget->pTexture;
         particleDesc.pDepthBuffer = pDepthBuffer->pTexture;
+        particleDesc.pShadowMap = pRenderTargetShadow->pTexture;
         particleDesc.pTransparencyListBuffer = pTransparencyListBuffer;
         particleDesc.pTransparencyListHeadsBuffer = pTransparencyListHeadBuffer;
         particleDesc.ppParticleConstantBuffer = pParticleConstantBuffer;
@@ -1156,7 +1210,7 @@ public:
         particleDesc.pParticleSetsBuffer = pParticleSetsBuffer;
         particleDesc.pBitfieldBuffer = pParticleBitfields;
         particleDesc.ppParticleTextures = ppParticleTextures;
-        particleDesc.mParticleTextureCount = 4;
+        particleDesc.mParticleTextureCount = gParticleTextureCount;
         particleDesc.pDescriptorSetPersistent = pDescriptorSetPersistent;
         particleDesc.pDescriptorSetPerFrame = pDescriptorSetPerFrame;
         particleDesc.pDescriptorSetPerBatch = pDescriptorSetParticlePerBatch;
@@ -1165,7 +1219,6 @@ public:
         particleDesc.mParticleTexturesIndex = SRT_RES_IDX(SrtData, Persistent, ParticleTextures);
         particleDesc.mDepthBufferIndex = SRT_RES_IDX(SrtData, Persistent, gDepthBuffer);
         particleDesc.mParticlesDataBufferIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gParticlesDataBufferRW);
-        particleDesc.mParticlesBufferStateIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gParticleBufferStateRW);
         particleDesc.mTransparencyListIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gTransparencyListRW);
         particleDesc.mBitfieldBufferIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gBitfieldBufferRW);
         particleDesc.mParticleSetBufferIndex = SRT_RES_IDX(SrtData, Persistent, gParticleSetsBuffer);
@@ -1174,6 +1227,8 @@ public:
         particleDesc.mTransparencyListHeadsIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gTransparencyListHeadsRW);
         particleDesc.mParticleRenderIndirectDataIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gParticleRenderIndirectDataRW);
         particleDesc.mStatsBufferIndex = SRT_RES_IDX(ParticleSrtData, PerBatch, gParticleStatsBufferRW);
+        particleDesc.mShadowMapIndex = SRT_RES_IDX(SrtData, Persistent, gShadowMap);
+        particleDesc.mShadedSceneIndex = SRT_RES_IDX(SrtData, Persistent, gShadedScene);
 
         particleDesc.pParticleRenderPipeline = pParticleRenderPipeline;
         particleDesc.pParticleSimulatePipeline = pParticleSimulatePipeline;
@@ -1218,12 +1273,17 @@ public:
         gFirefliesElevationTs[1] = 0.25f;
         gFirefliesElevationTs[2] = 0.5f;
         gFirefliesElevationTs[3] = 0.75f;
+#if !defined(REMOTE_SERVER)
+        LuaScriptDesc rainScreenDesc = {};
+        rainScreenDesc.pScriptFileName = "Test_Rain.lua";
+        rainScreenDesc.pWaitCondition = &gParticlesLoaded;
+        luaQueueScriptToRun(&rainScreenDesc);
 
-        LuaScriptDesc runDesc = {};
-        runDesc.pScriptFileName = "Test_AllSets.lua";
-        runDesc.pWaitCondition = &gParticlesLoaded;
-        luaQueueScriptToRun(&runDesc);
-
+        LuaScriptDesc firefliesScreenDesc = {};
+        firefliesScreenDesc.pScriptFileName = "Test_Fireflies.lua";
+        rainScreenDesc.pWaitCondition = &gFirefliesLoaded;
+        luaQueueScriptToRun(&firefliesScreenDesc);
+#endif
         return true;
     }
 
@@ -1276,13 +1336,21 @@ public:
     void Update(float deltaTime)
     {
         // Make screenshot testing deterministic and simulate at a stable 60 FPS
-#if defined(AUTOMATED_TESTING)
+#if defined(AUTOMATED_TESTING) && !defined(REMOTE_SERVER)
         deltaTime = 0.016f;
-#endif
-        if (gCurrTime >= 10.0f)
+        if (gCurrTime >= 20.0f)
         {
             gParticlesLoaded = true;
         }
+        if (gCurrTime >= 21.0f)
+        {
+            gSunControl.x = 1.0f;
+        }
+        if (gCurrTime >= 30.0f)
+        {
+            gFirefliesLoaded = true;
+        }
+#endif
 
 #ifdef REMOTE_SERVER
         bool userInput = false;
@@ -1326,7 +1394,36 @@ public:
         if (streamServerIsConnected())
         {
             if (!userInput)
-                streamServerReceiveInputData(pCameraController);
+            {
+                RemoteCameraInput remoteCameraInput = {};
+                if (streamServerReceiveData(REMOTE_STREAM_DATA_TYPE_CAMERA, &remoteCameraInput, sizeof(RemoteCameraInput)))
+                {
+                    pCameraController->onMove({ remoteCameraInput.mMove.x, remoteCameraInput.mMove.y });
+                    pCameraController->setViewRotationXY({ remoteCameraInput.mViewRotation.x, remoteCameraInput.mViewRotation.y });
+                    pCameraController->onMoveY(remoteCameraInput.mMoveUp);
+                    uiToggleRendering(remoteCameraInput.mToggleUIVisible);
+                }
+            }
+
+            RemoteSceneLighting remoteLightingData = {};
+            if (streamServerReceiveData(REMOTE_STREAM_DATA_TYPE_SCENE_LIGHTING, &remoteLightingData, sizeof(RemoteSceneLighting)))
+            {
+                PerFrameConstantsData* localLightingData = &gPerFrame[gFrameCount % gDataBufferCount].gPerFrameUniformData;
+                for (uint32_t i = 0; i < DAY_CYCLE_KEY_FRAME_COUNT; i++)
+                {
+                    localLightingData->ambientColors[i] = remoteLightingData.mAmbientLightColors[i];
+                    localLightingData->dayCycleKeyFrames[i / 4][i % 4] = remoteLightingData.mKeyFrames[i];
+                }
+                localLightingData->ambientLightIntensity = remoteLightingData.mAmbientLightIntensity;
+                localLightingData->ambientLightFromSky = remoteLightingData.mUseAmbientLightFromSky;
+                gEnableDayNightCycle = remoteLightingData.mEnableDayNightCycle;
+                gDayNightCycleSpeed = remoteLightingData.mDayNightCycleSpeed;
+
+                if (!gEnableDayNightCycle)
+                {
+                    gSunControl = remoteLightingData.mSunControl;
+                }
+            }
             streamServerReceiveBuffer(REMOTE_STREAM_BUFFER_TYPE_PARTICLE_SETS, pParticleSetsBuffer);
             streamServerReceiveBuffer(REMOTE_STREAM_BUFFER_TYPE_PARTICLE_BITFIELDS, pParticleBitfields);
         }
@@ -1382,10 +1479,11 @@ public:
             bassignliteral(&gParticleStatsText, "");
             bformat(&gParticleStatsText,
                     "Allocated particles\nShadow + light: %d, Light: %d, Standard: %d\nAlive particles\nShadow + light: %d, Light: %d, "
-                    "Standard: %d\nVisible lights: %d\nVisible particles: %d\n",
+                    "Standard: %d\nVisible lights: %d\nVisible particles: %d\nHardware Rasterized: %d\nSoftware Rasterized: %d\n",
                     particleSystemStats.AllocatedCount[0], particleSystemStats.AllocatedCount[1], particleSystemStats.AllocatedCount[2],
                     particleSystemStats.AliveCount[0], particleSystemStats.AliveCount[1], particleSystemStats.AliveCount[2],
-                    particleSystemStats.VisibleLightsCount, particleSystemStats.VisibleParticlesCount);
+                    particleSystemStats.VisibleLightsCount, particleSystemStats.VisibleParticlesCount,
+                    particleSystemStats.HardwareRasterized, particleSystemStats.SoftwareRasterized);
         }
 #endif
 
@@ -1410,6 +1508,8 @@ public:
 
             resetCmdPool(pRenderer, computeElem.pCmdPool);
             beginCmd(computeCmd);
+            cmdBindDescriptorSet(computeCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(computeCmd, frameIdx, pDescriptorSetPerFrame);
 
             // Filter triangles
             cmdBeginGpuFrameProfile(computeCmd, gComputeProfileToken);
@@ -1452,17 +1552,6 @@ public:
             }
             resetCmdPool(pRenderer, graphicsElem.pCmdPool);
 
-#if defined(FORGE_DEBUG) && !defined(AUTOMATED_TESTING)
-            ParticleSystemStats particleSystemStats = getParticleSystemStats();
-            bassignliteral(&gParticleStatsText, "");
-            bformat(&gParticleStatsText,
-                    "Allocated particles\nShadow + light: %d, Light: %d, Standard: %d\nAlive particles\nShadow + light: %d, Light: %d, "
-                    "Standard: %d\nVisible lights: %d\nVisible particles: %d\n",
-                    particleSystemStats.AllocatedCount[0], particleSystemStats.AllocatedCount[1], particleSystemStats.AllocatedCount[2],
-                    particleSystemStats.AliveCount[0], particleSystemStats.AliveCount[1], particleSystemStats.AliveCount[2],
-                    particleSystemStats.VisibleLightsCount, particleSystemStats.VisibleParticlesCount);
-#endif
-
             BufferUpdateDesc update = { pPerFrameVBUniformBuffers[VB_UB_GRAPHICS][frameIdx] };
             beginUpdateResource(&update);
             memcpy(update.pMappedData, &gPerFrame[frameIdx].gPerFrameVBUniformData, sizeof(gPerFrame[frameIdx].gPerFrameVBUniformData));
@@ -1485,6 +1574,8 @@ public:
 
             Cmd* graphicsCmd = graphicsElem.pCmds[0];
             beginCmd(graphicsCmd);
+            cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
             cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
 
             /************************/
@@ -1505,8 +1596,6 @@ public:
             // Clear shadow collector
             cmdBindPipeline(graphicsCmd, pPipelineCleanTexture);
             cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetVisibilityBufferShadePerBatch);
-            cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
             cmdDispatch(graphicsCmd, (uint32_t)ceil((float)gAppResolution.x / TEXTURE_CLEAR_THREAD_COUNT),
                         (uint32_t)ceil((float)gAppResolution.y / TEXTURE_CLEAR_THREAD_COUNT), 1);
 
@@ -1554,16 +1643,17 @@ public:
                     drawVisibilityBufferPass(graphicsCmd, frameIdx);
 
                     rtBarriers[0] = { pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-                    rtBarriers[1] = { pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    rtBarriers[1] = { pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
                     rtBarriers[2] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
                     rtBarriers[3] = { pDepthCube, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    rtBarriers[4] = { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
 
                     BufferBarrier bBarriers[3] = {
                         { pLightClustersCount, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
                         { pLightClusters, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
                         { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS }
                     };
-                    cmdResourceBarrier(graphicsCmd, 3, bBarriers, 0, NULL, 4, rtBarriers);
+                    cmdResourceBarrier(graphicsCmd, 3, bBarriers, 0, NULL, 5, rtBarriers);
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
@@ -1580,8 +1670,9 @@ public:
                 {
                     cmdParticleSystemSimulate(graphicsCmd, frameIdx);
 
-                    RenderTargetBarrier depthBarrier = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
-                    cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 1, &depthBarrier);
+                    rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
+                    rtBarriers[1] = { pScreenRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                    cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 2, rtBarriers);
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
@@ -1592,9 +1683,7 @@ public:
                 {
                     // Render particle system
                     BindRenderTargetsDesc bindDesc = {};
-                    bindDesc.mRenderTargetCount = 1;
-                    bindDesc.mRenderTargets[0].pRenderTarget = pScreenRenderTarget;
-                    bindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_LOAD;
+                    bindDesc.mRenderTargetCount = 0;
                     bindDesc.mDepthStencil.pDepthStencil = pDepthBuffer;
                     bindDesc.mDepthStencil.mLoadAction = LOAD_ACTION_LOAD;
                     cmdBindRenderTargets(graphicsCmd, &bindDesc);
@@ -1615,15 +1704,17 @@ public:
                     { pParticlesBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
                 };
                 rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
-                cmdResourceBarrier(graphicsCmd, 4, bufferBarriers, 0, NULL, 1, rtBarriers);
+                rtBarriers[1] = { pRenderTargetShadow, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+                rtBarriers[2] = { pScreenRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+                cmdResourceBarrier(graphicsCmd, 4, bufferBarriers, 0, NULL, 3, rtBarriers);
 
                 /***********************************/
                 // Light clustering
                 /***********************************/
                 cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Compute depth clusters");
                 {
-                    clearLightClusters(graphicsCmd, frameIdx);
-                    computeDepthBounds(graphicsCmd, frameIdx);
+                    clearLightClusters(graphicsCmd);
+                    computeDepthBounds(graphicsCmd);
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
@@ -1634,7 +1725,7 @@ public:
                                                          RESOURCE_STATE_UNORDERED_ACCESS };
                     cmdResourceBarrier(graphicsCmd, 1, &depthBoundsBarrier, 0, NULL, 0, NULL);
                     // Light clustering
-                    computeLightClusters(graphicsCmd, frameIdx);
+                    computeLightClusters(graphicsCmd);
 
                     BufferBarrier lightBarriers[4];
                     lightBarriers[0] = { pLightClustersCount, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
@@ -1650,7 +1741,7 @@ public:
                 /***********************************/
                 cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "VB Shading Pass");
                 {
-                    drawVisibilityBufferShade(graphicsCmd, frameIdx);
+                    drawVisibilityBufferShade(graphicsCmd);
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 
@@ -1671,8 +1762,6 @@ public:
                     cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
 
                     cmdBindPipeline(graphicsCmd, pPipelineFilterShadows);
-                    cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
-                    cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
                     BufferUpdateDesc updateVertical = { pShadowFilteringConstantsUniformBuffers[frameIdx][0] };
                     beginUpdateResource(&updateVertical);
                     memcpy(updateVertical.pMappedData, &constants, sizeof(constants));
@@ -1689,11 +1778,10 @@ public:
                     beginUpdateResource(&updateHorizontal);
                     memcpy(updateHorizontal.pMappedData, &constants, sizeof(constants));
                     endUpdateResource(&updateHorizontal);
-                    cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
-                    cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
                     cmdBindDescriptorSet(graphicsCmd, frameIdx * 2 + 1, pDescriptorSetShadowFilteringPerDraw);
                     cmdDispatch(graphicsCmd, (uint32_t)ceil((float)gAppResolution.x / SHADOWMAP_BLUR_THREAD_COUNT),
                                 (uint32_t)ceil((float)gAppResolution.y / SHADOWMAP_BLUR_THREAD_COUNT), 1);
+                    texBarrier = { pShadowCollector, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
                     cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &texBarrier, 0, NULL);
                 }
                 cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
@@ -1750,8 +1838,6 @@ public:
                     cmdSetViewport(graphicsCmd, 0.0f, 0.0f, (float)finalTarget->mWidth, (float)finalTarget->mHeight, 0.0f, 1.0f);
                     cmdSetScissor(graphicsCmd, 0, 0, finalTarget->mWidth, finalTarget->mHeight);
                     cmdBindPipeline(graphicsCmd, pPipelinePresent);
-                    cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
-                    cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
                     cmdDraw(graphicsCmd, 3, 0);
                     cmdBindRenderTargets(graphicsCmd, NULL);
                 }
@@ -1881,7 +1967,7 @@ public:
 
         // Persistent descriptor set
         {
-            DescriptorData persistentParams[30] = {};
+            DescriptorData persistentParams[32] = {};
             persistentParams[0].mIndex = SRT_RES_IDX(SrtData, Persistent, gDownsampledDepthBuffer);
             persistentParams[0].ppTextures = &pRenderTargetDownsampleDepth->pTexture;
             persistentParams[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gBitfieldBuffer);
@@ -1948,7 +2034,9 @@ public:
             persistentParams[28].ppSamplers = &pSamplerBilinearClamp;
             persistentParams[29].mIndex = SRT_RES_IDX(SrtData, Persistent, gBilinearClampMiplessSampler);
             persistentParams[29].ppSamplers = &pSamplerBilinearClampMipless;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 30, persistentParams);
+            persistentParams[30].mIndex = SRT_RES_IDX(SrtData, Persistent, gPerlinNoise);
+            persistentParams[30].ppTextures = &pPerlinNoise;
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 31, persistentParams);
         }
 
         // cluster lights bet batch set
@@ -2599,13 +2687,12 @@ public:
 
         pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
         pipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
+        pipelineDesc.mGraphicsDesc.mRenderTargetCount = 0;
         pipelineDesc.mGraphicsDesc.pDepthState = &depthStateDesc;
         pipelineDesc.mGraphicsDesc.pBlendState = &nullBlending;
         pipelineDesc.mGraphicsDesc.pRasterizerState = &rasterizerStateCullNoneDesc;
         pipelineDesc.mGraphicsDesc.pShaderProgram = pParticleRenderShader;
         pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
-        pipelineDesc.mGraphicsDesc.pColorFormats = &pScreenRenderTarget->mFormat;
         pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (TinyImageFormat)pDepthBuffer->mFormat;
         pipelineDesc.mGraphicsDesc.mSampleQuality = pScreenRenderTarget->mSampleQuality;
         addPipeline(pRenderer, &pipelineDesc, &pParticleRenderPipeline);
@@ -2771,58 +2858,31 @@ public:
 
         CameraMatrix cameraProj = CameraMatrix::perspectiveReverseZ(PI / 2.0f, aspectRatioInv, CAMERA_NEAR, CAMERA_FAR);
 
-        /*********************************************************/
-        // Update particle system uniforms
-        /*********************************************************/
-        mat4 cameraView = pCameraController->getViewMatrix().mCamera;
-
-        pParticleSystemConstantData[currentFrameIdx].ViewTransform = cameraView;
-        pParticleSystemConstantData[currentFrameIdx].ProjTransform = cameraProj.mCamera;
-        pParticleSystemConstantData[currentFrameIdx].ViewProjTransform = cameraProj.mCamera * cameraView;
-        pParticleSystemConstantData[currentFrameIdx].CameraPosition = float4(v3ToF3(pCameraController->getViewPosition()), 1.0f);
-        pParticleSystemConstantData[currentFrameIdx].ScreenSize = uint2(gAppResolution.x, gAppResolution.y);
-
-        for (uint32_t i = 0; i < 4; i++)
-        {
-            float firefliesX = 3.0f + cos(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
-            float firefliesZ = 6.0f + sin(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
-
-            static int elevationDirection = 1;
-            float      firefliesY = lerp(gFirefliesMinHeight, gFirefliesMaxHeight, ((float)sin(gFirefliesElevationTs[i]) + 1.0f) / 2.0f);
-
-            gFirefliesWhirlAngles[i] += deltaTime * gFirefliesWhirlSpeeds[i];
-            gFirefliesElevationTs[i] += deltaTime * gFirefliesElevationSpeeds[i] * elevationDirection;
-            if ((gFirefliesElevationTs[i] >= 1.0f && elevationDirection == 1) ||
-                (gFirefliesElevationTs[i] <= 0.0f && elevationDirection == -1))
-                elevationDirection *= -1;
-            pParticleSystemConstantData[currentFrameIdx].SeekPositions[i] = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
-        }
-
-        pParticleSystemConstantData[currentFrameIdx].ResetParticles = gJustLoaded ? 1 : 0;
-        pParticleSystemConstantData[currentFrameIdx].Time = gCurrTime;
-        pParticleSystemConstantData[currentFrameIdx].CameraPlanes = float2(CAMERA_NEAR, CAMERA_FAR);
-#if defined(AUTOMATED_TESTING)
-        pParticleSystemConstantData[currentFrameIdx].Seed = INT_MAX / 2;
-        pParticleSystemConstantData[currentFrameIdx].TimeDelta = 1.0f / 60.0f;
-#else
-        pParticleSystemConstantData[currentFrameIdx].TimeDelta = deltaTime;
-        pParticleSystemConstantData[currentFrameIdx].Seed = randomInt(0, INT_MAX);
-#endif
-
         /***********************************/
         // Update visibility buffer uniforms
         /***********************************/
         mat4 vbCameraModel = mat4::identity();
         mat4 vbCameraView = pCameraController->getViewMatrix().mCamera;
 
-        Point3 lightSourcePos(10.f, 000.0f, 10.f);
-        lightSourcePos[0] += (20.f);
-        mat4 rotation = mat4::rotationXY(gSunControl.x, gSunControl.y);
-        mat4 translation = mat4::translation(-vec3(lightSourcePos));
+        // Move light for day / night cycle
+        if (gEnableDayNightCycle)
+        {
+            gSunControl.y = -0.58f;
+            gSunControl.x += deltaTime * gDayNightCycleSpeed;
+            if (gSunControl.x >= (PI - EPSILON))
+            {
+                gSunControl.x = -(PI);
+            }
+        }
 
-        vec3         lightDir = vec4(inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ();
-        CameraMatrix lightProj = CameraMatrix::orthographicReverseZ(-50, 30, -90, 30, -15, 1);
-        mat4         lightView = rotation * translation;
+        float timeOfTheDay = (gSunControl.x + PI) / (2 * PI);
+
+        // directional light rotation & translation
+        mat4 rotation = mat4::rotationXY(gSunControl.x, gSunControl.y);
+        vec3 lightDir = normalize((inverse(rotation) * vec4(0, 0, 1, 0)).getXYZ());
+        mat4 translation = mat4::translation(vec3(0.0f, -9.0f, 0.0f));
+        mat4 lightProj = mat4::orthographicLH_ReverseZ(-17.0f, 17.f, -17.0f, 17.0f, -20.f, 20.0f);
+        mat4 lightView = rotation * translation;
 
         float2        twoOverRes = { 2.0f / float(width), 2.0f / float(height) };
         /************************************************************************/
@@ -2830,13 +2890,45 @@ public:
         /************************************************************************/
         RenderTarget* finalTarget = pSwapChain->ppRenderTargets[frameIdx];
         currentFrame->gPerFrameUniformData.camPos = v4ToF4(vec4(pCameraController->getViewPosition()));
+        currentFrame->gPerFrameUniformData.viewMat = transpose(vbCameraView);
+        currentFrame->gPerFrameUniformData.invProj = inverse(cameraProj.mCamera);
         currentFrame->gPerFrameUniformData.lightDir = v4ToF4(vec4(lightDir));
+        currentFrame->gPerFrameUniformData.timeOfDay = timeOfTheDay;
+
+#if defined(ENABLE_REMOTE_STREAMING)
+        if (!streamServerIsConnected())
+        {
+            gEnableDayNightCycle = false;
+#endif
+            currentFrame->gPerFrameUniformData.ambientLightIntensity = 0.5f;
+            currentFrame->gPerFrameUniformData.ambientColors[0] = float4(0.2f, 0.2f, 0.1f, 1.0f);
+            currentFrame->gPerFrameUniformData.ambientColors[1] = float4(0.1f, 0.3f, 0.75f, 1.0f);
+            currentFrame->gPerFrameUniformData.ambientColors[2] = float4(0.6f, 0.6f, 0.95f, 1.0f);
+            currentFrame->gPerFrameUniformData.ambientColors[3] = float4(0.8f, 0.7f, 0.65f, 1.0f);
+            currentFrame->gPerFrameUniformData.ambientColors[4] = float4(0.85f, 0.4f, 0.3f, 1.0f);
+            currentFrame->gPerFrameUniformData.ambientColors[5] = float4(0.1f, 0.1f, 0.3f, 1.0f);
+
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[0][0] = 0.0f;
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[0][1] = 0.2f;
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[0][2] = 0.3f;
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[0][3] = 0.4f;
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[1][0] = 0.5f;
+            currentFrame->gPerFrameUniformData.dayCycleKeyFrames[1][1] = 0.7f;
+#if defined(ENABLE_REMOTE_STREAMING)
+        }
+#endif
         currentFrame->gPerFrameUniformData.twoOverRes = twoOverRes;
         currentFrame->gPerFrameUniformData.esmControl = gESMControl;
         currentFrame->gPerFrameUniformData.downSampleSize.x = pRenderTargetDownsampleDepth->mWidth;
         currentFrame->gPerFrameUniformData.downSampleSize.y = pRenderTargetDownsampleDepth->mHeight;
         currentFrame->gPerFrameUniformData.finalPresentSize.x = finalTarget->mWidth;
         currentFrame->gPerFrameUniformData.finalPresentSize.y = finalTarget->mHeight;
+        currentFrame->gPerFrameUniformData.groundMetallic = lerp(0.0f, 0.6f, gGroundWetnessT);
+        currentFrame->gPerFrameUniformData.groundRoughness = lerp(1.0f, 0.2f, gGroundWetnessT);
+
+        gGroundWetnessT += deltaTime * gGroundWetnessSpeed;
+        if (gGroundWetnessT >= 1.0)
+            gGroundWetnessT = 1.0;
 
         /************************************************************************/
         // Matrix data
@@ -2851,10 +2943,10 @@ public:
             currentFrame->gPerFrameVBUniformData.transform[VIEW_CAMERA].vp * vbCameraModel;
 
         // Shadow map view
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp = lightProj * lightView;
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp.mCamera = lightProj * lightView;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].invVP =
             CameraMatrix::inverse(currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp);
-        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection = lightProj;
+        currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].projection.mCamera = lightProj;
         currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].mvp = currentFrame->gPerFrameVBUniformData.transform[VIEW_SHADOW].vp;
 
         // Point light cubemaps view
@@ -2915,7 +3007,7 @@ public:
         // Cache eye position in object space for cluster culling on the CPU
         currentFrame->gEyeObjectSpace[VIEW_SHADOW] = (inverse(lightView) * vec4(0, 0, 0, 1)).getXYZ();
         currentFrame->gEyeObjectSpace[VIEW_CAMERA] =
-            (inverse(vbCameraView * vbCameraModel) * vec4(0, 0, 0, 1)).getXYZ(); // vec4(0,0,0,1) is the camera position in eye space
+            (inverse(vbCameraView * vbCameraModel) * vec4(0, 0, 0, 1)).getXYZ(); // vec4(0,0,0,en1) is the camera position in eye space
         /************************************************************************/
         // Shading data
         /************************************************************************/
@@ -2923,6 +3015,45 @@ public:
         currentFrame->gPerFrameUniformData.outputMode = 0;
         currentFrame->gPerFrameUniformData.CameraPlane = { CAMERA_NEAR, CAMERA_FAR };
 
+        /*********************************************************/
+        // Update particle system uniforms
+        /*********************************************************/
+        mat4 cameraView = pCameraController->getViewMatrix().mCamera;
+
+        pParticleSystemConstantData[currentFrameIdx].ViewTransform = cameraView;
+        pParticleSystemConstantData[currentFrameIdx].ProjTransform = cameraProj.mCamera;
+        pParticleSystemConstantData[currentFrameIdx].ViewProjTransform = cameraProj.mCamera * cameraView;
+        pParticleSystemConstantData[currentFrameIdx].CameraPosition = float4(v3ToF3(pCameraController->getViewPosition()), 1.0f);
+        pParticleSystemConstantData[currentFrameIdx].ScreenSize = uint2(gAppResolution.x, gAppResolution.y);
+        pParticleSystemConstantData[currentFrameIdx].TimeOfDay = timeOfTheDay;
+
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            float firefliesX = 3.0f + cos(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
+            float firefliesZ = 6.0f + sin(gFirefliesWhirlAngles[i]) * gFirefliesFlockRadius;
+
+            static int elevationDirection = 1;
+            float      firefliesY = lerp(gFirefliesMinHeight, gFirefliesMaxHeight, ((float)sin(gFirefliesElevationTs[i]) + 1.0f) / 2.0f);
+
+            gFirefliesWhirlAngles[i] += deltaTime * gFirefliesWhirlSpeeds[i];
+            gFirefliesElevationTs[i] += deltaTime * gFirefliesElevationSpeeds[i] * elevationDirection;
+            if ((gFirefliesElevationTs[i] >= 1.0f && elevationDirection == 1) ||
+                (gFirefliesElevationTs[i] <= 0.0f && elevationDirection == -1))
+                elevationDirection *= -1;
+            pParticleSystemConstantData[currentFrameIdx].SeekPositions[i] = float4(firefliesX, firefliesY, firefliesZ, 1.0f);
+        }
+
+        pParticleSystemConstantData[currentFrameIdx].ResetParticles = gJustLoaded ? 1 : 0;
+        pParticleSystemConstantData[currentFrameIdx].Time = gCurrTime;
+        pParticleSystemConstantData[currentFrameIdx].CameraPlanes = float2(CAMERA_NEAR, CAMERA_FAR);
+#if defined(AUTOMATED_TESTING)
+        pParticleSystemConstantData[currentFrameIdx].Seed = INT_MAX / 2;
+        pParticleSystemConstantData[currentFrameIdx].TimeDelta = 1.0f / 60.0f;
+#else
+        pParticleSystemConstantData[currentFrameIdx].TimeDelta = deltaTime;
+        pParticleSystemConstantData[currentFrameIdx].Seed = randomInt(0, INT_MAX);
+#endif
+        precomputeSkybox(currentFrame, vec4(lightDir, 0.0f));
         gCurrTime += deltaTime;
     }
 
@@ -2934,9 +3065,6 @@ public:
         TriangleFilteringPassDesc triangleFilteringDesc = {};
         triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
         triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
-        triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPerFrame;
-        triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-        triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
         triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
         triangleFilteringDesc.mFrameIndex = frameIndex;
         triangleFilteringDesc.mBuffersIndex = frameIndex;
@@ -2958,8 +3086,6 @@ public:
         endUpdateResource(&shadowConstantsBufferUpdate);
 
         cmdBindPipeline(cmd, pPipelineShadowPass[resourceIndex]);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx * SHADOW_CONSTANTS_BUFFERS_COUNT + bufferIndex, pDescriptorSetShadowConstantsPerDraw);
         uint32_t view = cubeIndex == 0 ? VIEW_SHADOW : VIEW_POINT_SHADOW + particleIndex;
         uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(view, geomSets[resourceIndex], 0) * sizeof(uint32_t);
@@ -2975,6 +3101,7 @@ public:
     {
         BindRenderTargetsDesc bindDesc = {};
         bindDesc.mDepthStencil.mLoadAction = LOAD_ACTION_CLEAR;
+        bindDesc.mDepthStencil.mStoreAction = STORE_ACTION_STORE;
         bindDesc.mDepthStencil.pDepthStencil = pRenderTargetShadow;
         bindDesc.mDepthStencil.mClearValue = pRenderTargetShadow->mClearValue;
 
@@ -3059,8 +3186,6 @@ public:
         for (uint32_t i = 0; i < NUM_GEOMETRY_SETS; ++i)
         {
             cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[i]);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-            cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
 
             uint64_t indirectBufferByteOffset = GET_INDIRECT_DRAW_ELEM_INDEX(VIEW_CAMERA, i, 0) * sizeof(uint32_t);
             Buffer*  pIndirectDrawBuffer = pVisibilityBuffer->ppIndirectDrawArgBuffer[frameIdx];
@@ -3072,7 +3197,7 @@ public:
     // Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by
     // DrawVisibilityBufferPass to get the draw / triangle IDs to reconstruct and interpolate vertex attributes per pixel. This method
     // doesn't set any vertex/index buffer because the triangle positions are calculated internally using vertex_id.
-    void drawVisibilityBufferShade(Cmd* cmd, uint32_t frameIdx)
+    void drawVisibilityBufferShade(Cmd* cmd)
     {
         // Set load actions to clear the screen to black
         BindRenderTargetsDesc bindDesc = {};
@@ -3086,16 +3211,14 @@ public:
         cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPipelineVisibilityBufferShadeSrgb);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetVisibilityBufferShadePerBatch);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
 
         cmdBindRenderTargets(cmd, NULL);
     }
 
-    void downsampleDepthBuffer(Cmd* cmd, uint32_t frameIdx)
+    void downsampleDepthBuffer(Cmd* cmd)
     {
         BindRenderTargetsDesc bindDesc = {};
         bindDesc.mRenderTargetCount = 1;
@@ -3107,26 +3230,22 @@ public:
         cmdSetViewport(cmd, 0, 0, (float)pRenderTargetDownsampleDepth->mWidth, (float)pRenderTargetDownsampleDepth->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTargetDownsampleDepth->mWidth, pRenderTargetDownsampleDepth->mHeight);
         cmdBindPipeline(cmd, pPipelineDownsampleDepth);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDraw(cmd, 3, 0);
         cmdBindRenderTargets(cmd, NULL);
         rtBarrier = { pRenderTargetDownsampleDepth, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &rtBarrier);
     }
 
-    void computeDepthBounds(Cmd* cmd, uint32_t frameIdx)
+    void computeDepthBounds(Cmd* cmd)
     {
-        downsampleDepthBuffer(cmd, frameIdx);
+        downsampleDepthBuffer(cmd);
 
         uint2 dispatchSize =
             uint2((uint32_t)ceil((float)pRenderTargetDownsampleDepth->mWidth / pShaderComputeDepthBounds->mNumThreadsPerGroup[0]),
                   (uint32_t)ceil((float)pRenderTargetDownsampleDepth->mHeight / pShaderComputeDepthBounds->mNumThreadsPerGroup[1]));
 
         cmdBindPipeline(cmd, pPipelineComputeDepthBounds);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetClusterLightsPerBatch);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, dispatchSize.x, dispatchSize.y, 1);
 
         BufferBarrier bb = { pDepthBoundsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -3137,30 +3256,24 @@ public:
             (uint32_t)ceil((float)pDepthBuffer->mHeight /
                            (pShaderComputeDepthCluster->mNumThreadsPerGroup[1] * DEPTH_ClUSTERS_KERNEL_SIZE)));
         cmdBindPipeline(cmd, pPipelineComputeDepthCluster);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, dispatchSize.x, dispatchSize.y, 1);
     }
 
     // Executes a compute shader to clear (reset) the the light clusters on the GPU
-    void clearLightClusters(Cmd* cmd, uint32_t frameIdx)
+    void clearLightClusters(Cmd* cmd)
     {
         cmdBindPipeline(cmd, pPipelineClearLightClusters);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetClusterLightsPerBatch);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, 1, 1, 1);
     }
 
     // Executes a compute shader that computes the light clusters on the GPU
-    void computeLightClusters(Cmd* cmd, uint32_t frameIdx)
+    void computeLightClusters(Cmd* cmd)
     {
         uint32_t dispatchCount = (uint32_t)ceil(sqrt((float)MAX_LIGHT_COUNT));
 
         cmdBindPipeline(cmd, pPipelineClusterLights);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetClusterLightsPerBatch);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, dispatchCount, dispatchCount, 1);
     }
 
@@ -3182,6 +3295,64 @@ public:
         cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, NULL);
+    }
+
+    // Skybox preparation funcs
+    /************************************************************************/
+    vec3 exp3(vec3 val) { return vec3(exp(val.getX()), exp(val.getY()), exp(val.getZ())); }
+    vec3 mulVec3(vec3 a, vec3 b) { return vec3(a.getX() * b.getX(), a.getY() * b.getY(), a.getZ() * b.getZ()); }
+
+    void precomputeSkybox(PerFrameData* currentFrame, vec4 lightDir)
+    {
+        float       skyTint = lerp(2.5f, 5.0f, pow((lightDir.getY() + 1.0f) / 2.0f, 8.0f));
+        const float horizonBlend = 1.0;
+        const float sunIntensity = 4.5;
+        float       t = skyTint;
+        float       sunDot = dot(-lightDir.getXYZ(), vec3(0, 1, 0));
+        float       thetaS = acos(saturate(sunDot));
+        // vec3 skyTintColor = RGBToXYZ(f3Tov3(gAppSettings.mLightColor.getXYZ()));
+        // float totalXYZ = skyTintColor.getX() + skyTintColor.getY() + skyTintColor.getZ();
+        // vec2 skyTintXY = totalXYZ > 0.0f ? vec2(skyTintColor.getX() / totalXYZ, skyTintColor.getY() / totalXYZ) : vec2(0.3127f, 0.3290f);
+        float       chi = (4.0f / 9.0f - t / 120.0f) * (PI - 2.0f * thetaS);
+        float       Yz = ((4.0453f * t - 4.9710f) * tan(chi) - 0.2155f * t + 2.4192f); //* gAppSettings.mLightColor.w;
+
+        float theta2 = thetaS * thetaS;
+        float theta3 = theta2 * thetaS;
+        float T = t;
+        float T2 = t * t;
+
+        float xz = (((0.00165f * theta3 - 0.00375f * theta2 + 0.00209f * thetaS + 0.0f) * T2 +
+                     (-0.02903f * theta3 + 0.06377f * theta2 - 0.03202f * thetaS + 0.00394f) * T +
+                     (0.11693f * theta3 - 0.21196f * theta2 + 0.06052f * thetaS + 0.25886f)));
+
+        float yz = (((0.00275f * theta3 - 0.00610f * theta2 + 0.00317f * thetaS + 0.0f) * T2 +
+                     (-0.04214f * theta3 + 0.08970f * theta2 - 0.04153f * thetaS + 0.00516f) * T +
+                     (0.15346f * theta3 - 0.26756f * theta2 + 0.06670f * thetaS + 0.26688f)));
+
+        vec3 Yz3 = vec3(Yz, xz, yz);
+
+        vec3 A = vec3(0.1787f * t - 1.4630f, -0.0193f * t - 0.2592f, -0.0167f * t - 0.2608f) * horizonBlend;
+        vec3 B = vec3(-0.3554f * t + 0.4275f, -0.0665f * t + 0.0008f, -0.0950f * t + 0.0092f);
+        vec3 C = vec3(-0.0227f * t + 5.3251f, -0.0004f * t + 0.2125f, -0.0079f * t + 0.2102f);
+        vec3 D = vec3(0.1206f * t - 2.5771f, -0.0641f * t - 0.8989f, -0.0441f * t - 1.6537f) * sunIntensity;
+        vec3 E = vec3(-0.0670f * t + 0.3703f, -0.0033f * t + 0.0452f, -0.0109f * t + 0.0529f);
+
+        vec3 zeroThetaS = mulVec3((vec3(1.f) + mulVec3(A, exp3(B / cos(0.f)))),
+                                  (vec3(1.f) + mulVec3(C, exp3(D * thetaS)) + E * cos(thetaS) * cos(thetaS)));
+        Yz3 = vec3(Yz3.getX() / zeroThetaS.getX(), Yz3.getY() / zeroThetaS.getY(), Yz3.getZ() / zeroThetaS.getZ());
+
+        // Shift towards red on sunset
+        float sunsetFactor = saturate(1.f - pow(abs(thetaS - PI / 2.f), 2.0f));
+        Yz3.setY(Yz3.getY() + 0.03f * sunsetFactor);
+        // Make night sky darker
+        if (sunDot < 0.f)
+            Yz3.setX(Yz3.getX() * saturate(1.1f + sunDot));
+
+        currentFrame->gPerFrameUniformData.perezA = v4ToF4(vec4(A, Yz3.getX()));
+        currentFrame->gPerFrameUniformData.perezB = v4ToF4(vec4(B, Yz3.getY()));
+        currentFrame->gPerFrameUniformData.perezC = v4ToF4(vec4(C, Yz3.getZ()));
+        currentFrame->gPerFrameUniformData.perezD = v4ToF4(vec4(D, 1.f));
+        currentFrame->gPerFrameUniformData.perezE = v4ToF4(vec4(E, 1.f));
     }
 };
 DEFINE_APPLICATION_MAIN(Particle_System)

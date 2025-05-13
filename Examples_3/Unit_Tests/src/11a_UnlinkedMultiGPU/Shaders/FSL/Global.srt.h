@@ -33,7 +33,7 @@ BEGIN_SRT(SrtData)
 		DECL_TEXTURE(Persistent, Tex2D(float4), gTex);
         DECL_SAMPLER(Persistent, SamplerState, gSamplerSkybox);
 	END_SRT_SET(Persistent)
-	BEGIN_SRT_SET(PerFrame)
-		DECL_CBUFFER(PerFrame, CBUFFER(uniformBlockData), gUniformBlock)
-	END_SRT_SET(PerFrame)
+	BEGIN_SRT_SET(PerBatch)
+		DECL_CBUFFER(PerBatch, CBUFFER(uniformBlockData), gUniformBlock)
+    END_SRT_SET(PerBatch)
 END_SRT(SrtData)

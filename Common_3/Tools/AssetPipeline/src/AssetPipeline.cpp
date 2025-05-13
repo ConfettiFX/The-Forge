@@ -2882,6 +2882,11 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
                 texturesParams.mCompression = COMPRESSION_BC;
                 texturesParams.mOverrideBC = DXT_BC5;
             }
+            else if (STRCMP(flag, "--bc6"))
+            {
+                texturesParams.mCompression = COMPRESSION_BC;
+                texturesParams.mOverrideBC = DXT_BC6;
+            }
             else if (STRCMP(flag, "--bc7"))
             {
                 texturesParams.mCompression = COMPRESSION_BC;
@@ -2898,13 +2903,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             }
             else if (STRCMP(flag, "--normalmap"))
             {
-                // If normal map, put X into any of the first three channels and Y into alpha, Z is not stored and reconstructed at runtime
-                // This allows components to be separately compressed, because normals are unit vectors while colors are linear in range [0,
-                // 1] Color compression methods may mix three components, which is not suitable for normalized vectors Note: this is subject
-                // to future changes, when better compressing schemes are found
                 texturesParams.mProcessAsNormalMap = true;
-                texturesParams.mSwizzle = { 'x', 'x', 'x', 'y' };
-                texturesParams.mSwizzleChannelCount = 4;
                 texturesParams.mInputLinearColorSpace = true;
             }
             else if (STRCMP(flag, "--swizzle"))

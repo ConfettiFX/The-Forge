@@ -101,8 +101,8 @@ Pipeline* pPlaneDrawPipeline = NULL;
 Shader*   pShaderSkinning = NULL;
 Pipeline* pPipelineSkinning = NULL;
 
-DescriptorSet* pDescriptorSet = NULL;
-DescriptorSet* pDescriptorSetSkinning[2] = { NULL };
+DescriptorSet* pDescriptorSetPersistent = NULL;
+DescriptorSet* pDescriptorSetPerDraw = NULL;
 
 struct UniformDataBones
 {
@@ -151,6 +151,9 @@ UIComponent*       pStandaloneControlsGUIWindow = NULL;
 
 FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0;
+
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 
 //--------------------------------------------------------------------------------------------
 // ANIMATION DATA
@@ -736,6 +739,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -997,7 +1002,7 @@ public:
             const uint32_t stride = sizeof(float) * 6;
             cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Plane");
             cmdBindPipeline(cmd, pPlaneDrawPipeline);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSet);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerDraw);
             cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, &stride, NULL);
             cmdDraw(cmd, 6, 0);
             cmdEndDebugMarker(cmd);
@@ -1016,8 +1021,8 @@ public:
         {
             cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skinned Mesh");
             cmdBindPipeline(cmd, pPipelineSkinning);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkinning[0]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkinning[1]);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerDraw);
             cmdBindVertexBuffer(cmd, 1, &pGeom->pVertexBuffers[0], pGeom->mVertexStrides, (uint64_t*)NULL);
             cmdBindIndexBuffer(cmd, pGeom->pIndexBuffer, pGeom->mIndexType, (uint64_t)NULL);
             cmdDrawIndexed(cmd, pGeom->mIndexCount, 0, 0);
@@ -1026,31 +1031,30 @@ public:
 
         //// draw the UI
         cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-        bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
-
-        gFrameTimeDraw.mFontColor = 0xff00ffff;
-        gFrameTimeDraw.mFontSize = 18.0f;
-        gFrameTimeDraw.mFontID = gFontID;
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-
-        snprintf(gAnimationUpdateText, 64, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
-
-        // Disable UI rendering when taking screenshots
-        if (uiIsRenderingEnabled())
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
         {
-            gFrameTimeDraw.pText = gAnimationUpdateText;
-            cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 75.f), &gFrameTimeDraw);
+            gFrameTimeDraw.mFontColor = 0xff00ffff;
+            gFrameTimeDraw.mFontSize = 18.0f;
+            gFrameTimeDraw.mFontID = gFontID;
+            float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+
+            snprintf(gAnimationUpdateText, 64, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
+
+            // Disable UI rendering when taking screenshots
+            if (getIsProfilerDrawing())
+            {
+                gFrameTimeDraw.pText = gAnimationUpdateText;
+                cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 75.f), &gFrameTimeDraw);
+            }
+
+            cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 100.f), gGpuProfileToken, &gFrameTimeDraw);
+
+            cmdDrawUserInterface(cmd);
+
+            cmdBindRenderTargets(cmd, NULL);
+            cmdEndDebugMarker(cmd);
         }
-
-        cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 100.f), gGpuProfileToken, &gFrameTimeDraw);
-
-        cmdDrawUserInterface(cmd);
-
-        cmdBindRenderTargets(cmd, NULL);
-        cmdEndDebugMarker(cmd);
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
 
         // PRESENT THE GRPAHICS QUEUE
         //
@@ -1100,6 +1104,9 @@ public:
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mColorClearValue = { { 0.15f, 0.15f, 0.15f, 1.0f } };
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;
@@ -1108,18 +1115,15 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent);
         setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
-        setDesc = SRT_SET_DESC(SrtData, PerDraw, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerDraw);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSet);
-        removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
-        removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerDraw);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
     }
 
     void addShaders()
@@ -1214,20 +1218,16 @@ public:
         params[0].ppTextures = &pTextureDiffuse;
         params[1].mIndex = SRT_RES_IDX(SrtData, Persistent, gDdefaultSampler);
         params[1].ppSamplers = &pDefaultSampler;
-        updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 2, params);
+        updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 2, params);
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
         {
             DescriptorData uParams[2] = {};
             uParams[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
             uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, uParams);
-
-            uParams[0].mIndex = SRT_RES_IDX(SrtData, PerDraw, gUniformBlock);
-            uParams[0].ppBuffers = &pPlaneUniformBuffer[i];
             uParams[1].mIndex = SRT_RES_IDX(SrtData, PerDraw, gBoneMatrices);
             uParams[1].ppBuffers = &pUniformBufferBones[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, uParams);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerDraw, 2, uParams);
         }
     }
 

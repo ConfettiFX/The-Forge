@@ -21,6 +21,9 @@
          location = "group:03_MultiThread/03_MultiThread.xcodeproj">
       </FileRef>
       <FileRef
+         location = "group:04_QueueSubmitProfiling/04_QueueSubmitProfiling.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
       </FileRef>
       <FileRef

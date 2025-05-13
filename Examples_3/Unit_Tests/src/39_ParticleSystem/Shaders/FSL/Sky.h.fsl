@@ -1,0 +1,77 @@
+/*
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+
+// ---------Sky Shading Functions-------------
+// Sky shading model referenced from
+// https://www.shadertoy.com/view/llyGDR
+//------------------------------------------------
+float3 YxyToXYZ(float3 Yxy)
+{
+	float Y = Yxy.r;
+	float x = Yxy.g;
+	float y = Yxy.b;
+
+	float X = x * (Y / y);
+	float Z = (1.0 - x - y) * (Y / y);
+
+	return float3(X, Y, Z);
+}
+
+float3 XYZToRGB(float3 XYZ)
+{
+    // CIE/E
+	const float3x3 M = make_f3x3_row_elems(
+    2.3706743, -0.9000405, -0.4706338,
+    -0.5138850, 1.4253036, 0.0885814,
+    0.0052982, -0.0146949, 1.0093968);
+
+	return mul(M, XYZ);
+}
+
+
+float3 YxyToRGB(float3 Yxy)
+{
+	float3 XYZ = YxyToXYZ(Yxy);
+	float3 RGB = XYZToRGB(XYZ);
+	return RGB;
+}
+
+float3 calculateSkyLuminanceRGB(float3 s, float3 r, float3 A, float3 B, float3 C, float3 D, float3 E, float3 yZOverThetaS)
+{
+	float thetaE = saturate(dot(r, float3(0, 1, 0)));
+	float gammaE = saturate(dot(s, r));
+	float3 thetaGamma = (1.0 + A * exp(B / thetaE)) * (1.0 + C * exp(D * acos(gammaE)) + E * gammaE * gammaE);
+	float3 Yp = yZOverThetaS * thetaGamma;
+	
+	return YxyToRGB(Yp) / 25.0;
+}
+
+float3 getSkyColor(float3 rayDir){
+    float3 yZOverThetaS = float3(gPerFrameConstants.perezA.w, gPerFrameConstants.perezB.w, gPerFrameConstants.perezC.w);
+    float3 skyColor = calculateSkyLuminanceRGB(normalize(-gPerFrameConstants.lightDir.xyz), rayDir, gPerFrameConstants.perezA.xyz,
+		   										                                    	gPerFrameConstants.perezB.xyz, gPerFrameConstants.perezC.xyz,
+		   										                                    	gPerFrameConstants.perezD.xyz, gPerFrameConstants.perezE.xyz, yZOverThetaS);
+    return skyColor;
+}

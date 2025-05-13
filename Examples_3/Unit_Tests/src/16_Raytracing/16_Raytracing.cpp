@@ -868,9 +868,9 @@ public:
             /************************************************************************/
             cmdBindPipeline(pCmd, pPipeline[gRaytracingTechnique]);
 
-            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracing[gRaytracingTechnique]);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRayTracingPersistent[gRaytracingTechnique]);
+            cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetRayTracingPerFrame[gRaytracingTechnique]);
             cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracingPerBatch[gRaytracingTechnique]);
-            cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetUniforms[gRaytracingTechnique]);
 
             if (RAY_QUERY == gRaytracingTechnique)
             {
@@ -899,7 +899,7 @@ public:
             DescriptorData params[1] = {};
             params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gDisplayTexture);
             params[0].ppTextures = &denoisedTexture;
-            updateDescriptorSet(pRenderer, mFrameIdx, pDescriptorSetTexture, 1, params);
+            updateDescriptorSet(pRenderer, mFrameIdx, pDescriptorSetPerFrame, 1, params);
 
             removeResource(denoisedTexture);
 #endif
@@ -935,9 +935,9 @@ public:
             /************************************************************************/
             // Draw computed results
             cmdBindPipeline(pCmd, pDisplayTexturePipeline);
-            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracing[gRaytracingTechnique]);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRayTracingPersistent[gRaytracingTechnique]);
             cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracingPerBatch[gRaytracingTechnique]);
-            cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetTexture);
+            cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetPerFrame);
             cmdDraw(pCmd, 3, 0);
             cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
         }
@@ -1013,18 +1013,18 @@ public:
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
             DescriptorSetDesc setDesc = SRT_SET_DESC_LARGE_RW(SrtData, Persistent, 1, 0);
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing[t]);
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRayTracingPersistent[t]);
             setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerFrame, gDataBufferCount, 0);
-            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[t]);
+            addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRayTracingPerFrame[t]);
             setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerBatch, 1, 0);
             addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracingPerBatch[t]);
         }
 
         DescriptorSetDesc setDesc = SRT_SET_DESC_LARGE_RW(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerFrame);
 
 #if USE_DENOISER
-        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0, pDescriptorSetRaytracing[0]);
+        setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0, pDescriptorSetRayTracingPersistent[0]);
         addDescriptorSet(pRenderer, &setDesc, &pDenoiserInputsDescriptorSet);
 #endif
     }
@@ -1034,13 +1034,13 @@ public:
 #if USE_DENOISER
         removeDescriptorSet(pRenderer, pDenoiserInputsDescriptorSet);
 #endif
-        removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
 
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
             removeDescriptorSet(pRenderer, pDescriptorSetRaytracingPerBatch[t]);
-            removeDescriptorSet(pRenderer, pDescriptorSetRaytracing[t]);
-            removeDescriptorSet(pRenderer, pDescriptorSetUniforms[t]);
+            removeDescriptorSet(pRenderer, pDescriptorSetRayTracingPersistent[t]);
+            removeDescriptorSet(pRenderer, pDescriptorSetRayTracingPerFrame[t]);
         }
     }
 
@@ -1249,7 +1249,7 @@ public:
 #endif
         for (uint32_t t = 0; t < RAYTRACING_TECHNIQUE_COUNT; ++t)
         {
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing[t], 7, perFrameParams);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetRayTracingPersistent[t], 7, perFrameParams);
             updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracingPerBatch[t], paramIndex, perBatchParams);
 
             for (uint32_t i = 0; i < gDataBufferCount; ++i)
@@ -1257,7 +1257,7 @@ public:
                 DescriptorData uParams[1] = {};
                 uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gSettings);
                 uParams[0].ppBuffers = &pRayGenConfigBuffer[i];
-                updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms[t], 1, uParams);
+                updateDescriptorSet(pRenderer, i, pDescriptorSetRayTracingPerFrame[t], 1, uParams);
             }
         }
         DescriptorData params[7] = {};
@@ -1269,7 +1269,7 @@ public:
             params[1].mIndex = SRT_RES_IDX(SrtData, PerFrame, gAlbedoTex);
             params[1].ppTextures = &pAlbedoTexture;
 #endif
-            updateDescriptorSet(pRenderer, i, pDescriptorSetTexture, 1 + USE_DENOISER, params);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 1 + USE_DENOISER, params);
         }
 
 #if USE_DENOISER
@@ -1309,10 +1309,10 @@ private:
     AccelerationStructure* pSanMiguelAS = NULL;
     Shader*                pShaderRayQuery = NULL;
     Shader*                pDisplayTextureShader = NULL;
-    DescriptorSet*         pDescriptorSetRaytracing[RAYTRACING_TECHNIQUE_COUNT] = {};
+    DescriptorSet*         pDescriptorSetRayTracingPersistent[RAYTRACING_TECHNIQUE_COUNT] = {};
     DescriptorSet*         pDescriptorSetRaytracingPerBatch[RAYTRACING_TECHNIQUE_COUNT] = {};
-    DescriptorSet*         pDescriptorSetUniforms[RAYTRACING_TECHNIQUE_COUNT] = {};
-    DescriptorSet*         pDescriptorSetTexture = NULL;
+    DescriptorSet*         pDescriptorSetRayTracingPerFrame[RAYTRACING_TECHNIQUE_COUNT] = {};
+    DescriptorSet*         pDescriptorSetPerFrame = NULL;
     Pipeline*              pPipeline[RAYTRACING_TECHNIQUE_COUNT] = {};
     Pipeline*              pDisplayTexturePipeline = NULL;
     SwapChain*             pSwapChain = NULL;

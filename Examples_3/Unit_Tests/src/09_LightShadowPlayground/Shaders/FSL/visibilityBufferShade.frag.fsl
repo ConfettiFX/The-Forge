@@ -462,7 +462,15 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 	// Early exit if this pixel doesn't contain triangle data
 	if (geomSetPrimID == ~0u)
 	{
-		discard;
+#if FT_MULTIVIEW
+	float4x4 invProjViewOrigin = gCameraUniformBlock.mInverseSkyViewProject.mat[In.ViewID];
+#else
+	float4x4 invProjViewOrigin = gCameraUniformBlock.mInverseSkyViewProject.mat;
+#endif /*FT_MULTIVIEW*/
+		float3 skyTexCoord = mul(invProjViewOrigin, float4(In.ScreenPos.x, In.ScreenPos.y, 1, 1)).xyz;
+		Out.FinalColor.xyz = SampleTexCube(gSkyboxTex, gSamplerBilinearWrap, skyTexCoord).xyz;
+		Out.FinalColor.w = 1.0;
+		RETURN(Out);
 	}
 
 	//extract packed data

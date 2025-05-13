@@ -77,11 +77,11 @@ BEGIN_GPU_LIST;
 0x13B5; 0x8800020; verylow; #ARM; Mali-T880
 0x13B5; 0x8801008; verylow; #ARM; Mali-T880
 0x13B5; 0x8802000; verylow; #ARM; Mali-T880
-0x13B5; 0x90800011; verylow; #ARM; Mali-G57
 0x13B5; 0x90910000; verylow; #ARM; Mali-G57
 0x13B5; 0x90910010; verylow; #ARM; Mali-G57
 0x13B5; 0x90930000; verylow; #ARM; Mali-G57
 0x13B5; 0x90930010; verylow; #ARM; Mali-G57 MC2
+0x13B5; 0x90800011; verylow; #ARM; Mali-G77
 0x13B5; 0x92020000; low; #ARM; Mali-G78
 0x13B5; 0x92020010; low; #ARM; Mali-G78
 0x13B5; 0x92041010; low; #ARM; Mali-G68

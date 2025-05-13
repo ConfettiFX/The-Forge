@@ -87,12 +87,6 @@ def resources_declaration(resources_dict):
                 if tokens_len == 4 and line_tokens[1] == 'CBUFFER':
                     text += 'static ' + line_tokens[2] + '& ' + line_tokens[3] + ' = *gSRT.p' + key + '->' + line_tokens[3] + ';\n'
                     valid_case = True
-                if tokens_len == 4 and line_tokens[1] == 'ROOT_CONSTANT':
-                    text += 'static ' + line_tokens[1] + '(' + line_tokens[2] + ')& ' + line_tokens[3] + ' = gSRT.' + line_tokens[3] + ';\n'
-                    valid_case = True
-                if tokens_len == 4 and line_tokens[1] == 'ROOT_CBV':
-                    text += 'static ' + line_tokens[2] + '& ' + line_tokens[3] + ' = *gSRT.' + line_tokens[3] + ';\n'
-                    valid_case = True
                 if tokens_len == 3 and line_tokens[0] == 'Buffer':
                     text += 'static ' + line_tokens[0] + '(' + line_tokens[1] + ') ' + line_tokens[2] + ' = gSRT.p' + key + '->' + line_tokens[2] + ';\n'
                     valid_case = True                    

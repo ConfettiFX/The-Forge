@@ -45,6 +45,9 @@
     <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\PreSkinVertexes.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ProgMSAAResolve.srt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ResolveVRS.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -60,6 +63,15 @@
     <ClInclude Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\VisibilityBufferPassTransparent.srt.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\DebugMSAA.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\MsaaEdgeDetect.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\MsaaStencilDownscale.frag.fsl">
+      <Filter>FSLShaders</Filter>
+    </FSLShader>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\Shaders.list">
       <Filter>FSLShaders</Filter>
     </FSLShader>
@@ -99,10 +111,10 @@
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\PreSkinVertexes.comp.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\Resolve.frag.fsl">
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ProgMSAAResolve.frag.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\Resolve.vert.fsl">
+    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ProgMSAAResolve.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ResolveVRS.comp.fsl">
@@ -130,12 +142,6 @@
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShadowPassTransparent.vert.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\Skybox.frag.fsl">
-      <Filter>FSLShaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\Skybox.vert.fsl">
       <Filter>FSLShaders</Filter>
     </FSLShader>
     <FSLShader Include="..\src\15a_VisibilityBufferOIT\Shaders\FSL\TriangleFiltering.comp.fsl">

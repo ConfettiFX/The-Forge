@@ -153,7 +153,7 @@
         xcopy /Y /S /D "$(TheForgeRoot)Common_3\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         xcopy /Y /S /D "$(SolutionDir)..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         xcopy $(SolutionDir)..\src\$(ProjectName)\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
-		
+
 		"$(SolutionDir)..\src\$(ProjectName)\compile_materials.bat" "$(SolutionDir)..\..\..\" "$(ProjectDir)..\..\src\$(ProjectName)\Materials" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledMaterials"		
       </Command>
     </PreLinkEvent>

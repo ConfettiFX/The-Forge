@@ -13,6 +13,9 @@
     <Filter Include="OS">
       <UniqueIdentifier>{46a9c856-9efb-471d-9007-488d84e1083f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\OpenXR">
+      <UniqueIdentifier>{e19475bb-149b-47a0-8a96-d0f9cdd60dd5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Utilities\Math">
       <UniqueIdentifier>{0f1b198f-b5a3-47fa-b8d0-b65a3b6b8605}</UniqueIdentifier>
     </Filter>
@@ -168,9 +171,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
       <Filter>OS\Android</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidInput.cpp">
-      <Filter>OS\Android</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c">
       <Filter>OS\Android</Filter>
     </ClCompile>
@@ -185,6 +185,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp">
       <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\OpenXR\OpenXRApi.c">
+      <Filter>OS\OpenXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\OpenXR\OpenXRApiUtils.cpp">
+      <Filter>OS\OpenXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\OpenXR\OpenXRInput.cpp">
+      <Filter>OS\OpenXR</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.c">
       <Filter>Utilities\Math</Filter>
@@ -444,6 +453,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\TexturedResources.h">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\VRMarker.srt.h">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputCommon.h">
       <Filter>OS\Input</Filter>
     </ClInclude>
@@ -610,6 +622,12 @@
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UIShaders.list">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\VRMarker.frag.fsl">
+      <Filter>Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\VRMarker.vert.fsl">
       <Filter>Application\UI\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\AnimationShaders.list">

@@ -18,7 +18,7 @@
     <ClInclude Include="..\src\Shaders\FSL\PerFrameSet.h" />
     <ClInclude Include="..\src\Shaders\FSL\PersistentSet.h" />
     <ClInclude Include="..\src\Shaders\FSL\TriangleFiltering.srt.h" />
-    <ClInclude Include="..\src\Shaders\FSL\Resolve.srt.h" />
+    <ClInclude Include="..\src\Shaders\FSL\ProgMSAAResolve.srt.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Unit_Tests\Quest_VS2019\Libraries\OS\OS.vcxproj">
@@ -41,8 +41,8 @@
     <FSLShader Include="..\src\Shaders\FSL\GodrayBlur.comp.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\LightClusters.comp.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\LightClustersClear.comp.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.frag.fsl" />
-    <FSLShader Include="..\src\Shaders\FSL\Resolve.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ProgMSAAResolve.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\ShaderDefs.h.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shaders.list" />
     <FSLShader Include="..\src\Shaders\FSL\Shading.h.fsl" />

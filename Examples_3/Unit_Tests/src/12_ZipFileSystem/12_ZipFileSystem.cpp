@@ -125,8 +125,8 @@ float4        gOcclusion1Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
 
 Buffer* pProjViewUniformBuffer[gDataBufferCount] = { NULL };
 
-DescriptorSet* pDescriptorSetFrameUniforms = NULL;
-DescriptorSet* pDescriptorSetTextures = NULL;
+DescriptorSet* pDescriptorSetPersistent = NULL;
+DescriptorSet* pDescriptorSetFramePerFrame = NULL;
 
 uint32_t gFrameIndex = 0;
 
@@ -135,6 +135,9 @@ int          gNumberOfCubiodPoints;
 UniformBlock gUniformData;
 
 ICameraController* pCameraController = NULL;
+
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 
 const char* pSkyboxImageFileNames[] = {
     "Skybox/Skybox_right1.tex",  "Skybox/Skybox_left2.tex",  "Skybox/Skybox_top3.tex",
@@ -959,15 +962,15 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTextures);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent);
         setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFrameUniforms);
+        addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFramePerFrame);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorSetTextures);
-        removeDescriptorSet(pRenderer, pDescriptorSetFrameUniforms);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
+        removeDescriptorSet(pRenderer, pDescriptorSetFramePerFrame);
     }
 
     void prepareDescriptorSets()
@@ -992,7 +995,7 @@ public:
             params[6].ppTextures = pZipTexture;
             params[7].mIndex = SRT_RES_IDX(SrtData, Persistent, gSampler);
             params[7].ppSamplers = &pSamplerSkybox;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTextures, 8, params);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 8, params);
         }
 
         for (uint32_t i = 0; i < gDataBufferCount; ++i)
@@ -1000,7 +1003,7 @@ public:
             DescriptorData params[1] = {};
             params[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
             params[0].ppBuffers = &pProjViewUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorSetFrameUniforms, 1, params);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetFramePerFrame, 1, params);
         }
     }
 
@@ -1063,6 +1066,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -1212,6 +1217,8 @@ public:
         // simply record the screen cleaning command
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
+        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFramePerFrame);
 
         cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
@@ -1243,7 +1250,7 @@ public:
             cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
             cmdBindPipeline(cmd, pOcclusionMax);
 
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFramePerFrame);
 
             occlusionQueryDesc.mIndex = gOccTestOcclusionSphereMaxIndex;
             cmdBeginQuery(cmd, pOcclusionQueryPool[gFrameIndex], &occlusionQueryDesc);
@@ -1258,9 +1265,6 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw skybox");
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
         cmdBindPipeline(cmd, pPipelineSkybox);
-
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetTextures);
 
         const uint32_t skyboxStride = sizeof(float) * 4;
         cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
@@ -1292,7 +1296,7 @@ public:
             cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Occlusion Test");
             cmdBindPipeline(cmd, pOcclusionTest);
 
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFramePerFrame);
 
             occlusionQueryDesc.mIndex = gOccTestOcclusionSphereIndex * gViewCount;
             cmdBeginQuery(cmd, pOcclusionQueryPool[gFrameIndex], &occlusionQueryDesc);
@@ -1304,12 +1308,8 @@ public:
         }
 
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
         {
-            bindRenderTargets = {};
-            bindRenderTargets.mRenderTargetCount = 1;
-            bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
-            cmdBindRenderTargets(cmd, &bindRenderTargets);
-
             gFrameTimeDraw.mFontColor = 0xff00ffff;
             gFrameTimeDraw.mFontSize = 18.0f;
             gFrameTimeDraw.mFontID = gFontID;
@@ -1319,6 +1319,7 @@ public:
             cmdDrawUserInterface(cmd);
             cmdBindRenderTargets(cmd, NULL);
         }
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -1376,6 +1377,9 @@ public:
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;

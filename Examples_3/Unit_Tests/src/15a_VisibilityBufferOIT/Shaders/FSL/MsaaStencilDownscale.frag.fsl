@@ -1,0 +1,73 @@
+/*
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+/*
+* Scales down the MSAA stencil buffer so that it can be used in half-res
+* post-processing passes. A pixel is marked as complex if any of the sampled
+* pixels in the full-res image is marked as complex.
+*/
+
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
+
+#define SCALE 2
+#define COMPLEX_PIXEL_SAMPLE_INDEX 1
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
+};
+
+ROOT_SIGNATURE(DefaultRootSignature)
+void PS_MAIN( PsIn In, SV_SampleIndex(uint) sampleId )
+{
+	INIT_MAIN;
+	// Determine stencil mask on the visibility buffer surface edges
+	uint2 writeCoord = uint2(In.position.xy);
+	uint stencilMask = 0;
+	UNROLL
+	for(uint i = 0; i < SCALE; ++i)
+	{
+		UNROLL
+		for(uint j = 0; j < SCALE; ++j)
+		{
+			// We can check a single sample to identify if a pixel is complex or not (except sample0)
+			uint2 readCoord = uint2(In.position.xy * SCALE) + uint2(i,j);
+#if FT_MULTIVIEW
+			stencilMask |= LoadTex2DArrayMS(gMSAAStencil, gSamplerPointClamp, uint3(readCoord, In.ViewID), COMPLEX_PIXEL_SAMPLE_INDEX).r;
+#else
+			stencilMask |= LoadTex2DMS(gMSAAStencil, gSamplerPointClamp, readCoord, COMPLEX_PIXEL_SAMPLE_INDEX).r;
+#endif
+		}
+	}
+	if (sampleId != 0 && stencilMask == 0)
+	{
+		discard;
+	}
+	RETURN();
+}

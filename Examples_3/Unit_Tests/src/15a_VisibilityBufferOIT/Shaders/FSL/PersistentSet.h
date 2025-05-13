@@ -47,6 +47,11 @@ BEGIN_SRT_SET(Persistent)
 	DECL_TEXTURE(Persistent, Tex2D(float), gShadowMap)
     DECL_TEXTURE(Persistent, Tex2D(float4), gGodrayTexture)
     DECL_TEXTURE(Persistent, TexCube(float4), gSkyboxTexture)
+#if (SAMPLE_COUNT > 1)
+    DECL_TEXTURE(Persistent, Tex2DMS(uint2, SAMPLE_COUNT), gMSAAStencil)
+#else
+    DECL_TEXTURE(Persistent, Tex2D(uint2), gMSAAStencil)
+#endif
     DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), gDiffuseMaps, MAX_TEXTURE_UNITS)
     DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), gNormalMaps, MAX_TEXTURE_UNITS)
     DECL_ARRAY_TEXTURES(Persistent, Tex2D(float4), gSpecularMaps, MAX_TEXTURE_UNITS)

@@ -79,16 +79,18 @@
     const Descriptor* pDescriptors##freq = freq##Ptr();
 
 #define SRT_RES_IDX(srt, freq, name) (offsetof(SRT_##srt::freq, name) / sizeof(Descriptor))
-#define SRT_SET_DESC(srt, freq, maxSets, nodeIndex)                                                                                 \
-    {                                                                                                                               \
-        (offsetof(SRT_##srt, p##freq) / ((uint32_t)(sizeof(MetalDescriptorSet)))), (maxSets), (nodeIndex),                          \
-            (sizeof(SRT_##srt::freq) / sizeof(Descriptor)), SRT_##srt::freq##Ptr(), 0, getSrt##srt##Ptr(), SRT_SET_COUNT(SRT_##srt) \
+#define SRT_SET_DESC(srt, freq, maxSets, nodeIndex)                                                                    \
+    {                                                                                                                  \
+        (offsetof(SRT_##srt, p##freq) / ((uint32_t)(sizeof(MetalDescriptorSet)))), (maxSets), nodeIndex,               \
+            (sizeof(SRT_##srt::freq) / sizeof(Descriptor)), SRT_##srt::freq##Ptr(), SET_##freq, 0, getSrt##srt##Ptr(), \
+            SRT_SET_COUNT(SRT_##srt)                                                                                   \
     }
 
-#define SRT_SET_DESC_LARGE_RW(srt, freq, maxSets, nodeIndex)                                                                        \
-    {                                                                                                                               \
-        (offsetof(SRT_##srt, p##freq) / ((uint32_t)(sizeof(MetalDescriptorSet)))), (maxSets), (nodeIndex),                          \
-            (sizeof(SRT_##srt::freq) / sizeof(Descriptor)), SRT_##srt::freq##Ptr(), 1, getSrt##srt##Ptr(), SRT_SET_COUNT(SRT_##srt) \
+#define SRT_SET_DESC_LARGE_RW(srt, freq, maxSets, nodeIndex)                                                           \
+    {                                                                                                                  \
+        (offsetof(SRT_##srt, p##freq) / ((uint32_t)(sizeof(MetalDescriptorSet)))), (maxSets), nodeIndex,               \
+            (sizeof(SRT_##srt::freq) / sizeof(Descriptor)), SRT_##srt::freq##Ptr(), SET_##freq, 1, getSrt##srt##Ptr(), \
+            SRT_SET_COUNT(SRT_##srt)                                                                                   \
     }
 
 #define IS_AB_RES(is_ab) (is_ab & (isParamsOnly() ? 0u : 1u))
@@ -159,3 +161,11 @@
 #define DECL_ARRAY_RWBUFFERS(freq, type, name, count)  DECLARE_SRT_RESOURCE(type, name[count], freq);
 
 #endif
+
+#if defined(STAGE_VERT)
+#define VR_VIEW_ID 0
+#else
+#define VR_VIEW_ID(VID) (0)
+#endif
+
+#define VR_MULTIVIEW_COUNT 1

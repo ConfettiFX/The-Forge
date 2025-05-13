@@ -114,8 +114,8 @@ Pipeline*      pSkyBoxDrawPipeline = NULL;
 Shader*        pCopyQuadShader = NULL;
 Pipeline*      pCopyQuadPipeline = NULL;
 Sampler*       pSamplerSkyBox = NULL;
-DescriptorSet* pDescriptorSetTexture[gViewCount] = { NULL };
-DescriptorSet* pDescriptorSetUniforms[gViewCount] = { NULL };
+DescriptorSet* pDescriptorSetPersistent[gViewCount] = { NULL };
+DescriptorSet* pDescriptorSetPerFrame[gViewCount] = { NULL };
 DescriptorSet* pDescriptorSetCopyQuad = { NULL };
 
 Buffer* pProjViewUniformBuffer[gDataBufferCount] = { NULL };
@@ -803,6 +803,8 @@ public:
 
             // simply record the screen cleaning command
             beginCmd(cmd);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent[i]);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame[i]);
             cmdBeginGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
 
             RenderTargetBarrier barriers[] = {
@@ -822,8 +824,6 @@ public:
             const uint32_t skyboxStride = sizeof(float) * 4;
             cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw skybox");
             cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
-            cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture[i]);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms[i]);
             cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer[i], &skyboxStride, NULL);
             cmdDraw(cmd, 36, 0);
             cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
@@ -832,7 +832,6 @@ public:
             const uint32_t sphereStride = sizeof(float) * 6;
             cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw Planets");
             cmdBindPipeline(cmd, pSpherePipeline);
-            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms[i]);
             cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], &sphereStride, NULL);
             cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
             cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
@@ -975,15 +974,15 @@ public:
         {
             if (!gMultiGPU && i > 0)
             {
-                pDescriptorSetTexture[i] = pDescriptorSetTexture[0];
-                pDescriptorSetUniforms[i] = pDescriptorSetUniforms[0];
+                pDescriptorSetPersistent[i] = pDescriptorSetPersistent[0];
+                pDescriptorSetPerFrame[i] = pDescriptorSetPerFrame[0];
             }
             else
             {
                 DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-                addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture[i]);
+                addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPersistent[i]);
                 setDesc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-                addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[i]);
+                addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPerFrame[i]);
             }
         }
         DescriptorSetDesc setDesc = SRT_SET_DESC(SrtData, Persistent, gDataBufferCount * gViewCount, 0);
@@ -997,8 +996,8 @@ public:
             if (!gMultiGPU && view > 0)
                 continue;
 
-            removeDescriptorSet(pRenderer, pDescriptorSetTexture[view]);
-            removeDescriptorSet(pRenderer, pDescriptorSetUniforms[view]);
+            removeDescriptorSet(pRenderer, pDescriptorSetPersistent[view]);
+            removeDescriptorSet(pRenderer, pDescriptorSetPerFrame[view]);
         }
         removeDescriptorSet(pRenderer, pDescriptorSetCopyQuad);
     }
@@ -1117,7 +1116,7 @@ public:
     {
         for (uint32_t i = 0; i < gViewCount; ++i)
         {
-            if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
+            if (i > 0 && pDescriptorSetPersistent[i] == pDescriptorSetPersistent[0])
                 continue;
 
             DescriptorData params[7] = {};
@@ -1135,14 +1134,14 @@ public:
             params[5].ppTextures = &pSkyBoxTextures[i][5];
             params[6].mIndex = SRT_RES_IDX(SrtData, Persistent, gSamplerSkybox);
             params[6].ppSamplers = &pSamplerSkyBox;
-            updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture[i], 7, params);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent[i], 7, params);
 
             for (uint32_t f = 0; f < gDataBufferCount; ++f)
             {
                 DescriptorData uParams[1] = {};
                 uParams[0].mIndex = SRT_RES_IDX(SrtData, PerFrame, gUniformBlock);
                 uParams[0].ppBuffers = &pProjViewUniformBuffer[f];
-                updateDescriptorSet(pRenderer, f, pDescriptorSetUniforms[i], 1, uParams);
+                updateDescriptorSet(pRenderer, f, pDescriptorSetPerFrame[i], 1, uParams);
             }
         }
 

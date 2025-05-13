@@ -4670,55 +4670,93 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
     }
 }
 
+static void FlushDescriptorSets(Cmd* pCmd)
+{
+    const uint32_t pipeline = pCmd->mDx.mPipelineType == PIPELINE_TYPE_GRAPHICS ? 0 : 1;
+    for (uint32_t tableIndex = 0; tableIndex < MAX_DESCRIPTOR_TABLES; ++tableIndex)
+    {
+        if (!(pCmd->mDx.mDescriptorTableDirtyMask & (1 << tableIndex)))
+        {
+            continue;
+        }
+
+        const D3D12_GPU_DESCRIPTOR_HANDLE handle = pCmd->mDx.mBoundDescriptorSets[tableIndex];
+        if (D3D12_GPU_VIRTUAL_ADDRESS_NULL == handle.ptr)
+        {
+            continue;
+        }
+
+        if (0 == pipeline)
+        {
+            hook_SetGraphicsRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+        }
+        else
+        {
+            hook_SetComputeRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+        }
+    }
+
+    pCmd->mDx.mDescriptorTableDirtyMask = 0;
+}
+
 void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
     ASSERT(pCmd);
     ASSERT(pDescriptorSet);
     ASSERT(index < pDescriptorSet->mDx.mMaxSets);
 
-    // Bind the descriptor tables associated with this DescriptorSet
-    const uint32_t pipeline = pCmd->mDx.mPipelineType == PIPELINE_TYPE_GRAPHICS ? 0 : 1;
-
     if (pDescriptorSet->mDx.mCbvSrvUavHandle != D3D12_DESCRIPTOR_ID_NONE)
     {
+        const uint32_t                    tableIndex = pDescriptorSet->mDx.mCbvSrvUavRootIndex;
         const D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptor_id_to_gpu_handle(
             pCmd->mDx.pBoundHeaps[0], pDescriptorSet->mDx.mCbvSrvUavHandle + index * pDescriptorSet->mDx.mCbvSrvUavStride);
-        if (handle.ptr != pCmd->mDx.mBoundDescriptorSets[pipeline][pDescriptorSet->mDx.mCbvSrvUavRootIndex].ptr)
+        if (handle.ptr != pCmd->mDx.mBoundDescriptorSets[tableIndex].ptr)
         {
-            if (0 == pipeline)
+            pCmd->mDx.mBoundDescriptorSets[tableIndex] = handle;
+
+            if (pCmd->mDx.mPipelineType != PIPELINE_TYPE_UNDEFINED)
             {
-                hook_SetGraphicsRootDescriptorTable(pCmd->mDx.pCmdList, pDescriptorSet->mDx.mCbvSrvUavRootIndex, handle);
+                if (PIPELINE_TYPE_GRAPHICS == pCmd->mDx.mPipelineType)
+                {
+                    hook_SetGraphicsRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+                }
+                else
+                {
+                    hook_SetComputeRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+                }
             }
             else
             {
-                hook_SetComputeRootDescriptorTable(pCmd->mDx.pCmdList, pDescriptorSet->mDx.mCbvSrvUavRootIndex, handle);
+                // If no bound pipeline, defer the descriptor table bind until there is a pipeline
+                pCmd->mDx.mDescriptorTableDirtyMask |= (1 << tableIndex);
             }
-            pCmd->mDx.mBoundDescriptorSets[pipeline][pDescriptorSet->mDx.mCbvSrvUavRootIndex] = handle;
         }
     }
     if (pDescriptorSet->mDx.mSamplerHandle != D3D12_DESCRIPTOR_ID_NONE)
     {
+        const uint32_t                    tableIndex = pDescriptorSet->mDx.mSamplerRootIndex;
         const D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptor_id_to_gpu_handle(
             pCmd->mDx.pBoundHeaps[1], pDescriptorSet->mDx.mSamplerHandle + index * pDescriptorSet->mDx.mSamplerStride);
-        if (handle.ptr != pCmd->mDx.mBoundDescriptorSets[pipeline][pDescriptorSet->mDx.mSamplerRootIndex].ptr)
+        if (handle.ptr != pCmd->mDx.mBoundDescriptorSets[tableIndex].ptr)
         {
-            if (0 == pipeline)
+            pCmd->mDx.mBoundDescriptorSets[tableIndex] = handle;
+
+            if (pCmd->mDx.mPipelineType != PIPELINE_TYPE_UNDEFINED)
             {
-                hook_SetGraphicsRootDescriptorTable(pCmd->mDx.pCmdList, pDescriptorSet->mDx.mSamplerRootIndex, handle);
+                if (PIPELINE_TYPE_GRAPHICS == pCmd->mDx.mPipelineType)
+                {
+                    hook_SetGraphicsRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+                }
+                else
+                {
+                    hook_SetComputeRootDescriptorTable(pCmd->mDx.pCmdList, tableIndex, handle);
+                }
             }
             else
             {
-                hook_SetComputeRootDescriptorTable(pCmd->mDx.pCmdList, pDescriptorSet->mDx.mSamplerRootIndex, handle);
+                // If no bound pipeline, defer the descriptor table bind until there is a pipeline
+                pCmd->mDx.mDescriptorTableDirtyMask |= (1 << tableIndex);
             }
-            pCmd->mDx.mBoundDescriptorSets[pipeline][pDescriptorSet->mDx.mSamplerRootIndex] = handle;
-        }
-
-        if (0 == pipeline)
-        {
-            hook_SetGraphicsRootDescriptorTable(
-                pCmd->mDx.pCmdList, pDescriptorSet->mDx.mSamplerRootIndex,
-                descriptor_id_to_gpu_handle(pCmd->mDx.pBoundHeaps[1],
-                                            pDescriptorSet->mDx.mSamplerHandle + index * pDescriptorSet->mDx.mSamplerStride));
         }
     }
 }
@@ -5290,6 +5328,8 @@ void beginCmd(Cmd* pCmd)
 
     // Reset CPU side data
     memset(pCmd->mDx.mBoundDescriptorSets, 0, sizeof(pCmd->mDx.mBoundDescriptorSets));
+    pCmd->mDx.mPipelineType = PIPELINE_TYPE_UNDEFINED;
+    pCmd->mDx.mDescriptorTableDirtyMask = 0;
 
 #if defined(XBOX)
     pCmd->mDx.mSampleCount = 0;
@@ -5501,6 +5541,8 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
     // bind given pipeline
     ASSERT(pCmd->mDx.pCmdList);
 
+    const uint32_t pipeline = pCmd->mDx.mPipelineType;
+
     if (pPipeline->mDx.mType == PIPELINE_TYPE_GRAPHICS)
     {
         ASSERT(pPipeline->mDx.pPipelineState);
@@ -5515,16 +5557,17 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         pCmd->mDx.mPipelineType = PIPELINE_TYPE_COMPUTE;
     }
 
+    if (pipeline != pCmd->mDx.mPipelineType)
+    {
+        pCmd->mDx.mDescriptorTableDirtyMask = UINT32_MAX;
+        FlushDescriptorSets(pCmd);
+    }
+
 #if defined(XBOX)
     if (pCmd->mDx.mNumPixel * pCmd->mDx.mSampleCount)
     {
         hook_SetSamplePositions(pCmd->mDx.pCmdList, pCmd->mDx.mSampleCount, pCmd->mDx.mNumPixel, pCmd->mDx.mSampleLocations);
     }
-
-#if defined(XBOXONE)
-    memset(pCmd->mDx.mBoundDescriptorSets, 0, sizeof(pCmd->mDx.mBoundDescriptorSets));
-#endif
-
 #endif
 }
 

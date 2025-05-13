@@ -361,6 +361,10 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_FORGE_TOUCH_INPUT
 #endif
 
+#if defined(QUEST_VR) && defined(ENABLE_FORGE_UI)
+#define ENABLE_FORGE_VR_UI
+#endif
+
 //////////////////////////////////////////////
 //// Build related options
 //////////////////////////////////////////////

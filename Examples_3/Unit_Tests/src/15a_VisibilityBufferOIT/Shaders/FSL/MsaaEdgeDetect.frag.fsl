@@ -1,0 +1,126 @@
+/*
+* Copyright (c) 2017-2025 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+/*
+* This depth/stencil only shader will determine if a pixel (aka fragment) of a multi-sampled image is complex or not.
+* When a pixel is complex, we'll mark all four samples with 0x01 (which is the stencil reference). This means that all
+* samples will be shaded in subsequent passes. If not, we'll only mark subsample0, which will represent the pixel.
+*/
+
+#include "VisibilityBufferResources.h.fsl"
+#include "Global.srt.h"
+
+// Comment to use non-linear depth samples. This is faster, since we don't linearize depths.
+// However, far away samples are not tagged for anti aliasing, even if their real-world depth
+// values differ a lot.
+#define LINEARIZE_DEPTHS
+
+// Minimum depth difference for indicating complex pixels
+#ifndef MIN_SAMPLE_DEPTH_DIFF
+#ifdef LINEARIZE_DEPTHS
+#define MIN_SAMPLE_DEPTH_DIFF 0.001
+#else
+#define MIN_SAMPLE_DEPTH_DIFF 0.0001
+#endif
+#endif
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD);
+#if FT_MULTIVIEW
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
+};
+
+#if SAMPLE_COUNT == 4
+#define PerSampleData float4
+#else
+#define PerSampleData float2
+#endif
+
+// Linearize and normalize depths, this way the depth threshold used will not depend on 
+// world space values and can be re-used in other scenes.
+PerSampleData linearizeDepths(PerSampleData inDepths)
+{	
+	float n = gPerFrameConstants.nearPlane;
+	float f = gPerFrameConstants.farPlane;
+
+	PerSampleData invZTN = (1.0 - inDepths) * n;
+	PerSampleData denom = f * inDepths + invZTN;
+	
+	return (invZTN / denom);
+}
+
+PerSampleData readDepth(uint2 coord, uint viewID)
+{
+	PerSampleData depths;
+	UNROLL
+	for(uint sampleIndex = 0; sampleIndex < SAMPLE_COUNT; ++sampleIndex)
+	{
+#if FT_MULTIVIEW
+		depths[sampleIndex] = LoadTex2DArrayMS(gDepthTexture, gSamplerPointClamp, uint3(coord.xy, viewID), sampleIndex).r;
+#else
+		depths[sampleIndex] = LoadTex2DMS(gDepthTexture, gSamplerPointClamp, coord, sampleIndex).r;
+#endif /*FT_MULTIVIEW*/
+	}
+	return depths;
+}
+
+bool isComplexPixel(uint2 coord, uint viewID)
+{
+	PerSampleData samples = readDepth(coord, viewID);
+#ifdef LINEARIZE_DEPTHS
+	samples = linearizeDepths(samples);
+#endif
+	float avg = 0.0;
+	UNROLL
+	for(uint sampleIndex = 0; sampleIndex < SAMPLE_COUNT; ++sampleIndex)
+	{
+		avg += samples[sampleIndex];
+	}
+	avg /= SAMPLE_COUNT;
+	PerSampleData diffVec = avg - samples;
+	return length(diffVec) > MIN_SAMPLE_DEPTH_DIFF;
+}
+
+
+ROOT_SIGNATURE(DefaultRootSignature)
+void PS_MAIN( PsIn In, SV_SampleIndex(uint) sampleId )
+{
+	INIT_MAIN;
+	uint2 coord = uint2(In.position.xy);
+#if FT_MULTIVIEW
+		uint viewID = In.ViewID;
+#else
+		uint viewID = 0;
+#endif /*FT_MULTIVIEW*/
+	bool complexPixel = isComplexPixel(coord, viewID);
+	// We'll always shade sample 0 (per-pixel shading)
+	if (sampleId != 0 && !complexPixel)
+	{
+		discard;
+	}
+	RETURN();
+}

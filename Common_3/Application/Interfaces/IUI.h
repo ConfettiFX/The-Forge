@@ -44,6 +44,7 @@
 typedef struct Renderer      Renderer;
 typedef struct Cmd           Cmd;
 typedef struct RenderTarget  RenderTarget;
+typedef struct SwapChain     SwapChain;
 typedef struct PipelineCache PipelineCache;
 
 #define MAX_LABEL_STR_LENGTH  128
@@ -483,6 +484,13 @@ typedef struct UserInterfaceLoadDesc
     uint32_t       mHeight;
     uint32_t       mDisplayWidth;
     uint32_t       mDisplayHeight;
+    struct
+    {
+        // The world-space position of the UI layer when rendering in VR
+        float3 mPosition;
+        // The world-space scale of the UI layer when rendering in VR
+        float  mScale;
+    } mVR2DLayer;
 } UserInterfaceLoadDesc;
 
 /****************************************************************************/
@@ -506,11 +514,18 @@ FORGE_API void loadUserInterface(const UserInterfaceLoadDesc* pDesc);
 /// To be called at application unload time by the App Layer
 FORGE_API void unloadUserInterface(uint32_t unloadType);
 
+/// Binds the appropiate render target used for UI rendering. Will either pick a regular 2D render target or a compositor layer on VR
+/// platforms
+FORGE_API RenderTarget* cmdBeginDrawingUserInterface(Cmd* pCmd, SwapChain* pSwapchain, RenderTarget* pRenderTarget);
+
 /// Renders defined ImGUI components and widgets using The Forge's Renderer
 /// This function also handles rendering the Forge Profiler's UI Window.
 /// it will use the current ImGUI state, and Due to the nature of ImGUI
 /// not being thread safe, this call must be made on the main thread.
 FORGE_API void cmdDrawUserInterface(Cmd* pCmd);
+
+// Flushes UI rendering and associated resources
+FORGE_API void cmdEndDrawingUserInterface(Cmd* pCmd, SwapChain* pSwapchain);
 
 /****************************************************************************/
 // MARK: - Collapsing Header Widget Public Functions

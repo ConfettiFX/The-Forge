@@ -50,6 +50,7 @@ typedef struct ParticleSystemInitDesc
 
     Texture*  pColorBuffer = NULL;
     Texture*  pDepthBuffer = NULL;
+    Texture*  pShadowMap = NULL;
     Texture** ppParticleTextures = NULL;
 
     Buffer* pParticlesBuffer = NULL;
@@ -79,6 +80,8 @@ typedef struct ParticleSystemInitDesc
     uint32_t mTransparencyListHeadsIndex = 0;
     uint32_t mParticleRenderIndirectDataIndex = 0;
     uint32_t mStatsBufferIndex = 0;
+    uint32_t mShadowMapIndex = 0;
+    uint32_t mShadedSceneIndex = 0;
 
 } ParticleSystemInitDesc;
 

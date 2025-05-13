@@ -42,6 +42,20 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5ABFF201F58BF000E571F"
+               BuildableName = "04_QueueSubmitProfiling_iOS.app"
+               BlueprintName = "04_QueueSubmitProfiling_iOS"
+               ReferencedContainer = "container:04_QueueSubmitProfiling/04_QueueSubmitProfiling.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "28A5AD42201F7276000E571F"
                BuildableName = "06_MaterialPlayground_iOS.app"
                BlueprintName = "06_MaterialPlayground_iOS"
@@ -56,10 +70,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
-               BuildableName = "09a_HybridRaytracing_iOS.app"
-               BlueprintName = "09a_HybridRaytracing_iOS"
-               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "09_LightShadowPlayground_iOS.app"
+               BlueprintName = "09_LightShadowPlayground_iOS"
+               ReferencedContainer = "container:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -154,20 +168,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B23AF93328098B9500B70BDA"
-               BuildableName = "lib19a_CodeHotReload_Game_IOS.a"
-               BlueprintName = "19a_CodeHotReload_Game_IOS"
-               ReferencedContainer = "container:19a_CodeHotReload_Game/19a_CodeHotReload_Game.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
                BuildableName = "21_Animations_iOS.app"
                BlueprintName = "21_Animations_iOS"
@@ -217,11 +217,11 @@
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"

@@ -43,6 +43,20 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "04_MultiThread.app"
+               BlueprintName = "04_MultiThread"
+               ReferencedContainer = "container:04_MultiThread/04_MultiThread.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "06_MaterialPlayground.app"
                BlueprintName = "06_MaterialPlayground"
                ReferencedContainer = "container:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">

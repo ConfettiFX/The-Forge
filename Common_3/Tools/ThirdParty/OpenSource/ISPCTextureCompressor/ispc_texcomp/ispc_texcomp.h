@@ -65,6 +65,7 @@ struct astc_enc_settings
     int block_width;
     int block_height;
     int channels;
+    int bytesPerChannel;
 
     int fastSkipTreshold;
     int refineIterations;

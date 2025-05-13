@@ -42,7 +42,7 @@
 #endif
 
 #define MAX_TEXTURE_UNITS 256U
-#define QUADS_ARRAY_REGS 192
+#define QUADS_ARRAY_REGS 512
 
 #define MAX_BLUR_KERNEL_SIZE 16
 
@@ -135,7 +135,7 @@ STRUCT(CameraUniformBlock)
     DATA(CameraMatrix, InvView, None);
 	DATA(CameraMatrix, InvProj, None);
 	DATA(CameraMatrix, InvViewProject, None);
-	DATA(CameraMatrix, SkyProjView, None);
+	DATA(CameraMatrix, mInverseSkyViewProject, None);
 	DATA(float4, mCameraPos, None);
 	DATA(float, mNear, None);
 	DATA(float, mFar, None);
@@ -157,7 +157,11 @@ STRUCT(CameraUniformBlock)
 
 STRUCT(PackedAtlasQuads)
 {
+#if defined(NO_FSL_DEFINITIONS)
+	DATA(vec4, mQuadsData[QUADS_ARRAY_REGS], None);
+#else
 	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
+#endif
 };
 
 STRUCT(AtlasQuads)

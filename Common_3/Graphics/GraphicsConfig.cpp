@@ -58,11 +58,15 @@ enum GPUTarget
     GPU_TARGET_IOS,
     GPU_TARGET_SWITCH,
     GPU_TARGET_MOBILE_END = GPU_TARGET_SWITCH,
-    GPU_TARGET_QUEST,
+    GPU_TARGET_VR_BEGIN,
+    GPU_TARGET_QUEST = GPU_TARGET_VR_BEGIN,
+    GPU_TARGET_QUEST2,
+    GPU_TARGET_QUEST3,
+    GPU_TARGET_VR_END = GPU_TARGET_QUEST3,
     GPU_TARGET_STEAM_DECK,
 };
 
-static GPUTarget           stringToTarget(const char* presetLevel);
+static GPUTarget           stringToTarget(const char* targetStr);
 static GPUTarget           getGPUTarget(uint32_t vendorId, uint32_t modelId);
 static WaveOpsSupportFlags stringToWaveOpsSupportFlags(const char* str);
 static ShaderStage         stringToShaderStage(const char* str);
@@ -232,6 +236,7 @@ const GPUProperty availableGpuProperties[] = {
     GPU_CONFIG_PROPERTY("indirectcommandbuffer", mIndirectCommandBuffer),
     GPU_CONFIG_PROPERTY("indirectrootconstant", mIndirectRootConstant),
     GPU_CONFIG_PROPERTY("maxboundtextures", mMaxBoundTextures),
+    GPU_CONFIG_PROPERTY("maxstoragebuffersize", mMaxStorageBufferSize),
     GPU_CONFIG_PROPERTY("maxtotalcomputethreads", mMaxTotalComputeThreads),
 #if defined(DIRECT3D12)
     GPU_CONFIG_PROPERTY("maxrootsignaturedwords", mMaxRootSignatureDWORDS),
@@ -361,6 +366,7 @@ void setDefaultGPUProperties(GpuDesc* pGpuDesc)
 
 #endif
     pGpuDesc->mMaxBoundTextures = 0;
+    pGpuDesc->mMaxStorageBufferSize = UINT32_MAX;
     pGpuDesc->mSamplerAnisotropySupported = 1;
     pGpuDesc->mGraphicsQueueSupported = 1;
 #if defined(METAL)
@@ -565,69 +571,85 @@ GPUPresetLevel stringToPresetLevel(const char* presetLevel)
     return GPU_PRESET_NONE;
 }
 
-static GPUTarget stringToTarget(const char* presetLevel)
+static GPUTarget stringToTarget(const char* targetStr)
 {
-    if (!stricmp(presetLevel, "console_begin"))
+    if (!stricmp(targetStr, "console_begin"))
     {
         return GPU_TARGET_CONSOLE_BEGIN;
     }
-    if (!stricmp(presetLevel, "console_end"))
+    if (!stricmp(targetStr, "console_end"))
     {
         return GPU_TARGET_CONSOLE_END;
     }
-    if (!stricmp(presetLevel, "mobile_begin"))
+    if (!stricmp(targetStr, "mobile_begin"))
     {
         return GPU_TARGET_MOBILE_BEGIN;
     }
-    if (!stricmp(presetLevel, "mobile_end"))
+    if (!stricmp(targetStr, "mobile_end"))
     {
         return GPU_TARGET_MOBILE_END;
     }
-    if (!stricmp(presetLevel, "x1"))
+    if (!stricmp(targetStr, "vr_begin"))
+    {
+        return GPU_TARGET_VR_BEGIN;
+    }
+    if (!stricmp(targetStr, "vr_end"))
+    {
+        return GPU_TARGET_VR_END;
+    }
+    if (!stricmp(targetStr, "x1"))
     {
         return GPU_TARGET_X1;
     }
-    if (!stricmp(presetLevel, "x1x"))
+    if (!stricmp(targetStr, "x1x"))
     {
         return GPU_TARGET_X1X;
     }
-    if (!stricmp(presetLevel, "xss"))
+    if (!stricmp(targetStr, "xss"))
     {
         return GPU_TARGET_XSS;
     }
-    if (!stricmp(presetLevel, "xsx"))
+    if (!stricmp(targetStr, "xsx"))
     {
         return GPU_TARGET_XSX;
     }
-    if (!stricmp(presetLevel, "orbis"))
+    if (!stricmp(targetStr, "orbis"))
     {
         return GPU_TARGET_ORBIS;
     }
-    if (!stricmp(presetLevel, "neo"))
+    if (!stricmp(targetStr, "neo"))
     {
         return GPU_TARGET_NEO;
     }
-    if (!stricmp(presetLevel, "prospero"))
+    if (!stricmp(targetStr, "prospero"))
     {
         return GPU_TARGET_PROSPERO;
     }
-    if (!stricmp(presetLevel, "android"))
+    if (!stricmp(targetStr, "android"))
     {
         return GPU_TARGET_ANDROID;
     }
-    if (!stricmp(presetLevel, "ios"))
+    if (!stricmp(targetStr, "ios"))
     {
         return GPU_TARGET_IOS;
     }
-    if (!stricmp(presetLevel, "switch"))
+    if (!stricmp(targetStr, "switch"))
     {
         return GPU_TARGET_SWITCH;
     }
-    if (!stricmp(presetLevel, "quest"))
+    if (!stricmp(targetStr, "quest"))
     {
         return GPU_TARGET_QUEST;
     }
-    if (!stricmp(presetLevel, "steam_deck"))
+    if (!stricmp(targetStr, "quest2"))
+    {
+        return GPU_TARGET_QUEST2;
+    }
+    if (!stricmp(targetStr, "quest3"))
+    {
+        return GPU_TARGET_QUEST3;
+    }
+    if (!stricmp(targetStr, "steam_deck"))
     {
         return GPU_TARGET_STEAM_DECK;
     }

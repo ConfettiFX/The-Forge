@@ -139,6 +139,16 @@
 #define PIPELINE_LAYOUT_DESC(...)
 #endif
 
+#if defined(ORBIS) || defined(PROSPERO)
+
+#define ROOT_SIGNATURE_DEFINITION \
+    struct set0* p0;              \
+    struct set1* p1;              \
+    struct set2* p2;              \
+    struct set3* p3;
+
+#endif
+
 // Static samplers
 BEGIN_RS_STATIC_SAMPLERS()
 RS_STATIC_SAMPLER(SamplerState, gSamplerPointClamp, 0, 100, FILTER_NEAREST, MIPMAP_MODE_NEAREST, 1, ADDRESS_MODE_CLAMP_TO_EDGE,

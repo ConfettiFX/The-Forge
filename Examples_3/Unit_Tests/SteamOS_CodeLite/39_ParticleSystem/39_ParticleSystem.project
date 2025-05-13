@@ -123,8 +123,10 @@ LD_LIBRARY_PATH=$(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSourc
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Textures/dds/SanMiguel_3/ $(ProjectPath)/$(ConfigurationName)/Textures/SanMiguel_3/</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Textures/dds/Particles/ $(ProjectPath)/$(ConfigurationName)/Textures/Particles/</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/Textures/dds/PerlinNoise.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/Meshes/SanMiguel_3/ $(ProjectPath)/$(ConfigurationName)/Meshes/SanMiguel_3/</Command>
@@ -157,8 +159,7 @@ fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
-	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)
-</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -206,8 +207,10 @@ LD_LIBRARY_PATH=$(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSourc
         <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/skybox/</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Textures/dds/SanMiguel_3/ $(ProjectPath)/$(ConfigurationName)/Textures/SanMiguel_3/</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Textures/dds/Particles/ $(ProjectPath)/$(ConfigurationName)/Textures/Particles/</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Art/Textures/dds/PerlinNoise.tex $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/Meshes/SanMiguel_3/ $(ProjectPath)/$(ConfigurationName)/Meshes/SanMiguel_3/</Command>
@@ -218,7 +221,6 @@ LD_LIBRARY_PATH=$(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSourc
         <Command Enabled="no"># Scripts</Command>
         <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../../../Common_3/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r --exclude='*/' $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
-        
         <Command Enabled="no"># Misc</Command>
         <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
@@ -241,7 +243,8 @@ fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
-	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.list), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

@@ -285,8 +285,8 @@ Texture*       pGamepad = NULL;
 Texture*       pKeyboardMouse = NULL;
 Texture*       pInputDeviceTexture = NULL;
 Texture*       pPrevInputDeviceTexture = NULL;
-DescriptorSet* pDescriptorDevice = NULL;
-DescriptorSet* pDescriptorInputData = NULL;
+DescriptorSet* pDescriptorSetPersistent = NULL;
+DescriptorSet* pDescriptorSetPerFrame = NULL;
 
 Buffer* pInputDataUniformBuffer[gDataBufferCount] = { NULL };
 
@@ -301,6 +301,9 @@ uint32_t gFontID = 0;
 FontDrawDesc gFrameTimeDraw = FontDrawDesc{ NULL, 0, 0xff00ffff, 18 };
 
 Vertex gQuadVerts[4];
+
+// VR 2D layer transform (positioned at -1 along the Z axis, default rotation, default scale)
+VR2DLayerDesc gVR2DLayer{ { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f };
 ///////////////////////////////////////////////////////////////////////////
 
 #define SET_BUTTON_BIT(set, state, button_bit) ((set) = (state) ? ((set) | (button_bit)) : ((set) & ~(button_bit)));
@@ -787,6 +790,8 @@ public:
         uiLoad.mHeight = mSettings.mHeight;
         uiLoad.mWidth = mSettings.mWidth;
         uiLoad.mLoadType = pReloadDesc->mType;
+        uiLoad.mVR2DLayer.mPosition = float3(gVR2DLayer.m2DLayerPosition.x, gVR2DLayer.m2DLayerPosition.y, gVR2DLayer.m2DLayerPosition.z);
+        uiLoad.mVR2DLayer.mScale = gVR2DLayer.m2DLayerScale;
         loadUserInterface(&uiLoad);
 
         FontSystemLoadDesc fontLoad = {};
@@ -840,7 +845,7 @@ public:
             DescriptorData param = {};
             param.mIndex = SRT_RES_IDX(SrtData, Persistent, gTexture);
             param.ppTextures = &pInputDeviceTexture;
-            updateDescriptorSet(pRenderer, 0, pDescriptorDevice, 1, &param);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 1, &param);
 
             pPrevInputDeviceTexture = pInputDeviceTexture;
         }
@@ -892,66 +897,63 @@ public:
         barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Basic Draw");
+        cmdBeginDrawingUserInterface(cmd, pSwapChain, pRenderTarget);
+        {
+            cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Basic Draw");
 
-        BindRenderTargetsDesc bindRenderTargets = {};
-        bindRenderTargets.mRenderTargetCount = 1;
-        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
-        cmdBindRenderTargets(cmd, &bindRenderTargets);
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
+            cmdBindPipeline(cmd, pBasicPipeline);
+            cmdBindIndexBuffer(cmd, pQuadIndexBuffer, INDEX_TYPE_UINT16, 0);
 
-        cmdBindPipeline(cmd, pBasicPipeline);
-        cmdBindIndexBuffer(cmd, pQuadIndexBuffer, INDEX_TYPE_UINT16, 0);
+            cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPerFrame);
+            cmdBindVertexBuffer(cmd, 1, &pQuadVertexBuffer, &stride, NULL);
+            cmdDrawIndexed(cmd, 6, 0, 0);
 
-        cmdBindDescriptorSet(cmd, 0, pDescriptorDevice);
-        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorInputData);
-        cmdBindVertexBuffer(cmd, 1, &pQuadVertexBuffer, &stride, NULL);
-        cmdDrawIndexed(cmd, 6, 0, 0);
+            cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-        cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+            cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
-        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
-
-        gFrameTimeDraw.mFontColor = 0xff00ffff;
-        gFrameTimeDraw.mFontID = gFontID;
+            gFrameTimeDraw.mFontColor = 0xff00ffff;
+            gFrameTimeDraw.mFontID = gFontID;
 
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
-        float  yTxtOffset = 12.f;
-        float  xTxtOffset = 8.f;
-        float  yTxtOrig = yTxtOffset;
-        float2 txtSizePx = {};
-        yTxtOrig += txtSizePx.y + 7 * yTxtOffset;
-        yTxtOffset = 32.f;
-        txtSizePx.y = 15.0f;
-        if (gChosenDeviceType == INPUT_DEVICE_TOUCH)
-        {
-            for (uint32_t t = 0; t < TF_ARRAY_COUNT(gTouches); ++t)
+            float  yTxtOffset = 12.f;
+            float  xTxtOffset = 8.f;
+            float  yTxtOrig = yTxtOffset;
+            float2 txtSizePx = {};
+            yTxtOrig += txtSizePx.y + 7 * yTxtOffset;
+            yTxtOffset = 32.f;
+            txtSizePx.y = 15.0f;
+            if (gChosenDeviceType == INPUT_DEVICE_TOUCH)
             {
-                const char* phaseNames[] = {
-                    "BEGAN",
-                    "MOVED",
-                    "ENDED",
-                    "CANCELED",
-                };
-                const TouchEvent& event = gTouches[t];
-                if (TOUCH_ID_INVALID == event.mId)
+                for (uint32_t t = 0; t < TF_ARRAY_COUNT(gTouches); ++t)
                 {
-                    continue;
+                    const char* phaseNames[] = {
+                        "BEGAN",
+                        "MOVED",
+                        "ENDED",
+                        "CANCELED",
+                    };
+                    const TouchEvent& event = gTouches[t];
+                    if (TOUCH_ID_INVALID == event.mId)
+                    {
+                        continue;
+                    }
+                    const int textSize = 256;
+                    char      gestureText[textSize] = { 0 };
+                    snprintf(gestureText, textSize, "TouchEvent %10d : Pos (%d : %d) Phase (%s)", event.mId, event.mPos[0], event.mPos[1],
+                             phaseNames[event.mPhase]);
+                    gFrameTimeDraw.pText = gestureText;
+                    cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
+                    yTxtOrig += txtSizePx.y + yTxtOffset;
                 }
-                const int textSize = 256;
-                char      gestureText[textSize] = { 0 };
-                snprintf(gestureText, textSize, "TouchEvent %10d : Pos (%d : %d) Phase (%s)", event.mId, event.mPos[0], event.mPos[1],
-                         phaseNames[event.mPhase]);
-                gFrameTimeDraw.pText = gestureText;
-                cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
-                yTxtOrig += txtSizePx.y + yTxtOffset;
             }
-        }
 #endif
 
-        cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, NULL);
+            cmdDrawUserInterface(cmd);
+        }
+        cmdEndDrawingUserInterface(cmd, pSwapChain);
+
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -1002,6 +1004,9 @@ public:
         swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
         swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
         swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_2D_VR_LAYER;
+        swapChainDesc.mVR.m2DLayer = gVR2DLayer;
+
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
         return pSwapChain != NULL;
@@ -1010,16 +1015,16 @@ public:
     void addDescriptorSets()
     {
         DescriptorSetDesc desc = SRT_SET_DESC(SrtData, Persistent, 1, 0);
-        addDescriptorSet(pRenderer, &desc, &pDescriptorDevice);
+        addDescriptorSet(pRenderer, &desc, &pDescriptorSetPersistent);
 
         desc = SRT_SET_DESC(SrtData, PerFrame, gDataBufferCount, 0);
-        addDescriptorSet(pRenderer, &desc, &pDescriptorInputData);
+        addDescriptorSet(pRenderer, &desc, &pDescriptorSetPerFrame);
     }
 
     void removeDescriptorSets()
     {
-        removeDescriptorSet(pRenderer, pDescriptorDevice);
-        removeDescriptorSet(pRenderer, pDescriptorInputData);
+        removeDescriptorSet(pRenderer, pDescriptorSetPersistent);
+        removeDescriptorSet(pRenderer, pDescriptorSetPerFrame);
     }
 
     void addShaders()
@@ -1080,11 +1085,11 @@ public:
         {
         case INPUT_DEVICE_GAMEPAD:
             param.ppTextures = &pGamepad;
-            updateDescriptorSet(pRenderer, 0, pDescriptorDevice, 1, &param);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 1, &param);
             break;
         case INPUT_DEVICE_KBM:
             param.ppTextures = &pKeyboardMouse;
-            updateDescriptorSet(pRenderer, 0, pDescriptorDevice, 1, &param);
+            updateDescriptorSet(pRenderer, 0, pDescriptorSetPersistent, 1, &param);
             break;
 #if defined(ENABLE_FORGE_TOUCH_INPUT)
         case INPUT_DEVICE_TOUCH:
@@ -1097,7 +1102,7 @@ public:
             DescriptorData uParam = {};
             uParam.mIndex = SRT_RES_IDX(SrtData, PerFrame, gInputData);
             uParam.ppBuffers = &pInputDataUniformBuffer[i];
-            updateDescriptorSet(pRenderer, i, pDescriptorInputData, 1, &uParam);
+            updateDescriptorSet(pRenderer, i, pDescriptorSetPerFrame, 1, &uParam);
         }
     }
 };

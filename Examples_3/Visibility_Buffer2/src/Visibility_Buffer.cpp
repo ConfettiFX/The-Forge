@@ -1457,6 +1457,8 @@ public:
 
             resetCmdPool(pRenderer, computeElem.pCmdPool);
             beginCmd(computeCmd);
+            cmdBindDescriptorSet(computeCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(computeCmd, frameIdx, pDescriptorSetPerFrame);
             cmdBeginGpuFrameProfile(computeCmd, gComputeProfileToken);
 
             // we need to clear the VB here, since tiny tris get directly emitted from filtering
@@ -1472,9 +1474,6 @@ public:
             triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
             triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
 
-            triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPerFrame;
-            triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-            triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
             triangleFilteringDesc.pDescriptorSetTriangleFilteringPerDraw = pDescriptorSetTriangleFilteringPerDrawCompute;
             triangleFilteringDesc.mFrameIndex = frameIdx;
@@ -1585,6 +1584,8 @@ public:
             // Submit all render commands for this frame
             resetCmdPool(pRenderer, graphicsElem.pCmdPool);
             beginCmd(graphicsCmd);
+            cmdBindDescriptorSet(graphicsCmd, 0, pDescriptorSetPersistent);
+            cmdBindDescriptorSet(graphicsCmd, frameIdx, pDescriptorSetPerFrame);
 
             cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
 
@@ -1602,9 +1603,6 @@ public:
                 triangleFilteringDesc.pPipelineClearBuffers = pPipelineClearBuffers;
                 triangleFilteringDesc.pPipelineTriangleFiltering = pPipelineTriangleFiltering;
 
-                triangleFilteringDesc.pDescriptorSetClearBuffers = pDescriptorSetPerFrame;
-                triangleFilteringDesc.pDescriptorSetTriangleFiltering = pDescriptorSetPersistent;
-                triangleFilteringDesc.pDescriptorSetTriangleFilteringPerFrame = pDescriptorSetPerFrame;
                 triangleFilteringDesc.pDescriptorSetTriangleFilteringPerBatch = pDescriptorSetTriangleFilteringPerBatch;
                 triangleFilteringDesc.pDescriptorSetTriangleFilteringPerDraw = pDescriptorSetTriangleFilteringPerDraw;
                 triangleFilteringDesc.mFrameIndex = frameIdx;
@@ -1656,7 +1654,7 @@ public:
             cmdResourceBarrier(graphicsCmd, barrierCount, barriers2, 0, NULL, rtBarriersCount, rtBarriers);
 
             drawScene(graphicsCmd, frameIdx);
-            drawSkybox(graphicsCmd, frameIdx);
+            drawSkybox(graphicsCmd);
 
             barrierCount = 0;
             barriers2[barrierCount++] = { pLightClusters[frameIdx], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -1669,14 +1667,14 @@ public:
 
             if (gAppSettings.mEnableGodray)
             {
-                drawGodray(graphicsCmd, frameIdx);
+                drawGodray(graphicsCmd);
                 blurGodRay(graphicsCmd, frameIdx);
                 drawColorconversion(graphicsCmd);
             }
 
             // Get the current render target for this frame
             acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &presentIndex);
-            presentImage(graphicsCmd, frameIdx, pScreenRenderTarget, pSwapChain->ppRenderTargets[presentIndex]);
+            presentImage(graphicsCmd, pScreenRenderTarget, pSwapChain->ppRenderTargets[presentIndex]);
 
             cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "UI Pass");
             drawGUI(graphicsCmd, presentIndex);
@@ -2885,8 +2883,6 @@ public:
     {
         cmdBeginGpuTimestampQuery(cmd, profileToken, "Clear Visibility Buffer");
         cmdBindPipeline(cmd, pPipelineClearRenderTarget);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetTriangleFilteringPerDraw);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + 2, pDescriptorSetRenderTargetPerBatch);
         cmdDispatch(cmd, gClearRenderTargetInfo.width / 256 + 1, 1, 1);
@@ -2901,8 +2897,6 @@ public:
     {
         UNREF_PARAM(pGpuProfiler);
         cmdBindPipeline(cmd, pPipelineVisibilityBufferDepthRaster);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetTriangleFilteringPerDraw);
         cmdBindDescriptorSet(cmd, frameIdx * 3, pDescriptorSetRenderTargetPerBatch);
         const uint ts = 128;
@@ -2922,8 +2916,6 @@ public:
         UNREF_PARAM(pGpuProfiler);
 
         cmdBindPipeline(cmd, pPipelineVisibilityBufferDepthRaster);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + 1, pDescriptorSetRenderTargetPerBatch);
         const uint32_t binRasterThreadsZCount = 64;
         cmdDispatch(cmd, (gDepthRenderTargetInfo.width + BIN_SIZE - 1) / BIN_SIZE,
@@ -2952,8 +2944,6 @@ public:
         cmdSetScissor(cmd, 0, 0, depthTarget->mWidth, depthTarget->mHeight);
 
         cmdBindPipeline(cmd, pPipelineBlitDepth);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, frameIdx * 3 + (int)view, pDescriptorSetRenderTargetPerBatch);
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -2972,7 +2962,7 @@ public:
     // Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by
     // DrawVisibilityBufferPass to get the draw / triangle IDs to reconstruct and interpolate vertex attributes per pixel. This method
     // doesn't set any vertex/index buffer because the triangle positions are calculated internally using vertex_id.
-    void drawVisibilityBufferShade(Cmd* cmd, uint32_t frameIdx)
+    void drawVisibilityBufferShade(Cmd* cmd)
     {
         RenderTarget* pDestinationRenderTarget = pScreenRenderTarget;
 
@@ -2985,8 +2975,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mWidth, pDestinationRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPipelineVisibilityBufferShadeSrgb[gAppSettings.mEnableAO]);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
 
@@ -2997,9 +2985,7 @@ public:
     void clearLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
         cmdBindPipeline(cmd, pPipelineClearLightClusters);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetClusterLights);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, 1, 1, 1);
     }
 
@@ -3007,9 +2993,7 @@ public:
     void computeLightClusters(Cmd* cmd, uint32_t frameIdx)
     {
         cmdBindPipeline(cmd, pPipelineClusterLights);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetClusterLights);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDispatch(cmd, LIGHT_COUNT, 1, 1);
     }
 
@@ -3035,11 +3019,11 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
 
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Shading Pass");
-        drawVisibilityBufferShade(cmd, frameIdx);
+        drawVisibilityBufferShade(cmd);
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
-    void drawSkybox(Cmd* cmd, int frameIdx)
+    void drawSkybox(Cmd* cmd)
     {
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Draw Skybox");
 
@@ -3054,8 +3038,6 @@ public:
         // Draw the skybox
         const uint32_t stride = sizeof(float) * 4;
         cmdBindPipeline(cmd, pSkyboxPipeline);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &stride, NULL);
 
         cmdDraw(cmd, 36, 0);
@@ -3065,7 +3047,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
-    void drawGodray(Cmd* cmd, uint frameIdx)
+    void drawGodray(Cmd* cmd)
     {
         RenderTargetBarrier barrier[2] = {
             { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
@@ -3084,8 +3066,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pRenderTargetGodRay[0]->mWidth, pRenderTargetGodRay[0]->mHeight);
 
         cmdBindPipeline(cmd, pPipelineGodRayPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdDraw(cmd, 3, 0);
 
         cmdBindRenderTargets(cmd, NULL);
@@ -3113,7 +3093,6 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, renderTargetBarrier);
 
         cmdBindPipeline(cmd, pPipelineGodRayBlurPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
 
         const uint32_t threadGroupSizeX = pRenderTargetGodRay[0]->mWidth / 16 + 1;
         const uint32_t threadGroupSizeY = pRenderTargetGodRay[0]->mHeight / 16 + 1;
@@ -3165,7 +3144,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pCurveConversionRenderTarget->mWidth, pCurveConversionRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPipelineCurveConversionPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
         cmdDraw(cmd, 3, 0);
         cmdBindRenderTargets(cmd, NULL);
 
@@ -3174,7 +3152,7 @@ public:
         cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
     }
 
-    void presentImage(Cmd* const cmd, uint32_t frameIdx, RenderTarget* pSrc, RenderTarget* pDstCol)
+    void presentImage(Cmd* const cmd, RenderTarget* pSrc, RenderTarget* pDstCol)
     {
         cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Present Image");
 
@@ -3191,8 +3169,6 @@ public:
         cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
         cmdBindPipeline(cmd, pPipelinePresentPass);
-        cmdBindDescriptorSet(cmd, 0, pDescriptorSetPersistent);
-        cmdBindDescriptorSet(cmd, frameIdx, pDescriptorSetPerFrame);
         cmdBindDescriptorSet(cmd, gAppSettings.mEnableGodray ? 1 : 0, pDescriptorSetDisplayPerDraw);
         cmdDraw(cmd, 3, 0);
         cmdBindRenderTargets(cmd, NULL);

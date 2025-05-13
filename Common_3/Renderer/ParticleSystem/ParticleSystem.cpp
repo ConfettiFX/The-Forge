@@ -57,6 +57,7 @@ struct ParticleSystemSettings
 
     Texture*  pColorBuffer = NULL;
     Texture*  pDepthBuffer = NULL;
+    Texture*  pShadowMap = NULL;
     Texture** ppParticleTextures = { 0 };
 
     Pipeline* pParticleRenderPipeline = NULL;
@@ -97,6 +98,7 @@ bool initParticleSystem(const ParticleSystemInitDesc* pDesc)
 
     gPSSettings.pColorBuffer = pDesc->pColorBuffer;
     gPSSettings.pDepthBuffer = pDesc->pDepthBuffer;
+    gPSSettings.pShadowMap = pDesc->pShadowMap;
     gPSSettings.ppParticleTextures = pDesc->ppParticleTextures;
 
     gPSSettings.pParticleRenderPipeline = pDesc->pParticleRenderPipeline;
@@ -162,6 +164,10 @@ bool initParticleSystem(const ParticleSystemInitDesc* pDesc)
         params[descriptorCount++].ppTextures = &gPSSettings.pDepthBuffer;
         params[descriptorCount].mIndex = pDesc->mParticleSetBufferIndex;
         params[descriptorCount++].ppBuffers = &gPSSettings.pParticleSetsBuffer;
+        params[descriptorCount].mIndex = pDesc->mShadowMapIndex;
+        params[descriptorCount++].ppTextures = &gPSSettings.pShadowMap;
+        params[descriptorCount].mIndex = pDesc->mShadedSceneIndex;
+        params[descriptorCount++].ppTextures = &gPSSettings.pColorBuffer;
         updateDescriptorSet(gPSSettings.pRenderer, 0, gPSSettings.pDescriptorSetPersistent, descriptorCount, params);
 
         DescriptorData perBatchParams[9] = {};

@@ -29,6 +29,6 @@ BEGIN_SRT(SrtGodrayBlurComp)
 	BEGIN_SRT_SET(PerDraw)
 		DECL_CBUFFER(PerDraw, CBUFFER(BlurRootConstantData), gBlurParams)
 		DECL_ARRAY_RWTEXTURES(PerDraw, RWTex2D(float4), gGodrayTextures, 2)
-    END_SRT_SET(PerDraw)
+	END_SRT_SET(PerDraw)
 END_SRT(SrtGodrayBlurComp)
 

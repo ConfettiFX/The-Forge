@@ -48,6 +48,10 @@ extern "C"
 
     FORGE_API void initScreenshotCapturer(Renderer* pRenderer, Queue* pGraphcisQueue, const char* appName);
 
+    FORGE_API void setScreenshotName(char* pName);
+
+    FORGE_API char* getScreenshotName();
+
     FORGE_API void exitScreenshotCapturer();
 
     FORGE_API void captureScreenshot(ScreenshotDesc* pDesc);
