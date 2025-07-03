@@ -55,8 +55,8 @@ The "lego" High-Level Features supported on all platforms are at the moment:
 
 Please find a link and credits for all open-source packages used at the end of this readme.
 
-<a href="https://discord.gg/hJS54bz" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Discord.png" 
-alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/hJS54bz</a>
+<a href="https://discord.gg/zxPRFzKGqD" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Discord.png" 
+alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/zxPRFzKGqD</a>
 
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
