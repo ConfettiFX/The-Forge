@@ -58,9 +58,6 @@ Please find a link and credits for all open-source packages used at the end of t
 <a href="https://discord.gg/zxPRFzKGqD" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/Discord.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/zxPRFzKGqD</a>
 
-<a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="https://github.com/ConfettiFX/The-Forge-Media/blob/master/Screenshots/twitter.png" 
-alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
-
 The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members/list)
  
 
