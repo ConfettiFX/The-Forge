@@ -300,6 +300,7 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_GGP_FRAME_TOKEN_EXTENSION_NAME,
 #endif
 
+#if !defined(REBIRTH_VULKAN_MINIMAL_EXTENSIONS)
 	VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	VK_EXT_DEVICE_FAULT_EXTENSION_NAME,
 	// Fragment shader interlock extension to be used for ROV type functionality in Vulkan
@@ -367,6 +368,17 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME,
 #if defined(GFX_DEVICE_MEMORY_TRACKING)
     VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
+#endif
+#else
+	/************************************************************************/
+	// Minimal 2D backend path: swapchain + memory allocation + dynamic rendering.
+	// Avoid enabling raytracing/bindless/device-fault extensions that pull large
+	// vendor driver stacks into tiny apps.
+	/************************************************************************/
+	VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+	VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,  // Required by VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+	VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,	  // Required by VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME
+	VK_KHR_MULTIVIEW_EXTENSION_NAME,			  // Required by VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME
 #endif
 	/************************************************************************/
 	/************************************************************************/
@@ -3736,6 +3748,42 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
         ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
         pRenderer->pGpu = &pDesc->pContext->mGpus[pDesc->mGpuIndex];
     }
+
+#if defined(REBIRTH_VULKAN_MINIMAL_EXTENSIONS)
+    GpuDesc* pMinimalGpu = (GpuDesc*)pRenderer->pGpu;
+    pMinimalGpu->mMultiDrawIndirectCount = 0;
+    pMinimalGpu->mRaytracingSupported = 0;
+    pMinimalGpu->mRayPipelineSupported = 0;
+    pMinimalGpu->mRayQuerySupported = 0;
+    pMinimalGpu->m64BitAtomicsSupported = 0;
+    pMinimalGpu->mYCbCrExtension = 0;
+    pMinimalGpu->mFillModeNonSolid = 0;
+    pMinimalGpu->mKHRRayQueryExtension = 0;
+    pMinimalGpu->mAMDGCNShaderExtension = 0;
+    pMinimalGpu->mAMDDrawIndirectCountExtension = 0;
+    pMinimalGpu->mAMDShaderInfoExtension = 0;
+    pMinimalGpu->mDescriptorIndexingExtension = 0;
+    pMinimalGpu->mNonUniformResourceIndexSupported = 0;
+    pMinimalGpu->mBufferDeviceAddressSupported = 0;
+    pMinimalGpu->mDrawIndirectCountExtension = 0;
+    pMinimalGpu->mFragmentShaderInterlockExtension = 0;
+    pMinimalGpu->mBufferDeviceAddressExtension = 0;
+    pMinimalGpu->mAccelerationStructureExtension = 0;
+    pMinimalGpu->mRayTracingPipelineExtension = 0;
+    pMinimalGpu->mRayQueryExtension = 0;
+    pMinimalGpu->mShaderAtomicInt64Extension = 0;
+    pMinimalGpu->mBufferDeviceAddressFeature = 0;
+    pMinimalGpu->mShaderFloatControlsExtension = 0;
+    pMinimalGpu->mSpirv14Extension = 0;
+    pMinimalGpu->mDeferredHostOperationsExtension = 0;
+    pMinimalGpu->mDeviceFaultExtension = 0;
+    pMinimalGpu->mDeviceFaultSupported = 0;
+    pMinimalGpu->mASTCDecodeModeExtension = 0;
+    pMinimalGpu->mDeviceMemoryReportExtension = 0;
+    pMinimalGpu->mAMDBufferMarkerExtension = 0;
+    pMinimalGpu->mAMDDeviceCoherentMemoryExtension = 0;
+    pMinimalGpu->mAMDDeviceCoherentMemorySupported = 0;
+#endif
 
     const GpuDesc* pGpu = pRenderer->pGpu;
 

@@ -313,8 +313,23 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
 
     gpuDesc.mMaxSupportedFeatureLevel = featureLevel;
     gpuDesc.mDedicatedVideoMemory = desc.DedicatedVideoMemory;
-    gpuDesc.mFeatureDataOptions = featureData;
     gpuDesc.mFeatureDataOptions1 = featureData1;
+    gpuDesc.mFeatureDataOptions.DoublePrecisionFloatShaderOps = featureData.DoublePrecisionFloatShaderOps;
+    gpuDesc.mFeatureDataOptions.OutputMergerLogicOp = featureData.OutputMergerLogicOp;
+    gpuDesc.mFeatureDataOptions.MinPrecisionSupport = featureData.MinPrecisionSupport;
+    gpuDesc.mFeatureDataOptions.TiledResourcesTier = featureData.TiledResourcesTier;
+    gpuDesc.mFeatureDataOptions.ResourceBindingTier = featureData.ResourceBindingTier;
+    gpuDesc.mFeatureDataOptions.PSSpecifiedStencilRefSupported = featureData.PSSpecifiedStencilRefSupported;
+    gpuDesc.mFeatureDataOptions.TypedUAVLoadAdditionalFormats = featureData.TypedUAVLoadAdditionalFormats;
+    gpuDesc.mFeatureDataOptions.ROVsSupported = featureData.ROVsSupported;
+    gpuDesc.mFeatureDataOptions.ConservativeRasterizationTier = featureData.ConservativeRasterizationTier;
+    gpuDesc.mFeatureDataOptions.MaxGPUVirtualAddressBitsPerResource = featureData.MaxGPUVirtualAddressBitsPerResource;
+    gpuDesc.mFeatureDataOptions.StandardSwizzle64KBSupported = featureData.StandardSwizzle64KBSupported;
+    gpuDesc.mFeatureDataOptions.CrossNodeSharingTier = featureData.CrossNodeSharingTier;
+    gpuDesc.mFeatureDataOptions.CrossAdapterRowMajorTextureSupported = featureData.CrossAdapterRowMajorTextureSupported;
+    gpuDesc.mFeatureDataOptions.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation =
+        featureData.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation;
+    gpuDesc.mFeatureDataOptions.ResourceHeapTier = featureData.ResourceHeapTier;
 
     // save vendor and model Id as string
     // char hexChar[10];
@@ -331,7 +346,29 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     wcstombs_s(&numConverted, gpuDesc.mName, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
 }
 
-void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE, uint32_t*) {}
+void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t* size)
+{
+    if (!size)
+        return;
+
+    switch (type)
+    {
+    case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+        *size = 4096;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+        *size = 64;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+        *size = 64;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+        *size = 64;
+        break;
+    default:
+        break;
+    }
+}
 
 void hook_modify_swapchain_desc(DXGI_SWAP_CHAIN_DESC1*) {}
 

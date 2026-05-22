@@ -342,10 +342,28 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     wcstombs_s(&numConverted, pGpuDesc->mName, MAX_GPU_VENDOR_STRING_LENGTH, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
 }
 
-void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE a, uint32_t* b)
+void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t* size)
 {
-    UNREF_PARAM(a);
-    UNREF_PARAM(b);
+    if (!size)
+        return;
+
+    switch (type)
+    {
+    case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+        *size = 4096;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+        *size = 64;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+        *size = 64;
+        break;
+    case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+        *size = 64;
+        break;
+    default:
+        break;
+    }
 }
 
 void hook_modify_swapchain_desc(DXGI_SWAP_CHAIN_DESC1* a) { UNREF_PARAM(a); }
